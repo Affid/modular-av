@@ -1,8 +1,9 @@
 # Local setup
 
-Three test tiers (handoff §3 "Testing per module"): unit tests and browser
-tests run anywhere with `pnpm verify`; the third tier runs against a real Foundry
-in WSL, which needs a licence and so never runs in public CI.
+Test tiers (handoff §3 "Testing per module"): unit tests and browser tests
+run anywhere with `pnpm verify`; the service contract (`pnpm test:services`)
+needs Docker; the end-to-end tier (`pnpm test:foundry`) runs against a real
+Foundry in WSL, which needs a licence and so never runs in public CI.
 
 ## Settings
 
@@ -30,6 +31,37 @@ it. `FOUNDRY_ADMIN_PASSWORD` is the local server's administrator password.
 Users, all without passwords: `Gamemaster`, `Gamemaster2` (to test the token
 relay with either GM), `Player1`-`Player3` (Trusted: may broadcast) and
 `Player4` (Player: may not broadcast, by Foundry's default permissions).
+
+## LiveKit in Docker
+
+Both `pnpm test:services` and `pnpm test:foundry` start
+`livekit/livekit-server:v1.13.8 --dev` in Docker (unless a server already
+answers on port 7880) and stop it afterwards. Its development keys are
+`devkey` / `secret`; never use them on a reachable server. Docker Desktop
+runs containers in a VM, so the ports are published on `127.0.0.1` and
+LiveKit announces `127.0.0.1` in its ICE candidates.
+
+To try a call by hand, start it the same way:
+
+```bash
+docker run --rm -p 127.0.0.1:7880:7880 -p 127.0.0.1:7881:7881 \
+  -p 127.0.0.1:7882:7882/udp livekit/livekit-server:v1.13.8 \
+  --dev --bind 0.0.0.0 --node-ip 127.0.0.1
+```
+
+then, in the world as a GM: in Foundry's audio/video configuration, set the
+mode to audio and video (Foundry asks everyone to reload); Modular A/V: "Voice and video service" = LiveKit; Modular A/V:
+LiveKit: server URL `ws://127.0.0.1:7880`, and on each GM's browser the API
+key `devkey` and secret `secret`. Players never see the key or secret: a
+GM's browser signs their tokens, so a GM must be online for players to join.
+
+## End to end
+
+`pnpm test:foundry` needs Foundry running with the test world
+(`pnpm foundry:start`, `pnpm foundry:setup`) and the modules built and
+linked (`pnpm build && pnpm foundry:link`). It sets the world's A/V mode,
+the service and the server URL itself, logs users in with fake devices and
+takes about ten minutes.
 
 ## Windows Chrome over CDP
 

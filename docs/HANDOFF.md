@@ -370,7 +370,7 @@ The contract:
 | `connect()`                                       | Starts the session state machine and **resolves `true` at once**, so push to talk works and `reestablish()` never runs; the real join waits for `ready` and a token, then follows the core's own reconnect policy.                                                                                                        |
 | `toggleAudio` / `toggleBroadcast` / `toggleVideo` | Become session commands (applied in every connection state).                                                                                                                                                                                                                                                              |
 | `world.mode`                                      | The master switch: disabled → the core stays idle; audio-only / video-only → the matching tracks only. A `world.turn` change → reconnect.                                                                                                                                                                                 |
-| Voice activity                                    | One detector only. Preferred: the core's gate owns "voice activity" (and the client reports no levels stream for the local user so `AVMaster`'s detector stays idle); verify in milestone 2 that `AVMaster` then never toggles broadcasting by itself.                                                                    |
+| Voice activity | One detector only. Settled in milestone 2 (end-to-end test): with no levels stream for the local user, `AVMaster`'s detector stays idle and never calls `toggleBroadcast`. Until milestone 3's gate, the core hands it the raw microphone; the gate must then own the intent outright, since `AVMaster` doesn't toggle broadcasting off when detection stops. |
 | Push to talk                                      | Reuse Foundry's `core.pushToTalk` keybinding; never register a second one.                                                                                                                                                                                                                                                |
 | Foundry's dock                                    | It plays audio through its own `<video>` elements: give it **video-only** streams, since the core plays audio (otherwise everyone is heard twice), and apply its volume slider through the core.                                                                                                                          |
 
@@ -1053,3 +1053,45 @@ not loaded until used (bundle-size check per module); a camera effect at its def
 quality ≤ 15% of the main thread; no memory growth over a 2-hour session; an
 idle connected session runs no timers more often than once a second while the
 tab is hidden.
+
+## 10. Findings from milestone 2
+
+Verified while building and testing the vertical slice (core +
+`modular-av-livekit`, Foundry 14.369, livekit-client 2.22.4,
+livekit-server 1.13.8):
+
+- **Foundry's SimplePeer client never re-enables the mic after an unmute in
+  "always" mode** (`toggleAudio` only acts while already broadcasting). The
+  core computes what it sends from the sources of truth (`AVSettings` mute,
+  deafen, permissions, world mode, broadcast intent) instead of trusting
+  the toggle calls.
+- **`AVMaster.onSettingsChanged` checks `keys.includes("world.turn")` on
+  fully flattened keys**, so a TURN change never reconnects. A world-mode
+  change makes Foundry ask every client to reload.
+- **Foundry's `user.active` lags right after a page loads** (a second tab
+  of a user shows as inactive on the GM's side; a fresh page may see no GM
+  online). The token relay asks every GM user and signs for any known
+  user: the server names the sender, who needs a live socket anyway.
+- **A GM's page is busy for seconds after `ready`** (compendium indexing),
+  so token replies can arrive late. Players keep listening for every
+  request they sent while they wait.
+- **LiveKit writes `track.enabled` in `mute()`/`unmute()`** on the track it
+  was given (the core's own). The service calls them only in the direction
+  the core already applied, and the core applies its own state again after
+  each sync. `stopLocalTrackOnUnpublish: false` and `disconnect(false)`
+  keep LiveKit from stopping the core's tracks; refused media is paused
+  (`setEnabled(false)`), not unsubscribed, so it can come back.
+- **`livekit-client` ships pre-bundled** (its dist inlines
+  `@livekit/protocol`, protobuf, `webrtc-adapter`…): the build follows
+  runtime dependencies to list every bundled package in a module's notices,
+  and fails on licences outside MIT/ISC/0BSD/BSD/Apache-2.0.
+- **API changes**: `ServiceConnection.unpublish()`; services register their
+  own Foundry settings, so `ServiceDefinition` lost `settings`/`secrets` and
+  gained `canSignTokens()`, and `signToken(request)` takes no secrets;
+  `ServiceContext` is just the participant. `AVState.local` reports device
+  errors (`microphoneError`, `cameraError`).
+- **Not done yet**: rooms are named after the world id (two installs sharing
+  a LiveKit project with the same world id would share a room); server-side
+  moderation (a modified client keeps its publish rights until it
+  reconnects, though every receiver refuses its media); the token server and
+  the insecure dev mode (§3 auth modes 2 and 3).

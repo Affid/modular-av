@@ -5,19 +5,22 @@ one module per communication service, UI modules that give it a face, and
 optional microphone and camera effects. The design and the reasons behind it
 are in [docs/HANDOFF.md](docs/HANDOFF.md).
 
-Status: milestone 1 (repository, tooling, test infrastructure). Nothing is
-usable at the table yet.
+Status: milestone 2. The core and the LiveKit service work at a table
+through Foundry's own camera dock: join with a token a GM's browser signs,
+hear and see each other, mute, deafen, GM blocks, reconnecting. The dock UI,
+P2P and effects come in later milestones.
 
 ## Packages
 
-| Directory          | Package               | Foundry id   |
-| ------------------ | --------------------- | ------------ |
-| `packages/api`     | `@modular-av/api`     | (types only) |
-| `packages/core`    | `@modular-av/core`    | `modular-av` |
-| `packages/testing` | `@modular-av/testing` | (library)    |
+| Directory          | Package               | Foundry id           |
+| ------------------ | --------------------- | -------------------- |
+| `packages/api`     | `@modular-av/api`     | (types only)         |
+| `packages/core`    | `@modular-av/core`    | `modular-av`         |
+| `packages/livekit` | `@modular-av/livekit` | `modular-av-livekit` |
+| `packages/testing` | `@modular-av/testing` | (library)            |
 
-Later milestones add `livekit`, `livekit-krisp`, `p2p`, `dock`, `kit`,
-`mic-denoise` and `cam-background`.
+Later milestones add `livekit-krisp`, `p2p`, `dock`, `kit`, `mic-denoise`
+and `cam-background`.
 
 ## Development
 
@@ -28,6 +31,8 @@ pnpm install
 pnpm verify            # everything CI would run, locally
 pnpm test          # unit tests (Vitest)
 pnpm test:browser  # browser tests (Playwright, fake devices)
+pnpm test:services # service contract against LiveKit in Docker
+pnpm test:foundry  # end to end in the local Foundry world
 pnpm build         # each module into packages/<dir>/dist
 ```
 
