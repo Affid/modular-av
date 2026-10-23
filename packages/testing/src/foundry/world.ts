@@ -1,9 +1,16 @@
 import {
+  type AVClientSettings,
+  type AVWorldSettings,
+  DEFAULT_AV_WORLD,
+} from "./av-settings.ts";
+import {
+  type ClientHandle,
   createClient,
   type FakeClient,
   type FakeModuleData,
 } from "./client.ts";
 import type { Translations } from "./i18n.ts";
+import { expandObject, mergeObject, setProperty } from "./objects.ts";
 import {
   createSettings,
   type FakeSettingsHandle,
@@ -11,16 +18,27 @@ import {
 } from "./settings.ts";
 import { createSocketNetwork } from "./socket.ts";
 import {
+  canUpdateUser,
   createUser,
   createUsersView,
   type FakeUser,
   type FakeUserData,
+  type UserActions,
+  type UserUpdate,
 } from "./users.ts";
 
 export interface FakeWorldOptions {
   readonly users: readonly FakeUserData[];
   readonly modules?: readonly FakeModuleData[];
   readonly translations?: Translations;
+  readonly world?: { readonly id: string; readonly title: string };
+  /** Unlike Foundry (disabled), A/V defaults to audio and video. */
+  readonly av?: Partial<AVWorldSettings>;
+}
+
+export interface ConnectOptions {
+  /** This browser's `core.rtcClientSettings`. */
+  readonly av?: Partial<AVClientSettings>;
 }
 
 export type UserChanges = Partial<Omit<FakeUserData, "id">>;
@@ -30,11 +48,12 @@ export type UserChanges = Partial<Omit<FakeUserData, "id">>;
  * the socket. Each `connect()` is one browser tab logged in as a user.
  */
 export interface FakeWorld {
-  connect(userId: string): FakeClient;
+  connect(userId: string, options?: ConnectOptions): FakeClient;
   /** As a GM editing a user document; fires `updateUser` on every client. */
   updateUser(userId: string, changes: UserChanges): void;
   /** Waits until every socket message in flight is delivered. */
   settle(): Promise<void>;
+  /** The server's view: these users cannot act. */
   readonly users: readonly FakeUser[];
   /** Errors thrown by socket handlers and setting onChange callbacks. */
   readonly errors: readonly unknown[];
@@ -42,9 +61,11 @@ export interface FakeWorld {
 
 interface Connection {
   readonly userId: string;
-  readonly client: FakeClient;
+  readonly handle: ClientHandle;
   readonly settings: FakeSettingsHandle;
 }
+
+const DEFAULT_WORLD = { id: "test-world", title: "Test World" } as const;
 
 export function createFakeWorld(options: FakeWorldOptions): FakeWorld {
   const network = createSocketNetwork();
@@ -52,28 +73,62 @@ export function createFakeWorld(options: FakeWorldOptions): FakeWorld {
   let connections: readonly Connection[] = [];
   let worldValues = new Map<string, string>();
   let userValues = new Map<string, string>();
-  let users: readonly FakeUser[] = [];
+  let worldAV: AVWorldSettings = { ...DEFAULT_AV_WORLD, ...options.av };
   let settingErrors: readonly unknown[] = [];
 
   const isActive = (id: string): boolean =>
     connections.some((c) => c.userId === id);
-  const rebuildUsers = (): void => {
-    users = userData.map((data) => createUser(data, isActive(data.id)));
+  const dataOf = (id: string): FakeUserData | undefined =>
+    userData.find((u) => u.id === id);
+
+  /** Each client sees the same users, bound to act as that client. */
+  const bindUsers = (actions?: UserActions): (() => readonly FakeUser[]) => {
+    let cache: { data: typeof userData; active: string; users: FakeUser[] } = {
+      data: [],
+      active: "",
+      users: [],
+    };
+    return () => {
+      const active = connections.map((c) => c.userId).join(",");
+      if (cache.data !== userData || cache.active !== active) {
+        const users = userData.map((d) =>
+          createUser(d, isActive(d.id), actions),
+        );
+        cache = { data: userData, active, users };
+      }
+      return cache.users;
+    };
   };
-  rebuildUsers();
-  const usersView = createUsersView(() => users);
+  const serverUsers = createUsersView(bindUsers());
 
   const userChanged = (
     userId: string,
     wasActive: boolean,
     except?: FakeClient,
   ): void => {
-    rebuildUsers();
     if (wasActive === isActive(userId)) return;
-    const user = usersView.get(userId);
     for (const c of connections) {
-      if (c.client !== except)
-        c.client.Hooks.callAll("userConnected", user, isActive(userId));
+      const client = c.handle.client;
+      if (client !== except)
+        client.Hooks.callAll(
+          "userConnected",
+          client.game.users.get(userId),
+          isActive(userId),
+        );
+    }
+  };
+
+  const applyUpdate = (userId: string, changes: UserUpdate): void => {
+    userData = userData.map((u) =>
+      u.id === userId ? mergeObject(u, changes) : u,
+    );
+    for (const c of connections) {
+      const client = c.handle.client;
+      client.Hooks.callAll(
+        "updateUser",
+        client.game.users.get(userId),
+        changes,
+      );
     }
   };
 
@@ -99,33 +154,69 @@ export function createFakeWorld(options: FakeWorldOptions): FakeWorld {
       }
     },
     canWriteWorld: () =>
-      usersView.get(userId)?.hasPermission("SETTINGS_MODIFY") ?? false,
+      serverUsers.get(userId)?.hasPermission("SETTINGS_MODIFY") ?? false,
   });
 
-  const connect = (userId: string): FakeClient => {
-    if (!userData.some((u) => u.id === userId))
-      throw new Error(`unknown user "${userId}"`);
+  const actionsFor = (userId: string): UserActions => ({
+    selfId: userId,
+    update(target, flat) {
+      const actor = dataOf(userId);
+      const subject = dataOf(target);
+      const changes = expandObject(flat);
+      if (!actor || !subject || !canUpdateUser(actor, subject, changes)) {
+        return Promise.reject(
+          new Error(`User ${userId} may not update User ${target}`),
+        );
+      }
+      applyUpdate(target, changes);
+      return Promise.resolve();
+    },
+    broadcastActivity(activity) {
+      const connection = connections.find((c) => c.userId === userId);
+      connection?.handle.client.game.socket.emit("userActivity", activity);
+    },
+  });
+
+  const writeWorldAV = (userId: string, path: string, value: unknown): void => {
+    if (!serverUsers.get(userId)?.hasPermission("SETTINGS_MODIFY"))
+      throw new Error(`User ${userId} may not modify the world A/V settings`);
+    worldAV = setProperty(worldAV, path, value);
+    for (const c of connections) c.handle.worldAVChanged(path, value);
+  };
+
+  const connect = (
+    userId: string,
+    connectOptions?: ConnectOptions,
+  ): FakeClient => {
+    if (!dataOf(userId)) throw new Error(`unknown user "${userId}"`);
     const wasActive = isActive(userId);
     const { socket, detach } = network.attach(userId);
     let ready = (): boolean => false;
     const settings = createSettings(sharedStore(userId), () => ready());
-    const client = createClient({
+    const handle = createClient({
       userId,
-      readUsers: usersView,
+      readUsers: createUsersView(bindUsers(actionsFor(userId))),
       settings: settings.settings,
       socket,
       modules: options.modules ?? [],
       translations: options.translations ?? {},
+      world: options.world ?? DEFAULT_WORLD,
+      avClient: connectOptions?.av ?? {},
+      readWorldAV: () => worldAV,
+      writeWorldAV: (path, value) => {
+        writeWorldAV(userId, path, value);
+      },
       onDisconnect: () => {
-        if (!connections.some((c) => c.client === client)) return;
+        if (!connections.some((c) => c.handle === handle)) return;
         const wasStillActive = isActive(userId);
         detach();
-        connections = connections.filter((c) => c.client !== client);
+        connections = connections.filter((c) => c.handle !== handle);
         userChanged(userId, wasStillActive);
       },
     });
+    const client = handle.client;
     ready = () => client.game.ready;
-    connections = [...connections, { userId, client, settings }];
+    connections = [...connections, { userId, handle, settings }];
     userChanged(userId, wasActive, client);
     return client;
   };
@@ -133,17 +224,11 @@ export function createFakeWorld(options: FakeWorldOptions): FakeWorld {
   return {
     connect,
     updateUser(userId, changes) {
-      userData = userData.map((u) =>
-        u.id === userId ? { ...u, ...changes } : u,
-      );
-      rebuildUsers();
-      const user = usersView.get(userId);
-      for (const c of connections)
-        c.client.Hooks.callAll("updateUser", user, changes);
+      applyUpdate(userId, changes);
     },
     settle: () => network.settle(),
     get users() {
-      return users;
+      return serverUsers.contents;
     },
     get errors() {
       return [...network.errors, ...settingErrors];

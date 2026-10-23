@@ -1,7 +1,26 @@
+export {
+  FakeAVClient,
+  FakeCameraViews,
+  FakeDefaultAVClient,
+} from "./foundry/av-classes.ts";
+export type { CameraRender } from "./foundry/av-classes.ts";
+export { FakeAVMaster } from "./foundry/av-master.ts";
+export type { AVClientClass } from "./foundry/av-master.ts";
+export { AV_MODES } from "./foundry/av-settings.ts";
+export type {
+  AVActivity,
+  AVClientSettings,
+  AVSettingsDiff,
+  AVUserEntry,
+  AVUserSettings,
+  AVWorldSettings,
+  FakeAVSettings,
+} from "./foundry/av-settings.ts";
 export { createHooks } from "./foundry/hooks.ts";
 export type { FakeHooks, HookError } from "./foundry/hooks.ts";
 export { createFakeWorld } from "./foundry/world.ts";
 export type {
+  ConnectOptions,
   FakeWorld,
   FakeWorldOptions,
   UserChanges,
@@ -27,10 +46,23 @@ export type {
   FakeUser,
   FakeUserData,
   FakeUsers,
+  UserFlags,
   UserRole,
+  UserUpdate,
 } from "./foundry/users.ts";
 
 export { createFakeTrack, fakeTrackInfo } from "./service/fake-track.ts";
 export type { FakeTrackInfo } from "./service/fake-track.ts";
 export { createMockServiceHub, MockServiceFailure } from "./service/hub.ts";
 export type { MockServiceHub, MockServiceOptions } from "./service/hub.ts";
+
+export {
+  createFakeMediaEnv,
+  createFakeVideoElement,
+} from "./media/fake-media-env.ts";
+export type {
+  FakeAudioOutput,
+  FakeAudioOutputState,
+  FakeMediaEnv,
+  FakeMediaEnvOptions,
+} from "./media/fake-media-env.ts";

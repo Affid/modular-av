@@ -30,6 +30,11 @@ export default tseslint.config(
       "no-console": "error",
       "@typescript-eslint/consistent-type-imports": "error",
       "@typescript-eslint/no-explicit-any": "error",
+      // Overrides of Foundry methods keep their parameters, unused or not.
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_" },
+      ],
       "@typescript-eslint/restrict-template-expressions": [
         "error",
         { allowNumber: true },

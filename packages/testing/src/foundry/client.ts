@@ -1,3 +1,16 @@
+import {
+  FakeAVClient,
+  FakeCameraViews,
+  FakeDefaultAVClient,
+} from "./av-classes.ts";
+import { type AVClientClass, FakeAVMaster } from "./av-master.ts";
+import {
+  AV_MODES,
+  type AVClientSettings,
+  type AVWorldSettings,
+  createAVSettings,
+  type FakeAVSettingsHandle,
+} from "./av-settings.ts";
 import { createHooks, type FakeHooks } from "./hooks.ts";
 import { createI18n, type FakeI18n, type Translations } from "./i18n.ts";
 import type { FakeSettings } from "./settings.ts";
@@ -28,12 +41,15 @@ export interface FakeGame {
   readonly socket: FakeSocket;
   readonly modules: ReadonlyMap<string, FakeModule>;
   readonly i18n: FakeI18n;
+  readonly world: { readonly id: string; readonly title: string };
   readonly ready: boolean;
+  /** Created between `setup` and `ready`, as `game.initializeRTC` does. */
+  readonly webrtc: FakeAVMaster | null;
 }
 
 export interface FakeConfig {
-  WebRTC: Record<string, unknown>;
-  ui: Record<string, unknown>;
+  WebRTC: { clientClass: AVClientClass; [key: string]: unknown };
+  ui: { webrtc: new () => FakeCameraViews; [key: string]: unknown };
   [key: string]: unknown;
 }
 
@@ -46,17 +62,42 @@ type Notify = (message: string) => Notification;
 
 export interface FakeUi {
   readonly notifications: { info: Notify; warn: Notify; error: Notify };
+  /** Created after `setup` from `CONFIG.ui.webrtc`. */
+  webrtc: FakeCameraViews | null;
 }
+
+/** The `foundry` namespace, as far as A/V subclasses need it. */
+export const FOUNDRY_NAMESPACE = Object.freeze({
+  av: Object.freeze({
+    AVClient: FakeAVClient,
+    AVSettings: Object.freeze({ AV_MODES }),
+  }),
+  applications: Object.freeze({
+    apps: Object.freeze({
+      av: Object.freeze({ CameraViews: FakeCameraViews }),
+    }),
+  }),
+  utils: Object.freeze({
+    /** Foundry adds its route prefix; the fake world has none. */
+    getRoute: (path: string) => `/${path.replace(/^\/+/, "")}`,
+  }),
+});
 
 export interface FakeClient {
   readonly game: FakeGame;
   readonly Hooks: FakeHooks;
   readonly CONFIG: FakeConfig;
   readonly ui: FakeUi;
+  readonly foundry: typeof FOUNDRY_NAMESPACE;
   readonly notifications: readonly Notification[];
-  /** Puts `game`, `Hooks`, `CONFIG` and `ui` on `target`; returns an undo. */
+  /** Rejections nobody awaited, such as `game.webrtc.connect()` at startup. */
+  readonly errors: readonly unknown[];
+  /** Puts `game`, `Hooks`, `CONFIG`, `ui` and `foundry` on `target`; returns an undo. */
   install(target?: object): () => void;
-  /** Calls `init`, `setup` and `ready` as Foundry does at startup. */
+  /**
+   * Runs Foundry's startup: `init`, `setup`, then `game.webrtc` (connect
+   * started, not awaited) and `ui.webrtc`, then `ready`.
+   */
   runLifecycle(): void;
   disconnect(): void;
 }
@@ -68,26 +109,30 @@ export interface ClientParts {
   readonly socket: FakeSocket;
   readonly modules: readonly FakeModuleData[];
   readonly translations: Translations;
+  readonly world: { readonly id: string; readonly title: string };
+  readonly avClient: Partial<AVClientSettings>;
+  readWorldAV(): AVWorldSettings;
+  /** Throws unless this client's user may write world settings. */
+  writeWorldAV(path: string, value: unknown): void;
   readonly onDisconnect: () => void;
 }
 
-const GLOBAL_NAMES = ["game", "Hooks", "CONFIG", "ui"] as const;
+const GLOBAL_NAMES = ["game", "Hooks", "CONFIG", "ui", "foundry"] as const;
 
-export function createClient(parts: ClientParts): FakeClient {
-  const hooks = createHooks();
-  let ready = false;
-  let notifications: readonly Notification[] = [];
+/** The socket event Foundry's server relays user activity on. */
+export const USER_ACTIVITY_EVENT = "userActivity";
 
-  const notify =
-    (type: Notification["type"]): Notify =>
-    (message) => {
-      const entry = { type, message };
-      notifications = [...notifications, entry];
-      return entry;
-    };
+export interface ClientHandle {
+  readonly client: FakeClient;
+  /** The shared A/V world settings changed. */
+  worldAVChanged(path: string, value: unknown): void;
+}
 
-  const modules = new Map<string, FakeModule>(
-    parts.modules.map((m) => [
+function createModules(
+  data: readonly FakeModuleData[],
+): ReadonlyMap<string, FakeModule> {
+  return new Map<string, FakeModule>(
+    data.map((m) => [
       m.id,
       {
         id: m.id,
@@ -97,6 +142,23 @@ export function createClient(parts: ClientParts): FakeClient {
       },
     ]),
   );
+}
+
+export function createClient(parts: ClientParts): ClientHandle {
+  const hooks = createHooks();
+  let ready = false;
+  let webrtc: FakeAVMaster | null = null;
+  let avSettings: FakeAVSettingsHandle | null = null;
+  let notifications: readonly Notification[] = [];
+  let errors: readonly unknown[] = [];
+
+  const notify =
+    (type: Notification["type"]): Notify =>
+    (message) => {
+      const entry = { type, message };
+      notifications = [...notifications, entry];
+      return entry;
+    };
 
   const game: FakeGame = {
     get user() {
@@ -108,26 +170,72 @@ export function createClient(parts: ClientParts): FakeClient {
     users: parts.readUsers,
     settings: parts.settings,
     socket: parts.socket,
-    modules,
+    modules: createModules(parts.modules),
     i18n: createI18n(parts.translations),
+    world: parts.world,
     get ready() {
       return ready;
     },
+    get webrtc() {
+      return webrtc;
+    },
+  };
+
+  const ui: FakeUi = {
+    notifications: {
+      info: notify("info"),
+      warn: notify("warn"),
+      error: notify("error"),
+    },
+    webrtc: null,
+  };
+
+  parts.socket.on(USER_ACTIVITY_EVENT, (data, senderId) => {
+    const av = (data as { av?: object } | null)?.av;
+    if (av) avSettings?.settings.handleUserActivity(senderId, av);
+  });
+
+  const initializeRTC = (clientClass: AVClientClass): void => {
+    avSettings = createAVSettings({
+      selfId: parts.userId,
+      users: parts.readUsers,
+      client: parts.avClient,
+      readWorld: () => parts.readWorldAV(),
+      writeWorld: (path, value) => {
+        parts.writeWorldAV(path, value);
+      },
+      avClient: () => webrtc?.client ?? null,
+      onChanged: (changed) => webrtc?.onSettingsChanged(changed),
+      cameraViews: () => ui.webrtc,
+    });
+    webrtc = new FakeAVMaster({
+      selfId: parts.userId,
+      settings: avSettings.settings,
+      clientClass,
+      cameraViews: () => ui.webrtc,
+      broadcastActivity: (activity) => {
+        parts.socket.emit(USER_ACTIVITY_EVENT, activity);
+      },
+    });
+    webrtc.connect().catch((error: unknown) => {
+      errors = [...errors, error];
+    });
   };
 
   const client: FakeClient = {
     game,
     Hooks: hooks,
-    CONFIG: { WebRTC: {}, ui: {} },
-    ui: {
-      notifications: {
-        info: notify("info"),
-        warn: notify("warn"),
-        error: notify("error"),
-      },
+    CONFIG: {
+      WebRTC: { clientClass: FakeDefaultAVClient },
+      ui: { webrtc: FakeCameraViews },
     },
+    ui,
+    foundry: FOUNDRY_NAMESPACE,
     get notifications() {
       return notifications;
+    },
+    get errors() {
+      return errors;
     },
     install(target: object = globalThis) {
       const slots = target as Record<string, unknown>;
@@ -145,10 +253,17 @@ export function createClient(parts: ClientParts): FakeClient {
     runLifecycle() {
       hooks.callAll("init");
       hooks.callAll("setup");
+      initializeRTC(client.CONFIG.WebRTC.clientClass);
+      ui.webrtc = new client.CONFIG.ui.webrtc();
       ready = true;
       hooks.callAll("ready");
     },
     disconnect: parts.onDisconnect,
   };
-  return client;
+  return {
+    client,
+    worldAVChanged(path, value) {
+      avSettings?.worldChanged(path, value);
+    },
+  };
 }
