@@ -9,7 +9,7 @@
   },
   "scripts": {
     "build": "pnpm --recursive --if-present run build",
-    "typecheck": "pnpm --recursive --if-present run typecheck && tsc --noEmit -p tools && tsc --noEmit -p .",
+    "typecheck": "pnpm --recursive --if-present run typecheck && tsc --noEmit -p tools && tsc --noEmit -p scripts && tsc --noEmit -p .",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -20,7 +20,11 @@
     "test:browser": "playwright test",
     "ci": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm lang:check && pnpm test:coverage && pnpm build && pnpm size:check && pnpm test:browser",
     "release:pack": "node tools/release/cli.ts pack",
-    "release:publish": "node tools/release/cli.ts publish"
+    "release:publish": "node tools/release/cli.ts publish",
+    "foundry:start": "scripts/foundry/start.sh",
+    "foundry:link": "node scripts/foundry/link-modules.ts",
+    "foundry:setup": "node scripts/foundry/setup-world.ts",
+    "foundry:check": "node scripts/foundry/check-world.ts"
   },
   "devDependencies": {
     "@changesets/cli": "^3.0.3",
