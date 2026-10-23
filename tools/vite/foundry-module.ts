@@ -1,6 +1,13 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Plugin, UserConfig } from "vite";
+import {
+  disallowed,
+  packageDirs,
+  readPackage,
+  renderNotices,
+  withDependencies,
+} from "../notices/notices.ts";
 import { distManifest } from "../release/manifest.ts";
 import { ROOT } from "../workspace.ts";
 
@@ -14,7 +21,7 @@ const readJson = (path: string): Record<string, unknown> =>
 function foundryFiles(packageDir: string, version: string): Plugin {
   return {
     name: "modular-av:foundry-files",
-    generateBundle() {
+    async generateBundle(_options, bundle) {
       const source = readJson(join(packageDir, "module.json"));
       const emit = (fileName: string, text: string): void => {
         this.emitFile({ type: "asset", fileName, source: text });
@@ -30,10 +37,25 @@ function foundryFiles(packageDir: string, version: string): Plugin {
         );
       }
       emit("LICENSE", readFileSync(join(ROOT, "LICENSE"), "utf8"));
-      emit(
-        "THIRD-PARTY-NOTICES.md",
-        readFileSync(join(packageDir, "THIRD-PARTY-NOTICES.md"), "utf8"),
+      const moduleIds = Object.values(bundle).flatMap((output) =>
+        output.type === "chunk" ? Object.keys(output.modules) : [],
       );
+      const dirs = await withDependencies(packageDirs(moduleIds));
+      const bundled = (await Promise.all(dirs.map(readPackage))).sort((a, b) =>
+        a.name.localeCompare(b.name),
+      );
+      const refused = disallowed(bundled);
+      if (refused.length > 0)
+        this.error(
+          `bundles code under licences no module may ship (handoff §2): ${refused
+            .map((p) => `${p.name} (${p.license})`)
+            .join(", ")}`,
+        );
+      const header = readFileSync(
+        join(packageDir, "THIRD-PARTY-NOTICES.md"),
+        "utf8",
+      );
+      emit("THIRD-PARTY-NOTICES.md", renderNotices(header, bundled));
     },
   };
 }

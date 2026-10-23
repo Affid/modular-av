@@ -39,9 +39,34 @@ export function releaseUrls(id: string, version: string): ReleaseUrls {
   };
 }
 
+type Json = Readonly<Record<string, unknown>>;
+
+const isJson = (value: unknown): value is Json =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+/**
+ * Family modules release in lockstep until 1.0, so each one requires the
+ * others at its own version: Foundry's dependency check then means something.
+ */
+function lockstepRequires(source: Json, version: string): Json {
+  const relationships = source.relationships;
+  if (!isJson(relationships) || !Array.isArray(relationships.requires))
+    return source;
+  const requires = (relationships.requires as unknown[]).map((entry) => {
+    if (!isJson(entry) || typeof entry.id !== "string" || !ID.test(entry.id))
+      return entry;
+    if ("compatibility" in entry)
+      throw new Error(
+        `compatibility with "${entry.id}" is generated: remove it from module.json`,
+      );
+    return { ...entry, compatibility: { minimum: version } };
+  });
+  return { ...source, relationships: { ...relationships, requires } };
+}
+
 /** The `module.json` that goes into `dist/`: the source plus generated fields. */
 export function distManifest(
-  source: Readonly<Record<string, unknown>>,
+  source: Json,
   version: string,
   urls?: ReleaseUrls,
 ): Record<string, unknown> {
@@ -49,5 +74,5 @@ export function distManifest(
     if (field in source)
       throw new Error(`"${field}" is generated: remove it from module.json`);
   }
-  return { ...source, version, ...urls };
+  return { ...lockstepRequires(source, version), version, ...urls };
 }

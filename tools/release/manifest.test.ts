@@ -70,4 +70,45 @@ describe("distManifest", () => {
       distManifest({ ...source, version: "9.9.9" }, "0.1.0"),
     ).toThrow(/"version" is generated/);
   });
+
+  it("requires family modules at this version, as releases are lockstep", () => {
+    const livekit = {
+      id: "modular-av-livekit",
+      relationships: {
+        requires: [
+          { id: "modular-av", type: "module" },
+          { id: "other", type: "module" },
+        ],
+        recommends: [{ id: "modular-av-dock", type: "module" }],
+      },
+    };
+
+    expect(distManifest(livekit, "0.2.0").relationships).toEqual({
+      requires: [
+        {
+          id: "modular-av",
+          type: "module",
+          compatibility: { minimum: "0.2.0" },
+        },
+        { id: "other", type: "module" },
+      ],
+      recommends: [{ id: "modular-av-dock", type: "module" }],
+    });
+  });
+
+  it("refuses a family requirement with its own compatibility", () => {
+    expect(() =>
+      distManifest(
+        {
+          id: "modular-av-livekit",
+          relationships: {
+            requires: [
+              { id: "modular-av", compatibility: { minimum: "0.1.0" } },
+            ],
+          },
+        },
+        "0.2.0",
+      ),
+    ).toThrow(/compatibility with "modular-av" is generated/);
+  });
 });
