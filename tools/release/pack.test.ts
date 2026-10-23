@@ -49,6 +49,14 @@ describe("packModule", () => {
     });
   });
 
+  it("gives the same bytes for the same build", async () => {
+    const first = await packModule(dist, "modular-av", "0.1.0");
+    await new Promise((resolve) => setTimeout(resolve, 2100));
+    const second = await packModule(dist, "modular-av", "0.1.0");
+
+    expect(Buffer.from(second.zip).equals(Buffer.from(first.zip))).toBe(true);
+  });
+
   it("refuses a build whose version does not match the release", async () => {
     await expect(packModule(dist, "modular-av", "0.2.0")).rejects.toThrow(
       /dist\/module.json has version 0.1.0, expected 0.2.0/,

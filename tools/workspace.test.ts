@@ -48,4 +48,13 @@ describe("listModulePackages", () => {
       },
     ]);
   });
+
+  it("fails loudly on a module.json that does not parse", async () => {
+    root = await mkdtemp(join(tmpdir(), "mav-ws-"));
+    await mkdir(join(root, "packages", "broken"), { recursive: true });
+    await writeFile(join(root, "packages", "broken", "module.json"), "{ nope");
+    await writeFile(join(root, "packages", "broken", "package.json"), "{}");
+
+    await expect(listModulePackages(root)).rejects.toThrow(/broken/);
+  });
 });

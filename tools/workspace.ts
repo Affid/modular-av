@@ -11,33 +11,41 @@ export interface ModulePackage {
   readonly version: string;
 }
 
+const isMissing = (error: unknown): boolean =>
+  error instanceof Error && "code" in error && error.code === "ENOENT";
+
+async function readModule(dir: string): Promise<readonly ModulePackage[]> {
+  let manifestText: string;
+  try {
+    manifestText = await readFile(join(dir, "module.json"), "utf8");
+  } catch (error: unknown) {
+    if (isMissing(error)) return []; // a library package, not a Foundry module
+    throw error;
+  }
+  try {
+    const manifest = JSON.parse(manifestText) as { id?: unknown };
+    const pkg = JSON.parse(
+      await readFile(join(dir, "package.json"), "utf8"),
+    ) as {
+      version?: unknown;
+    };
+    if (typeof manifest.id !== "string" || typeof pkg.version !== "string")
+      return [];
+    return [{ dir, id: manifest.id, version: pkg.version }];
+  } catch (error: unknown) {
+    throw new Error(`${dir}: cannot read module.json or package.json`, {
+      cause: error,
+    });
+  }
+}
+
 /** Workspace packages that are Foundry modules (have a `module.json`). */
 export async function listModulePackages(
   root = ROOT,
 ): Promise<readonly ModulePackage[]> {
-  const names = await readdir(join(root, "packages"));
+  const names = (await readdir(join(root, "packages"))).sort();
   const found = await Promise.all(
-    names.sort().map(async (name) => {
-      const dir = join(root, "packages", name);
-      try {
-        const manifest = JSON.parse(
-          await readFile(join(dir, "module.json"), "utf8"),
-        ) as {
-          id?: unknown;
-        };
-        const pkg = JSON.parse(
-          await readFile(join(dir, "package.json"), "utf8"),
-        ) as {
-          version?: unknown;
-        };
-        if (typeof manifest.id !== "string" || typeof pkg.version !== "string")
-          return [];
-        return [{ dir, id: manifest.id, version: pkg.version }];
-      } catch {
-        // Not a Foundry module (no module.json): a library package.
-        return [];
-      }
-    }),
+    names.map((name) => readModule(join(root, "packages", name))),
   );
   return found.flat();
 }

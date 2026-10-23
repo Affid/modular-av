@@ -3,6 +3,9 @@ import { join, relative, sep } from "node:path";
 import { strToU8, zipSync } from "fflate";
 import { releaseUrls } from "./manifest.ts";
 
+/** A fixed file time, so the same build always gives the same zip. */
+const ZIP_MTIME = new Date("2026-01-01T00:00:00Z");
+
 export interface PackedModule {
   /** The release `module.json`: also published on the manifests branch. */
   readonly manifest: Readonly<Record<string, unknown>>;
@@ -52,5 +55,8 @@ export async function packModule(
           ] as const),
     ),
   );
-  return { manifest, zip: zipSync(Object.fromEntries(contents), { level: 9 }) };
+  return {
+    manifest,
+    zip: zipSync(Object.fromEntries(contents), { level: 9, mtime: ZIP_MTIME }),
+  };
 }
