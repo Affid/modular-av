@@ -16,13 +16,18 @@ export interface ReleaseUrls {
 }
 
 export function tagFor(id: string, version: string): string {
-  if (!VERSION.test(version)) throw new Error(`"${version}" is not a semver version`);
+  if (!VERSION.test(version))
+    throw new Error(`"${version}" is not a semver version`);
   return `${id}-v${version}`;
 }
 
-export function parseTag(tag: string): { id: string; version: string } | undefined {
+export function parseTag(
+  tag: string,
+): { id: string; version: string } | undefined {
   const match = TAG.exec(tag);
-  return match?.[1] && match[2] ? { id: match[1], version: match[2] } : undefined;
+  return match?.[1] && match[2]
+    ? { id: match[1], version: match[2] }
+    : undefined;
 }
 
 export function releaseUrls(id: string, version: string): ReleaseUrls {
@@ -39,7 +44,8 @@ export function distManifest(
   urls?: ReleaseUrls,
 ): Record<string, unknown> {
   for (const field of GENERATED_FIELDS) {
-    if (field in source) throw new Error(`"${field}" is generated: remove it from module.json`);
+    if (field in source)
+      throw new Error(`"${field}" is generated: remove it from module.json`);
   }
   return { ...source, version, ...urls };
 }

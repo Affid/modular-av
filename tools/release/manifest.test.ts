@@ -49,7 +49,10 @@ describe("distManifest", () => {
   it("adds the version, and the URLs for a release", () => {
     const urls = releaseUrls("modular-av", "0.1.0");
 
-    expect(distManifest(source, "0.1.0")).toEqual({ ...source, version: "0.1.0" });
+    expect(distManifest(source, "0.1.0")).toEqual({
+      ...source,
+      version: "0.1.0",
+    });
     expect(distManifest(source, "0.1.0", urls)).toEqual({
       ...source,
       version: "0.1.0",
@@ -58,8 +61,8 @@ describe("distManifest", () => {
   });
 
   it("refuses a source manifest that sets generated fields", () => {
-    expect(() => distManifest({ ...source, version: "9.9.9" }, "0.1.0")).toThrow(
-      /"version" is generated/,
-    );
+    expect(() =>
+      distManifest({ ...source, version: "9.9.9" }, "0.1.0"),
+    ).toThrow(/"version" is generated/);
   });
 });

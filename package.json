@@ -24,7 +24,9 @@
     "foundry:start": "scripts/foundry/start.sh",
     "foundry:link": "node scripts/foundry/link-modules.ts",
     "foundry:setup": "node scripts/foundry/setup-world.ts",
-    "foundry:check": "node scripts/foundry/check-world.ts"
+    "foundry:check": "node scripts/foundry/check-world.ts",
+    "changeset": "changeset",
+    "version": "changeset version && pnpm install --lockfile-only"
   },
   "devDependencies": {
     "@changesets/cli": "^3.0.3",
