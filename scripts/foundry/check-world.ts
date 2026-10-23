@@ -9,6 +9,7 @@ import { loadFoundryEnv } from "./env.ts";
 import { joinAs } from "./session.ts";
 
 const USERS = ["Gamemaster", "Player1"] as const;
+const CORE_ID = "modular-av";
 const OUT = join(ROOT, "test-results", "foundry");
 
 interface ModuleState {
@@ -77,6 +78,10 @@ async function checkUser(
       ),
     ) as { version: string };
     if (!state.active) problems.push(`${state.id} is not active`);
+    // Only the core must have an API; a module that has one must keep it
+    // versioned and frozen.
+    const hasApi = state.apiVersion !== undefined;
+    if (!hasApi && state.id !== CORE_ID) continue;
     if (state.apiVersion !== built.version)
       problems.push(`${state.id} api version ${String(state.apiVersion)}`);
     if (!state.apiFrozen) problems.push(`${state.id} api is not frozen`);

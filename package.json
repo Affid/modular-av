@@ -19,6 +19,7 @@
     "test:coverage": "vitest run --coverage",
     "test:browser": "playwright test",
     "test:services": "playwright test -c playwright.services.config.ts",
+    "test:foundry": "playwright test -c playwright.foundry.config.ts",
     "release:pack": "node tools/release/cli.ts pack",
     "release:publish": "node tools/release/cli.ts publish",
     "foundry:start": "scripts/foundry/start.sh",
@@ -32,6 +33,7 @@
   "devDependencies": {
     "@changesets/cli": "^3.0.3",
     "@eslint/js": "^10.0.1",
+    "@modular-av/api": "workspace:*",
     "@playwright/test": "1.64.1",
     "@types/node": "^24.19.2",
     "@vitest/coverage-v8": "^5.0.5",

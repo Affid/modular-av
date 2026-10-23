@@ -15,6 +15,8 @@ export default defineConfig({
         "**/cli.ts",
         "packages/api/**",
         "packages/testing/src/harness/**",
+        // Playwright suites, run by pnpm test:services.
+        "packages/testing/src/contract/**",
         "tools/vite/**",
       ],
       thresholds: { lines: 80, functions: 80, branches: 80, statements: 80 },

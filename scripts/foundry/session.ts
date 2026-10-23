@@ -1,5 +1,5 @@
 // Logging users into the running world and acting inside Foundry's client.
-import type { Browser, Page } from "@playwright/test";
+import type { Browser, BrowserContextOptions, Page } from "@playwright/test";
 
 const READY_TIMEOUT_MS = 60_000;
 
@@ -14,9 +14,11 @@ export async function joinAs(
   browser: Browser,
   url: string,
   userName: string,
+  contextOptions: BrowserContextOptions = {},
 ): Promise<Page> {
   const context = await browser.newContext({
     viewport: { width: 1600, height: 1000 },
+    ...contextOptions,
   });
   const page = await context.newPage();
   await page.goto(`${url}/join`);
