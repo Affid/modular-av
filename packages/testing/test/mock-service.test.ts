@@ -306,10 +306,11 @@ describe("mock service", () => {
     await alice.publish(createFakeTrack("audio"), "microphone");
 
     await gm.moderation?.forceMute("alice", "microphone");
+    const mutedBeforeRemoval = hub.isMuted("alice", "microphone");
     await gm.moderation?.remove("alice");
 
     expect(gm.capabilities.get().moderation).toBe(true);
-    expect(hub.isMuted("alice", "microphone")).toBe(true);
+    expect(mutedBeforeRemoval).toBe(true);
     expect(states).toEqual([["failed", { code: "kicked", final: true }]]);
     expect(await gm.getStats()).toEqual({ roundTripMs: 20, packetLoss: 0 });
   });
@@ -324,6 +325,95 @@ describe("mock service", () => {
     expect(connection.moderation).toBeUndefined();
     expect(connection.capabilities.get().moderation).toBe(false);
     expect(seen).not.toHaveBeenCalled();
+  });
+});
+
+describe("mock service edge cases", () => {
+  it("stops a connect aborted during the network wait", async () => {
+    // Arrange
+    const hub = createMockServiceHub();
+    const connection = await hub
+      .definition()
+      .create({ participant: "p1", settings: {} });
+    const controller = new AbortController();
+    const token = hub.signToken({
+      participant: "p1",
+      room: ROOM.name,
+      canPublish: { audio: true, video: true },
+      ttlSeconds: 60,
+    });
+
+    // Act
+    const result = connection.connect(ROOM, token, controller.signal);
+    controller.abort();
+
+    // Assert
+    await expect(result).rejects.toThrow(/abort/i);
+    expect(hub.participants(ROOM.name)).toEqual([]);
+  });
+
+  it("says so when connecting twice", async () => {
+    const hub = createMockServiceHub();
+    const connection = await join(hub, "p1");
+
+    await expect(
+      connection.connect(ROOM, "x", new AbortController().signal),
+    ).rejects.toThrow(/already connected/);
+  });
+
+  it("keeps the final state when disconnecting after a failure", async () => {
+    const hub = createMockServiceHub();
+    const connection = await join(hub, "p1");
+    hub.kick("p1");
+    const states = record(connection, "state");
+
+    await connection.disconnect("user");
+
+    expect(states).toEqual([]);
+  });
+
+  it("forgets mute and subscriptions when a participant leaves", async () => {
+    const hub = createMockServiceHub();
+    const alice = await join(hub, "alice");
+    const mic = await alice.publish(createFakeTrack("audio"), "microphone");
+    await alice.setMuted(mic, true);
+    alice.setSubscription("bob", "camera", { enabled: false });
+
+    await alice.disconnect("user");
+
+    expect(hub.isMuted("alice", "microphone")).toBe(false);
+    expect(hub.subscription("alice", "bob", "camera")).toBeUndefined();
+  });
+
+  it("lists the joiner in the room before telling the others", async () => {
+    const hub = createMockServiceHub();
+    const alice = await join(hub, "alice");
+    let seen: readonly string[] = [];
+    alice.on("participantJoined", () => {
+      seen = hub.participants(ROOM.name);
+    });
+
+    await join(hub, "bob");
+
+    expect(seen).toEqual(["alice", "bob"]);
+  });
+
+  it("isolates a throwing handler and removes only one registration", async () => {
+    const hub = createMockServiceHub();
+    const alice = await join(hub, "alice");
+    const handler = vi.fn();
+    alice.on("participantJoined", () => {
+      throw new Error("ui bug");
+    });
+    alice.on("participantJoined", handler);
+    const off = alice.on("participantJoined", handler);
+    off();
+
+    await join(hub, "bob");
+
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect(hub.errors).toHaveLength(1);
+    expect(hub.participants(ROOM.name)).toEqual(["alice", "bob"]);
   });
 });
 

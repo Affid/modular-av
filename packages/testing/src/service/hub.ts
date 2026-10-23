@@ -43,6 +43,8 @@ export interface MockServiceHub {
   closeRoom(room: string): void;
   warnTokenExpiring(participant: ParticipantId): void;
   setSpeaking(participant: ParticipantId, speaking: boolean): void;
+  /** Errors thrown by connection event handlers. */
+  readonly errors: readonly unknown[];
 }
 
 const NETWORK: ServiceError = { code: "network", final: false };
@@ -57,6 +59,19 @@ export function createMockServiceHub(
   let rooms = new Map<string, readonly Member[]>();
   let muted = new Map<string, boolean>();
   let subscriptions = new Map<string, SubscriptionOptions>();
+  let errors: readonly unknown[] = [];
+
+  /** Drops what the server knew about a participant's media and views. */
+  const forget = (participant: ParticipantId): void => {
+    const involves = (key: string): boolean =>
+      key.split("|").slice(0, 2).includes(participant);
+    muted = new Map(
+      [...muted].filter(([key]) => !key.startsWith(`${participant}|`)),
+    );
+    subscriptions = new Map(
+      [...subscriptions].filter(([key]) => !involves(key)),
+    );
+  };
 
   const membersOf = (room: string): readonly Member[] => rooms.get(room) ?? [];
   const others = (member: Member): readonly Member[] =>
@@ -78,19 +93,20 @@ export function createMockServiceHub(
         .forEach((m) => {
           m.end("failed", DUPLICATE);
         });
-      for (const other of membersOf(member.room)) {
+      rooms = new Map(rooms).set(member.room, [
+        ...membersOf(member.room),
+        member,
+      ]);
+      for (const other of others(member)) {
         other.events.emit("participantJoined", member.participant);
         member.events.emit("participantJoined", other.participant);
         for (const track of other.tracks())
           member.events.emit("trackAdded", track);
       }
-      rooms = new Map(rooms).set(member.room, [
-        ...membersOf(member.room),
-        member,
-      ]);
     },
     leave(member) {
       rooms = new Map(rooms).set(member.room, others(member));
+      forget(member.participant);
       for (const other of membersOf(member.room)) {
         for (const track of member.tracks())
           other.events.emit("trackRemoved", track);
@@ -116,6 +132,9 @@ export function createMockServiceHub(
     },
     kick(participant) {
       find(participant).end("failed", KICKED);
+    },
+    recordError(error) {
+      errors = [...errors, error];
     },
   };
 
@@ -151,6 +170,9 @@ export function createMockServiceHub(
     },
     warnTokenExpiring: (participant) => {
       find(participant).events.emit("tokenExpiring");
+    },
+    get errors() {
+      return errors;
     },
     setSpeaking: (participant, speaking) => {
       const member = find(participant);

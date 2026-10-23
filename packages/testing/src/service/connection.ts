@@ -18,6 +18,9 @@ const STATS = { roundTripMs: 20, packetLoss: 0 } as const;
 
 const noop = (): void => undefined;
 
+/** Read through a call: the signal can change while a connect awaits. */
+const isAborted = (signal: AbortSignal): boolean => signal.aborted;
+
 /** Stands for a network round trip, so callers never rely on sync results. */
 const roundTrip = (): Promise<void> => Promise.resolve();
 
@@ -31,7 +34,9 @@ export function createMockConnection(
   hub: Hub,
   participant: ParticipantId,
 ): ServiceConnection {
-  const events = createEmitter<ServiceEvents>();
+  const events = createEmitter<ServiceEvents>((error) => {
+    hub.recordError(error);
+  });
   const capabilities: ServiceCapabilities = {
     moderation: hub.moderation,
     speakingDetection: true,
@@ -88,14 +93,16 @@ export function createMockConnection(
     capabilities: { get: () => capabilities, subscribe: () => noop },
 
     async connect(room, token, signal) {
-      if (signal.aborted || member) {
-        throw new DOMException(
-          "The connection attempt was aborted",
-          "AbortError",
-        );
-      }
+      if (member) throw new Error("The mock service is already connected");
+      const aborted = (): DOMException =>
+        new DOMException("The connection attempt was aborted", "AbortError");
+      if (signal.aborted) throw aborted();
       setState("connecting");
       await roundTrip();
+      if (isAborted(signal)) {
+        setState("disconnected");
+        throw aborted();
+      }
       const claims = verifyMockToken(
         token,
         { participant, room: room.name },
@@ -113,6 +120,8 @@ export function createMockConnection(
 
     async disconnect() {
       await roundTrip();
+      // After a failure or a loss the final state (and its reason) stays.
+      if (!member && state !== "connecting") return;
       leaveRoom();
       setState("disconnected");
     },

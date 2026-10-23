@@ -51,4 +51,6 @@ export interface Hub {
     options: SubscriptionOptions,
   ): void;
   kick(participant: ParticipantId): void;
+  /** Errors thrown by event handlers, kept for the test to inspect. */
+  recordError(error: unknown): void;
 }
