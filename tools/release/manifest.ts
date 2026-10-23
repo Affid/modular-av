@@ -6,6 +6,7 @@ const SEMVER = String.raw`\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?`;
 const MODULE_ID = String.raw`modular-av(?:-[a-z0-9]+)*`;
 const TAG = new RegExp(`^(${MODULE_ID})-v(${SEMVER})$`);
 const VERSION = new RegExp(`^${SEMVER}$`);
+const ID = new RegExp(`^${MODULE_ID}$`);
 
 /** Fields the build writes; a source `module.json` must not set them. */
 const GENERATED_FIELDS = ["version", "manifest", "download"] as const;
@@ -16,6 +17,7 @@ export interface ReleaseUrls {
 }
 
 export function tagFor(id: string, version: string): string {
+  if (!ID.test(id)) throw new Error(`"${id}" is not a Modular A/V module id`);
   if (!VERSION.test(version))
     throw new Error(`"${version}" is not a semver version`);
   return `${id}-v${version}`;

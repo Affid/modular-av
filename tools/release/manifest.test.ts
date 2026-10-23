@@ -27,6 +27,11 @@ describe("release tags", () => {
     expect(parseTag("@modular-av/core@1.0.0")).toBeUndefined();
   });
 
+  it("refuses to build a tag for an id outside the family", () => {
+    expect(() => tagFor("--force", "1.0.0")).toThrow(/module id/);
+    expect(() => tagFor("avclient-livekit", "1.0.0")).toThrow(/module id/);
+  });
+
   it("refuses to build a tag from an invalid version", () => {
     expect(() => tagFor("modular-av", "latest")).toThrow(/semver/);
   });

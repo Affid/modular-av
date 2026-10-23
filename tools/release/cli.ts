@@ -43,6 +43,12 @@ function preflight(tag: string): readonly string[] {
     problems.push("the working tree has changes");
   if (capture("git", ["branch", "--show-current"]) !== "main")
     problems.push("not on main");
+  run("git", ["fetch", "--quiet", "origin", "main"]);
+  if (
+    capture("git", ["rev-parse", "HEAD"]) !==
+    capture("git", ["rev-parse", "origin/main"])
+  )
+    problems.push("HEAD is not origin/main: push or pull first");
   if (capture("git", ["tag", "--list", tag]))
     problems.push(`tag ${tag} exists locally`);
   if (capture("git", ["ls-remote", "--tags", "origin", tag]))

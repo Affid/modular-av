@@ -4,12 +4,20 @@
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-# shellcheck source=/dev/null
-[[ -f "$root/.env.local" ]] && source "$root/.env.local"
 
-app_dir="${FOUNDRY_APP_DIR:-$HOME/foundry/vtt}"
-data_dir="${FOUNDRY_DATA_DIR:-$HOME/foundry/data}"
-port="${FOUNDRY_PORT:-30000}"
+# Reads KEY=value from .env.local without running it as shell; the
+# environment wins, as in scripts/foundry/env.ts.
+setting() {
+  local key="$1" fallback="$2" value="${!1:-}"
+  if [[ -z "$value" && -f "$root/.env.local" ]]; then
+    value="$(sed -n "s/^${key}=//p" "$root/.env.local" | tail -n 1)"
+  fi
+  printf '%s' "${value:-$fallback}"
+}
+
+app_dir="$(setting FOUNDRY_APP_DIR "$HOME/foundry/vtt")"
+data_dir="$(setting FOUNDRY_DATA_DIR "$HOME/foundry/data")"
+port="$(setting FOUNDRY_PORT 30000)"
 app_dir="${app_dir/#\~/$HOME}"
 data_dir="${data_dir/#\~/$HOME}"
 
