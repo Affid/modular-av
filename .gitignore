@@ -1,0 +1,13 @@
+node_modules/
+dist/
+coverage/
+release/
+test-results/
+playwright-report/
+*.tsbuildinfo
+.vite/
+
+# Local secrets and machine settings (see .env.example)
+.env
+.env.*
+!.env.example
