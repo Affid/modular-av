@@ -35,7 +35,12 @@ let ids = 0;
 function connect(
   world: FakeWorld,
   userId: string,
-  options: { secret?: boolean; failSigning?: boolean } = {},
+  options: {
+    secret?: boolean | (() => boolean);
+    failSigning?: boolean;
+    /** A busy GM: signing takes this long. */
+    signingMs?: number;
+  } = {},
 ): Peer {
   const client = world.connect(userId);
   const game = client.game;
@@ -43,11 +48,21 @@ function connect(
   const signed: TokenRequest[] = [];
   const service: ServiceDefinition = {
     ...hub.definition(),
-    canSignTokens: () => options.secret ?? false,
+    canSignTokens: () =>
+      typeof options.secret === "function"
+        ? options.secret()
+        : (options.secret ?? false),
     signToken: (request) => {
       signed.push(request);
       if (options.failSigning) return Promise.reject(new Error("bad secret"));
-      return Promise.resolve(`token-for-${request.participant}`);
+      const token = `token-for-${request.participant}`;
+      return options.signingMs
+        ? new Promise((resolve) =>
+            setTimeout(() => {
+              resolve(token);
+            }, options.signingMs),
+          )
+        : Promise.resolve(token);
     },
   };
   const waiting: boolean[] = [];
@@ -56,8 +71,7 @@ function connect(
     channel: createChannels(game.socket, () => undefined).channel("auth"),
     selfId: userId,
     isGM: (id) => game.users.get(id)?.isGM ?? false,
-    onlineGms: () =>
-      game.users.contents.filter((u) => u.active && u.isGM).map((u) => u.id),
+    gmIds: () => game.users.contents.filter((u) => u.isGM).map((u) => u.id),
     service: () => service,
     tokenRequestFor: (participant) => {
       const user = game.users.get(participant);
@@ -120,7 +134,7 @@ describe("GM token relay", () => {
         ttlSeconds: 600,
       },
     ]);
-    expect(p4.waiting).toEqual([false]);
+    expect(p4.waiting).toEqual([]);
   });
 
   it("lets a GM with the secret sign its own token without the socket", async () => {
@@ -153,6 +167,7 @@ describe("GM token relay", () => {
     // Act
     const token = p1.relay.request(new AbortController().signal);
     await settle(world);
+    await vi.advanceTimersByTimeAsync(REPLY_TIMEOUT_MS);
     expect(p1.waiting).toEqual([true]);
     connect(world, "gm", { secret: true });
     await settle(world);
@@ -331,6 +346,7 @@ describe("GM token relay", () => {
 
     void p1.relay.request(new AbortController().signal);
     await settle(world);
+    await vi.advanceTimersByTimeAsync(REPLY_TIMEOUT_MS);
 
     expect(p1.signed).toEqual([]);
     expect(p1.waiting).toEqual([true]);
@@ -351,5 +367,51 @@ describe("GM token relay", () => {
 
     await expect(token).resolves.toBe("token-for-p1");
     expect(snoop).not.toHaveBeenCalled();
+  });
+
+  it("signs locally once a GM's secret arrives while it waits", async () => {
+    // Arrange
+    vi.useFakeTimers();
+    const world = createFakeWorld({ users: USERS });
+    let secret = false;
+    const gm = connect(world, "gm", { secret: () => secret });
+    const token = gm.relay.request(new AbortController().signal);
+    await settle(world);
+    await vi.advanceTimersByTimeAsync(REPLY_TIMEOUT_MS);
+    expect(gm.waiting).toEqual([true]);
+
+    // Act
+    secret = true;
+    await vi.advanceTimersByTimeAsync(RETRY_MS);
+
+    // Assert
+    await expect(token).resolves.toBe("token-for-gm");
+    expect(gm.waiting).toEqual([true, false]);
+  });
+
+  it("takes a GM's late reply, even after it said it was waiting", async () => {
+    // Arrange: a GM whose page is busy loading answers after the timeout.
+    vi.useFakeTimers();
+    const world = createFakeWorld({ users: USERS });
+    const gm = connect(world, "gm", {
+      secret: true,
+      signingMs: REPLY_TIMEOUT_MS + 2_000,
+    });
+    const p1 = connect(world, "p1");
+    const requests = vi.fn();
+    createChannels(gm.client.game.socket, () => undefined)
+      .channel("auth")
+      .on(requests);
+
+    // Act
+    const token = p1.relay.request(new AbortController().signal);
+    await settle(world);
+    await vi.advanceTimersByTimeAsync(REPLY_TIMEOUT_MS + 2_000);
+    await settle(world);
+
+    // Assert
+    await expect(token).resolves.toBe("token-for-p1");
+    expect(p1.waiting).toEqual([true, false]);
+    expect(requests).toHaveBeenCalledTimes(1);
   });
 });

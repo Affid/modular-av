@@ -112,6 +112,7 @@ describe("joining with a GM-relayed token", () => {
 
     // Act
     await table.settle();
+    await vi.advanceTimersByTimeAsync(5000);
 
     // Assert
     expect(p1.api.state.get().session.status).toBe("waiting-for-gm");
@@ -163,6 +164,7 @@ describe("mute in every state", () => {
 
     // Act
     await table.settle();
+    await vi.advanceTimersByTimeAsync(5000);
     table.join("gm", { secret: true });
     await table.settle();
     table.hub.startOutage("p1");

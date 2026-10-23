@@ -17,8 +17,12 @@ export interface TokenRelayDeps {
   readonly channel: Channel;
   readonly selfId: ParticipantId;
   isGM(userId: string): boolean;
-  /** Requests go to these users only, so players never see them. */
-  onlineGms(): readonly string[];
+  /**
+   * Every GM user, online or not: requests go to them only, so players
+   * never see them. Not filtered by Foundry's `active` flag, which lags
+   * right after a page loads; offline users simply get nothing.
+   */
+  gmIds(): readonly string[];
   service(): ServiceDefinition | undefined;
   /** Built from what Foundry's server says about the user; null refuses. */
   tokenRequestFor(participant: ParticipantId): TokenRequest | null;
@@ -39,27 +43,50 @@ export interface TokenRelay {
 const abortError = (): DOMException =>
   new DOMException("The token request was aborted", "AbortError");
 
-/** Resolves on the first of: a GM logging in, the retry delay, or abort. */
-function waitForGm(deps: TokenRelayDeps, signal: AbortSignal): Promise<void> {
+/**
+ * Resolves with the token if it arrives within `ms`, else null (also when a
+ * GM logs in, if `untilGm`); rejects on abort.
+ */
+function wait(
+  deps: TokenRelayDeps,
+  signal: AbortSignal,
+  token: Promise<string>,
+  ms: number,
+  untilGm: boolean,
+): Promise<string | null> {
   return new Promise((resolve, reject) => {
-    const done = (): void => {
+    let settled = false;
+    const finish = (settle: () => void): void => {
+      if (settled) return;
+      settled = true;
       clearTimeout(timer);
       offGm();
       signal.removeEventListener("abort", onAbort);
+      settle();
     };
     const onAbort = (): void => {
-      done();
-      reject(abortError());
+      finish(() => {
+        reject(abortError());
+      });
     };
     const timer = setTimeout(() => {
-      done();
-      resolve();
-    }, RETRY_MS);
-    const offGm = deps.onGmConnected(() => {
-      done();
-      resolve();
-    });
+      finish(() => {
+        resolve(null);
+      });
+    }, ms);
+    const offGm = untilGm
+      ? deps.onGmConnected(() => {
+          finish(() => {
+            resolve(null);
+          });
+        })
+      : () => undefined;
     signal.addEventListener("abort", onAbort);
+    void token.then((value) => {
+      finish(() => {
+        resolve(value);
+      });
+    });
   });
 }
 
@@ -111,46 +138,50 @@ export function createTokenRelay(deps: TokenRelayDeps): TokenRelay {
       pending.get(data.id)?.(data.token);
   });
 
-  const ask = (signal: AbortSignal): Promise<string | null> =>
-    new Promise((resolve, reject) => {
-      const id = deps.randomId();
-      const done = (): void => {
-        clearTimeout(timer);
-        const next = new Map(pending);
-        next.delete(id);
-        pending = next;
-        signal.removeEventListener("abort", onAbort);
-      };
-      const onAbort = (): void => {
-        done();
-        reject(abortError());
-      };
-      const timer = setTimeout(() => {
-        done();
-        resolve(null);
-      }, REPLY_TIMEOUT_MS);
-      pending = new Map(pending).set(id, (token) => {
-        done();
-        resolve(token);
-      });
-      signal.addEventListener("abort", onAbort);
-      deps.channel.send(
-        { type: "request", id },
-        { recipients: deps.onlineGms().filter((gm) => gm !== deps.selfId) },
-      );
-    });
-
+  /**
+   * Asks again every round, and keeps listening for every request it sent:
+   * a GM whose page is busy (Foundry loading after `ready`) answers late,
+   * and a late token is as good as any.
+   */
   const request = async (signal: AbortSignal): Promise<string> => {
-    const service = deps.service();
-    const local = service ? signLocally(deps, service) : null;
-    if (local) return local;
-    for (;;) {
-      if (signal.aborted) throw abortError();
-      const asked = deps.onlineGms().some((gm) => gm !== deps.selfId);
-      const token = asked ? await ask(signal) : null;
-      deps.onWaitingForGm(token === null);
-      if (token !== null) return token;
-      await waitForGm(deps, signal);
+    let deliver: (token: string) => void = () => undefined;
+    const arrived = new Promise<string>((resolve) => {
+      deliver = resolve;
+    });
+    let ids: readonly string[] = [];
+    let waiting = false;
+    const done = (token: string): string => {
+      if (waiting) deps.onWaitingForGm(false);
+      return token;
+    };
+    try {
+      for (;;) {
+        if (signal.aborted) throw abortError();
+        const service = deps.service();
+        const local = service ? signLocally(deps, service) : null;
+        if (local) return done(await local);
+        const recipients = deps.gmIds().filter((gm) => gm !== deps.selfId);
+        if (recipients.length > 0) {
+          const id = deps.randomId();
+          ids = [...ids, id];
+          pending = new Map(pending).set(id, deliver);
+          deps.channel.send({ type: "request", id }, { recipients });
+          const replied = await wait(
+            deps,
+            signal,
+            arrived,
+            REPLY_TIMEOUT_MS,
+            false,
+          );
+          if (replied !== null) return done(replied);
+        }
+        if (!waiting) deps.onWaitingForGm(true);
+        waiting = true;
+        const later = await wait(deps, signal, arrived, RETRY_MS, true);
+        if (later !== null) return done(later);
+      }
+    } finally {
+      pending = new Map([...pending].filter(([id]) => !ids.includes(id)));
     }
   };
 

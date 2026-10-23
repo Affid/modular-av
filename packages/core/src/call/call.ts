@@ -47,7 +47,9 @@ export function tokenRequestFor(
   participant: ParticipantId,
 ): TokenRequest | null {
   if (facts.mode() === AV_MODES.DISABLED) return null;
-  if (!game.users.get(participant)?.active) return null;
+  // Not `active`: Foundry's flag lags while a user's second tab loads, and
+  // a sender needs a live socket anyway (the server names it).
+  if (!game.users.get(participant)) return null;
   return {
     participant,
     room: game.world.id,
@@ -65,8 +67,7 @@ function createRelay(
     channel: deps.channels.channel("auth"),
     selfId: facts.selfId,
     isGM: (id) => game.users.get(id)?.isGM ?? false,
-    onlineGms: () =>
-      game.users.contents.filter((u) => u.active && u.isGM).map((u) => u.id),
+    gmIds: () => game.users.contents.filter((u) => u.isGM).map((u) => u.id),
     service: deps.service,
     tokenRequestFor: (participant) => tokenRequestFor(game, facts, participant),
     onWaitingForGm,
