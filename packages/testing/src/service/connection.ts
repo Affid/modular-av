@@ -155,6 +155,15 @@ export function createMockConnection(
       hub.trackAdded(self, remote(next));
     },
 
+    async unpublish(published) {
+      await roundTrip();
+      const self = requireMember();
+      const old = publications.find((p) => p.id === published.id);
+      if (!old) return;
+      publications = publications.filter((p) => p !== old);
+      hub.trackRemoved(self, remote(old));
+    },
+
     async setMuted(published, muted) {
       await roundTrip();
       hub.setMuted(participant, published.source, muted);

@@ -1,0 +1,216 @@
+import type {
+  AVState,
+  MediaPermissions,
+  ParticipantId,
+  Registry,
+  ServiceDefinition,
+  VideoSource,
+} from "@modular-av/api";
+import { createCall } from "./call/call.ts";
+import { createRuntime, type Runtime } from "./call/runtime.ts";
+import { MODULE_ID } from "./constants.ts";
+import { AV_MODES, type AVFacts, createAVFacts } from "./foundry/av-facts.ts";
+import type { FoundryGame, FoundryHooks } from "./foundry/globals.ts";
+import type { MediaEnv } from "./media/env.ts";
+import { createLocalMedia, type LocalMedia } from "./media/local-media.ts";
+import { createRemoteMedia, type RemoteMedia } from "./media/remote-media.ts";
+import { computeOutbound, createPlaybackPolicy } from "./media/rules.ts";
+import type { Session } from "./session/session.ts";
+import type { Channels } from "./socket.ts";
+import { DEAFENED_FLAG } from "./state/project.ts";
+import { createStateSync } from "./state/sync.ts";
+import type { WritableStore } from "./store.ts";
+
+export const DEAFENED_SETTING = "deafened";
+
+export interface ControllerDeps {
+  /** Created before the controller, so the API can expose it from `init`. */
+  readonly store: WritableStore<AVState>;
+  readonly game: FoundryGame;
+  readonly hooks: FoundryHooks;
+  readonly env: MediaEnv;
+  readonly channels: Channels;
+  readonly services: Registry<ServiceDefinition>;
+  /** The id in the world's service setting. */
+  readonly selectedService: () => string;
+  readonly renderDock: () => void;
+  readonly onError: (error: unknown) => void;
+  readonly now: () => number;
+  readonly randomId: () => string;
+}
+
+/** What the A/V client class, the commands and the core's hooks call. */
+export interface Controller {
+  readonly store: WritableStore<AVState>;
+  readonly session: Session;
+  readonly facts: AVFacts;
+  readonly local: LocalMedia;
+  readonly remote: RemoteMedia;
+  service(): ServiceDefinition | undefined;
+  /** AVMaster: before `connect()`, awaited. */
+  initialize(): Promise<void>;
+  foundryConnect(): void;
+  foundryDisconnect(): Promise<void>;
+  ready(): void;
+  setBroadcastIntent(intent: boolean): void;
+  setDeafened(deafened: boolean): Promise<void>;
+  connectedUsers(): ParticipantId[];
+  attach(
+    id: ParticipantId,
+    source: VideoSource,
+    el: HTMLVideoElement,
+  ): () => void;
+  reacquire(): Promise<void>;
+  onAVSettingsChanged(changedKeys: readonly string[]): void;
+  /** Recomputes outbound media, playback and state. */
+  apply(): void;
+}
+
+interface Parts {
+  readonly deps: ControllerDeps;
+  readonly facts: AVFacts;
+  readonly rt: Runtime;
+  readonly local: LocalMedia;
+  readonly remote: RemoteMedia;
+  readonly session: Session;
+  readonly service: () => ServiceDefinition | undefined;
+  readonly apply: () => void;
+  readonly reacquire: () => Promise<void>;
+}
+
+function buildParts(deps: ControllerDeps): Parts {
+  const { game, env } = deps;
+  const facts = createAVFacts(game);
+  const rt = createRuntime(
+    game.settings.get(MODULE_ID, DEAFENED_SETTING) === true,
+  );
+  const service = (): ServiceDefinition | undefined =>
+    deps.services.get(deps.selectedService()) ?? deps.services.list()[0];
+  const local = createLocalMedia(env);
+  const remote = createRemoteMedia(
+    env,
+    createPlaybackPolicy(facts, () => rt.deafened),
+    (participant, source, enabled) => {
+      rt.connection?.setSubscription(participant, source, { enabled });
+    },
+    deps.onError,
+  );
+  const outbound = (): MediaPermissions =>
+    computeOutbound({
+      facts,
+      intent: rt.intent,
+      deafened: rt.deafened,
+      hasMicrophone: local.microphone !== null,
+      hasCamera: local.camera !== null,
+    });
+  const refreshState = createStateSync({
+    ...{ store: deps.store, game, facts, rt, local, remote },
+    service,
+    outbound,
+  });
+  remote.onChange(refreshState);
+  const session = createCall({
+    ...deps,
+    ...{ facts, rt, local, remote, service, outbound, refreshState },
+  });
+  const apply = (): void => {
+    local.setOutbound(outbound());
+    remote.refresh();
+    session.syncMedia();
+    refreshState();
+  };
+  local.onChange(() => {
+    remote.setLocalVideo(facts.selfId, local.camera);
+    apply();
+  });
+  const reacquire = async (): Promise<void> => {
+    await local.acquire(facts.devices());
+    if (rt.foundryConnected)
+      game.webrtc?._initializeUserVoiceDetection(facts.voiceMode());
+  };
+  return { deps, facts, rt, local, remote, session, service, apply, reacquire };
+}
+
+/** A/V disabled: stop and free the devices; otherwise recapture and rejoin. */
+function onModeChanged(parts: Parts): void {
+  const { facts, rt, session, local } = parts;
+  if (facts.mode() === AV_MODES.DISABLED) {
+    void session.stop(null);
+    local.release();
+    return;
+  }
+  if (!rt.foundryConnected) return;
+  parts
+    .reacquire()
+    .then(() => {
+      session.restart();
+    })
+    .catch(parts.deps.onError);
+}
+
+function onSettingsChanged(parts: Parts, keys: readonly string[]): void {
+  const has = (prefix: string): boolean =>
+    keys.some((k) => k === prefix || k.startsWith(`${prefix}.`));
+  if (has("world.mode")) onModeChanged(parts);
+  else if (has("client.audioSrc") || has("client.videoSrc"))
+    parts.reacquire().catch(parts.deps.onError);
+  if (has("world.turn")) parts.session.restart();
+  parts.apply();
+}
+
+/** Keeps the user flag others read in step with this device's setting. */
+function syncDeafenedFlag(parts: Parts): void {
+  const { game, onError } = parts.deps;
+  const flag = game.user.getFlag(MODULE_ID, DEAFENED_FLAG) === true;
+  if (flag !== parts.rt.deafened)
+    game.user
+      .setFlag(MODULE_ID, DEAFENED_FLAG, parts.rt.deafened)
+      .catch(onError);
+}
+
+export function createController(deps: ControllerDeps): Controller {
+  const parts = buildParts(deps);
+  const { game } = deps;
+  const { facts, rt, local, remote, session, apply } = parts;
+  const startIfReady = (): void => {
+    if (rt.foundryConnected && game.ready) session.start();
+  };
+  return {
+    ...{ store: deps.store, session, facts, local, remote, apply },
+    service: parts.service,
+    reacquire: parts.reacquire,
+    initialize: () => local.acquire(facts.devices()),
+    foundryConnect() {
+      rt.foundryConnected = true;
+      startIfReady();
+    },
+    async foundryDisconnect() {
+      rt.foundryConnected = false;
+      await session.stop(null);
+    },
+    ready() {
+      startIfReady();
+      syncDeafenedFlag(parts);
+    },
+    setBroadcastIntent(intent) {
+      rt.intent = intent;
+      apply();
+    },
+    async setDeafened(deafened) {
+      rt.deafened = deafened;
+      apply();
+      await game.settings.set(MODULE_ID, DEAFENED_SETTING, deafened);
+      await game.user.setFlag(MODULE_ID, DEAFENED_FLAG, deafened);
+    },
+    connectedUsers: () => [
+      facts.selfId,
+      ...[...rt.connected].filter(
+        (id) => id !== facts.selfId && game.users.get(id)?.active,
+      ),
+    ],
+    attach: (id, source, el) => remote.attach(id, source, el),
+    onAVSettingsChanged: (keys) => {
+      onSettingsChanged(parts, keys);
+    },
+  };
+}

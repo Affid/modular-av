@@ -12,7 +12,8 @@ async function startCore(
   uninstall = client.install();
   vi.resetModules();
   await import("../src/index.ts");
-  client.runLifecycle();
+  // Only `init`: the rest needs a browser (see core.test.ts for the lifecycle).
+  client.Hooks.callAll("init");
   return client;
 }
 
@@ -30,6 +31,8 @@ describe("modular-av core entry", () => {
     const api = client.game.modules.get("modular-av")?.api as ModularAV;
     expect(api.version).toBe("1.2.3");
     expect(Object.isFrozen(api)).toBe(true);
+    expect(client.CONFIG.WebRTC.clientClass.name).toBe("ModularAVClient");
+    expect(client.CONFIG.ui.webrtc.name).toBe("ModularAVCameraViews");
     expect(client.Hooks.errors).toEqual([]);
   });
 

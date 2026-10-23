@@ -2,13 +2,28 @@
   "id": "modular-av",
   "title": "Modular A/V — voice & video",
   "description": "Voice and video for Foundry VTT, built from modules: pick a service, a look and the effects you want.",
-  "authors": [{ "name": "Andrei Fedorov", "url": "https://github.com/Affid" }],
+  "authors": [
+    {
+      "name": "Andrei Fedorov",
+      "url": "https://github.com/Affid"
+    }
+  ],
   "url": "https://github.com/Affid/modular-av",
   "bugs": "https://github.com/Affid/modular-av/issues",
   "license": "LICENSE",
-  "compatibility": { "minimum": "14", "verified": "14.369" },
+  "compatibility": {
+    "minimum": "14",
+    "verified": "14.369"
+  },
   "esmodules": ["modular-av.js"],
-  "languages": [{ "lang": "en", "name": "English", "path": "lang/en.json" }],
+  "socket": true,
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    }
+  ],
   "relationships": {
     "conflicts": [
       {

@@ -1,18 +1,12 @@
 /**
- * Service plugin interfaces (handoff §3 "Plugin interfaces").
- *
- * DRAFT: written in milestone 1 so the mock service has something to
- * implement. Milestone 2 settles these against a real service and may
- * change any of them.
+ * Service plugin interfaces (handoff §3 "Plugin interfaces"), settled in
+ * milestone 2 against LiveKit. Milestone 4 (P2P) may still change them.
  */
 
 /** A Foundry user id, taken from the service token, never self-asserted. */
 export type ParticipantId = string;
 
 export type TrackSource = "microphone" | "camera" | "screen" | "screen-audio";
-
-/** Placeholder until settings schemas are settled in milestone 2. */
-export type SettingsSchema = Readonly<Record<string, unknown>>;
 
 export interface Observable<T> {
   get(): T;
@@ -68,6 +62,7 @@ export interface RoomSpec {
   readonly name: string;
 }
 
+/** Built by the GM's core from what Foundry's server says, never from the request. */
 export interface TokenRequest {
   readonly participant: ParticipantId;
   readonly room: string;
@@ -98,11 +93,15 @@ export interface ServiceEvents {
 
 export interface ServiceContext {
   readonly participant: ParticipantId;
-  readonly settings: Readonly<Record<string, unknown>>;
 }
 
 export interface ServiceConnection {
   readonly capabilities: Observable<ServiceCapabilities>;
+  /**
+   * Resolves once joined; rejects on failure (with `serviceError` set to a
+   * `ServiceError` when the reason is known). `state` events matter to the
+   * core only after this resolved.
+   */
   connect(room: RoomSpec, token: string, signal: AbortSignal): Promise<void>;
   disconnect(reason: "user" | "switching" | "unload"): Promise<void>;
   publish(
@@ -113,6 +112,8 @@ export interface ServiceConnection {
     published: PublishedTrack,
     track: MediaStreamTrack,
   ): Promise<void>;
+  /** Stops sending; never stops the track, which the core owns. */
+  unpublish(published: PublishedTrack): Promise<void>;
   /** Signalling and bandwidth only: the core mutes its own final track. */
   setMuted(published: PublishedTrack, muted: boolean): Promise<void>;
   setSubscription(
@@ -131,15 +132,19 @@ export interface ServiceConnection {
   getStats(): Promise<ConnectionStats>;
 }
 
+/**
+ * A service module registers its own Foundry settings under its own id:
+ * world settings for what every player may read, client settings on the
+ * GM's device for secrets.
+ */
 export interface ServiceDefinition {
   readonly id: string;
+  /** Plain text or an i18n key. */
   readonly label: string;
-  /** World settings, readable by every player: never secrets. */
-  readonly settings?: SettingsSchema;
-  /** Stored on the GM's device only (client scope). */
-  readonly secrets?: SettingsSchema;
-  /** Runs on the GM's client. */
-  signToken?(request: TokenRequest, secrets: unknown): Promise<string>;
+  /** Whether this device holds what `signToken` needs (the GM's secret). */
+  canSignTokens?(): boolean;
+  /** Runs on a GM's client, only when `canSignTokens()` is true. */
+  signToken?(request: TokenRequest): Promise<string>;
   readonly mediaOwnership: "core" | "service";
   /** Lazy: import the service SDK here, not at module load. */
   create(context: ServiceContext): Promise<ServiceConnection>;

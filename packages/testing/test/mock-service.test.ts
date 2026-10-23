@@ -12,9 +12,7 @@ async function join(
   hub: ReturnType<typeof createMockServiceHub>,
   participant: string,
 ): Promise<ServiceConnection> {
-  const connection = await hub
-    .definition()
-    .create({ participant, settings: {} });
+  const connection = await hub.definition().create({ participant });
   const token = hub.signToken({
     participant,
     room: ROOM.name,
@@ -38,9 +36,7 @@ describe("mock service", () => {
   it("connects with a valid token and reports connected", async () => {
     // Arrange
     const hub = createMockServiceHub();
-    const connection = await hub
-      .definition()
-      .create({ participant: "p1", settings: {} });
+    const connection = await hub.definition().create({ participant: "p1" });
     const states = record(connection, "state");
     const token = hub.signToken({
       participant: "p1",
@@ -59,9 +55,7 @@ describe("mock service", () => {
 
   it("rejects a token signed for someone else with a final auth error", async () => {
     const hub = createMockServiceHub();
-    const connection = await hub
-      .definition()
-      .create({ participant: "p1", settings: {} });
+    const connection = await hub.definition().create({ participant: "p1" });
     const token = hub.signToken({
       participant: "p2",
       room: ROOM.name,
@@ -84,9 +78,7 @@ describe("mock service", () => {
   it("rejects garbage and expired tokens", async () => {
     let now = 1_000_000;
     const hub = createMockServiceHub({ now: () => now });
-    const connection = await hub
-      .definition()
-      .create({ participant: "p1", settings: {} });
+    const connection = await hub.definition().create({ participant: "p1" });
     const token = hub.signToken({
       participant: "p1",
       room: ROOM.name,
@@ -110,9 +102,7 @@ describe("mock service", () => {
 
   it("stops connecting when aborted", async () => {
     const hub = createMockServiceHub();
-    const connection = await hub
-      .definition()
-      .create({ participant: "p1", settings: {} });
+    const connection = await hub.definition().create({ participant: "p1" });
     const controller = new AbortController();
     controller.abort();
 
@@ -128,9 +118,7 @@ describe("mock service", () => {
     const mic = createFakeTrack("audio");
     await alice.publish(mic, "microphone");
 
-    const bob = await hub
-      .definition()
-      .create({ participant: "bob", settings: {} });
+    const bob = await hub.definition().create({ participant: "bob" });
     const added = record(bob, "trackAdded");
     const joined = record(bob, "participantJoined");
     await bob.connect(
@@ -152,9 +140,7 @@ describe("mock service", () => {
 
   it("refuses to publish a source the token does not allow", async () => {
     const hub = createMockServiceHub();
-    const connection = await hub
-      .definition()
-      .create({ participant: "p1", settings: {} });
+    const connection = await hub.definition().create({ participant: "p1" });
     await connection.connect(
       ROOM,
       hub.signToken({
@@ -173,9 +159,7 @@ describe("mock service", () => {
 
   it("refuses to publish while not connected", async () => {
     const hub = createMockServiceHub();
-    const connection = await hub
-      .definition()
-      .create({ participant: "p1", settings: {} });
+    const connection = await hub.definition().create({ participant: "p1" });
 
     await expect(
       connection.publish(createFakeTrack("audio"), "microphone"),
@@ -201,6 +185,29 @@ describe("mock service", () => {
     expect(removed.map(([t]) => (t as { track: unknown }).track)).toEqual([
       first,
     ]);
+  });
+
+  it("stops sending a track on unpublish without stopping it", async () => {
+    // Arrange
+    const hub = createMockServiceHub();
+    const alice = await join(hub, "alice");
+    const bob = await join(hub, "bob");
+    const removed = record(bob, "trackRemoved");
+    const track = createFakeTrack("video");
+    const published = await alice.publish(track, "camera");
+
+    // Act
+    await alice.unpublish(published);
+    await alice.unpublish(published);
+
+    // Assert
+    expect(removed.map(([t]) => (t as { track: unknown }).track)).toEqual([
+      track,
+    ]);
+    expect(fakeTrackInfo(track).readyState).toBe("live");
+    await expect(alice.replaceTrack(published, track)).rejects.toThrow(
+      /Unknown published track/,
+    );
   });
 
   it("records mute signalling and subscriptions without touching tracks", async () => {
@@ -332,9 +339,7 @@ describe("mock service edge cases", () => {
   it("stops a connect aborted during the network wait", async () => {
     // Arrange
     const hub = createMockServiceHub();
-    const connection = await hub
-      .definition()
-      .create({ participant: "p1", settings: {} });
+    const connection = await hub.definition().create({ participant: "p1" });
     const controller = new AbortController();
     const token = hub.signToken({
       participant: "p1",

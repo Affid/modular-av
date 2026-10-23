@@ -1,5 +1,30 @@
 {
   "modular-av": {
-    "name": "Modular A/V"
+    "name": "Modular A/V",
+    "settings": {
+      "service": {
+        "name": "Voice and video service",
+        "hint": "The service module that carries the call for everyone in this world."
+      }
+    },
+    "status": {
+      "reconnecting": "Voice and video: connection lost, reconnecting…",
+      "reconnected": "Voice and video reconnected.",
+      "waitingForGm": "Voice and video: waiting for a GM to let you join.",
+      "gmNeedsSecret": "Voice and video: enter the service's key in this browser's module settings, so players can join.",
+      "noMicrophone": "Voice and video: your microphone can't be used. Check this site's microphone permission in the browser.",
+      "noCamera": "Voice and video: your camera can't be used. Check this site's camera permission in the browser.",
+      "deafened": "Deafened",
+      "ended": {
+        "joinedElsewhere": "Voice and video continued in another tab or window.",
+        "kicked": "You were removed from the voice and video call.",
+        "roomClosed": "The voice and video call was closed.",
+        "auth": "The voice and video service refused to let you in. Ask the GM to check the service settings.",
+        "full": "The voice and video call is full.",
+        "unsupported": "This browser can't join the voice and video call.",
+        "noService": "No voice and video service module is enabled in this world."
+      },
+      "clientReplaced": "Another module replaced Modular A/V's voice and video client. Enable only one voice and video module."
+    }
   }
 }
