@@ -29,3 +29,8 @@ export type {
   FakeUsers,
   UserRole,
 } from "./foundry/users.ts";
+
+export { createFakeTrack, fakeTrackInfo } from "./service/fake-track.ts";
+export type { FakeTrackInfo } from "./service/fake-track.ts";
+export { createMockServiceHub, MockServiceFailure } from "./service/hub.ts";
+export type { MockServiceHub, MockServiceOptions } from "./service/hub.ts";
