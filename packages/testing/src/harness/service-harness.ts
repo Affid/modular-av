@@ -191,7 +191,8 @@ async function start(): Promise<ServiceHarness> {
   const load = definitions[`../../../${dir}/test/service/definition.ts`];
   if (!load) throw new Error(`No service definition for "${dir}"`);
   const { createDefinition } = await load();
-  return createHarness(createDefinition(params));
+  const secrets = (await window.serviceSecrets?.()) ?? {};
+  return createHarness(createDefinition(params, secrets));
 }
 
 window.serviceHarness = await start();

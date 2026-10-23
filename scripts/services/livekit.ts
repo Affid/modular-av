@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { readEnv } from "../foundry/env.ts";
 
 const run = promisify(execFile);
 
@@ -24,13 +25,45 @@ async function healthy(): Promise<boolean> {
   }
 }
 
+/** Where the LiveKit tests run: Docker by default, Cloud with MAV_LIVEKIT=cloud. */
+export interface LiveKitTarget {
+  readonly cloud: boolean;
+  readonly url: string;
+  readonly apiKey: string;
+  readonly apiSecret: string;
+}
+
+export const usesCloud = (): boolean => process.env.MAV_LIVEKIT === "cloud";
+
+/**
+ * The server to test against. Cloud credentials come from `.env.local`
+ * (LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET) and are never printed.
+ */
+export function livekitTarget(): LiveKitTarget {
+  if (!usesCloud())
+    return {
+      cloud: false,
+      url: LIVEKIT_DEV.url,
+      apiKey: LIVEKIT_DEV.apiKey,
+      apiSecret: LIVEKIT_DEV.apiSecret,
+    };
+  const url = readEnv("LIVEKIT_URL");
+  const apiKey = readEnv("LIVEKIT_API_KEY");
+  const apiSecret = readEnv("LIVEKIT_API_SECRET");
+  if (!url || !apiKey || !apiSecret)
+    throw new Error(
+      "MAV_LIVEKIT=cloud needs LIVEKIT_URL, LIVEKIT_API_KEY and LIVEKIT_API_SECRET in .env.local",
+    );
+  return { cloud: true, url, apiKey, apiSecret };
+}
+
 /**
  * Starts the dev server in Docker, unless one already answers. Docker may
  * run in a VM (Docker Desktop), so the ports are published on localhost
  * and LiveKit announces 127.0.0.1 in its ICE candidates.
  */
 export async function startLiveKit(): Promise<() => Promise<void>> {
-  if (await healthy()) return () => Promise.resolve();
+  if (usesCloud() || (await healthy())) return () => Promise.resolve();
   await run("docker", [
     "run",
     "--detach",

@@ -18,6 +18,11 @@ const CHROMIUM = {
  */
 export default defineConfig({
   ...base,
+  use: {
+    ...base.use,
+    // Traces record evaluated arguments: no secrets in test-results/.
+    trace: process.env.MAV_LIVEKIT === "cloud" ? "off" : "retain-on-failure",
+  },
   testMatch: "*/test/service/**/*.spec.ts",
   outputDir: "test-results/services",
   globalSetup: "./scripts/services/global-setup.ts",

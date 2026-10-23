@@ -20,13 +20,15 @@ import type {
 export interface ServiceContractOptions {
   /** The service's package directory, e.g. "livekit". */
   readonly service: string;
-  /** Passed to its `test/service/definition.ts` (URL, dev keys…). */
+  /** Passed to its `test/service/definition.ts` in the page URL. */
   readonly params: Readonly<Record<string, string>>;
+  /** Passed to it through an exposed function: keys, secrets. */
+  readonly secrets: Readonly<Record<string, string>>;
   /**
    * Cuts every client off the server, then restores it (e.g. by pausing
    * its container): the browser's offline mode keeps open localhost sockets.
    */
-  readonly outage: {
+  readonly outage?: {
     readonly start: () => Promise<void>;
     readonly end: () => Promise<void>;
   };
@@ -55,6 +57,7 @@ async function openPeer(
     permissions: ["camera", "microphone"],
   });
   const page = await context.newPage();
+  await page.exposeFunction("serviceSecrets", () => ({ ...options.secrets }));
   const query = new URLSearchParams({
     service: options.service,
     ...options.params,
@@ -309,6 +312,9 @@ export function serviceContract(options: ServiceContractOptions): void {
     test("recovers from a 20 s outage by itself, reporting resuming @outage", async ({
       browser,
     }) => {
+      test.skip(!options.outage, "no way to cut this server off");
+      const outage = options.outage;
+      if (!outage) return;
       test.setTimeout(150_000);
       const [alice, bob] = await peers(browser, "alice", "bob");
       if (!alice || !bob) throw new Error("no peers");
@@ -316,14 +322,14 @@ export function serviceContract(options: ServiceContractOptions): void {
       await bob.join();
       await alice.run((h) => h.publish(["microphone"]));
 
-      await options.outage.start();
+      await outage.start();
       try {
         await expect
           .poll(async () => states(await alice.events()), { timeout: 30_000 })
           .toContain("resuming");
         await alice.page.waitForTimeout(20_000);
       } finally {
-        await options.outage.end();
+        await outage.end();
       }
 
       // Either the transport came back by itself, or the service gave up

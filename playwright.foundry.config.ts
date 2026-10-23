@@ -17,7 +17,8 @@ export default defineConfig({
   expect: { timeout: 30_000 },
   reporter: [["list"]],
   use: {
-    trace: "retain-on-failure",
+    // Traces record evaluated arguments: no secrets in test-results/.
+    trace: process.env.MAV_LIVEKIT === "cloud" ? "off" : "retain-on-failure",
     ...devices["Desktop Chrome"],
     launchOptions: {
       args: [

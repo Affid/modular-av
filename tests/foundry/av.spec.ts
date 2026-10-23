@@ -1,7 +1,7 @@
 // Milestone 2 end to end: the core and modular-av-livekit in the local
 // Foundry world, with livekit-server --dev in Docker (pnpm test:foundry).
 import { expect, test } from "@playwright/test";
-import { livekitOutage } from "../../scripts/services/livekit.ts";
+import { livekitOutage, usesCloud } from "../../scripts/services/livekit.ts";
 import {
   configureWorld,
   expectStatus,
@@ -167,6 +167,7 @@ test("players wait plainly for a GM, and join when one logs in", async ({
 test("reconnects after the server was gone for 20 s, telling the player once", async ({
   browser,
 }) => {
+  test.skip(usesCloud(), "LiveKit Cloud can't be paused from here");
   test.setTimeout(180_000);
   track(await openGm(browser));
   const p1 = track(await openPlayer(browser, "Player1"));

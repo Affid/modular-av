@@ -5,7 +5,7 @@ import type { AVState, ModularAV } from "@modular-av/api";
 import { type Browser, expect, type Page } from "@playwright/test";
 import { loadFoundryEnv } from "../../scripts/foundry/env.ts";
 import { joinAs } from "../../scripts/foundry/session.ts";
-import { LIVEKIT_DEV } from "../../scripts/services/livekit.ts";
+import { livekitTarget } from "../../scripts/services/livekit.ts";
 
 export const FOUNDRY_URL = loadFoundryEnv().url;
 
@@ -71,6 +71,11 @@ export async function openSecondTab(player: Player): Promise<Player> {
 function wrap(page: Page, name: string): Player {
   const notices: string[] = [];
   const messages: string[] = [];
+  page.on("requestfailed", (request) => {
+    messages.push(
+      `request failed: ${new URL(request.url()).pathname} ${request.failure()?.errorText ?? ""}`,
+    );
+  });
   page.on("console", (message) => {
     messages.push(message.text().trim());
     if (message.type() === "error") notices.push(`console: ${message.text()}`);
@@ -115,7 +120,7 @@ export async function openGm(
       await game.settings.set("modular-av-livekit", "apiKey", dev.apiKey);
       await game.settings.set("modular-av-livekit", "apiSecret", dev.apiSecret);
     },
-    { apiKey: LIVEKIT_DEV.apiKey, apiSecret: LIVEKIT_DEV.apiSecret },
+    { apiKey: livekitTarget().apiKey, apiSecret: livekitTarget().apiSecret },
   );
   return gm;
 }
@@ -136,7 +141,7 @@ export async function configureWorld(browser: Browser): Promise<void> {
       await game.settings.set("modular-av-livekit", "serverUrl", config.url);
       await game.settings.set("modular-av", "service", "livekit");
     },
-    { mode: AUDIO_VIDEO, url: LIVEKIT_DEV.url },
+    { mode: AUDIO_VIDEO, url: livekitTarget().url },
   );
   await gm.close();
 }

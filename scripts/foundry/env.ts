@@ -33,11 +33,14 @@ function readEnvFile(): Readonly<Record<string, string>> {
 const expandHome = (path: string): string =>
   path.replace(/^~(?=$|\/)/, homedir());
 
+/** A setting from the environment, else `.env.local`, else `fallback`. */
+export function readEnv(key: string, fallback = ""): string {
+  return process.env[key] ?? readEnvFile()[key] ?? fallback;
+}
+
 /** Local Foundry settings from `.env.local`, then the environment, then defaults. */
 export function loadFoundryEnv(): FoundryEnv {
-  const file = readEnvFile();
-  const get = (key: string, fallback = ""): string =>
-    process.env[key] ?? file[key] ?? fallback;
+  const get = readEnv;
   return {
     appDir: expandHome(get("FOUNDRY_APP_DIR", "~/foundry/vtt")),
     dataDir: expandHome(get("FOUNDRY_DATA_DIR", "~/foundry/data")),

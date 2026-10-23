@@ -5,8 +5,15 @@ import type {
   TrackSource,
 } from "@modular-av/api";
 
-/** A service package's `test/service/definition.ts` exports this. */
-export type CreateDefinition = (params: URLSearchParams) => ServiceDefinition;
+/**
+ * A service package's `test/service/definition.ts` exports this. `params`
+ * are public (in the page URL); `secrets` come from the test process and
+ * never appear in a URL.
+ */
+export type CreateDefinition = (
+  params: URLSearchParams,
+  secrets: Readonly<Record<string, string>>,
+) => ServiceDefinition;
 
 export interface JoinOptions {
   readonly participant: string;
@@ -84,5 +91,7 @@ export interface ServiceHarness {
 declare global {
   interface Window {
     serviceHarness?: ServiceHarness;
+    /** Exposed by the contract suite before the page loads. */
+    serviceSecrets?: () => Promise<Record<string, string>>;
   }
 }

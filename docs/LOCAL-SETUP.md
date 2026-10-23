@@ -55,6 +55,15 @@ LiveKit: server URL `ws://127.0.0.1:7880`, and on each GM's browser the API
 key `devkey` and secret `secret`. Players never see the key or secret: a
 GM's browser signs their tokens, so a GM must be online for players to join.
 
+## LiveKit Cloud
+
+`pnpm test:services:cloud` and `pnpm test:foundry:cloud` run the same
+suites against LiveKit Cloud, with `LIVEKIT_URL` (`wss://…`),
+`LIVEKIT_API_KEY` and `LIVEKIT_API_SECRET` from `.env.local`. The secret
+never goes into a URL, and Playwright traces are off in this mode, since
+they record evaluated arguments. The outage tests are skipped: Cloud can't
+be paused from here. Each run creates short-lived rooms in that project.
+
 ## End to end
 
 `pnpm test:foundry` needs Foundry running with the test world
