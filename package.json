@@ -18,7 +18,6 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:browser": "playwright test",
-    "ci": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm lang:check && pnpm test:coverage && pnpm build && pnpm size:check && pnpm test:browser",
     "release:pack": "node tools/release/cli.ts pack",
     "release:publish": "node tools/release/cli.ts publish",
     "foundry:start": "scripts/foundry/start.sh",
@@ -26,7 +25,8 @@
     "foundry:setup": "node scripts/foundry/setup-world.ts",
     "foundry:check": "node scripts/foundry/check-world.ts",
     "changeset": "changeset",
-    "version:packages": "changeset version && pnpm install --lockfile-only"
+    "version:packages": "changeset version && pnpm install --lockfile-only",
+    "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm lang:check && pnpm test:coverage && pnpm build && pnpm size:check && pnpm test:browser"
   },
   "devDependencies": {
     "@changesets/cli": "^3.0.3",

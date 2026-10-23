@@ -25,7 +25,7 @@ Requires Node 22.18+ and pnpm.
 
 ```bash
 pnpm install
-pnpm ci            # everything CI would run, locally
+pnpm verify            # everything CI would run, locally
 pnpm test          # unit tests (Vitest)
 pnpm test:browser  # browser tests (Playwright, fake devices)
 pnpm build         # each module into packages/<dir>/dist

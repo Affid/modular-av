@@ -1,7 +1,7 @@
 # Local setup
 
 Three test tiers (handoff §3 "Testing per module"): unit tests and browser
-tests run anywhere with `pnpm ci`; the third tier runs against a real Foundry
+tests run anywhere with `pnpm verify`; the third tier runs against a real Foundry
 in WSL, which needs a licence and so never runs in public CI.
 
 ## Settings

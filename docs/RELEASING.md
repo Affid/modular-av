@@ -17,7 +17,7 @@ Until 1.0 every package shares one version (Changesets "fixed" group).
 
 1. Record changes as you go: `pnpm changeset`.
 2. Bump versions and write changelogs: `pnpm version:packages`, then commit.
-3. Check everything: `pnpm ci` and `pnpm foundry:check`.
+3. Check everything: `pnpm verify` and `pnpm foundry:check`.
 4. For each module:
    - `pnpm release:pack <module-id>` builds `release/<module-id>/`;
    - `pnpm release:publish <module-id>` checks the tree and shows the
