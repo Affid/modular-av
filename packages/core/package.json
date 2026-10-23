@@ -1,0 +1,22 @@
+{
+  "name": "@modular-av/core",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Modular A/V core: the headless foundation every other module plugs into.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modular-av/api": "workspace:*"
+  },
+  "devDependencies": {
+    "@modular-av/testing": "workspace:*"
+  },
+  "modularAV": {
+    "entryBudgetBytes": 30000
+  }
+}

@@ -9,7 +9,7 @@
   },
   "scripts": {
     "build": "pnpm --recursive --if-present run build",
-    "typecheck": "pnpm --recursive --if-present run typecheck && tsc --noEmit -p tools",
+    "typecheck": "pnpm --recursive --if-present run typecheck && tsc --noEmit -p tools && tsc --noEmit -p .",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

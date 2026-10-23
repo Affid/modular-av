@@ -1,3 +1,4 @@
+export type { ModularAV } from "./core.ts";
 export type { ModuleKind, ModularAVModuleFlags } from "./module.ts";
 export type {
   ConnectionQuality,
