@@ -12,7 +12,7 @@ import {
 } from "@modular-av/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { backoffDelay, endReasonFor } from "../src/session/backoff.ts";
-import { STABLE_AFTER_MS } from "../src/session/session.ts";
+import { JOIN_TIMEOUT_MS, STABLE_AFTER_MS } from "../src/session/session.ts";
 import { createSession, type Session } from "../src/session/session.ts";
 
 const ROOM = "world-room";
@@ -514,6 +514,41 @@ describe("reconnecting", () => {
     // Assert
     expect(h.joined).toEqual(["p2"]);
   });
+});
+
+describe("a join that hangs", () => {
+  it.each(["create", "connect"] as const)(
+    "gives up after the join timeout when %s never settles, and retries",
+    async (stage) => {
+      // Arrange
+      const hub = createMockServiceHub();
+      const definition = hub.definition();
+      let hang = true;
+      const h = harness(hub, "p1", {
+        ...definition,
+        create: async (context) => {
+          if (hang && stage === "create") return new Promise(() => undefined);
+          const connection = await definition.create(context);
+          if (!hang || stage !== "connect") return connection;
+          return { ...connection, connect: () => new Promise(() => undefined) };
+        },
+      });
+
+      // Act
+      h.session.start();
+      await settle();
+      await vi.advanceTimersByTimeAsync(JOIN_TIMEOUT_MS);
+      hang = false;
+
+      // Assert
+      expect(h.session.state).toMatchObject({ status: "retrying", attempt: 1 });
+      expect(h.errors.map(String)).toContain(
+        `JoinTimeout: Joining took longer than ${String(JOIN_TIMEOUT_MS / 1000)} s`,
+      );
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(h.session.state.status).toBe("connected");
+    },
+  );
 });
 
 describe("final reasons", () => {

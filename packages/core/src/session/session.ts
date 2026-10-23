@@ -77,6 +77,35 @@ const NETWORK: ServiceError = { code: "network", final: false };
  */
 export const STABLE_AFTER_MS = 30_000;
 
+/**
+ * How long creating and joining may take once a token is in hand: nothing
+ * may leave a player "connecting" forever. Counts as a network failure.
+ */
+export const JOIN_TIMEOUT_MS = 30_000;
+
+class JoinTimeout extends Error {
+  constructor() {
+    super(`Joining took longer than ${String(JOIN_TIMEOUT_MS / 1000)} s`);
+    this.name = "JoinTimeout";
+  }
+}
+
+/** Rejects with the signal's reason once aborted. */
+function untilAborted<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = (): void => {
+      reject(
+        signal.reason instanceof Error ? signal.reason : new Error("Aborted"),
+      );
+    };
+    if (signal.aborted) onAbort();
+    signal.addEventListener("abort", onAbort, { once: true });
+    promise.then(resolve, reject).finally(() => {
+      signal.removeEventListener("abort", onAbort);
+    });
+  });
+}
+
 const isAbort = (error: unknown): boolean =>
   error instanceof DOMException && error.name === "AbortError";
 
@@ -213,7 +242,33 @@ export function createSession(deps: SessionDeps): Session {
     const token = await deps.requestToken(signal);
     if (current !== generation) return;
     setState({ status: "connecting" });
-    const connection = await service.create({ participant: deps.participant });
+    const timer = setTimeout(() => {
+      controller?.abort(new JoinTimeout());
+    }, JOIN_TIMEOUT_MS);
+    try {
+      await join(current, service, token, signal);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  /** Creates the connection and joins; a late creation is disconnected. */
+  async function join(
+    current: number,
+    service: ServiceDefinition,
+    token: string,
+    signal: AbortSignal,
+  ): Promise<void> {
+    const creating = service.create({ participant: deps.participant });
+    creating
+      .then((late) => {
+        if (signal.aborted)
+          late.disconnect("switching").catch((error: unknown) => {
+            deps.onError(error);
+          });
+      })
+      .catch(() => undefined);
+    const connection = await untilAborted(creating, signal);
     if (current !== generation) {
       await connection.disconnect("switching").catch((error: unknown) => {
         deps.onError(error);
@@ -222,7 +277,8 @@ export function createSession(deps: SessionDeps): Session {
     }
     live = wire(current, connection);
     deps.onConnection(connection);
-    await connection.connect(deps.room(), token, signal);
+    // A service that ignores the signal must not hang the session either.
+    await untilAborted(connection.connect(deps.room(), token, signal), signal);
     if (current !== generation) return;
     setState({ status: "connected" });
     stableTimer = setTimeout(() => {
@@ -241,7 +297,14 @@ export function createSession(deps: SessionDeps): Session {
     controller = new AbortController();
     const { signal } = controller;
     connect(current, signal).catch((error: unknown) => {
-      if (current !== generation || isAbort(error)) return;
+      if (current !== generation) return;
+      const reason: unknown = signal.reason;
+      if (reason instanceof JoinTimeout) {
+        deps.onError(reason);
+        failed(NETWORK);
+        return;
+      }
+      if (isAbort(error)) return;
       deps.onError(error);
       failed(serviceErrorOf(error));
     });
