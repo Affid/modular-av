@@ -1,0 +1,17 @@
+{
+  "name": "@modular-av/testing",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Fake Foundry, mock service and browser harness for testing Modular A/V packages.",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modular-av/api": "workspace:*"
+  }
+}
