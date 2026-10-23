@@ -4,7 +4,11 @@ import {
   type FakeModuleData,
 } from "./client.ts";
 import type { Translations } from "./i18n.ts";
-import { createSettings, type FakeSettingsHandle } from "./settings.ts";
+import {
+  createSettings,
+  type FakeSettingsHandle,
+  type SharedSettingsStore,
+} from "./settings.ts";
 import { createSocketNetwork } from "./socket.ts";
 import {
   createUser,
@@ -32,6 +36,8 @@ export interface FakeWorld {
   /** Waits until every socket message in flight is delivered. */
   settle(): Promise<void>;
   readonly users: readonly FakeUser[];
+  /** Errors thrown by socket handlers and setting onChange callbacks. */
+  readonly errors: readonly unknown[];
 }
 
 interface Connection {
@@ -44,9 +50,10 @@ export function createFakeWorld(options: FakeWorldOptions): FakeWorld {
   const network = createSocketNetwork();
   let userData = options.users;
   let connections: readonly Connection[] = [];
-  let worldValues = new Map<string, unknown>();
-  let userValues = new Map<string, unknown>();
+  let worldValues = new Map<string, string>();
+  let userValues = new Map<string, string>();
   let users: readonly FakeUser[] = [];
+  let settingErrors: readonly unknown[] = [];
 
   const isActive = (id: string): boolean =>
     connections.some((c) => c.userId === id);
@@ -70,29 +77,38 @@ export function createFakeWorld(options: FakeWorldOptions): FakeWorld {
     }
   };
 
+  /** World and user values as one client (logged in as `userId`) sees them. */
+  const sharedStore = (userId: string): SharedSettingsStore => ({
+    read: (scope, key) => {
+      const json =
+        scope === "world"
+          ? worldValues.get(key)
+          : userValues.get(`${userId}/${key}`);
+      return json === undefined ? undefined : { json };
+    },
+    write: (scope, key, json) => {
+      if (scope === "world") worldValues = new Map(worldValues).set(key, json);
+      else userValues = new Map(userValues).set(`${userId}/${key}`, json);
+      for (const c of connections) {
+        if (scope === "user" && c.userId !== userId) continue;
+        try {
+          c.settings.notifyChanged(key, json, userId);
+        } catch (error: unknown) {
+          settingErrors = [...settingErrors, error];
+        }
+      }
+    },
+    canWriteWorld: () =>
+      usersView.get(userId)?.hasPermission("SETTINGS_MODIFY") ?? false,
+  });
+
   const connect = (userId: string): FakeClient => {
     if (!userData.some((u) => u.id === userId))
       throw new Error(`unknown user "${userId}"`);
     const wasActive = isActive(userId);
     const { socket, detach } = network.attach(userId);
-    const settings = createSettings({
-      read: (scope, key) => {
-        const map = scope === "world" ? worldValues : userValues;
-        const fullKey = scope === "world" ? key : `${userId}/${key}`;
-        return map.has(fullKey) ? { value: map.get(fullKey) } : undefined;
-      },
-      write: (scope, key, value) => {
-        if (scope === "world")
-          worldValues = new Map(worldValues).set(key, value);
-        else userValues = new Map(userValues).set(`${userId}/${key}`, value);
-        for (const c of connections) {
-          if (scope === "world" || c.userId === userId)
-            c.settings.notifyChanged(key, value);
-        }
-      },
-      canWriteWorld: () =>
-        usersView.get(userId)?.hasPermission("SETTINGS_MODIFY") ?? false,
-    });
+    let ready = (): boolean => false;
+    const settings = createSettings(sharedStore(userId), () => ready());
     const client = createClient({
       userId,
       readUsers: usersView,
@@ -108,6 +124,7 @@ export function createFakeWorld(options: FakeWorldOptions): FakeWorld {
         userChanged(userId, wasStillActive);
       },
     });
+    ready = () => client.game.ready;
     connections = [...connections, { userId, client, settings }];
     userChanged(userId, wasActive, client);
     return client;
@@ -127,6 +144,9 @@ export function createFakeWorld(options: FakeWorldOptions): FakeWorld {
     settle: () => network.settle(),
     get users() {
       return users;
+    },
+    get errors() {
+      return [...network.errors, ...settingErrors];
     },
   };
 }

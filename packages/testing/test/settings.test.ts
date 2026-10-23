@@ -35,6 +35,8 @@ describe("fake settings", () => {
     const world = createFakeWorld({ users: USERS });
     const gm = world.connect("gm1");
     const player = world.connect("p1");
+    gm.runLifecycle();
+    player.runLifecycle();
     const onChange = vi.fn();
     for (const client of [gm, player]) {
       client.game.settings.register("mod", "room", {
@@ -48,11 +50,12 @@ describe("fake settings", () => {
 
     expect(player.game.settings.get("mod", "room")).toBe("tavern");
     expect(onChange).toHaveBeenCalledTimes(2);
-    expect(onChange).toHaveBeenCalledWith("tavern");
+    expect(onChange).toHaveBeenCalledWith("tavern", {}, "gm1");
   });
 
   it("refuses world setting changes from players", async () => {
     const player = createFakeWorld({ users: USERS }).connect("p1");
+    player.runLifecycle();
     player.game.settings.register("mod", "room", {
       scope: "world",
       default: "",
@@ -86,6 +89,7 @@ describe("fake settings", () => {
     const tabB = world.connect("p1");
     const other = world.connect("gm1");
     for (const client of [tabA, tabB, other]) {
+      client.runLifecycle();
       client.game.settings.register("mod", "theme", {
         scope: "user",
         default: "plain",

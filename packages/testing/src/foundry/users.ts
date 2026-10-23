@@ -9,14 +9,21 @@ export const USER_ROLES = {
 
 export type UserRole = (typeof USER_ROLES)[keyof typeof USER_ROLES];
 
-/**
- * The lowest role that holds a permission when the user has no override.
- * Values match Foundry v14 (common/constants.mjs USER_PERMISSIONS).
- */
-const DEFAULT_PERMISSION_ROLES: Readonly<Record<string, UserRole>> = {
-  BROADCAST_AUDIO: USER_ROLES.TRUSTED,
-  BROADCAST_VIDEO: USER_ROLES.TRUSTED,
-  SETTINGS_MODIFY: USER_ROLES.ASSISTANT,
+interface PermissionRule {
+  /** Roles at or above this hold the permission unless overridden. */
+  readonly defaultRole: UserRole;
+  /** Roles that always hold it; an override cannot revoke it. */
+  readonly requiredRoles: readonly UserRole[];
+}
+
+/** As in Foundry v14 (common/constants.mjs USER_PERMISSIONS). */
+const PERMISSIONS: Readonly<Record<string, PermissionRule>> = {
+  BROADCAST_AUDIO: { defaultRole: USER_ROLES.TRUSTED, requiredRoles: [] },
+  BROADCAST_VIDEO: { defaultRole: USER_ROLES.TRUSTED, requiredRoles: [] },
+  SETTINGS_MODIFY: {
+    defaultRole: USER_ROLES.ASSISTANT,
+    requiredRoles: [USER_ROLES.GAMEMASTER],
+  },
 };
 
 export interface FakeUserData {
@@ -40,11 +47,16 @@ export function createUser(data: FakeUserData, active: boolean): FakeUser {
     ...data,
     active,
     isGM: data.role >= USER_ROLES.ASSISTANT,
+    /** Same order of checks as Foundry's `User#hasPermission`. */
     hasPermission(permission: string): boolean {
+      const rule = PERMISSIONS[permission];
+      if (!rule) throw new Error(`Unknown permission "${permission}"`);
+      if (data.role === USER_ROLES.NONE) return false;
+      if ((rule.requiredRoles as readonly number[]).includes(data.role))
+        return true;
       const override = data.permissions?.[permission];
       if (override !== undefined) return override;
-      const minimum = DEFAULT_PERMISSION_ROLES[permission];
-      return minimum !== undefined && data.role >= minimum;
+      return data.role >= rule.defaultRole;
     },
   });
 }
@@ -53,8 +65,8 @@ export interface FakeUsers {
   get(id: string): FakeUser | undefined;
   getName(name: string): FakeUser | undefined;
   readonly contents: readonly FakeUser[];
-  /** The active GM with the lowest id, as Foundry designates it. */
-  readonly activeGM: FakeUser | undefined;
+  /** The active GM with the highest role, then the lowest id; else null. */
+  readonly activeGM: FakeUser | null;
 }
 
 export function createUsersView(read: () => readonly FakeUser[]): FakeUsers {
@@ -65,9 +77,10 @@ export function createUsersView(read: () => readonly FakeUser[]): FakeUsers {
       return read();
     },
     get activeGM() {
-      return read()
+      const [designated] = read()
         .filter((user) => user.active && user.isGM)
-        .sort((a, b) => a.id.localeCompare(b.id))[0];
+        .sort((a, b) => b.role - a.role || a.id.localeCompare(b.id));
+      return designated ?? null;
     },
   };
 }

@@ -33,7 +33,7 @@ describe("fake world and clients", () => {
   it("marks users active while connected and picks the active GM", () => {
     const world = createFakeWorld({ users: USERS });
     const player = world.connect("p1");
-    expect(player.game.users.activeGM).toBeUndefined();
+    expect(player.game.users.activeGM).toBeNull();
 
     const gm2 = world.connect("gm2");
     world.connect("gm1");
