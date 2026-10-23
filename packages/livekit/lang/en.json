@@ -1,0 +1,19 @@
+{
+  "modular-av-livekit": {
+    "label": "LiveKit",
+    "settings": {
+      "serverUrl": {
+        "name": "LiveKit server URL",
+        "hint": "The server's WebSocket address, such as wss://example.livekit.cloud or ws://localhost:7880 for a local test server. Every player can read this setting."
+      },
+      "apiKey": {
+        "name": "LiveKit API key",
+        "hint": "Stored only in this browser. Players get short-lived tokens from a GM's browser, so players never see it."
+      },
+      "apiSecret": {
+        "name": "LiveKit API secret",
+        "hint": "Stored only in this browser and never sent to players. Enter it on each browser a GM uses to run the game."
+      }
+    }
+  }
+}
