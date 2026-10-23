@@ -11,7 +11,7 @@ export type UserRole = (typeof USER_ROLES)[keyof typeof USER_ROLES];
 
 /**
  * The lowest role that holds a permission when the user has no override.
- * Values follow Foundry's defaults; checked again against v14 in milestone 2.
+ * Values match Foundry v14 (common/constants.mjs USER_PERMISSIONS).
  */
 const DEFAULT_PERMISSION_ROLES: Readonly<Record<string, UserRole>> = {
   BROADCAST_AUDIO: USER_ROLES.TRUSTED,
