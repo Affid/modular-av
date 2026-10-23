@@ -1,6 +1,11 @@
 import { ConnectionError, DisconnectReason } from "livekit-client";
 import { describe, expect, it } from "vitest";
-import { fromConnectError, fromDisconnectReason } from "../src/errors.ts";
+import {
+  fromConnectError,
+  fromDisconnectReason,
+  isExpired,
+} from "../src/errors.ts";
+import { signLiveKitToken } from "../src/token.ts";
 import { LiveKitServiceError } from "../src/failure.ts";
 
 describe("LiveKit disconnect reasons", () => {
@@ -64,5 +69,37 @@ describe("LiveKit connect errors", () => {
     expect(error.serviceError.code).toBe("auth");
     expect(error.message).toBe("auth");
     expect(error.cause).toBe(cause);
+  });
+});
+
+describe("expired tokens, whatever the server says", () => {
+  const sign = (ttlSeconds: number) =>
+    signLiveKitToken(
+      {
+        participant: "p1",
+        room: "r",
+        canPublish: { audio: true, video: true },
+        ttlSeconds,
+      },
+      { apiKey: "k", apiSecret: "s" },
+      Date.now(),
+    );
+
+  it("reads the token's own expiry", async () => {
+    expect(isExpired(await sign(-60), Date.now())).toBe(true);
+    expect(isExpired(await sign(60), Date.now())).toBe(false);
+    expect(isExpired("not.a.jwt", Date.now())).toBe(false);
+    expect(isExpired("garbage", Date.now())).toBe(false);
+  });
+
+  it("asks for a retry when LiveKit Cloud refuses an expired token", async () => {
+    const refused = ConnectionError.notAllowed("invalid token", 401);
+
+    expect(
+      fromConnectError(refused, { token: await sign(-60), now: Date.now() }),
+    ).toMatchObject({ code: "token-expired", final: false });
+    expect(
+      fromConnectError(refused, { token: await sign(60), now: Date.now() }),
+    ).toMatchObject({ code: "auth", final: true });
   });
 });

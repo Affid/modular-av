@@ -36,15 +36,46 @@ export function fromDisconnectReason(
   }
 }
 
+/**
+ * Whether a JWT's own `exp` has passed. Servers word the refusal
+ * differently (LiveKit Cloud just says "invalid token"), so the client
+ * checks the token it presented.
+ */
+export function isExpired(token: string, now: number): boolean {
+  const payload = token.split(".")[1];
+  if (!payload) return false;
+  try {
+    const json = atob(payload.replace(/-/g, "+").replace(/_/g, "/"));
+    const exp = (JSON.parse(json) as { exp?: unknown }).exp;
+    return typeof exp === "number" && exp * 1000 <= now;
+  } catch {
+    // Not a JWT we can read: let the server's answer stand.
+    return false;
+  }
+}
+
+/** The attempt `room.connect()` failed on. */
+export interface ConnectAttempt {
+  readonly token: string;
+  readonly now: number;
+}
+
 /** Why `room.connect()` failed. */
-export function fromConnectError(error: unknown): ServiceError {
+export function fromConnectError(
+  error: unknown,
+  attempt?: ConnectAttempt,
+): ServiceError {
   if (!(error instanceof ConnectionError)) return NETWORK;
   switch (error.reason) {
-    case ConnectionErrorReason.NotAllowed:
+    case ConnectionErrorReason.NotAllowed: {
       // An expired token is worth a retry: the core fetches a fresh one.
-      return /expired/i.test(error.message)
+      const expired =
+        /expired/i.test(error.message) ||
+        (attempt !== undefined && isExpired(attempt.token, attempt.now));
+      return expired
         ? { code: "token-expired", final: false, message: "Token expired" }
         : final("auth", "LiveKit refused the token");
+    }
     case ConnectionErrorReason.ServiceNotFound:
       return final("unsupported", "No LiveKit server at this URL");
     default:

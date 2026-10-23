@@ -73,7 +73,10 @@ async function join(
     await room.connect(url, token, { autoSubscribe: true });
   } catch (error: unknown) {
     if (isAborted(signal)) throw aborted();
-    throw new LiveKitServiceError(fromConnectError(error), { cause: error });
+    throw new LiveKitServiceError(
+      fromConnectError(error, { token, now: Date.now() }),
+      { cause: error },
+    );
   } finally {
     signal.removeEventListener("abort", onAbort);
   }
