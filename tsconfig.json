@@ -8,6 +8,7 @@
     "*.config.ts",
     "eslint.config.js",
     "packages/*/vite.config.ts",
-    "tests/**/*.ts"
+    "tests/**/*.ts",
+    "packages/testing/src/harness/vite.config.ts"
   ]
 }
