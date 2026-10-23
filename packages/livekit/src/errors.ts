@@ -41,7 +41,10 @@ export function fromConnectError(error: unknown): ServiceError {
   if (!(error instanceof ConnectionError)) return NETWORK;
   switch (error.reason) {
     case ConnectionErrorReason.NotAllowed:
-      return final("auth", "LiveKit refused the token");
+      // An expired token is worth a retry: the core fetches a fresh one.
+      return /expired/i.test(error.message)
+        ? { code: "token-expired", final: false, message: "Token expired" }
+        : final("auth", "LiveKit refused the token");
     case ConnectionErrorReason.ServiceNotFound:
       return final("unsupported", "No LiveKit server at this URL");
     default:

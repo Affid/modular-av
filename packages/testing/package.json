@@ -7,7 +7,9 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./harness": "./src/harness/types.ts"
+    "./harness": "./src/harness/types.ts",
+    "./harness/service": "./src/harness/service-types.ts",
+    "./contract": "./src/contract/service-contract.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

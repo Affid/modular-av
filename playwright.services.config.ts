@@ -1,0 +1,35 @@
+import { defineConfig, devices } from "@playwright/test";
+import base from "./playwright.config.ts";
+
+const CHROMIUM = {
+  ...devices["Desktop Chrome"],
+  launchOptions: {
+    args: [
+      "--use-fake-ui-for-media-stream",
+      "--use-fake-device-for-media-stream",
+      "--autoplay-policy=no-user-gesture-required",
+    ],
+  },
+};
+
+/**
+ * The service contract against real servers in Docker (`pnpm test:services`).
+ * Not part of `pnpm verify`: it needs Docker and takes minutes.
+ */
+export default defineConfig({
+  ...base,
+  testMatch: "*/test/service/**/*.spec.ts",
+  outputDir: "test-results/services",
+  globalSetup: "./scripts/services/global-setup.ts",
+  timeout: 60_000,
+  workers: 4,
+  projects: [
+    { name: "contract", use: CHROMIUM, grepInvert: /@outage/ },
+    {
+      name: "outage",
+      use: CHROMIUM,
+      grep: /@outage/,
+      dependencies: ["contract"],
+    },
+  ],
+});
