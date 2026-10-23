@@ -1,0 +1,22 @@
+export type { ModuleKind, ModularAVModuleFlags } from "./module.ts";
+export type {
+  ConnectionQuality,
+  ConnectionStats,
+  Observable,
+  ParticipantId,
+  PublishedTrack,
+  RemoteTrack,
+  RoomSpec,
+  ServiceCapabilities,
+  ServiceConnection,
+  ServiceConnectionState,
+  ServiceContext,
+  ServiceDefinition,
+  ServiceError,
+  ServiceErrorCode,
+  ServiceEvents,
+  SettingsSchema,
+  SubscriptionOptions,
+  TokenRequest,
+  TrackSource,
+} from "./service.ts";

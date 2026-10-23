@@ -1,0 +1,14 @@
+{
+  "name": "@modular-av/api",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Types shared by every Modular A/V package.",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  }
+}
