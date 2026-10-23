@@ -99,9 +99,8 @@ const states = (events: readonly RecordedEvent[]): string[] =>
   events.flatMap((e) => (e.type === "state" ? [e.state] : []));
 
 export function serviceContract(options: ServiceContractOptions): void {
-  let rooms = 0;
   const peers = async (browser: Browser, ...ids: string[]): Promise<Peer[]> => {
-    const room = `contract-${String(Date.now())}-${String(rooms++)}`;
+    const room = `contract-${crypto.randomUUID()}`;
     return Promise.all(ids.map((id) => openPeer(browser, options, id, room)));
   };
 
@@ -178,6 +177,9 @@ export function serviceContract(options: ServiceContractOptions): void {
       await expect
         .poll(() => bob.run((h) => h.audioLevel("alice", 1500)))
         .toBeLessThan(SILENT);
+      await expect
+        .poll(() => bob.run((h) => h.videoBrightness("alice")))
+        .toBeLessThan(10);
       await alice.run(async (h) => {
         h.setEnabled("microphone", true);
         await h.setMuted("microphone", false);

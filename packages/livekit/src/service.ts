@@ -9,6 +9,11 @@ export interface LiveKitServiceDeps {
   readonly onError: (error: unknown) => void;
 }
 
+/** WebCrypto exists only in secure contexts (https, or localhost). */
+const canUseWebCrypto = (): boolean =>
+  typeof (globalThis.crypto as Partial<Crypto> | undefined)?.subtle
+    ?.importKey === "function";
+
 /**
  * What the module registers with the core: small on purpose. The SDK is
  * imported in `create()`, so it loads only when someone joins a call.
@@ -20,8 +25,15 @@ export function createLiveKitService(
     id: "livekit",
     label: `${MODULE_ID}.label`,
     mediaOwnership: "core",
-    canSignTokens: () => deps.settings.credentials() !== null,
+    canSignTokens: () =>
+      deps.settings.credentials() !== null && canUseWebCrypto(),
     signToken(request) {
+      if (!canUseWebCrypto())
+        return Promise.reject(
+          new Error(
+            "Signing LiveKit tokens needs a secure context: open Foundry over https:// (or localhost)",
+          ),
+        );
       const credentials = deps.settings.credentials();
       if (!credentials)
         return Promise.reject(
@@ -36,7 +48,7 @@ export function createLiveKitService(
           code: "unsupported",
           final: true,
           message:
-            "Set the LiveKit server URL (ws:// or wss://) in the module settings",
+            "Set a wss:// LiveKit server URL in the module settings (ws:// only on a local network)",
         });
       const { createLiveKitConnection } = await import("./connection.ts");
       return createLiveKitConnection(context, { url, onError: deps.onError });

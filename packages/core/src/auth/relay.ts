@@ -150,10 +150,7 @@ export function createTokenRelay(deps: TokenRelayDeps): TokenRelay {
     });
     let ids: readonly string[] = [];
     let waiting = false;
-    const done = (token: string): string => {
-      if (waiting) deps.onWaitingForGm(false);
-      return token;
-    };
+    const done = (token: string): string => token;
     try {
       for (;;) {
         if (signal.aborted) throw abortError();
@@ -182,6 +179,8 @@ export function createTokenRelay(deps: TokenRelayDeps): TokenRelay {
       }
     } finally {
       pending = new Map([...pending].filter(([id]) => !ids.includes(id)));
+      // Aborted or failed while waiting: never leave "waiting" behind.
+      if (waiting) deps.onWaitingForGm(false);
     }
   };
 

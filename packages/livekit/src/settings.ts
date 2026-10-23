@@ -55,13 +55,31 @@ export function registerSecretSettings(
     });
 }
 
-const WEBSOCKET_URL = /^wss?:\/\/[^\s/?#]+/i;
+/** Loopback, private ranges and .local names: ws:// is acceptable there. */
+const LOCAL_HOST =
+  /^(localhost|127\.\d+\.\d+\.\d+|\[::1\]|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+|[\w-]+\.local)$/i;
+
+/**
+ * A ws(s) URL without credentials; plain ws:// only on this machine or a
+ * private network, since every player sends their token to it.
+ */
+function validServerUrl(text: string): string | null {
+  let url: URL;
+  try {
+    url = new URL(text);
+  } catch {
+    // Not a URL at all.
+    return null;
+  }
+  if (url.username || url.password) return null;
+  if (url.protocol === "wss:") return text;
+  return url.protocol === "ws:" && LOCAL_HOST.test(url.hostname) ? text : null;
+}
 
 export function readSettings(settings: SettingsApi): LiveKitSettings {
   return {
     serverUrl() {
-      const url = text(settings, "serverUrl");
-      return WEBSOCKET_URL.test(url) ? url : null;
+      return validServerUrl(text(settings, "serverUrl"));
     },
     credentials() {
       const apiKey = text(settings, "apiKey");

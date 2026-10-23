@@ -4,7 +4,7 @@
     "settings": {
       "serverUrl": {
         "name": "LiveKit server URL",
-        "hint": "The server's WebSocket address, such as wss://example.livekit.cloud or ws://localhost:7880 for a local test server. Every player can read this setting."
+        "hint": "The server's secure WebSocket address, such as wss://example.livekit.cloud. Plain ws:// works only on this computer or a private network (ws://localhost:7880 for a local test server). Every player can read this setting."
       },
       "apiKey": {
         "name": "LiveKit API key",

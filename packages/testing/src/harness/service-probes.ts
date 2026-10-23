@@ -2,6 +2,8 @@
 
 let context: AudioContext | null = null;
 
+const NO_FRAME_MS = 2_000;
+
 /**
  * Chrome only feeds remote WebRTC audio into Web Audio while an element
  * plays it, so the track is also attached to a muted element.
@@ -34,16 +36,26 @@ export async function peakLevel(
   return peak;
 }
 
+/** Mean luminance (0-255) of the next frame; 0 if none comes. */
 export async function meanLuminance(track: MediaStreamTrack): Promise<number> {
   const video = document.createElement("video");
   video.muted = true;
   video.srcObject = new MediaStream([track]);
-  await video.play();
-  await new Promise<void>((resolve) => {
+  await video.play().catch(() => undefined);
+  // No new frame (a muted track the server stops forwarding) shows nothing.
+  const framed = await new Promise<boolean>((resolve) => {
+    const timer = setTimeout(() => {
+      resolve(false);
+    }, NO_FRAME_MS);
     video.requestVideoFrameCallback(() => {
-      resolve();
+      clearTimeout(timer);
+      resolve(true);
     });
   });
+  if (!framed) {
+    video.srcObject = null;
+    return 0;
+  }
   const canvas = document.createElement("canvas");
   canvas.width = 64;
   canvas.height = 48;

@@ -43,6 +43,11 @@ describe("LiveKit connect errors", () => {
       code: "network",
       final: false,
     });
+    expect(
+      fromConnectError(
+        ConnectionError.notAllowed("invalid token: token is expired", 401),
+      ),
+    ).toMatchObject({ code: "token-expired", final: false });
     expect(fromConnectError(new Error("other"))).toEqual({
       code: "network",
       final: false,

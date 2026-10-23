@@ -123,11 +123,11 @@ export function createLiveKitConnection(
     },
     async unpublish(published) {
       const publication = publications.get(published.id);
-      if (!publication?.track) return;
       const next = new Map(publications);
       next.delete(published.id);
       publications = next;
-      await room.localParticipant.unpublishTrack(publication.track, false);
+      if (publication?.track)
+        await room.localParticipant.unpublishTrack(publication.track, false);
     },
     /** LiveKit writes `track.enabled` here; the core applies its own after. */
     async setMuted(published, muted) {

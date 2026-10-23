@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { maskSecretField } from "../src/mask.ts";
 import { createLiveKitService } from "../src/service.ts";
 import {
   MODULE_ID,
@@ -71,6 +72,26 @@ describe("LiveKit settings", () => {
     expect(url("javascript:alert(1)")).toBeNull();
     expect(url(undefined)).toBeNull();
   });
+
+  it("allows unencrypted ws:// only on this machine or a private network", () => {
+    const url = (value: string): string | null =>
+      readSettings(
+        fakeSettings({ [`${MODULE_ID}.serverUrl`]: value }).api,
+      ).serverUrl();
+
+    for (const local of [
+      "ws://127.0.0.1:7880",
+      "ws://[::1]:7880",
+      "ws://192.168.1.20:7880",
+      "ws://10.0.0.5",
+      "ws://172.16.3.4:7880",
+      "ws://livekit.local:7880",
+    ])
+      expect(url(local)).toBe(local);
+    expect(url("ws://example.com:7880")).toBeNull();
+    expect(url("ws://172.32.0.1")).toBeNull();
+    expect(url("wss://user:pass@example.com")).toBeNull();
+  });
 });
 
 describe("LiveKit service definition", () => {
@@ -120,5 +141,47 @@ describe("LiveKit service definition", () => {
       label: "modular-av-livekit.label",
       mediaOwnership: "core",
     });
+  });
+});
+
+describe("the settings form", () => {
+  it("shows the API secret as a password field", () => {
+    const input = { type: "text" };
+    const root = {
+      querySelector: (selector: string) =>
+        selector === `input[name="${MODULE_ID}.apiSecret"]` ? input : null,
+    };
+
+    maskSecretField(root);
+    maskSecretField({ querySelector: () => null });
+
+    expect(input.type).toBe("password");
+  });
+});
+
+describe("signing outside a secure context", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("says it can't sign where WebCrypto is missing (plain http on a LAN)", async () => {
+    // Arrange
+    vi.stubGlobal("crypto", {});
+    const service = createLiveKitService({
+      settings: readSettings(
+        fakeSettings({
+          [`${MODULE_ID}.apiKey`]: "devkey",
+          [`${MODULE_ID}.apiSecret`]: "secret",
+        }).api,
+      ),
+      now: () => 0,
+      onError: () => undefined,
+    });
+
+    // Act / Assert
+    expect(service.canSignTokens?.()).toBe(false);
+    await expect(service.signToken?.(REQUEST)).rejects.toThrow(
+      /secure context/,
+    );
   });
 });
