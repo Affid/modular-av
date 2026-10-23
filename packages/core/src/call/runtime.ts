@@ -1,4 +1,5 @@
 import type {
+  MediaPermissions,
   ParticipantId,
   ServiceCapabilities,
   ServiceConnection,
@@ -21,6 +22,8 @@ export interface Runtime {
   capabilities: ServiceCapabilities | null;
   connected: ReadonlySet<ParticipantId>;
   speaking: ReadonlyMap<ParticipantId, boolean>;
+  /** The local player's rights when last applied: a change needs a new token. */
+  rights: MediaPermissions | null;
 }
 
 export const IDLE_SESSION: SessionState = {
@@ -40,5 +43,6 @@ export function createRuntime(deafened: boolean): Runtime {
     capabilities: null,
     connected: new Set(),
     speaking: new Map(),
+    rights: null,
   };
 }

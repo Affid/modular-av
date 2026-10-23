@@ -75,11 +75,22 @@ export function createPublications(
   return {
     sync(tracks, canPublish, outbound) {
       const run = queue.then(async () => {
+        // One at a time (they share `current`), but one failing source
+        // never keeps the other from syncing.
+        let failure: Error | null = null;
         for (const { source, kind } of SOURCES) {
           const track =
             source === "microphone" ? tracks.microphone : tracks.camera;
-          await syncOne(source, track, canPublish[kind], !outbound[kind]);
+          try {
+            await syncOne(source, track, canPublish[kind], !outbound[kind]);
+          } catch (error: unknown) {
+            failure ??=
+              error instanceof Error
+                ? error
+                : new Error("Publishing failed", { cause: error });
+          }
         }
+        if (failure) throw failure;
       });
       queue = run.catch(() => undefined);
       return run;

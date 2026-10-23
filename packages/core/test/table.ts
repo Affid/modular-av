@@ -36,6 +36,8 @@ export interface TabOptions {
   readonly av?: Partial<AVClientSettings>;
   /** Register no service at all. */
   readonly noService?: boolean;
+  /** Register this instead of the mock service's definition. */
+  readonly service?: ServiceDefinition;
   readonly deny?: { readonly audio?: string; readonly video?: string };
 }
 
@@ -75,7 +77,9 @@ export function createTable(options: Partial<FakeWorldOptions> = {}): Table {
     const errors: unknown[] = [];
     if (!tab.noService)
       client.Hooks.on("modularAV.register", (api: ModularAV) => {
-        api.services.register(serviceFor(hub, tab.secret ?? false));
+        api.services.register(
+          tab.service ?? serviceFor(hub, tab.secret ?? false),
+        );
       });
     const core = installCore({
       game: client.game,

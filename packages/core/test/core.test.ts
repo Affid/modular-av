@@ -225,6 +225,43 @@ describe("mute in every state", () => {
     expect(micEnabled(p1)).toBe(false);
   });
 
+  it("keeps the core's mute when a service re-enables the track itself", async () => {
+    // Arrange: like LiveKit, unmute() sets track.enabled = true when done.
+    const table = createTable();
+    table.join("gm", { secret: true });
+    const definition = table.hub.definition();
+    const p1 = table.join("p1", {
+      av: ALWAYS,
+      service: {
+        ...definition,
+        canSignTokens: () => false,
+        create: async (context) => {
+          const connection = await definition.create(context);
+          return {
+            ...connection,
+            setMuted: async (published, muted) => {
+              await connection.setMuted(published, muted);
+              await vi.advanceTimersByTimeAsync(0);
+              const mic = p1.core.controller().local.microphone;
+              if (!muted && mic && published.source === "microphone")
+                mic.enabled = true;
+            },
+          };
+        },
+      },
+    });
+    await p1.api.commands.setMuted(true);
+    await table.settle();
+
+    // Act
+    await p1.api.commands.setMuted(false);
+    await p1.api.commands.setMuted(true);
+    await table.settle();
+
+    // Assert
+    expect(micEnabled(p1)).toBe(false);
+  });
+
   it("refuses to unmute a player the GM blocked", async () => {
     const table = createTable();
     const p4 = table.join("p4");
@@ -337,6 +374,27 @@ describe("GM authority", () => {
       audio: false,
       video: true,
     });
+  });
+
+  it("rejoins with new rights when the GM changes them", async () => {
+    const table = createTable();
+    table.join("gm", { secret: true });
+    const p1 = table.join("p1");
+    await table.settle();
+    const statuses: string[] = [];
+    p1.api.state.subscribe(
+      (s) => s.session.status,
+      (status) => statuses.push(status),
+    );
+
+    table.world.updateUser("p1", { permissions: { BROADCAST_VIDEO: false } });
+    await table.settle();
+    table.world.updateUser("p1", { name: "Renamed" });
+    p1.client.Hooks.callAll("updateSetting", { key: "core.permissions" });
+    await table.settle();
+
+    expect(statuses).toEqual(["waiting-for-token", "connecting", "connected"]);
+    expect(p1.api.state.get().participants.p1?.name).toBe("Renamed");
   });
 
   it("refuses a blocked player's media even if it still arrives", async () => {

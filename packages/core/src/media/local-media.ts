@@ -54,6 +54,8 @@ export function createLocalMedia(env: MediaEnv): LocalMedia {
   let outbound: MediaPermissions = { audio: false, video: false };
   let listeners: readonly { readonly listener: () => void }[] = [];
   let queue: Promise<void> = Promise.resolve();
+  /** Bumped by `release()`: captures from before it are stopped, not kept. */
+  let epoch = 0;
 
   const applyOutbound = (): void => {
     if (audio) audio.sent.enabled = outbound.audio;
@@ -79,13 +81,19 @@ export function createLocalMedia(env: MediaEnv): LocalMedia {
   };
 
   const update = async (devices: DeviceChoice): Promise<void> => {
-    const wantAudio = devices.audio !== audio?.device;
-    const wantVideo = devices.video !== video?.device;
+    const wantAudio = devices.audio !== (audio?.device ?? null);
+    const wantVideo = devices.video !== (video?.device ?? null);
     if (!wantAudio && !wantVideo) return;
+    const started = epoch;
     const [nextAudio, nextVideo] = await Promise.allSettled([
       wantAudio && devices.audio !== null ? captureAudio(devices.audio) : null,
       wantVideo && devices.video !== null ? captureVideo(devices.video) : null,
     ]);
+    if (started !== epoch) {
+      for (const next of [nextAudio, nextVideo])
+        if (next.status === "fulfilled") stop(next.value);
+      return;
+    }
     if (wantAudio) {
       stop(audio);
       audio = nextAudio.status === "fulfilled" ? nextAudio.value : null;
@@ -133,6 +141,7 @@ export function createLocalMedia(env: MediaEnv): LocalMedia {
       applyOutbound();
     },
     release() {
+      epoch += 1;
       const had = audio !== null || video !== null;
       stop(audio);
       stop(video);

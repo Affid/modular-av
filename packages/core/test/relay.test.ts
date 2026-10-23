@@ -56,7 +56,8 @@ function connect(
     channel: createChannels(game.socket, () => undefined).channel("auth"),
     selfId: userId,
     isGM: (id) => game.users.get(id)?.isGM ?? false,
-    anyGmOnline: () => game.users.contents.some((u) => u.active && u.isGM),
+    onlineGms: () =>
+      game.users.contents.filter((u) => u.active && u.isGM).map((u) => u.id),
     service: () => service,
     tokenRequestFor: (participant) => {
       const user = game.users.get(participant);
@@ -321,5 +322,34 @@ describe("GM token relay", () => {
     await settle(world);
 
     expect(gm.signed).toEqual([]);
+  });
+
+  it("never signs locally on a player's device that holds a secret", async () => {
+    vi.useFakeTimers();
+    const world = createFakeWorld({ users: USERS });
+    const p1 = connect(world, "p1", { secret: true });
+
+    void p1.relay.request(new AbortController().signal);
+    await settle(world);
+
+    expect(p1.signed).toEqual([]);
+    expect(p1.waiting).toEqual([true]);
+  });
+
+  it("asks GMs only, so other players never see request ids", async () => {
+    vi.useFakeTimers();
+    const world = createFakeWorld({ users: USERS });
+    connect(world, "gm", { secret: true });
+    const p1 = connect(world, "p1");
+    const snoop = vi.fn();
+    createChannels(world.connect("p4").game.socket, () => undefined)
+      .channel("auth")
+      .on(snoop);
+
+    const token = p1.relay.request(new AbortController().signal);
+    await settle(world);
+
+    await expect(token).resolves.toBe("token-for-p1");
+    expect(snoop).not.toHaveBeenCalled();
   });
 });

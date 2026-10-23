@@ -14,7 +14,6 @@ import type {
   FoundryHooks,
   FoundryNamespace,
   FoundryUi,
-  FoundryUser,
 } from "./foundry/globals.ts";
 import type { MediaEnv } from "./media/env.ts";
 import { createRegistry } from "./registry.ts";
@@ -136,14 +135,16 @@ function registerServiceSetting(
 /** Foundry events that change what the core sends, plays or shows. */
 function watchFoundry(deps: CoreDeps, controller: () => Controller): void {
   const { game, hooks } = deps;
-  hooks.on("updateUser", (user: FoundryUser, changes: object) => {
-    const c = controller();
-    c.apply();
-    const rightsChanged = "permissions" in changes || "role" in changes;
-    if (user.id === game.userId && rightsChanged) c.session.restart();
+  // Rights, names, flags or presence changed: the controller works out
+  // what follows (refusing media, rejoining with new rights).
+  hooks.on("updateUser", () => {
+    controller().apply();
   });
   hooks.on("userConnected", () => {
     controller().apply();
+  });
+  hooks.on("updateSetting", (setting: { key?: unknown }) => {
+    if (setting.key === "core.permissions") controller().apply();
   });
   hooks.on("renderPlayers", (_app: unknown, element: unknown) => {
     if (!(typeof Element !== "undefined" && element instanceof Element)) return;

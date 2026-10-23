@@ -78,6 +78,21 @@ interface Parts {
   readonly reacquire: () => Promise<void>;
 }
 
+/**
+ * Whether the local player's publish rights changed since the last call,
+ * whatever changed them (their user, their role's permissions, the world's
+ * mode). Tokens carry the rights, so the session must rejoin.
+ */
+function rightsChanged(rt: Runtime, facts: AVFacts): boolean {
+  const rights = facts.canBroadcast(facts.selfId);
+  const before = rt.rights;
+  rt.rights = rights;
+  return (
+    before !== null &&
+    (before.audio !== rights.audio || before.video !== rights.video)
+  );
+}
+
 function buildParts(deps: ControllerDeps): Parts {
   const { game, env } = deps;
   const facts = createAVFacts(game);
@@ -116,7 +131,8 @@ function buildParts(deps: ControllerDeps): Parts {
   const apply = (): void => {
     local.setOutbound(outbound());
     remote.refresh();
-    session.syncMedia();
+    if (rightsChanged(rt, facts)) session.restart();
+    else session.syncMedia();
     refreshState();
   };
   local.onChange(() => {
@@ -131,7 +147,11 @@ function buildParts(deps: ControllerDeps): Parts {
   return { deps, facts, rt, local, remote, session, service, apply, reacquire };
 }
 
-/** A/V disabled: stop and free the devices; otherwise recapture and rejoin. */
+/**
+ * A/V disabled: stop and free the devices. Otherwise capture what the new
+ * mode needs; the rights change makes `apply()` rejoin. Enabling A/V after
+ * it was disabled at load needs a reload, which Foundry asks for.
+ */
 function onModeChanged(parts: Parts): void {
   const { facts, rt, session, local } = parts;
   if (facts.mode() === AV_MODES.DISABLED) {
@@ -139,22 +159,17 @@ function onModeChanged(parts: Parts): void {
     local.release();
     return;
   }
-  if (!rt.foundryConnected) return;
-  parts
-    .reacquire()
-    .then(() => {
-      session.restart();
-    })
-    .catch(parts.deps.onError);
+  if (rt.foundryConnected) parts.reacquire().catch(parts.deps.onError);
 }
 
 function onSettingsChanged(parts: Parts, keys: readonly string[]): void {
   const has = (prefix: string): boolean =>
     keys.some((k) => k === prefix || k.startsWith(`${prefix}.`));
+  // A TURN change never gets here: AVMaster reconnects (disconnect, then
+  // connect) without telling the client class.
   if (has("world.mode")) onModeChanged(parts);
   else if (has("client.audioSrc") || has("client.videoSrc"))
     parts.reacquire().catch(parts.deps.onError);
-  if (has("world.turn")) parts.session.restart();
   parts.apply();
 }
 

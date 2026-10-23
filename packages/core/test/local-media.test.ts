@@ -1,4 +1,8 @@
-import { createFakeMediaEnv, fakeTrackInfo } from "@modular-av/testing";
+import {
+  createFakeMediaEnv,
+  createFakeTrack,
+  fakeTrackInfo,
+} from "@modular-av/testing";
 import { describe, expect, it, vi } from "vitest";
 import { createLocalMedia } from "../src/media/local-media.ts";
 
@@ -151,5 +155,40 @@ describe("local media", () => {
     fail = false;
     await media.acquire({ audio: "headset", video: "default" });
     expect(media.levelsStream).not.toBeNull();
+  });
+
+  it("stops tracks a capture returns after release", async () => {
+    // Arrange
+    const env = createFakeMediaEnv();
+    let resolveMic: (track: MediaStreamTrack) => void = () => undefined;
+    const media = createLocalMedia({
+      ...env,
+      captureAudio: () =>
+        new Promise((resolve) => {
+          resolveMic = resolve;
+        }),
+    });
+    const late = createFakeTrack("audio");
+
+    // Act
+    const acquiring = media.acquire({ audio: "default", video: null });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    media.release();
+    resolveMic(late);
+    await acquiring;
+
+    // Assert
+    expect(media.microphone).toBeNull();
+    expect(fakeTrackInfo(late).readyState).toBe("ended");
+  });
+
+  it("sees no change when a device stays unwanted", async () => {
+    const { media } = setup();
+    const changed = vi.fn();
+    media.onChange(changed);
+
+    await media.acquire({ audio: null, video: null });
+
+    expect(changed).not.toHaveBeenCalled();
   });
 });

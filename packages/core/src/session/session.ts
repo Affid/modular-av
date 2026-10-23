@@ -25,6 +25,11 @@ export interface SessionDeps {
   localTracks(): LocalTracks;
   canPublish(): MediaPermissions;
   outbound(): MediaPermissions;
+  /**
+   * After each sync with the service: services may write `track.enabled`
+   * (LiveKit's unmute does), so the core applies its own state again.
+   */
+  afterMediaSync(): void;
   onState(state: SessionState): void;
   /** The live connection, or null between connections. */
   onConnection(connection: ServiceConnection | null): void;
@@ -51,6 +56,8 @@ export interface Session {
   restart(): void;
   /** Skips the wait while retrying. */
   retryNow(): void;
+  /** The token relay found no GM who can answer, or found one again. */
+  waitingForGm(waiting: boolean): void;
   /** Local tracks, rights or the outbound state changed. */
   syncMedia(): void;
 }
@@ -63,6 +70,12 @@ const IDLE: SessionState = {
 };
 
 const NETWORK: ServiceError = { code: "network", final: false };
+
+/**
+ * How long a connection must hold before the backoff starts over, so a
+ * server that accepts and drops at once doesn't get hammered every second.
+ */
+export const STABLE_AFTER_MS = 30_000;
 
 const isAbort = (error: unknown): boolean =>
   error instanceof DOMException && error.name === "AbortError";
@@ -92,6 +105,12 @@ export function createSession(deps: SessionDeps): Session {
   let controller: AbortController | null = null;
   let live: Live | null = null;
   let retryTimer: ReturnType<typeof setTimeout> | undefined;
+  let stableTimer: ReturnType<typeof setTimeout> | undefined;
+
+  const clearTimers = (): void => {
+    clearTimeout(retryTimer);
+    clearTimeout(stableTimer);
+  };
 
   const setState = (next: Partial<SessionState>): void => {
     state = { ...state, ...next };
@@ -114,12 +133,13 @@ export function createSession(deps: SessionDeps): Session {
   const finish = (reason: SessionEndReason): void => {
     generation += 1;
     controller?.abort();
-    clearTimeout(retryTimer);
+    clearTimers();
     void teardown("user");
     setState({ status: "left", reason, nextRetryAt: null });
   };
 
   const scheduleRetry = (): void => {
+    clearTimers();
     void teardown("switching");
     const attempt = state.attempt + 1;
     const delay = backoffDelay(attempt);
@@ -129,7 +149,6 @@ export function createSession(deps: SessionDeps): Session {
       nextRetryAt: deps.now() + delay,
       reason: null,
     });
-    clearTimeout(retryTimer);
     retryTimer = setTimeout(run, delay);
   };
 
@@ -147,6 +166,9 @@ export function createSession(deps: SessionDeps): Session {
       .catch((error: unknown) => {
         // A connection that went away meanwhile fails its calls: expected.
         if (live === current) deps.onError(error);
+      })
+      .finally(() => {
+        deps.afterMediaSync();
       });
   };
 
@@ -193,18 +215,26 @@ export function createSession(deps: SessionDeps): Session {
     setState({ status: "connecting" });
     const connection = await service.create({ participant: deps.participant });
     if (current !== generation) {
-      await connection.disconnect("switching");
+      await connection.disconnect("switching").catch((error: unknown) => {
+        deps.onError(error);
+      });
       return;
     }
     live = wire(current, connection);
     deps.onConnection(connection);
     await connection.connect(deps.room(), token, signal);
     if (current !== generation) return;
-    setState({ status: "connected", attempt: 0 });
+    setState({ status: "connected" });
+    stableTimer = setTimeout(() => {
+      setState({ attempt: 0 });
+    }, STABLE_AFTER_MS);
     syncMedia();
   }
 
+  /** Starts a fresh attempt; whatever was pending or live is dropped first. */
   function run(): void {
+    clearTimers();
+    void teardown("switching");
     generation += 1;
     const current = generation;
     controller?.abort();
@@ -233,18 +263,24 @@ export function createSession(deps: SessionDeps): Session {
     async stop(reason) {
       generation += 1;
       controller?.abort();
-      clearTimeout(retryTimer);
-      await teardown("user");
+      clearTimers();
+      // The state changes first, so a start() during the teardown counts.
       setState(reason ? { ...IDLE, status: "left", reason } : IDLE);
+      await teardown("user");
     },
     restart() {
       if (state.status === "idle" || state.status === "left") return;
-      clearTimeout(retryTimer);
-      void teardown("switching");
       run();
     },
     retryNow() {
       if (state.status === "retrying") run();
+    },
+    waitingForGm(waiting) {
+      const asking =
+        state.status === "waiting-for-token" ||
+        state.status === "waiting-for-gm";
+      if (asking)
+        setState({ status: waiting ? "waiting-for-gm" : "waiting-for-token" });
     },
     syncMedia,
   };

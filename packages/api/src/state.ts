@@ -34,7 +34,7 @@ export type SessionEndReason =
 
 export interface SessionState {
   readonly status: SessionStatus;
-  /** Failed attempts since the last successful connection. */
+  /** Failed attempts since a connection last held for a while (30 s). */
   readonly attempt: number;
   /** Epoch milliseconds of the next try while `retrying`. */
   readonly nextRetryAt: number | null;

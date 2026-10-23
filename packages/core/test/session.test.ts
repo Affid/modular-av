@@ -12,6 +12,7 @@ import {
 } from "@modular-av/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { backoffDelay, endReasonFor } from "../src/session/backoff.ts";
+import { STABLE_AFTER_MS } from "../src/session/session.ts";
 import { createSession, type Session } from "../src/session/session.ts";
 
 const ROOM = "world-room";
@@ -75,6 +76,7 @@ function harness(
     localTracks: () => h.tracks,
     canPublish: () => h.canPublish,
     outbound: () => h.outbound,
+    afterMediaSync: () => undefined,
     onState: (state) => {
       if (h.statuses.at(-1) !== state.status) h.statuses.push(state.status);
     },
@@ -227,6 +229,7 @@ describe("session lifecycle", () => {
       localTracks: () => base.tracks,
       canPublish: () => base.canPublish,
       outbound: () => base.outbound,
+      afterMediaSync: () => undefined,
       onState: () => undefined,
       onConnection: () => undefined,
       remote: {
@@ -299,8 +302,10 @@ describe("reconnecting", () => {
     await vi.advanceTimersByTimeAsync(999);
     expect(h.tokens).toBe(1);
     await vi.advanceTimersByTimeAsync(1);
-    expect(h.session.state).toMatchObject({ status: "connected", attempt: 0 });
+    expect(h.session.state).toMatchObject({ status: "connected", attempt: 1 });
     expect(h.tokens).toBe(2);
+    await vi.advanceTimersByTimeAsync(STABLE_AFTER_MS);
+    expect(h.session.state.attempt).toBe(0);
     expect(hub.participants(ROOM)).toEqual(["gm", "p1"]);
     expect(viewer.added.filter((t) => t.participant === "p1")).toHaveLength(4);
   });
@@ -339,6 +344,127 @@ describe("reconnecting", () => {
     expect(h.session.state.status).toBe("connected");
     h.env.goOnline();
     expect(h.tokens).toBe(2);
+  });
+
+  it.each(["online", "retryNow"] as const)(
+    "cancels the pending retry when %s connects first",
+    async (trigger) => {
+      // Arrange
+      const hub = createMockServiceHub();
+      const h = harness(hub, "p1");
+      h.ttlSeconds = 0;
+      h.session.start();
+      await settle();
+      expect(h.session.state.status).toBe("retrying");
+      h.ttlSeconds = 600;
+
+      // Act
+      if (trigger === "online") h.env.goOnline();
+      else h.session.retryNow();
+      await settle();
+      await vi.advanceTimersByTimeAsync(30_000);
+
+      // Assert
+      expect(h.tokens).toBe(2);
+      expect(hub.participants(ROOM)).toEqual(["p1"]);
+      expect(h.session.state.status).toBe("connected");
+    },
+  );
+
+  it("never keeps an older connection when a new attempt starts", async () => {
+    // Arrange
+    const hub = createMockServiceHub();
+    const viewer = harness(hub, "gm");
+    viewer.session.start();
+    const h = harness(hub, "p1");
+    h.session.start();
+    await settle();
+
+    // Act
+    h.session.restart();
+    h.session.restart();
+    await settle();
+
+    // Assert
+    expect(hub.participants(ROOM)).toEqual(["gm", "p1"]);
+    expect(viewer.joined.filter((p) => p === "p1").length).toBe(2);
+  });
+
+  it("keeps the backoff growing while connections drop at once", async () => {
+    // Arrange
+    const hub = createMockServiceHub();
+    const h = harness(hub, "p1");
+    h.session.start();
+    await settle();
+    const waits: number[] = [];
+
+    // Act
+    for (let i = 0; i < 3; i += 1) {
+      hub.loseConnection("p1");
+      waits.push((h.session.state.nextRetryAt ?? 0) - Date.now());
+      await vi.advanceTimersByTimeAsync(waits.at(-1) ?? 0);
+    }
+
+    // Assert
+    expect(waits).toEqual([1000, 3000, 5000]);
+  });
+
+  it("resets the backoff once a connection has held", async () => {
+    const hub = createMockServiceHub();
+    const h = harness(hub, "p1");
+    h.session.start();
+    await settle();
+    hub.loseConnection("p1");
+    await vi.advanceTimersByTimeAsync(1000);
+
+    await vi.advanceTimersByTimeAsync(STABLE_AFTER_MS);
+    hub.loseConnection("p1");
+
+    expect(h.session.state.attempt).toBe(1);
+  });
+
+  it("ends up idle or started in the order asked, around a stop", async () => {
+    const hub = createMockServiceHub();
+    const h = harness(hub, "p1");
+    h.session.start();
+    await settle();
+
+    const stopping = h.session.stop(null);
+    h.session.start();
+    await stopping;
+    await settle();
+
+    expect(h.session.state.status).toBe("connected");
+  });
+
+  it("reports a stale connection that fails to disconnect", async () => {
+    // Arrange
+    const hub = createMockServiceHub();
+    const definition = hub.definition();
+    let release: () => void = () => undefined;
+    const h = harness(hub, "p1", {
+      ...definition,
+      create: async (context) => {
+        await new Promise<void>((resolve) => {
+          release = resolve;
+        });
+        const connection = await definition.create(context);
+        return {
+          ...connection,
+          disconnect: () => Promise.reject(new Error("already gone")),
+        };
+      },
+    });
+    h.session.start();
+    await settle();
+
+    // Act
+    await h.session.stop(null);
+    release();
+    await settle();
+
+    // Assert
+    expect(h.errors).toEqual([new Error("already gone")]);
   });
 
   it("retries now on request, only while retrying", async () => {

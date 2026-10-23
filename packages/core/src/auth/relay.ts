@@ -17,7 +17,8 @@ export interface TokenRelayDeps {
   readonly channel: Channel;
   readonly selfId: ParticipantId;
   isGM(userId: string): boolean;
-  anyGmOnline(): boolean;
+  /** Requests go to these users only, so players never see them. */
+  onlineGms(): readonly string[];
   service(): ServiceDefinition | undefined;
   /** Built from what Foundry's server says about the user; null refuses. */
   tokenRequestFor(participant: ParticipantId): TokenRequest | null;
@@ -66,6 +67,9 @@ function signLocally(
   deps: TokenRelayDeps,
   service: ServiceDefinition,
 ): Promise<string> | null {
+  // A player's browser may still hold a GM's secret (a shared profile):
+  // only a GM signs locally.
+  if (!deps.isGM(deps.selfId)) return null;
   if (!service.signToken || !service.canSignTokens?.()) return null;
   const request = deps.tokenRequestFor(deps.selfId);
   return request ? service.signToken(request) : null;
@@ -130,7 +134,10 @@ export function createTokenRelay(deps: TokenRelayDeps): TokenRelay {
         resolve(token);
       });
       signal.addEventListener("abort", onAbort);
-      deps.channel.send({ type: "request", id });
+      deps.channel.send(
+        { type: "request", id },
+        { recipients: deps.onlineGms().filter((gm) => gm !== deps.selfId) },
+      );
     });
 
   const request = async (signal: AbortSignal): Promise<string> => {
@@ -139,7 +146,8 @@ export function createTokenRelay(deps: TokenRelayDeps): TokenRelay {
     if (local) return local;
     for (;;) {
       if (signal.aborted) throw abortError();
-      const token = deps.anyGmOnline() ? await ask(signal) : null;
+      const asked = deps.onlineGms().some((gm) => gm !== deps.selfId);
+      const token = asked ? await ask(signal) : null;
       deps.onWaitingForGm(token === null);
       if (token !== null) return token;
       await waitForGm(deps, signal);

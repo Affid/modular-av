@@ -56,20 +56,20 @@ export function tokenRequestFor(
   };
 }
 
-function createRelay(deps: CallDeps): TokenRelay {
-  const { game, hooks, facts, rt } = deps;
+function createRelay(
+  deps: CallDeps,
+  onWaitingForGm: (waiting: boolean) => void,
+): TokenRelay {
+  const { game, hooks, facts } = deps;
   return createTokenRelay({
     channel: deps.channels.channel("auth"),
     selfId: facts.selfId,
     isGM: (id) => game.users.get(id)?.isGM ?? false,
-    anyGmOnline: () => game.users.contents.some((u) => u.active && u.isGM),
+    onlineGms: () =>
+      game.users.contents.filter((u) => u.active && u.isGM).map((u) => u.id),
     service: deps.service,
     tokenRequestFor: (participant) => tokenRequestFor(game, facts, participant),
-    onWaitingForGm: (waiting) => {
-      if (!waiting) return;
-      rt.session = { ...rt.session, status: "waiting-for-gm" };
-      deps.refreshState();
-    },
+    onWaitingForGm,
     onGmConnected: (listener) => {
       const id = hooks.on("userConnected", (user: FoundryUser, on: boolean) => {
         if (on && user.isGM) listener();
@@ -112,8 +112,12 @@ function connectionTracker(
 /** The session, its token relay and the service's remote events. */
 export function createCall(deps: CallDeps): Session {
   const { game, facts, rt, local, remote } = deps;
-  const relay = createRelay(deps);
-  return createSession({
+  // The relay reports through the session, the one owner of its status.
+  let session: Session | null = null;
+  const relay = createRelay(deps, (waiting) => {
+    session?.waitingForGm(waiting);
+  });
+  session = createSession({
     participant: facts.selfId,
     service: deps.service,
     room: () => ({ name: game.world.id }),
@@ -121,6 +125,9 @@ export function createCall(deps: CallDeps): Session {
     localTracks: () => ({ microphone: local.microphone, camera: local.camera }),
     canPublish: () => facts.canBroadcast(facts.selfId),
     outbound: deps.outbound,
+    afterMediaSync: () => {
+      local.setOutbound(deps.outbound());
+    },
     onState: (state) => {
       rt.session = state;
       deps.refreshState();
@@ -153,4 +160,5 @@ export function createCall(deps: CallDeps): Session {
     now: deps.now,
     onError: deps.onError,
   });
+  return session;
 }
