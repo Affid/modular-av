@@ -1,45 +1,16 @@
 import type { EffectDefinition } from "@modular-av/api";
-import {
-  createFakeVideoElement,
-  fakeTrackInfo,
-  type FakeAVMaster,
-} from "@modular-av/testing";
+import { createFakeVideoElement } from "@modular-av/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createTable, type Tab } from "./table.ts";
+import {
+  ALWAYS,
+  createTable,
+  heard,
+  master,
+  micEnabled,
+  micOf,
+} from "./table.ts";
 
 const ROOM = "test-world";
-
-const micOf = (tab: Tab): MediaStreamTrack | null =>
-  tab.core.controller().local.microphone;
-
-const micEnabled = (tab: Tab): boolean | undefined => {
-  const mic = micOf(tab);
-  return mic ? fakeTrackInfo(mic).enabled : undefined;
-};
-
-const master = (tab: Tab): FakeAVMaster => {
-  const webrtc = tab.client.game.webrtc;
-  if (!webrtc) throw new Error("no game.webrtc");
-  return webrtc;
-};
-
-/** The track another tab's core plays for `from`'s microphone. */
-const heard = (listener: Tab, from: Tab): MediaStreamTrack | null => {
-  const mine = micOf(from);
-  return (
-    listener.env.outputs.find((o) => o.state.track === mine)?.state.track ??
-    null
-  );
-};
-
-const ALWAYS = {
-  voice: {
-    mode: "always",
-    pttName: "`",
-    pttDelay: 100,
-    activityThreshold: -45,
-  },
-} as const;
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -181,6 +152,40 @@ describe("mute in every state", () => {
     expect(table.hub.isMuted("p1", "microphone")).toBe(true);
   });
 
+  it("shows another player's mute once Foundry reports it, with nothing else changing", async () => {
+    // Arrange
+    const table = createTable();
+    const gm = table.join("gm", { secret: true, av: ALWAYS });
+    const p1 = table.join("p1", { av: ALWAYS });
+    await table.settle();
+    const p1Settings = master(p1).settings;
+
+    // Act: only Foundry's activity broadcast reaches the GM.
+    p1Settings.set("client", "users.p1.muted", true);
+    p1.client.game.user.broadcastActivity({ av: { muted: true } });
+    await table.settle();
+
+    // Assert
+    expect(gm.api.state.get().participants.p1?.muted).toBe(true);
+  });
+
+  it("ignores Foundry activity that isn't about A/V", async () => {
+    const table = createTable();
+    const gm = table.join("gm", { secret: true, av: ALWAYS });
+    const p1 = table.join("p1", { av: ALWAYS });
+    await table.settle();
+    const refresh = vi.spyOn(gm.core.controller(), "refresh");
+
+    p1.client.game.user.broadcastActivity({ cursor: { x: 1, y: 2 } });
+    await table.settle();
+    const forCursor = refresh.mock.calls.length;
+    p1.client.game.user.broadcastActivity({ av: { hidden: true } });
+    await table.settle();
+
+    expect(forCursor).toBe(0);
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
   it("re-enables the mic after an unmute in always mode", async () => {
     const table = createTable();
     table.join("gm", { secret: true });
@@ -208,23 +213,6 @@ describe("mute in every state", () => {
     master(p1)._onPTTEnd();
     await vi.advanceTimersByTimeAsync(100);
 
-    expect(micEnabled(p1)).toBe(false);
-  });
-
-  it("lets Foundry's detector drive voice activity on the raw mic", async () => {
-    const table = createTable();
-    table.join("gm", { secret: true });
-    const p1 = table.join("p1", {
-      av: { voice: { ...ALWAYS.voice, mode: "activity" } },
-    });
-    await table.settle();
-
-    expect(master(p1).detectionStream).toBe(
-      p1.core.controller().local.levelsStream,
-    );
-    master(p1).reportSpeech(true);
-    expect(micEnabled(p1)).toBe(true);
-    master(p1).reportSpeech(false);
     expect(micEnabled(p1)).toBe(false);
   });
 

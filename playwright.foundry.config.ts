@@ -12,7 +12,10 @@ export default defineConfig({
   globalSetup: "./scripts/services/global-setup.ts",
   forbidOnly: true,
   workers: 1,
-  timeout: 120_000,
+  // Foundry renders its canvas without a GPU here: with three pages open,
+  // loading them and a busy GM page answering token requests can take
+  // 100 s or more (measured the same on main in milestone 3).
+  timeout: 180_000,
   // Joins wait for token relay retries (every 10 s) and Foundry's own load.
   expect: { timeout: 30_000 },
   reporter: [["list"]],

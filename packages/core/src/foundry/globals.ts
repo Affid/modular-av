@@ -98,8 +98,11 @@ export interface AVSettingsLike {
 export interface AVMasterLike {
   readonly settings: AVSettingsLike;
   readonly client: object;
-  /** Internal to Foundry, but how it restarts its own voice detection. */
-  _initializeUserVoiceDetection(mode: string): void;
+  /**
+   * Sets the local player's broadcast intent: Foundry's speaking flag, the
+   * activity it tells the others and the dock's indicator.
+   */
+  broadcast(intent: boolean): void;
 }
 
 export interface FoundryGame {

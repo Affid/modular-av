@@ -151,6 +151,15 @@ function watchFoundry(deps: CoreDeps, controller: () => Controller): void {
   hooks.on("userConnected", () => {
     controller().apply();
   });
+  // Others' mute, hide and speaking reach Foundry's A/V settings here (not
+  // their cursors, which come often). Our listener runs before Foundry's,
+  // registered later, so the state is rebuilt afterwards.
+  game.socket.on("userActivity", (...args: readonly unknown[]) => {
+    if (args.some(hasAV))
+      queueMicrotask(() => {
+        controller().refresh();
+      });
+  });
   hooks.on("updateSetting", (setting: { key?: unknown }) => {
     if (setting.key === "core.permissions") controller().apply();
   });
@@ -163,6 +172,10 @@ function watchFoundry(deps: CoreDeps, controller: () => Controller): void {
     );
   });
 }
+
+/** Foundry passes (userId, activity); only A/V activity matters here. */
+const hasAV = (arg: unknown): boolean =>
+  typeof arg === "object" && arg !== null && "av" in arg;
 
 function onReady(
   deps: CoreDeps,

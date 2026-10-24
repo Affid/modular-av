@@ -236,6 +236,36 @@ describe("microphone pipeline", () => {
     expect(capture.gates[0]?.configs).toEqual([GATE, detect]);
   });
 
+  it("keeps the output disabled until enabled, and without a device", async () => {
+    const s = setup();
+    await s.mic.setInput(createFakeTrack("audio", "mic"));
+    const output = s.capture().output;
+    const before = output.enabled;
+
+    s.mic.setEnabled(true);
+    const enabled = output.enabled;
+    await s.mic.setInput(null);
+    const withoutDevice = output.enabled;
+    await s.mic.setInput(createFakeTrack("audio", "mic2"));
+
+    expect([before, enabled, withoutDevice]).toEqual([false, true, false]);
+    expect(output.enabled).toBe(true);
+  });
+
+  it("sends an unchanged gate configuration only once", async () => {
+    const s = setup();
+    await s.mic.setInput(createFakeTrack("audio", "mic"));
+
+    s.mic.setGate({ ...GATE });
+    s.mic.setGate({ ...GATE, auto: false });
+    s.mic.setGate({ ...GATE, auto: false });
+
+    expect(s.capture().gates[0]?.configs).toEqual([
+      GATE,
+      { ...GATE, auto: false },
+    ]);
+  });
+
   it("forwards the gate's transitions", async () => {
     const s = setup();
     const transitions = vi.fn();

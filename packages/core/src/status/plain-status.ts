@@ -100,6 +100,12 @@ export function startPlainStatus(deps: PlainStatusDeps): () => void {
     },
     { equals: (a, b) => a[0] === b[0] && a[1] === b[1] },
   );
+  const offOpenMic = deps.store.subscribe(
+    (s) => s.local.openMic,
+    (openMic) => {
+      if (openMic) notify({ kind: "warn", key: key("openMic") });
+    },
+  );
   const offBadges = deps.store.subscribe(
     (s) =>
       Object.values(s.participants)
@@ -113,6 +119,7 @@ export function startPlainStatus(deps: PlainStatusDeps): () => void {
   return () => {
     offSession();
     offDevices();
+    offOpenMic();
     offBadges();
   };
 }

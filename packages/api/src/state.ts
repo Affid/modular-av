@@ -88,7 +88,10 @@ export interface LocalState {
   readonly muted: boolean;
   readonly videoEnabled: boolean;
   readonly deafened: boolean;
-  /** Whether the microphone is actually sent right now. */
+  /**
+   * Whether the microphone is sent right now: in voice activity mode, while
+   * the gate is open.
+   */
   readonly broadcasting: boolean;
   readonly voiceMode: VoiceMode;
   /** The world's A/V mode and the GM's permissions combined. */
@@ -99,6 +102,8 @@ export interface LocalState {
   /** Why a device couldn't be used: the DOMException name ("NotAllowedError"). */
   readonly microphoneError: string | null;
   readonly cameraError: string | null;
+  /** Voice activity mode, but the gate can't run: everything is sent. */
+  readonly openMic: boolean;
 }
 
 export interface ServiceState {

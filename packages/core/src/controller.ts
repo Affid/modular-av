@@ -8,13 +8,21 @@ import type {
 } from "@modular-av/api";
 import { createCall } from "./call/call.ts";
 import { createRuntime, type Runtime } from "./call/runtime.ts";
+import {
+  createVoiceActivity,
+  type VoiceActivity,
+} from "./call/voice-activity.ts";
 import { MODULE_ID } from "./constants.ts";
 import { AV_MODES, type AVFacts, createAVFacts } from "./foundry/av-facts.ts";
 import type { FoundryGame, FoundryHooks } from "./foundry/globals.ts";
 import type { MediaEnv } from "./media/env.ts";
 import { createLocalMedia, type LocalMedia } from "./media/local-media.ts";
 import { createRemoteMedia, type RemoteMedia } from "./media/remote-media.ts";
-import { computeOutbound, createPlaybackPolicy } from "./media/rules.ts";
+import {
+  computeOutbound,
+  createPlaybackPolicy,
+  gateConfig,
+} from "./media/rules.ts";
 import type { Session } from "./session/session.ts";
 import type { Channels } from "./socket.ts";
 import { DEAFENED_FLAG } from "./state/project.ts";
@@ -64,6 +72,8 @@ export interface Controller {
   onAVSettingsChanged(changedKeys: readonly string[]): void;
   /** Recomputes outbound media, playback and state. */
   apply(): void;
+  /** Rebuilds the state only, e.g. after others' Foundry activity. */
+  refresh(): void;
 }
 
 interface Parts {
@@ -75,7 +85,9 @@ interface Parts {
   readonly session: Session;
   readonly service: () => ServiceDefinition | undefined;
   readonly apply: () => void;
+  readonly refresh: () => void;
   readonly reacquire: () => Promise<void>;
+  readonly voice: VoiceActivity;
 }
 
 /**
@@ -101,7 +113,10 @@ function buildParts(deps: ControllerDeps): Parts {
   );
   const service = (): ServiceDefinition | undefined =>
     deps.services.get(deps.selectedService()) ?? deps.services.list()[0];
-  const local = createLocalMedia(env);
+  const local = createLocalMedia(env, {
+    gate: gateConfig(facts),
+    onError: deps.onError,
+  });
   const remote = createRemoteMedia(
     env,
     createPlaybackPolicy(facts, () => rt.deafened),
@@ -128,23 +143,28 @@ function buildParts(deps: ControllerDeps): Parts {
     ...deps,
     ...{ facts, rt, local, remote, service, outbound, refreshState },
   });
+  // Created after `apply`, which it calls.
+  let voice: VoiceActivity | null = null;
   const apply = (): void => {
+    local.setGate(gateConfig(facts));
     local.setOutbound(outbound());
     remote.refresh();
     if (rightsChanged(rt, facts)) session.restart();
     else session.syncMedia();
+    voice?.sync();
     refreshState();
   };
   local.onChange(() => {
     remote.setLocalVideo(facts.selfId, local.camera);
     apply();
   });
-  const reacquire = async (): Promise<void> => {
-    await local.acquire(facts.devices());
-    if (rt.foundryConnected)
-      game.webrtc?._initializeUserVoiceDetection(facts.voiceMode());
+  const reacquire = (): Promise<void> => local.acquire(facts.devices());
+  voice = createVoiceActivity({ game, facts, rt, local, apply });
+  return {
+    ...{ deps, facts, rt, local, remote, session, service, apply, reacquire },
+    refresh: refreshState,
+    voice,
   };
-  return { deps, facts, rt, local, remote, session, service, apply, reacquire };
 }
 
 /**
@@ -194,6 +214,7 @@ export function createController(deps: ControllerDeps): Controller {
     ...{ store: deps.store, session, facts, local, remote, apply },
     service: parts.service,
     reacquire: parts.reacquire,
+    refresh: parts.refresh,
     initialize: () => local.acquire(facts.devices()),
     foundryConnect() {
       rt.foundryConnected = true;
@@ -208,8 +229,7 @@ export function createController(deps: ControllerDeps): Controller {
       syncDeafenedFlag(parts);
     },
     setBroadcastIntent(intent) {
-      rt.intent = intent;
-      apply();
+      parts.voice.onIntent(intent);
     },
     async setDeafened(deafened) {
       rt.deafened = deafened;

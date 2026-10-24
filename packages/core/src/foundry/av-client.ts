@@ -41,9 +41,9 @@ export function createAVClientClass(
       return controller().remote.videoStream(userId);
     }
 
-    getLevelsStreamForUser(userId: string): MediaStream | null {
-      const c = controller();
-      return userId === c.facts.selfId ? c.local.levelsStream : null;
+    /** None: the core's gate detects speech, so Foundry's detector idles. */
+    getLevelsStreamForUser(_userId: string): MediaStream | null {
+      return null;
     }
 
     isAudioEnabled(): boolean {

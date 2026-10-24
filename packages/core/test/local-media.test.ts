@@ -4,14 +4,23 @@ import {
   fakeTrackInfo,
 } from "@modular-av/testing";
 import { describe, expect, it, vi } from "vitest";
+import type { GateConfig, MediaEnv } from "../src/media/env.ts";
 import { createLocalMedia } from "../src/media/local-media.ts";
 
 const BOTH = { audio: "default", video: "default" } as const;
+const GATE: GateConfig = { mode: "detect", auto: true, threshold: -50 };
+
+const create = (env: MediaEnv, errors: unknown[] = []) =>
+  createLocalMedia(env, { gate: GATE, onError: (e) => errors.push(e) });
 
 function setup(options?: Parameters<typeof createFakeMediaEnv>[0]) {
   const env = createFakeMediaEnv(options);
-  return { env, media: createLocalMedia(env) };
+  return { env, media: create(env) };
 }
+
+/** The raw device tracks fed to the capture context, in order. */
+const rawMics = (env: ReturnType<typeof createFakeMediaEnv>) =>
+  env.captureContexts[0]?.sources.map((s) => s.track) ?? [];
 
 const enabled = (track: MediaStreamTrack | null): boolean | undefined =>
   track ? fakeTrackInfo(track).enabled : undefined;
@@ -33,12 +42,13 @@ describe("local media", () => {
     expect(enabled(media.camera)).toBe(false);
   });
 
-  it("keeps the levels stream live while the sent microphone is muted", async () => {
-    const { media } = setup();
+  it("sends the capture context's output, never the raw device", async () => {
+    const { env, media } = setup();
 
     await media.acquire(BOTH);
 
-    const [raw] = media.levelsStream?.getAudioTracks() ?? [];
+    const [raw] = rawMics(env);
+    expect(media.microphone).toBe(env.captureContexts[0]?.output);
     expect(raw).toBeDefined();
     expect(raw).not.toBe(media.microphone);
     expect(enabled(raw ?? null)).toBe(true);
@@ -73,10 +83,12 @@ describe("local media", () => {
       "video:default",
       "audio:headset",
     ]);
+    const [oldRaw, newRaw] = rawMics(env);
     expect(media.camera).toBe(oldCam);
-    expect(media.microphone).not.toBe(oldMic);
-    expect(oldMic && fakeTrackInfo(oldMic).readyState).toBe("ended");
-    expect(changed).toHaveBeenCalledTimes(1);
+    expect(media.microphone).toBe(oldMic);
+    expect(oldRaw && fakeTrackInfo(oldRaw).readyState).toBe("ended");
+    expect(newRaw && fakeTrackInfo(newRaw).readyState).toBe("live");
+    expect(changed).toHaveBeenCalled();
   });
 
   it("records why a capture failed and keeps the other kind", async () => {
@@ -91,7 +103,7 @@ describe("local media", () => {
 
   it("drops a kind when its device is null and on release", async () => {
     // Arrange
-    const { media } = setup();
+    const { env, media } = setup();
     await media.acquire(BOTH);
     const cam = media.camera;
     const changed = vi.fn();
@@ -104,9 +116,12 @@ describe("local media", () => {
     expect(media.camera).toBeNull();
     expect(cam && fakeTrackInfo(cam).readyState).toBe("ended");
     media.release();
-    expect([media.microphone, media.levelsStream]).toEqual([null, null]);
+    const [raw] = rawMics(env);
+    expect(media.microphone).toBeNull();
+    expect(raw && fakeTrackInfo(raw).readyState).toBe("ended");
+    const calls = changed.mock.calls.length;
     media.release();
-    expect(changed).toHaveBeenCalledTimes(2);
+    expect(changed.mock.calls.length).toBe(calls);
   });
 
   it("serializes overlapping acquisitions", async () => {
@@ -126,7 +141,7 @@ describe("local media", () => {
 
   it("names non-DOM capture errors generically", async () => {
     const env = createFakeMediaEnv();
-    const media = createLocalMedia({
+    const media = create({
       ...env,
       captureAudio: () => Promise.reject(new Error("weird")),
       // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors -- a non-Error rejection is the case under test
@@ -142,26 +157,26 @@ describe("local media", () => {
     // Arrange
     const env = createFakeMediaEnv();
     let fail = true;
-    const media = createLocalMedia({
+    const media = create({
       ...env,
-      createStream: (tracks) => {
-        if (fail) throw new Error("no streams");
-        return env.createStream(tracks);
+      createCaptureContext: () => {
+        if (fail) return Promise.reject(new Error("no audio context"));
+        return env.createCaptureContext();
       },
     });
 
     // Act / Assert
-    await expect(media.acquire(BOTH)).rejects.toThrow(/no streams/);
+    await expect(media.acquire(BOTH)).rejects.toThrow(/no audio context/);
     fail = false;
     await media.acquire({ audio: "headset", video: "default" });
-    expect(media.levelsStream).not.toBeNull();
+    expect(media.microphone).not.toBeNull();
   });
 
   it("stops tracks a capture returns after release", async () => {
     // Arrange
     const env = createFakeMediaEnv();
     let resolveMic: (track: MediaStreamTrack) => void = () => undefined;
-    const media = createLocalMedia({
+    const media = create({
       ...env,
       captureAudio: () =>
         new Promise((resolve) => {
@@ -190,5 +205,52 @@ describe("local media", () => {
     await media.acquire({ audio: null, video: null });
 
     expect(changed).not.toHaveBeenCalled();
+  });
+});
+
+describe("local media's voice gate", () => {
+  it("creates the gate as configured and reports it running", async () => {
+    const { env, media } = setup();
+
+    const before = media.gateRunning;
+    await media.acquire(BOTH);
+
+    expect(before).toBe(false);
+    expect(media.gateRunning).toBe(true);
+    expect(env.captureContexts[0]?.gates[0]?.configs).toEqual([GATE]);
+  });
+
+  it("passes configuration and transitions through", async () => {
+    const { env, media } = setup();
+    const transitions = vi.fn();
+    const off = media.onGate(transitions);
+    const gating: GateConfig = { ...GATE, mode: "gate" };
+
+    media.setGate(gating);
+    await media.acquire(BOTH);
+    const gate = env.captureContexts[0]?.gates[0];
+    gate?.emit(true);
+    off();
+    gate?.emit(false);
+
+    expect(gate?.configs).toEqual([gating]);
+    expect(transitions.mock.calls).toEqual([[true]]);
+  });
+
+  it("tells about a gate that broke and reports the error", async () => {
+    const env = createFakeMediaEnv();
+    const errors: unknown[] = [];
+    const media = create(env, errors);
+    const changed = vi.fn();
+    media.onChange(changed);
+    await media.acquire(BOTH);
+    changed.mockClear();
+
+    const error = new Error("processorerror");
+    env.captureContexts[0]?.gates[0]?.fail(error);
+
+    expect(media.gateRunning).toBe(false);
+    expect(changed).toHaveBeenCalled();
+    expect(errors).toEqual([error]);
   });
 });

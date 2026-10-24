@@ -38,6 +38,8 @@ export interface Microphone {
   readonly output: MediaStreamTrack | null;
   /** False while the gate failed to load or broke: nothing is gated. */
   readonly gateRunning: boolean;
+  /** The mute: disabled until enabled, and always without a device. */
+  setEnabled(enabled: boolean): void;
   setGate(config: GateConfig): void;
   onGate(listener: (open: boolean) => void): () => void;
   setEffects(
@@ -61,6 +63,7 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
   let gate: VoiceGateNode | null = null;
   let input: MediaStreamTrack | null = null;
   let config = deps.gate;
+  let enabled = false;
   let definitions: readonly AudioEffectDefinition[] = [];
   let wanted: ReadonlySet<string> = new Set();
   let gateListeners: readonly { readonly listener: (open: boolean) => void }[] =
@@ -125,6 +128,11 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
     }
   };
 
+  /** Fail closed: no device, no audio, whatever was enabled before. */
+  const applyEnabled = (): void => {
+    if (parts) parts.capture.output.enabled = enabled && input !== null;
+  };
+
   const applyEffects = (): void => {
     parts?.runner.update(input ? definitions : [], wanted);
   };
@@ -134,6 +142,7 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
     if (disposed) return;
     if (!gate) await loadGate(parts);
     input = track;
+    applyEnabled();
     parts.chain.setSource(track);
     applyEffects();
     // Not awaited: under an autoplay policy, resuming waits for a gesture.
@@ -143,6 +152,7 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
   const disconnect = (): void => {
     input = null;
     if (!parts) return;
+    applyEnabled();
     parts.chain.setSource(null);
     applyEffects();
     parts.capture.suspend().catch(deps.onError);
@@ -165,7 +175,12 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
     get gateRunning() {
       return gate !== null;
     },
+    setEnabled(next) {
+      enabled = next;
+      applyEnabled();
+    },
     setGate(next) {
+      if (sameGate(config, next)) return;
       config = next;
       gate?.configure(next);
     },
@@ -194,6 +209,9 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
     },
   };
 }
+
+const sameGate = (a: GateConfig, b: GateConfig): boolean =>
+  a.mode === b.mode && a.auto === b.auto && a.threshold === b.threshold;
 
 const nodesOf = (
   effect: AudioEffect,

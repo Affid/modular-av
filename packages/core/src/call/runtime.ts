@@ -12,8 +12,10 @@ import type {
  * place, so a reader always sees a consistent value.
  */
 export interface Runtime {
-  /** Foundry's broadcast intent: push to talk held, or voice detected. */
+  /** Foundry's broadcast intent: push to talk held. */
   intent: boolean;
+  /** The voice gate hears speech. */
+  gateOpen: boolean;
   deafened: boolean;
   /** `AVMaster` connected the client class (A/V is enabled). */
   foundryConnected: boolean;
@@ -36,6 +38,7 @@ export const IDLE_SESSION: SessionState = {
 export function createRuntime(deafened: boolean): Runtime {
   return {
     intent: false,
+    gateOpen: false,
     deafened,
     foundryConnected: false,
     session: IDLE_SESSION,

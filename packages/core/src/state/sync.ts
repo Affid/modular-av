@@ -26,17 +26,21 @@ export interface StateSyncDeps {
 function localState(deps: StateSyncDeps): LocalState {
   const { facts, local } = deps;
   const own = facts.entry(facts.selfId);
+  const voiceMode = facts.voiceMode();
+  const sending = deps.outbound().audio;
+  const gated = voiceMode === "activity" && local.gateRunning;
   return {
     muted: own.muted ?? false,
     videoEnabled: !(own.hidden ?? false),
     deafened: deps.rt.deafened,
-    broadcasting: deps.outbound().audio,
-    voiceMode: facts.voiceMode(),
+    broadcasting: sending && (!gated || deps.rt.gateOpen),
+    voiceMode,
     canPublish: facts.canBroadcast(facts.selfId),
     hasMicrophone: local.microphone !== null,
     hasCamera: local.camera !== null,
     microphoneError: local.errors.audio,
     cameraError: local.errors.video,
+    openMic: sending && voiceMode === "activity" && !local.gateRunning,
   };
 }
 

@@ -1,10 +1,11 @@
 import type { MediaPermissions, ParticipantId } from "@modular-av/api";
 import type { AVFacts } from "../foundry/av-facts.ts";
+import type { GateConfig } from "./env.ts";
 import type { PlaybackPolicy } from "./remote-media.ts";
 
 export interface OutboundInput {
   readonly facts: AVFacts;
-  /** Foundry's broadcast intent (push to talk, voice detection). */
+  /** Foundry's broadcast intent: push to talk held. */
   readonly intent: boolean;
   readonly deafened: boolean;
   readonly hasMicrophone: boolean;
@@ -14,13 +15,15 @@ export interface OutboundInput {
 /**
  * What the local player sends, from the sources of truth rather than from
  * Foundry's toggle calls: in "always" mode SimplePeer never re-enables the
- * mic after an unmute, and the core must not inherit that.
+ * mic after an unmute, and the core must not inherit that. In voice
+ * activity mode the track stays on and the gate silences the pauses itself,
+ * so the service isn't told "muted" at every breath.
  */
 export function computeOutbound(input: OutboundInput): MediaPermissions {
   const { facts } = input;
   const own = facts.entry(facts.selfId);
   const allowed = facts.canBroadcast(facts.selfId);
-  const intent = facts.voiceMode() === "always" || input.intent;
+  const intent = facts.voiceMode() !== "ptt" || input.intent;
   return {
     audio:
       input.hasMicrophone &&
@@ -57,5 +60,17 @@ export function createPlaybackPolicy(
       facts.canBroadcast(id).video,
     volume: (id) => facts.entry(id).volume ?? 1,
     sinkId: () => facts.sinkId(),
+  };
+}
+
+/** The gate's starting threshold in dBFS, when auto is off. */
+export const DEFAULT_GATE_THRESHOLD = -50;
+
+/** Gate in voice activity mode; elsewhere it only detects speech. */
+export function gateConfig(facts: AVFacts): GateConfig {
+  return {
+    mode: facts.voiceMode() === "activity" ? "gate" : "detect",
+    auto: true,
+    threshold: DEFAULT_GATE_THRESHOLD,
   };
 }

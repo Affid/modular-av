@@ -8,14 +8,19 @@ import {
   createFakeMediaEnv,
   createFakeWorld,
   createMockServiceHub,
+  type FakeAVMaster,
+  type FakeCaptureContext,
   type FakeClient,
   type FakeMediaEnv,
   type FakeWorld,
   type FakeWorldOptions,
   type MockServiceHub,
+  fakeTrackInfo,
 } from "@modular-av/testing";
 import { vi } from "vitest";
 import { type InstalledCore, installCore } from "../src/core.ts";
+// Loaded lazily by the core; preloaded so its import resolves within settle().
+import "../src/media/microphone.ts";
 import en from "../lang/en.json" with { type: "json" };
 
 /** A table of players, each a browser tab running the core. */
@@ -106,3 +111,42 @@ export function createTable(options: Partial<FakeWorldOptions> = {}): Table {
 
   return { world, hub, join, settle };
 }
+
+export const micOf = (tab: Tab): MediaStreamTrack | null =>
+  tab.core.controller().local.microphone;
+
+export const micEnabled = (tab: Tab): boolean | undefined => {
+  const mic = micOf(tab);
+  return mic ? fakeTrackInfo(mic).enabled : undefined;
+};
+
+export const master = (tab: Tab): FakeAVMaster => {
+  const webrtc = tab.client.game.webrtc;
+  if (!webrtc) throw new Error("no game.webrtc");
+  return webrtc;
+};
+
+/** The track another tab's core plays for `from`'s microphone. */
+export const heard = (listener: Tab, from: Tab): MediaStreamTrack | null => {
+  const mine = micOf(from);
+  return (
+    listener.env.outputs.find((o) => o.state.track === mine)?.state.track ??
+    null
+  );
+};
+
+export const ALWAYS = {
+  voice: {
+    mode: "always",
+    pttName: "`",
+    pttDelay: 100,
+    activityThreshold: -45,
+  },
+} as const;
+
+/** The tab's capture context, once its microphone is in. */
+export const captureOf = (tab: Tab): FakeCaptureContext => {
+  const capture = tab.env.captureContexts[0];
+  if (!capture) throw new Error("no capture context yet");
+  return capture;
+};

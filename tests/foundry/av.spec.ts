@@ -205,53 +205,49 @@ test("reconnects after the server was gone for 20 s, telling the player once", a
   );
 });
 
-test("voice activity: Foundry's detector drives it, and stays idle without a levels stream", async ({
+test("voice activity: the core's gate drives it, and Foundry's detector stays idle", async ({
   browser,
 }) => {
-  track(await openGm(browser));
+  const gm = track(await openGm(browser));
   const p1 = track(await openPlayer(browser, "Player1"));
   await expectStatus(p1, "connected");
-  // Foundry's audio (and so its level reports) unlocks on a first gesture;
-  // the fake microphone beeps at about -42 dB, barely over the default -45.
-  await p1.page.mouse.click(400, 400);
-  await p1.run((_api, game) => {
-    game.webrtc.settings.set("client", "voice.activityThreshold", -60);
-    const client = game.webrtc.client as {
-      toggleBroadcast(b: boolean): void;
-      calls?: boolean[];
-    };
-    const original = client.toggleBroadcast.bind(client);
-    client.calls = [];
-    client.toggleBroadcast = (b: boolean) => {
-      client.calls = [...(client.calls ?? []), b];
-      original(b);
-    };
-  }, null);
-  const calls = () =>
-    p1.run(
-      (_api, game) => (game.webrtc.client as { calls?: boolean[] }).calls ?? [],
-      null,
-    );
+  const p1Id = await idOf(gm, "Player1");
 
-  // With the core's raw-microphone levels stream, AVMaster's detector hears
-  // the beeps and broadcasts, and the core sends the microphone.
   await setVoiceMode(p1, "activity");
-  await expect.poll(calls).toContain(true);
-  await expect
-    .poll(async () => (await p1.state()).local.broadcasting)
-    .toBe(true);
 
-  // Without a levels stream (the core's own gate, from milestone 3), its
-  // detector stays idle: it never calls toggleBroadcast by itself.
-  await p1.run((_api, game) => {
-    const client = game.webrtc.client as {
-      getLevelsStreamForUser(): null;
-      calls?: boolean[];
-    };
-    client.getLevelsStreamForUser = () => null;
-    client.calls = [];
-    game.webrtc._initializeUserVoiceDetection("activity");
-  }, null);
-  await p1.page.waitForTimeout(8_000);
-  expect(await calls()).toEqual([]);
+  // The fake microphone beeps about once a second: the gate opens on the
+  // beeps and tells Foundry, whose activity reaches the others. (LiveKit's
+  // own speaker detection, which the core shows when the service has it,
+  // doesn't fire on the beep, at about -42 dB.)
+  const fast = { intervals: [50], timeout: 15_000 };
+  await expect
+    .poll(async () => (await p1.state()).local.broadcasting, fast)
+    .toBe(true);
+  await expect
+    .poll(
+      () =>
+        gm.run(
+          (_api, game, id) =>
+            (
+              game.webrtc.settings as unknown as {
+                activity: Record<string, { speaking?: boolean }>;
+              }
+            ).activity[id]?.speaking,
+          p1Id,
+        ),
+      fast,
+    )
+    .toBe(true);
+  const local = await p1.run(
+    (api, game) => ({
+      levels: (
+        game.webrtc.client as {
+          getLevelsStreamForUser(id: string): MediaStream | null;
+        }
+      ).getLevelsStreamForUser(game.userId),
+      openMic: api.state.get().local.openMic,
+    }),
+    null,
+  );
+  expect(local).toEqual({ levels: null, openMic: false });
 });
