@@ -1,0 +1,22 @@
+{
+  "name": "@modular-av/p2p",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Modular A/V service module for direct calls between players' browsers (WebRTC mesh, no media server).",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modular-av/api": "workspace:*"
+  },
+  "devDependencies": {
+    "@modular-av/testing": "workspace:*"
+  },
+  "modularAV": {
+    "entryBudgetBytes": 10000
+  }
+}

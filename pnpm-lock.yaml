@@ -237,6 +237,16 @@ importers:
         specifier: workspace:*
         version: link:../testing
 
+  packages/p2p:
+    dependencies:
+      '@modular-av/api':
+        specifier: workspace:*
+        version: link:../api
+    devDependencies:
+      '@modular-av/testing':
+        specifier: workspace:*
+        version: link:../testing
+
   packages/testing:
     dependencies:
       '@modular-av/api':

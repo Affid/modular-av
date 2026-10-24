@@ -1,0 +1,19 @@
+{
+  "modular-av-p2p": {
+    "label": "P2P (direct between players)",
+    "settings": {
+      "maxParticipants": {
+        "name": "Most players in a call",
+        "hint": "Every player's browser sends their camera to each of the others, so calls get heavy past a few players. GMs can always join; another player past this number is told the call is full."
+      },
+      "stunServers": {
+        "name": "STUN servers",
+        "hint": "Help players' browsers find a way to each other through their routers. Used only when Foundry's A/V settings name no relay server of your own. Separate several with commas; leave empty for players on the same network."
+      },
+      "relayOnly": {
+        "name": "Send everything through the relay server",
+        "hint": "Only with a relay (TURN) server in Foundry's A/V settings: players then never see each other's IP addresses, at the cost of the relay's bandwidth."
+      }
+    }
+  }
+}
