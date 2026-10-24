@@ -1,6 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const HARNESS_URL = "http://localhost:5174";
+// IPv6 loopback only: under WSL's mirrored networking a connection to an
+// unused port on 127.0.0.1 times out after about two minutes instead of
+// being refused, which stalled Playwright's "already running?" check.
+const HARNESS_URL = "http://[::1]:5174";
 
 export default defineConfig({
   testDir: "packages",
