@@ -370,7 +370,7 @@ The contract:
 | `connect()`                                       | Starts the session state machine and **resolves `true` at once**, so push to talk works and `reestablish()` never runs; the real join waits for `ready` and a token, then follows the core's own reconnect policy.                                                                                                        |
 | `toggleAudio` / `toggleBroadcast` / `toggleVideo` | Become session commands (applied in every connection state).                                                                                                                                                                                                                                                              |
 | `world.mode`                                      | The master switch: disabled → the core stays idle; audio-only / video-only → the matching tracks only. A `world.turn` change → reconnect.                                                                                                                                                                                 |
-| Voice activity | One detector only. Settled in milestone 2 (end-to-end test): with no levels stream for the local user, `AVMaster`'s detector stays idle and never calls `toggleBroadcast`. Until milestone 3's gate, the core hands it the raw microphone; the gate must then own the intent outright, since `AVMaster` doesn't toggle broadcasting off when detection stops. |
+| Voice activity | One detector only: the core's gate (milestone 3). `getLevelsStreamForUser` returns null, so `AVMaster`'s detector stays idle and never calls `toggleBroadcast`. In "always" and voice activity modes the gate's transitions go through `AVMaster.broadcast` (Foundry's speaking flag, the activity others see, the dock), and Foundry's own calls are set back to what the gate hears; in push to talk mode Foundry's key decides. |
 | Push to talk                                      | Reuse Foundry's `core.pushToTalk` keybinding; never register a second one.                                                                                                                                                                                                                                                |
 | Foundry's dock                                    | It plays audio through its own `<video>` elements: give it **video-only** streams, since the core plays audio (otherwise everyone is heard twice), and apply its volume slider through the core.                                                                                                                          |
 
@@ -549,31 +549,52 @@ interface ServiceError {
   final: boolean; // final reasons stop the core's reconnecting
 }
 
-interface EffectDefinition {
-  id: string; // "rnnoise", "background"
-  kind: "audio" | "video";
+// As built in milestone 3 (packages/api/src/effects.ts). Effect modules
+// register their own Foundry settings, as services do: no `settings`, no
+// `update()`.
+type EffectDefinition = AudioEffectDefinition | VideoEffectDefinition;
+
+interface AudioEffectDefinition {
+  id: string; // "rnnoise"
+  kind: "audio";
   label: string;
-  stage?: "denoise" | "voice" | "post"; // audio order: denoise → voice → post → gate
-  exclusiveGroup?: string; // e.g. "noise-suppression": one active per group
-  settings?: SettingsSchema;
+  stage: "denoise" | "voice" | "post"; // order: denoise → voice → post → gate
+  exclusiveGroup?: string; // "noise-suppression": one running per group
   cost: "light" | "medium" | "heavy"; // shown to players
   isSupported(): boolean;
-  create(context: EffectContext): Promise<AudioEffect | VideoEffect>; // lazy
+  create(context: AudioEffectContext): Promise<AudioEffect>; // lazy
+}
+
+interface VideoEffectDefinition {
+  id: string; // "background"; one video effect runs at a time
+  kind: "video";
+  label: string;
+  exclusiveGroup?: string;
+  cost: "light" | "medium" | "heavy";
+  isSupported(): boolean; // and the core needs MediaStreamTrackProcessor
+  create(context: EffectContext): Promise<VideoEffect>; // lazy
+}
+
+interface EffectContext {
+  readonly signal: AbortSignal; // turned off before create() resolved
+  readonly fail: (error: unknown) => void; // broke later: the core takes it out
+}
+
+interface AudioEffectContext extends EffectContext {
+  readonly audioContext: AudioContext; // the core's capture context, 48 kHz
 }
 
 interface AudioEffect {
-  // An AudioNode chain in the core's capture AudioContext (48 kHz)
+  // An AudioNode chain in the core's capture AudioContext
   readonly input: AudioNode;
   readonly output: AudioNode;
-  update(options: unknown): void;
   dispose(): void;
 }
 
 interface VideoEffect {
-  // Resolves only after the first processed frame
+  // Resolves with the processed track once its first frame is out
   start(input: MediaStreamTrack): Promise<MediaStreamTrack>;
   replaceInput(input: MediaStreamTrack): Promise<void>; // camera restart: keep state
-  update(options: unknown): void;
   dispose(): void;
 }
 ```
@@ -1095,3 +1116,84 @@ livekit-server 1.13.8):
   moderation (a modified client keeps its publish rights until it
   reconnects, though every receiver refuses its media); the token server and
   the insecure dev mode (§3 auth modes 2 and 3).
+
+## 11. Findings from milestone 3
+
+Verified while building and testing the media pipeline (core only,
+Foundry 14.369, Chromium from Playwright 1.64, livekit-server 1.13.8):
+
+- **The pipeline as built**: microphone → capture context (one 48 kHz
+  `AudioContext`, suspended without a microphone) → effects by stage →
+  voice gate worklet → one output track, the same for the whole session
+  whatever devices and effects do, so the service never gets
+  `replaceTrack` for audio. Swaps connect the new path before cutting the
+  old one; a new effect replaces the running one of its group only once it
+  runs, and if it fails the old one stays. Camera → effect → watchdog: while
+  an effect is wanted, only its frames go out, and only once the watchdog
+  saw them flow; starting, stalled (no frame for 1 s), failed or
+  unsupported, the camera is held, never raw. The capture code, the
+  microphone chain and the camera chain are lazy chunks.
+- **The gate silences the pauses itself** in voice activity mode; the
+  track stays enabled, so the service isn't told "muted" at every breath and
+  DTX saves the bandwidth. It runs in every mode ("detect" outside voice
+  activity) for the speaking indicator and "speaking while muted" (700 ms of
+  speech while muted or deafened; local only, the others aren't told).
+- **Foundry doesn't re-initialize `AVMaster` on a voice mode change** (no
+  `broadcast()`): the core tells Foundry what the gate hears whenever the
+  gate starts or stops driving, and its own `broadcast()` echoes must not
+  count as the push to talk key (they would leave the mic on after a
+  switch to push to talk).
+- **Others' Foundry activity (mute, hide, speaking) never refreshed the
+  core's state** in milestone 2; a test passed only because something else
+  kept refreshing. The core now listens to the `userActivity` socket event
+  (A/V activity only, not cursors) and rebuilds the state in a microtask,
+  since its listener runs before Foundry's. Foundry calls those handlers
+  with `(userId, activity)`; the fake socket passes `(data, senderId)`.
+- **LiveKit's active-speaker detection doesn't fire on Chrome's default fake
+  microphone** (short beeps at about -42 dB), while the gate does. Remote
+  speaking still prefers the service's detection when it has one; whether to
+  prefer the sender's gate (it hears quiet microphones) is open.
+- **Autoplay**: in Chromium, the capture context runs without a gesture,
+  after joining (the "Join Game" click) and after a reload, even without
+  `--autoplay-policy=no-user-gesture-required`. Not checked in Firefox,
+  Safari or Foundry's Electron app. `resume()` is never awaited, since it
+  waits for a gesture where one is needed.
+- **The watchdog reads a clone with `MediaStreamTrackProcessor`**, which
+  keeps going in a hidden tab (unlike `requestVideoFrameCallback`); it is
+  Chromium only, so video effects are unsupported elsewhere. An effect
+  driven by `requestAnimationFrame` stops in a hidden tab, so its camera is
+  held until frames return.
+- **Foundry's `voice.activityThreshold` is the loudest FFT bin in dB**, not
+  a level, and v14 has no control for it: the core keeps its own input
+  sensitivity (auto, or a fixed level in dBFS) as a client setting.
+- **Devices**: the camera runs only while video can go out (in a call,
+  allowed, not hidden), so its light means something; the microphone stays
+  while muted and is freed once the player left. A device that goes away is
+  captured again, else the system default runs and the core returns to the
+  player's choice on `devicechange`. The browser's noise suppression is off
+  while a "noise-suppression" effect runs (a new capture; the sent track
+  stays).
+- **Test tooling**: under WSL's mirrored networking a connection to an
+  unused port on 127.0.0.1 times out after about two minutes instead of
+  being refused, which stalled Playwright's "server already running?" check
+  on every browser-tier run (it now takes seconds, on `::1`). Three Foundry
+  pages without a GPU take about 100 s to load and relay tokens (the same on
+  main), so the Foundry suite allows 180 s per test. Chrome's fake
+  microphone plays a generated WAV there (1.5 s tone, 1.5 s silence), long
+  enough for sustained speech. The browser tier runs the real pipeline with
+  the mock service and two test effects (`?service=mock&effects=test`).
+- **Bundles**: the core's entry budget is 72 KB; JSDoc comments are dropped
+  from module bundles (about 8 KB of the core's entry), licence comments
+  and annotations kept.
+- **API changes**: `api.effects` (`Registry<EffectDefinition>`, split by
+  kind, `EffectContext` with `signal` and `fail`); `AVState.devices`;
+  `LocalState.openMic`, `speakingWhileMuted`, `effects`,
+  `inputSensitivity`, `cameraHold`; commands `setEffectEnabled`,
+  `setInputSensitivity`, `setDevice`, error codes `unknown-effect` and
+  `unsupported`. `@modular-av/testing` has fake capture contexts, fake
+  effects, frame watching, unplugging and ended tracks.
+- **Not done yet**: push to mute (the push to talk key in "always" and
+  voice activity modes) is ignored, as in milestone 2; `api.meters`
+  (milestone 5; the worklet already reports levels on request); a capture
+  context at 48 kHz fed by a 44.1 kHz microphone may fail in Firefox
+  (mixed sample rates), unchecked.
