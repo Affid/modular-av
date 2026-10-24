@@ -81,6 +81,13 @@ export type VoiceMode = "always" | "activity" | "ptt";
  */
 export type CameraHold = "effect-starting" | "effect-stalled" | "effect-failed";
 
+/** How the voice gate decides to open: following the noise, or a fixed level. */
+export interface InputSensitivity {
+  readonly auto: boolean;
+  /** dBFS, -100 to 0, used when `auto` is false. */
+  readonly threshold: number;
+}
+
 /** Where an effect stands on this client. */
 export type EffectStatus =
   "off" | "starting" | "running" | "failed" | "unsupported";
@@ -115,6 +122,7 @@ export interface LocalState {
   readonly speakingWhileMuted: boolean;
   /** Every registered effect, by id. */
   readonly effects: Readonly<Record<string, EffectState>>;
+  readonly inputSensitivity: InputSensitivity;
   /** Why the camera is kept off, if a video effect isn't sending. */
   readonly cameraHold: CameraHold | null;
 }

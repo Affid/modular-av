@@ -1,4 +1,8 @@
-import type { MediaPermissions, ParticipantId } from "@modular-av/api";
+import type {
+  InputSensitivity,
+  MediaPermissions,
+  ParticipantId,
+} from "@modular-av/api";
 import type { AVFacts } from "../foundry/av-facts.ts";
 import type { GateConfig } from "./env.ts";
 import type { PlaybackPolicy } from "./remote-media.ts";
@@ -63,14 +67,13 @@ export function createPlaybackPolicy(
   };
 }
 
-/** The gate's starting threshold in dBFS, when auto is off. */
-export const DEFAULT_GATE_THRESHOLD = -50;
-
 /** Gate in voice activity mode; elsewhere it only detects speech. */
-export function gateConfig(facts: AVFacts): GateConfig {
+export function gateConfig(
+  facts: AVFacts,
+  sensitivity: InputSensitivity,
+): GateConfig {
   return {
     mode: facts.voiceMode() === "activity" ? "gate" : "detect",
-    auto: true,
-    threshold: DEFAULT_GATE_THRESHOLD,
+    ...sensitivity,
   };
 }

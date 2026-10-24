@@ -22,6 +22,10 @@ import type {
 } from "./foundry/globals.ts";
 import { EFFECTS_SETTING } from "./media/effect-choices.ts";
 import type { MediaEnv } from "./media/env.ts";
+import {
+  DEFAULT_SENSITIVITY,
+  SENSITIVITY_SETTING,
+} from "./media/sensitivity.ts";
 import { createRegistry } from "./registry.ts";
 import { assetUrl, createChannels } from "./socket.ts";
 import { INITIAL_STATE } from "./state/initial.ts";
@@ -71,6 +75,12 @@ export function installCore(deps: CoreDeps): InstalledCore {
   deps.config.ui.webrtc = createCameraHostClass(
     deps.foundry.applications.apps.av.CameraViews,
   );
+  game.settings.register(MODULE_ID, SENSITIVITY_SETTING, {
+    scope: "client",
+    config: false,
+    type: Object,
+    default: DEFAULT_SENSITIVITY,
+  });
   game.settings.register(MODULE_ID, EFFECTS_SETTING, {
     scope: "client",
     config: false,

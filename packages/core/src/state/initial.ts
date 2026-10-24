@@ -18,6 +18,7 @@ export const INITIAL_STATE: AVState = {
     openMic: false,
     speakingWhileMuted: false,
     effects: {},
+    inputSensitivity: { auto: true, threshold: -50 },
     cameraHold: null,
   },
   service: { id: null, capabilities: null },

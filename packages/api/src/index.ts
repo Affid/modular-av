@@ -39,6 +39,7 @@ export type {
   CameraHold,
   EffectState,
   EffectStatus,
+  InputSensitivity,
   LocalState,
   MediaPermissions,
   ParticipantState,

@@ -1,7 +1,12 @@
-import type { AVCommands, MediaPermissions } from "@modular-av/api";
+import type {
+  AVCommands,
+  InputSensitivity,
+  MediaPermissions,
+} from "@modular-av/api";
 import type { Controller } from "./controller.ts";
 import { AVCommandError } from "./errors.ts";
 import type { AVSettingsLike, FoundryGame } from "./foundry/globals.ts";
+import { writeSensitivity } from "./media/sensitivity.ts";
 
 function avSettings(controller: Controller): AVSettingsLike {
   const settings = controller.facts.settings();
@@ -78,6 +83,11 @@ export function createCommands(
 
     setEffectEnabled: (effect: string, enabled: boolean) =>
       controller().setEffectEnabled(effect, enabled),
+
+    async setInputSensitivity(sensitivity: Partial<InputSensitivity>) {
+      await writeSensitivity(game, sensitivity);
+      controller().apply();
+    },
 
     leave: () => controller().session.stop("left"),
 

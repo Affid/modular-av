@@ -13,6 +13,7 @@ import type { FoundryGame } from "../foundry/globals.ts";
 import type { LocalMedia } from "../media/local-media.ts";
 import type { RemoteMedia } from "../media/remote-media.ts";
 import type { WritableStore } from "../store.ts";
+import { readSensitivity } from "../media/sensitivity.ts";
 import { project } from "./project.ts";
 
 export interface StateSyncDeps {
@@ -69,6 +70,7 @@ function localState(deps: StateSyncDeps): LocalState {
       local.microphone !== null &&
       ((own.muted ?? false) || deps.rt.deafened),
     effects: effectStates(deps),
+    inputSensitivity: readSensitivity(deps.game),
     cameraHold: local.cameraHold,
   };
 }

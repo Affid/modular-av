@@ -309,3 +309,74 @@ describe("speaking while muted", () => {
     expect(hints(p1)).toBe(2);
   });
 });
+
+describe("input sensitivity", () => {
+  it("follows the noise by default and configures the gate from the setting", async () => {
+    // Arrange
+    const table = createTable();
+    const p1 = table.join("p1", { av: ACTIVITY });
+    await table.settle();
+    const initial = p1.api.state.get().local.inputSensitivity;
+
+    // Act
+    await p1.api.commands.setInputSensitivity({ auto: false, threshold: -38 });
+    await table.settle();
+
+    // Assert
+    expect(initial).toEqual({ auto: true, threshold: -50 });
+    expect(p1.api.state.get().local.inputSensitivity).toEqual({
+      auto: false,
+      threshold: -38,
+    });
+    expect(gateOf(p1).configs.at(-1)).toEqual({
+      mode: "gate",
+      auto: false,
+      threshold: -38,
+    });
+    expect(
+      p1.client.game.settings.get("modular-av", "inputSensitivity"),
+    ).toEqual({ auto: false, threshold: -38 });
+  });
+
+  it("changes only what it is given", async () => {
+    const table = createTable();
+    const p1 = table.join("p1", { av: ACTIVITY });
+    await table.settle();
+
+    await p1.api.commands.setInputSensitivity({ threshold: -60 });
+    await p1.api.commands.setInputSensitivity({ auto: false });
+
+    expect(p1.api.state.get().local.inputSensitivity).toEqual({
+      auto: false,
+      threshold: -60,
+    });
+  });
+
+  it("refuses thresholds outside -100 to 0 dBFS", async () => {
+    const table = createTable();
+    const p1 = table.join("p1");
+    await table.settle();
+
+    for (const threshold of [5, -101, Number.NaN])
+      await expect(
+        p1.api.commands.setInputSensitivity({ threshold }),
+      ).rejects.toMatchObject({ code: "invalid-argument" });
+  });
+
+  it("falls back to the default when the setting holds something else", async () => {
+    const table = createTable();
+    const p1 = table.join("p1");
+    await p1.client.game.settings.set("modular-av", "inputSensitivity", {
+      auto: "yes",
+      threshold: 900,
+    });
+    await table.settle();
+    p1.core.controller().apply();
+    await table.settle();
+
+    expect(p1.api.state.get().local.inputSensitivity).toEqual({
+      auto: true,
+      threshold: -50,
+    });
+  });
+});

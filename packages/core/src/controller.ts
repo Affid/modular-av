@@ -22,6 +22,7 @@ import {
   type EffectChoices,
 } from "./media/effect-choices.ts";
 import { createLocalMedia, type LocalMedia } from "./media/local-media.ts";
+import { readSensitivity } from "./media/sensitivity.ts";
 import { createRemoteMedia, type RemoteMedia } from "./media/remote-media.ts";
 import {
   computeOutbound,
@@ -124,7 +125,7 @@ function buildParts(deps: ControllerDeps): Parts {
   // Created after `local`, which reports replaced effects to it.
   let choices: EffectChoices | null = null;
   const local = createLocalMedia(env, {
-    gate: gateConfig(facts),
+    gate: gateConfig(facts, readSensitivity(game)),
     onReplaced: (ids) => choices?.replaced(ids),
     onError: deps.onError,
   });
@@ -161,7 +162,7 @@ function buildParts(deps: ControllerDeps): Parts {
   // Created after `apply`, which it calls.
   let voice: VoiceActivity | null = null;
   const apply = (): void => {
-    local.setGate(gateConfig(facts));
+    local.setGate(gateConfig(facts, readSensitivity(game)));
     local.setOutbound(outbound());
     remote.refresh();
     if (rightsChanged(rt, facts)) session.restart();
