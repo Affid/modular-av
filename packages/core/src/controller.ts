@@ -221,7 +221,10 @@ function buildParts(deps: ControllerDeps): Parts {
     local.setGate(gateConfig(facts, readSensitivity(game)));
     local.setOutbound(outbound());
     remote.refresh();
-    if (rightsChanged(rt, facts)) session.restart();
+    // Tokens carry the rights; without one, publishing follows them as is.
+    const rejoin =
+      rightsChanged(rt, facts) && service()?.needsToken() !== false;
+    if (rejoin) session.restart();
     else session.syncMedia();
     voice?.sync();
     refreshState();

@@ -15,6 +15,7 @@ import {
   type FakeWorld,
   type FakeWorldOptions,
   type MockServiceHub,
+  type MockServiceOptions,
   fakeTrackInfo,
 } from "@modular-av/testing";
 import { vi } from "vitest";
@@ -65,14 +66,17 @@ function serviceFor(hub: MockServiceHub, secret: boolean): ServiceDefinition {
   return { ...hub.definition(), canSignTokens: () => secret };
 }
 
-export function createTable(options: Partial<FakeWorldOptions> = {}): Table {
+export function createTable(
+  options: Partial<FakeWorldOptions> = {},
+  service: MockServiceOptions = {},
+): Table {
   const world = createFakeWorld({
     users: USERS,
     modules: [{ id: "modular-av", version: "0.1.0" }],
     translations: en,
     ...options,
   });
-  const hub = createMockServiceHub({ now: () => Date.now() });
+  const hub = createMockServiceHub({ now: () => Date.now(), ...service });
 
   const settle = async (): Promise<void> => {
     for (let i = 0; i < 3; i += 1) {

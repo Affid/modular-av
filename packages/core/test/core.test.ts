@@ -408,6 +408,28 @@ describe("GM authority", () => {
     expect(p1.api.state.get().participants.p1?.name).toBe("Renamed");
   });
 
+  it("keeps the call when rights change and the service needs no token", async () => {
+    // Arrange
+    const table = createTable({}, { needsToken: false });
+    table.join("gm");
+    const p1 = table.join("p1");
+    await table.settle();
+    const statuses: string[] = [];
+    p1.api.state.subscribe(
+      (s) => s.session.status,
+      (status) => statuses.push(status),
+    );
+
+    // Act
+    table.world.updateUser("p1", { permissions: { BROADCAST_VIDEO: false } });
+    await table.settle();
+
+    // Assert
+    expect(statuses).toEqual([]);
+    expect(p1.api.state.get().local.canPublish.video).toBe(false);
+    expect(table.hub.participants(ROOM)).toContain("p1");
+  });
+
   it("refuses a blocked player's media even if it still arrives", async () => {
     const table = createTable();
     const gm = table.join("gm", { secret: true });
