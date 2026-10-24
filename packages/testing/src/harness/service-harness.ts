@@ -190,6 +190,15 @@ function createHarness(definition: ServiceDefinition): ServiceHarness {
       const track = remoteTrack(participant, "camera");
       return track ? meanLuminance(track) : Promise.resolve(0);
     },
+    stats(participant) {
+      const connection = live();
+      if (participant === null) return connection.getStats();
+      return connection.getParticipantStats
+        ? connection
+            .getParticipantStats(participant)
+            .catch(() => "failed" as const)
+        : Promise.resolve("none" as const);
+    },
   };
 }
 

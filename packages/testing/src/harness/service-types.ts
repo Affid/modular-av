@@ -1,4 +1,5 @@
 import type {
+  ConnectionStats,
   MediaPermissions,
   ServiceDefinition,
   ServiceErrorCode,
@@ -88,6 +89,13 @@ export interface ServiceHarness {
   audioLevel(participant: string, ms: number): Promise<number>;
   /** Mean luminance (0-255) of a participant's remote camera frame; 0 without one. */
   videoBrightness(participant: string): Promise<number>;
+  /**
+   * The connection's own stats (null), or a participant's; "none" if the
+   * service can't tell, "failed" if it refused (e.g. not measured yet).
+   */
+  stats(
+    participant: string | null,
+  ): Promise<ConnectionStats | "none" | "failed">;
 }
 
 declare global {

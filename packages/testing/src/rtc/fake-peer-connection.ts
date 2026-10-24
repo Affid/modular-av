@@ -28,6 +28,9 @@ export interface FakeStats {
   roundTripMs: number;
   packetsLost: number;
   packetsReceived: number;
+  jitterMs?: number;
+  /** The pair in use goes through a TURN relay. */
+  relayed?: boolean;
 }
 
 const SENDS: ReadonlySet<Direction> = new Set(["sendrecv", "sendonly"]);
@@ -232,6 +235,14 @@ export class FakePeerConnection extends EventTarget {
             state: "succeeded",
             nominated: true,
             currentRoundTripTime: this.stats.roundTripMs / 1000,
+            localCandidateId: "local",
+          },
+        ],
+        [
+          "local",
+          {
+            type: "local-candidate",
+            candidateType: this.stats.relayed ? "relay" : "host",
           },
         ],
         [
@@ -241,6 +252,9 @@ export class FakePeerConnection extends EventTarget {
             kind: "audio",
             packetsLost: this.stats.packetsLost,
             packetsReceived: this.stats.packetsReceived,
+            ...(this.stats.jitterMs === undefined
+              ? {}
+              : { jitter: this.stats.jitterMs / 1000 }),
           },
         ],
       ]),

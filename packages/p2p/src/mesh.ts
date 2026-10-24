@@ -42,6 +42,8 @@ export interface Mesh {
   linkStates(): readonly LinkState[];
   /** Rates each connected link, reporting changes; their average. */
   sampleStats(): Promise<ConnectionStats>;
+  /** The link to a joined player as last sampled, or null. */
+  participantStats(user: ParticipantId): ConnectionStats | null;
   setConfiguration(configuration: RTCConfiguration): void;
   /** After Foundry's socket reconnected: says hello and resyncs every link. */
   resync(): void;
@@ -75,7 +77,7 @@ async function sampleStats(st: MeshState): Promise<ConnectionStats> {
   for (const { peer, stats } of readings) {
     const current = st.peers.get(peer.presence.user);
     if (current?.link === peer.link && current.link.state === "connected")
-      setPeer(st, setQuality(st, current, rate(stats)));
+      setPeer(st, { ...setQuality(st, current, rate(stats)), stats });
   }
   return average(readings.map((r) => r.stats));
 }
@@ -155,6 +157,10 @@ export function createMesh(deps: MeshDeps): Mesh {
         p.downSince === null ? p.link.state : "down",
       ),
     sampleStats: () => sampleStats(st),
+    participantStats(user) {
+      const peer = st.peers.get(user);
+      return peer?.joined ? peer.stats : null;
+    },
     setConfiguration: (configuration) => {
       setConfiguration(st, configuration);
     },

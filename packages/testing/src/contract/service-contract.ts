@@ -204,6 +204,27 @@ export function serviceContract(options: ServiceContractOptions): void {
         .toBeGreaterThan(20);
     });
 
+    test("tells its own and each participant's connection details", async ({
+      browser,
+    }) => {
+      const [alice, bob] = await peers(browser, "alice", "bob");
+      if (!alice || !bob) throw new Error("no peers");
+      await alice.join();
+      await bob.join();
+      await alice.run((h) => h.publish(["microphone"]));
+      await bob.run((h) => h.publish(["microphone"]));
+      await expect
+        .poll(() => alice.run((h) => h.audioLevel("bob", 500)))
+        .toBeGreaterThan(AUDIBLE);
+
+      const own = await alice.run((h) => h.stats(null));
+      expect(typeof own).toBe("object");
+      // P2P samples its links every few seconds.
+      await expect
+        .poll(() => alice.run((h) => h.stats("bob")), { timeout: 20_000 })
+        .toMatchObject({ packetLoss: expect.any(Number) });
+    });
+
     test("keeps the core's mute: silence and black, then back", async ({
       browser,
     }) => {

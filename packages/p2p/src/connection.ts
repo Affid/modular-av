@@ -240,5 +240,11 @@ export function createP2PConnection(
     ...publishing(c),
     on: (event, handler) => c.events.on(event, handler),
     getStats: () => Promise.resolve(c.lastStats),
+    getParticipantStats(participant) {
+      const stats = c.live?.mesh.participantStats(participant) ?? null;
+      return stats
+        ? Promise.resolve(stats)
+        : Promise.reject(new Error(`${participant} is not linked yet`));
+    },
   };
 }

@@ -38,6 +38,8 @@ export interface Hub {
   readonly needsToken: boolean;
   join(member: Member): void;
   leave(member: Member): void;
+  /** Who is in a room now. */
+  participants(room: string): readonly ParticipantId[];
   trackAdded(member: Member, track: RemoteTrack): void;
   trackRemoved(member: Member, track: RemoteTrack): void;
   setMuted(

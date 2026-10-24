@@ -6,6 +6,7 @@ import type {
 } from "@modular-av/api";
 import {
   type LocalTrackPublication,
+  type RemoteParticipant,
   Room,
   VideoPresets,
   VideoQuality,
@@ -14,6 +15,19 @@ import { createEmitter } from "./emitter.ts";
 import { fromConnectError } from "./errors.ts";
 import { LiveKitServiceError } from "./failure.ts";
 import { SOURCES, wireRoom } from "./room-events.ts";
+import { fromReceivers, fromSender, type PacketTotals } from "./stats.ts";
+
+const NO_PACKETS: PacketTotals = { lost: 0, received: 0 };
+
+/** The stats of every receiver of a participant's tracks. */
+async function receiverReports(
+  participant: RemoteParticipant,
+): Promise<ReadonlyMap<string, unknown>[]> {
+  const receivers = [...participant.trackPublications.values()].flatMap((p) =>
+    p.track?.receiver ? [p.track.receiver] : [],
+  );
+  return Promise.all(receivers.map((r) => r.getStats()));
+}
 
 /** Loaded with `import()` only when a call starts: the SDK is heavy. */
 export interface LiveKitConnectionOptions {
@@ -93,6 +107,8 @@ export function createLiveKitConnection(
   const emitter = createEmitter(options.onError);
   const state = { leaving: false };
   let publications = new Map<string, LocalTrackPublication>();
+  /** Per participant, for the loss since the last reading. */
+  let totals = new Map<string, PacketTotals>();
   wireRoom(room, emitter, state);
 
   const find = (published: PublishedTrack): LocalTrackPublication => {
@@ -158,6 +174,21 @@ export function createLiveKitConnection(
         publication.setVideoQuality(QUALITIES[subscription.maxQuality]);
     },
     on: (event, handler) => emitter.on(event, handler),
-    getStats: () => Promise.resolve({}),
+    async getStats() {
+      const mic = [...publications.values()].find(
+        (p) => p.audioTrack !== undefined,
+      )?.audioTrack;
+      return fromSender(await mic?.getSenderStats());
+    },
+    async getParticipantStats(participant) {
+      const remote = room.remoteParticipants.get(participant);
+      if (!remote) throw new Error(`${participant} is not in the room`);
+      const reading = fromReceivers(
+        await receiverReports(remote),
+        totals.get(participant) ?? NO_PACKETS,
+      );
+      totals = new Map(totals).set(participant, reading.totals);
+      return reading.stats;
+    },
   };
 }

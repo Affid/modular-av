@@ -332,7 +332,7 @@ describe("a link", () => {
     polite.link.close();
 
     // Assert
-    expect(stats).toEqual({ roundTripMs: 80, packetLoss: 0 });
+    expect(stats).toEqual({ roundTripMs: 80, packetLoss: 0, relayed: false });
     expect(polite.pc.configuration).toEqual({ iceTransportPolicy: "relay" });
     expect(polite.pc.restarts).toBe(1);
     expect([polite.link.state, polite.pc.connectionState]).toEqual([

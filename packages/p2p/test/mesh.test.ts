@@ -370,6 +370,12 @@ describe("the mesh", () => {
     expect(alice.events.filter((e) => e.startsWith("quality"))).toEqual([
       "quality bob poor",
     ]);
+    // The second sample saw no new packets: no loss to tell.
+    expect(alice.mesh.participantStats("bob")).toEqual({
+      roundTripMs: 500,
+      relayed: false,
+    });
+    expect(alice.mesh.participantStats("carol")).toBeNull();
   });
 
   it("starts a link afresh for the other side at most once in a while", async () => {

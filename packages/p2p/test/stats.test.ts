@@ -33,6 +33,27 @@ describe("readStats", () => {
     expect(two.stats).toEqual({ packetLoss: 0.05 });
   });
 
+  it("reads the worst jitter and whether the pair in use is relayed", () => {
+    const { stats } = readStats(
+      report({
+        pair: {
+          type: "candidate-pair",
+          state: "succeeded",
+          nominated: true,
+          currentRoundTripTime: 0.05,
+          localCandidateId: "mine",
+        },
+        mine: { type: "local-candidate", candidateType: "relay" },
+        other: { type: "local-candidate", candidateType: "host" },
+        a: { type: "inbound-rtp", jitter: 0.004 },
+        v: { type: "inbound-rtp", jitter: 0.012 },
+      }),
+      { lost: 0, received: 0 },
+    );
+
+    expect(stats).toEqual({ roundTripMs: 50, jitterMs: 12, relayed: true });
+  });
+
   it("says nothing it doesn't know", () => {
     const { stats } = readStats(
       report({ odd: null, other: { type: "outbound-rtp" } }),

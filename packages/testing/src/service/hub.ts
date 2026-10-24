@@ -97,6 +97,7 @@ export function createMockServiceHub(
     now,
     moderation: options.moderation ?? false,
     needsToken: options.needsToken ?? true,
+    participants: (room) => membersOf(room).map((m) => m.participant),
     join(member) {
       membersOf(member.room)
         .filter((m) => m.participant === member.participant)

@@ -4,6 +4,7 @@ import type {
   MediaPermissions,
   ParticipantId,
   Registry,
+  ServiceConnection,
   ServiceDefinition,
   VideoSource,
 } from "@modular-av/api";
@@ -64,6 +65,8 @@ export interface Controller {
   readonly local: LocalMedia;
   readonly remote: RemoteMedia;
   service(): ServiceDefinition | undefined;
+  /** The live connection, or null between connections. */
+  connection(): ServiceConnection | null;
   /** AVMaster: before `connect()`, awaited. */
   initialize(): Promise<void>;
   foundryConnect(): void;
@@ -288,6 +291,7 @@ export function createController(deps: ControllerDeps): Controller {
   return {
     ...{ store: deps.store, session, facts, local, remote, apply },
     service: parts.service,
+    connection: () => rt.connection,
     reacquire: parts.reacquire,
     refresh: parts.refresh,
     setEffectEnabled: (id, enabled) => parts.choices.setEnabled(id, enabled),

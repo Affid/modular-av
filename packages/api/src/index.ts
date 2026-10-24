@@ -16,7 +16,7 @@ export type {
   ToggleControl,
   ToggleState,
 } from "./contributions.ts";
-export type { MediaAttachment, ModularAV, VideoSource } from "./core.ts";
+export type { MediaAttachment, ModularAV, Stats, VideoSource } from "./core.ts";
 export type {
   AudioEffect,
   AudioEffectContext,

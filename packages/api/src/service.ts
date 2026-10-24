@@ -75,9 +75,14 @@ export interface SubscriptionOptions {
   readonly maxQuality?: "low" | "medium" | "high";
 }
 
+/** What a service measures; any of it may be missing. */
 export interface ConnectionStats {
   readonly roundTripMs?: number;
+  /** The share of packets lost lately, 0 to 1. */
   readonly packetLoss?: number;
+  readonly jitterMs?: number;
+  /** Through a relay (TURN) rather than direct. */
+  readonly relayed?: boolean;
 }
 
 /**
@@ -139,7 +144,13 @@ export interface ServiceConnection {
     event: E,
     handler: ServiceEvents[E],
   ): () => void;
+  /** This client's own connection. */
   getStats(): Promise<ConnectionStats>;
+  /**
+   * The media from one participant (for a P2P mesh, the link to them).
+   * Optional: without it, UIs show only `ParticipantState.quality`.
+   */
+  getParticipantStats?(participant: ParticipantId): Promise<ConnectionStats>;
 }
 
 /**

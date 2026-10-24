@@ -37,6 +37,7 @@ import { createRegistry } from "./registry.ts";
 import { assetUrl, createChannels } from "./socket.ts";
 import { INITIAL_STATE } from "./state/initial.ts";
 import { decoratePlayerList, startPlainStatus } from "./status/plain-status.ts";
+import { createStats } from "./session/stats.ts";
 import { createStore } from "./store.ts";
 import { createPipWindows, type WindowsEnv } from "./windows/pip.ts";
 import {
@@ -136,6 +137,11 @@ export function installCore(deps: CoreDeps): InstalledCore {
     meters: meters.api,
     windows: Object.freeze({
       pip: createPipWindows(deps.windows, deps.onError),
+    }),
+    stats: createStats({
+      connection: () => current?.connection() ?? null,
+      inCall: () => current?.connectedUsers() ?? [],
+      now: deps.now,
     }),
     services: services.api,
     effects: effects.api,

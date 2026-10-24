@@ -146,6 +146,7 @@ export function addPeer(st: MeshState, presence: Presence): void {
     emitted: [],
     downSince: null,
     quality: null,
+    stats: null,
   });
   // Cleared once the link connects, like every timer of this peer.
   addTimer(st, user, CONNECT_TIMEOUT_MS, () => {

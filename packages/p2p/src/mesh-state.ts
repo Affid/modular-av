@@ -1,5 +1,6 @@
 import type {
   ConnectionQuality,
+  ConnectionStats,
   ParticipantId,
   TrackSource,
 } from "@modular-av/api";
@@ -32,6 +33,8 @@ export interface Peer {
   readonly emitted: readonly RemoteSourceTrack[];
   readonly downSince: number | null;
   readonly quality: ConnectionQuality | null;
+  /** The link's last reading, for the connection details. */
+  readonly stats: ConnectionStats | null;
 }
 
 type Timer = ReturnType<typeof setTimeout>;

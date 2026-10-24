@@ -15,6 +15,11 @@ import { verifyMockToken } from "./token.ts";
 
 const AUDIO_SOURCES: readonly TrackSource[] = ["microphone", "screen-audio"];
 const STATS = { roundTripMs: 20, packetLoss: 0 } as const;
+const PARTICIPANT_STATS = {
+  roundTripMs: 30,
+  packetLoss: 0,
+  jitterMs: 5,
+} as const;
 
 const noop = (): void => undefined;
 
@@ -193,5 +198,13 @@ export function createMockConnection(
     on: (event, handler) => events.on(event, handler),
 
     getStats: () => Promise.resolve(STATS),
+
+    getParticipantStats(target) {
+      const inRoom =
+        member !== undefined && hub.participants(member.room).includes(target);
+      return inRoom
+        ? Promise.resolve(PARTICIPANT_STATS)
+        : Promise.reject(new Error(`${target} is not in the call`));
+    },
   };
 }

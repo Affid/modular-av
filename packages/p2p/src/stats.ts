@@ -19,38 +19,60 @@ const isEntry = (value: unknown): value is Entry =>
 const count = (value: unknown): number =>
   typeof value === "number" && Number.isFinite(value) ? value : 0;
 
+const isPairInUse = (entry: Entry): boolean =>
+  entry.type === "candidate-pair" &&
+  entry.nominated === true &&
+  entry.state === "succeeded";
+
+/** The pair in use: its round trip and whether its local side is a relay. */
+function readPair(report: ReadonlyMap<string, unknown>): ConnectionStats {
+  const pair = [...report.values()]
+    .filter(isEntry)
+    .find((e) => isPairInUse(e) && typeof e.currentRoundTripTime === "number");
+  if (!pair) return {};
+  const local =
+    typeof pair.localCandidateId === "string"
+      ? report.get(pair.localCandidateId)
+      : undefined;
+  return {
+    roundTripMs: Math.round(count(pair.currentRoundTripTime) * 1000),
+    ...(isEntry(local) && typeof local.candidateType === "string"
+      ? { relayed: local.candidateType === "relay" }
+      : {}),
+  };
+}
+
 /**
- * The round trip of the candidate pair in use and the share of packets
- * lost since `previous`, from a `getStats()` report.
+ * The round trip of the candidate pair in use (and whether it is relayed),
+ * the worst jitter and the share of packets lost since `previous`, from a
+ * `getStats()` report.
  */
 export function readStats(
   report: ReadonlyMap<string, unknown>,
   previous: PacketTotals,
 ): StatsReading {
-  let roundTrip: number | null = null;
-  let totals: PacketTotals = { lost: 0, received: 0 };
-  for (const entry of report.values()) {
-    if (!isEntry(entry)) continue;
-    if (
-      entry.type === "candidate-pair" &&
-      entry.nominated === true &&
-      entry.state === "succeeded" &&
-      typeof entry.currentRoundTripTime === "number"
-    )
-      roundTrip = entry.currentRoundTripTime;
-    if (entry.type === "inbound-rtp")
-      totals = {
-        lost: totals.lost + count(entry.packetsLost),
-        received: totals.received + count(entry.packetsReceived),
-      };
-  }
+  const inbound = [...report.values()]
+    .filter(isEntry)
+    .filter((e) => e.type === "inbound-rtp");
+  const totals: PacketTotals = {
+    lost: inbound.reduce((sum, e) => sum + count(e.packetsLost), 0),
+    received: inbound.reduce((sum, e) => sum + count(e.packetsReceived), 0),
+  };
+  const jitters = inbound.flatMap((e) =>
+    typeof e.jitter === "number" ? [e.jitter] : [],
+  );
   const lost = Math.max(0, totals.lost - previous.lost);
   const received = Math.max(0, totals.received - previous.received);
+  const pair = readPair(report);
   const stats: ConnectionStats = {
-    ...(roundTrip === null
+    ...(pair.roundTripMs === undefined
       ? {}
-      : { roundTripMs: Math.round(roundTrip * 1000) }),
+      : { roundTripMs: pair.roundTripMs }),
     ...(lost + received > 0 ? { packetLoss: lost / (lost + received) } : {}),
+    ...(jitters.length > 0
+      ? { jitterMs: Math.round(Math.max(...jitters) * 1000) }
+      : {}),
+    ...(pair.relayed === undefined ? {} : { relayed: pair.relayed }),
   };
   return { stats, totals };
 }

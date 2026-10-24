@@ -337,6 +337,13 @@ describe("staying connected", () => {
     expect(await alice.connection.getStats()).toMatchObject({
       roundTripMs: 400,
     });
+    expect(await alice.connection.getParticipantStats?.("bob")).toMatchObject({
+      roundTripMs: 400,
+      relayed: false,
+    });
+    await expect(
+      alice.connection.getParticipantStats?.("nobody"),
+    ).rejects.toThrow(/not linked/);
   });
 
   it("follows Foundry: new ICE servers and players who left", async () => {
