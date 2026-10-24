@@ -211,6 +211,9 @@ export function createClient(parts: ClientParts): ClientHandle {
       },
       avClient: () => webrtc?.client ?? null,
       onChanged: (changed) => webrtc?.onSettingsChanged(changed),
+      broadcastActivity: (activity) => {
+        parts.socket.emit(USER_ACTIVITY_EVENT, activity);
+      },
       cameraViews: () => ui.webrtc,
     });
     webrtc = new FakeAVMaster({

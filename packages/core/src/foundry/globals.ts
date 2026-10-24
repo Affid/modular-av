@@ -21,6 +21,8 @@ export interface FoundryUser {
   getFlag(scope: string, key: string): unknown;
   setFlag(scope: string, key: string, value: unknown): Promise<unknown>;
   update(changes: Readonly<Record<string, unknown>>): Promise<unknown>;
+  /** Tells the other clients (Foundry's `userActivity`). */
+  broadcastActivity(activity: Readonly<Record<string, unknown>>): void;
 }
 
 export interface FoundryUsers {

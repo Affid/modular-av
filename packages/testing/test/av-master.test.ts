@@ -178,7 +178,8 @@ describe("AVSettings (settings.mjs getUser, set)", () => {
       popout: false,
       volume: 1,
       muted: true,
-      hidden: false,
+      // As its load broadcast says: Foundry's default client sends no video.
+      hidden: true,
       blocked: false,
       canBroadcastAudio: true,
       canBroadcastVideo: true,

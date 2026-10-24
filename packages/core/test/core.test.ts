@@ -189,6 +189,19 @@ describe("mute in every state", () => {
     expect(gm.api.state.get().participants.p1?.muted).toBe(true);
   });
 
+  it("doesn't show a player who just joined as muted or hidden", async () => {
+    const table = createTable();
+    const gm = table.join("gm", { secret: true, av: ALWAYS });
+    table.join("p1", { av: ALWAYS });
+
+    await table.settle();
+
+    expect(gm.api.state.get().participants.p1).toMatchObject({
+      muted: false,
+      hidden: false,
+    });
+  });
+
   it("ignores Foundry activity that isn't about A/V", async () => {
     const table = createTable();
     const gm = table.join("gm", { secret: true, av: ALWAYS });
@@ -506,6 +519,8 @@ describe("Foundry's world mode", () => {
     await table.settle();
 
     expect(p1.env.captures).toEqual(["audio:default"]);
+    expect(p1.api.state.get().worldMode).toEqual({ audio: true, video: false });
+    expect(p1.api.state.get().participants.p1?.canBroadcast.video).toBe(false);
   });
 
   it("stays idle with A/V disabled", async () => {

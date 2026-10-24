@@ -219,6 +219,7 @@ function buildParts(deps: ControllerDeps): Parts {
   });
   // Created after `apply`, which it calls.
   let voice: VoiceActivity | null = null;
+  const announce = createActivityAnnouncer(game, facts, local);
   const apply = (): void => {
     devices.sync();
     local.setGate(gateConfig(facts, readSensitivity(game)));
@@ -230,6 +231,7 @@ function buildParts(deps: ControllerDeps): Parts {
     if (rejoin) session.restart();
     else session.syncMedia();
     voice?.sync();
+    announce();
     refreshState();
   };
   local.onChange(() => {
@@ -242,6 +244,37 @@ function buildParts(deps: ControllerDeps): Parts {
   return {
     ...{ deps, facts, rt, local, remote, session, service, apply, reacquire },
     ...{ refresh: refreshState, voice, choices },
+  };
+}
+
+interface OwnActivity {
+  readonly muted: boolean;
+  readonly hidden: boolean;
+}
+
+/**
+ * Tells the others whether this player is muted or hidden, as Foundry
+ * computes it (the setting, or nothing being sent). Foundry broadcasts it
+ * only when its A/V settings load or change, so before the core captured
+ * any device every player looked muted and hidden to the others.
+ */
+function createActivityAnnouncer(
+  game: FoundryGame,
+  facts: AVFacts,
+  local: LocalMedia,
+): () => void {
+  let announced: OwnActivity | null = null;
+  return () => {
+    if (!game.ready) return;
+    const own = facts.entry(facts.selfId);
+    const next: OwnActivity = {
+      muted: (own.muted ?? false) || local.microphone === null,
+      hidden: (own.hidden ?? false) || local.camera === null,
+    };
+    if (announced?.muted === next.muted && announced.hidden === next.hidden)
+      return;
+    announced = next;
+    game.user.broadcastActivity({ av: next });
   };
 }
 
@@ -307,6 +340,7 @@ export function createController(deps: ControllerDeps): Controller {
     ready() {
       startIfReady();
       syncDeafenedFlag(parts);
+      apply();
     },
     setBroadcastIntent(intent) {
       parts.voice.onIntent(intent);

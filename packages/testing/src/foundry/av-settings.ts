@@ -110,6 +110,8 @@ export interface AVSettingsDeps {
   avClient(): { isAudioEnabled(): boolean; isVideoEnabled(): boolean } | null;
   /** Called with the diff, as `AVMaster#onSettingsChanged` is. */
   onChanged(changed: AVSettingsDiff): void;
+  /** `game.user.broadcastActivity`: Foundry tells the others. */
+  broadcastActivity(activity: Readonly<Record<string, unknown>>): void;
   /** `ui.webrtc`, which activity updates also reach. */
   cameraViews(): {
     setUserIsSpeaking(id: string, speaking: boolean): void;
@@ -138,8 +140,16 @@ export function createAVSettings(deps: AVSettingsDeps): FakeAVSettingsHandle {
     queueMicrotask(() => {
       const diff = pending ?? {};
       pending = null;
+      broadcastOwn();
       deps.onChanged(diff);
     });
+  };
+
+  /** Foundry's `#initialize`: on load and after every change. */
+  const broadcastOwn = (): void => {
+    const own = settings.getUser(deps.selfId);
+    if (own)
+      deps.broadcastActivity({ av: { muted: own.muted, hidden: own.hidden } });
   };
 
   const settings: FakeAVSettings = {
@@ -191,6 +201,7 @@ export function createAVSettings(deps: AVSettingsDeps): FakeAVSettingsHandle {
     },
   };
 
+  broadcastOwn();
   return {
     settings,
     worldChanged(path, value) {
