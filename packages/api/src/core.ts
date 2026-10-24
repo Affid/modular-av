@@ -1,4 +1,5 @@
 import type { AVCommands } from "./commands.ts";
+import type { EffectDefinition } from "./effects.ts";
 import type { Registry } from "./registry.ts";
 import type { ParticipantId, ServiceDefinition } from "./service.ts";
 import type { Channel } from "./socket.ts";
@@ -24,8 +25,8 @@ export interface MediaAttachment {
 /**
  * The core's public API on `game.modules.get("modular-av").api`. Its
  * version is the core's module version, so Foundry's dependency checks
- * apply to the API. Milestones 3 and 5 add effects, meters, surfaces,
- * contributions and windows.
+ * apply to the API. Milestone 5 adds meters, surfaces, contributions and
+ * windows.
  */
 export interface ModularAV {
   readonly version: string;
@@ -33,6 +34,7 @@ export interface ModularAV {
   readonly commands: AVCommands;
   readonly media: MediaAttachment;
   readonly services: Registry<ServiceDefinition>;
+  readonly effects: Registry<EffectDefinition>;
   socket(channel: string): Channel;
   /** A module file's URL through Foundry's route prefix. */
   assetUrl(moduleId: string, path: string): string;

@@ -1,4 +1,8 @@
-import type { ModularAV, ServiceDefinition } from "@modular-av/api";
+import type {
+  EffectDefinition,
+  ModularAV,
+  ServiceDefinition,
+} from "@modular-av/api";
 import {
   type AVClientSettings,
   createFakeMediaEnv,
@@ -39,6 +43,7 @@ export interface TabOptions {
   /** Register this instead of the mock service's definition. */
   readonly service?: ServiceDefinition;
   readonly deny?: { readonly audio?: string; readonly video?: string };
+  readonly effects?: readonly EffectDefinition[];
 }
 
 export interface Table {
@@ -81,6 +86,9 @@ export function createTable(options: Partial<FakeWorldOptions> = {}): Table {
           tab.service ?? serviceFor(hub, tab.secret ?? false),
         );
       });
+    client.Hooks.on("modularAV.register", (api: ModularAV) => {
+      for (const effect of tab.effects ?? []) api.effects.register(effect);
+    });
     const core = installCore({
       game: client.game,
       hooks: client.Hooks,

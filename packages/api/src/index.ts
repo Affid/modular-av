@@ -1,5 +1,16 @@
 export type { AVCommands, CommandError, CommandErrorCode } from "./commands.ts";
 export type { MediaAttachment, ModularAV, VideoSource } from "./core.ts";
+export type {
+  AudioEffect,
+  AudioEffectContext,
+  AudioEffectDefinition,
+  AudioStage,
+  EffectContext,
+  EffectCost,
+  EffectDefinition,
+  VideoEffect,
+  VideoEffectDefinition,
+} from "./effects.ts";
 export type { ModuleKind, ModularAVModuleFlags } from "./module.ts";
 export type { Registry } from "./registry.ts";
 export type {

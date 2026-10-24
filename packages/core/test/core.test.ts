@@ -1,3 +1,4 @@
+import type { EffectDefinition } from "@modular-av/api";
 import {
   createFakeVideoElement,
   fakeTrackInfo,
@@ -510,6 +511,31 @@ describe("registration and plain status", () => {
     expect(() => {
       p1.api.services.register({ ...table.hub.definition(), id: "late" });
     }).toThrow(/registered too late/);
+  });
+
+  it("takes effects in the register hook, and rejects them afterwards", async () => {
+    // Arrange
+    const table = createTable();
+    const effect: EffectDefinition = {
+      id: "rnnoise",
+      kind: "audio",
+      label: "RNNoise",
+      stage: "denoise",
+      exclusiveGroup: "noise-suppression",
+      cost: "light",
+      isSupported: () => true,
+      create: () => Promise.reject(new Error("not used")),
+    };
+
+    // Act
+    const p1 = table.join("p1", { effects: [effect] });
+    await table.settle();
+
+    // Assert
+    expect(p1.api.effects.list()).toEqual([effect]);
+    expect(() => {
+      p1.api.effects.register({ ...effect, id: "late" });
+    }).toThrow(/effects: "late" registered too late/);
   });
 
   it("tells the player when the microphone is denied", async () => {

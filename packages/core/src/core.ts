@@ -1,4 +1,9 @@
-import type { AVState, ModularAV, ServiceDefinition } from "@modular-av/api";
+import type {
+  AVState,
+  EffectDefinition,
+  ModularAV,
+  ServiceDefinition,
+} from "@modular-av/api";
 import { createCommands } from "./commands.ts";
 import { MODULE_ID } from "./constants.ts";
 import {
@@ -55,6 +60,7 @@ export function installCore(deps: CoreDeps): InstalledCore {
 
   const store = createStore<AVState>(INITIAL_STATE, deps.onError);
   const services = createRegistry<ServiceDefinition>("services");
+  const effects = createRegistry<EffectDefinition>("effects");
   const channels = createChannels(game.socket, deps.onError);
   let current: Controller | undefined;
   const controller = (): Controller => current ?? notReady();
@@ -80,6 +86,7 @@ export function installCore(deps: CoreDeps): InstalledCore {
         controller().attach(...args),
     }),
     services: services.api,
+    effects: effects.api,
     socket: (name: string) => channels.channel(name),
     assetUrl: (moduleId: string, path: string) =>
       assetUrl((p) => deps.foundry.utils.getRoute(p), moduleId, path),
@@ -87,9 +94,10 @@ export function installCore(deps: CoreDeps): InstalledCore {
   mod.api = api;
 
   hooks.once("setup", () => {
-    services.open();
+    const registries = [services, effects];
+    for (const registry of registries) registry.open();
     hooks.callAll(REGISTER_HOOK, api);
-    services.close();
+    for (const registry of registries) registry.close();
     registerServiceSetting(game, services.api.list());
     current = createController({
       store,
