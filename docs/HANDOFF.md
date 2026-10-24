@@ -1332,3 +1332,28 @@ Foundry 14.369, Chromium from Playwright 1.64, coturn 4.7.0):
   player's candidates can make others probe any address (inherent to
   WebRTC), hello and bye tell every user in the world who joins, and a
   player past the cap may show briefly to the others before leaving.
+
+## 13. Open items
+
+Left open after milestone 4. None of them is part of a milestone unless
+it is picked up explicitly.
+
+- **Browser-tier flake**: "two players who join at the same moment link
+  once and hear each other" (`packages/p2p/test/browser/mesh.spec.ts`)
+  failed twice inside `pnpm verify`, with level 0 at the listener. It
+  didn't fail in over 300 runs alone, under load, or with verify's steps
+  in a loop. The cause is unknown.
+- **Functions over 50 lines** in the code from milestones 2 and 3 (the
+  P2P package has none): mostly factories, the longest
+  `createLocalMedia` (257), `createSession` (208), `createEffectRunner`
+  (191), `createRemoteMedia` (147), `createMicrophone` (145) and
+  `createCamera` (124), plus helpers in `packages/testing`. List them with
+  ESLint's `max-lines-per-function` at 50.
+- **Fail-closed option for the open mic**: when the voice gate can't run
+  in voice activity mode, the microphone goes out ungated and shows "open
+  mic" (§5). The reviews suggested an option to mute instead; the rule was
+  kept and the option left open.
+- **Coalescing state refreshes**: several changes in one task each
+  refresh the state; they could be merged into one.
+- **Firefox 48 kHz capture**: see §11.
+- **From milestone 4**: see "Not done yet" in §12.
