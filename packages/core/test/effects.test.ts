@@ -234,3 +234,110 @@ describe("camera effects fail closed", () => {
     );
   });
 });
+
+describe("effects a service must offer", () => {
+  const CLOUD = "livekit-cloud";
+  const group = { exclusiveGroup: "noise-suppression" };
+  // Not spread: `instances` is a getter.
+  const krispOf = () => {
+    const fake = createFakeAudioEffect("krisp", group);
+    return {
+      definition: { ...fake.definition, requires: [CLOUD] },
+      get instances() {
+        return fake.instances;
+      },
+    };
+  };
+
+  it("is unavailable until the service reports what it requires", async () => {
+    const table = createTable({}, { features: [CLOUD] });
+    const krisp = krispOf();
+
+    const p1 = table.join("p1", { av: ALWAYS, effects: [krisp.definition] });
+
+    expect(p1.api.state.get().local.effects.krisp?.status).toBe("unavailable");
+    table.join("gm", { secret: true });
+    await table.settle();
+    expect(p1.api.state.get().local.effects.krisp?.status).toBe("off");
+  });
+
+  it("stays unavailable on a service that doesn't offer it", async () => {
+    const table = createTable();
+    table.join("gm", { secret: true });
+    const krisp = krispOf();
+    const p1 = table.join("p1", { av: ALWAYS, effects: [krisp.definition] });
+    await table.settle();
+
+    await p1.api.commands.setEffectEnabled("krisp", true);
+    await table.settle();
+
+    expect(p1.api.state.get().local.effects.krisp?.status).toBe("unavailable");
+    expect(krisp.instances).toHaveLength(0);
+  });
+
+  it("starts a saved choice once the service offers it, replacing its group", async () => {
+    // Arrange: RNNoise runs, Krisp is chosen before the call.
+    const table = createTable({}, { features: [CLOUD] });
+    const rnnoise = createFakeAudioEffect("rnnoise", group);
+    const krisp = krispOf();
+    const p1 = table.join("p1", {
+      av: ALWAYS,
+      effects: [rnnoise.definition, krisp.definition],
+    });
+    await table.settle();
+    await p1.api.commands.setEffectEnabled("rnnoise", true);
+    await table.settle();
+    await p1.api.commands.setEffectEnabled("krisp", true);
+    await table.settle();
+    expect(p1.api.state.get().local.effects.rnnoise?.status).toBe("running");
+    await vi.advanceTimersByTimeAsync(5000);
+
+    // Act: a GM logs in, so p1 joins.
+    table.join("gm", { secret: true });
+    await table.settle();
+
+    // Assert
+    expect(p1.api.state.get().local.effects).toMatchObject({
+      rnnoise: { status: "off" },
+      krisp: { status: "running" },
+    });
+    expect(savedEffects(p1)).toEqual(["krisp"]);
+  });
+
+  it("keeps running while the call reconnects, without a restart", async () => {
+    const table = createTable({}, { features: [CLOUD] });
+    table.join("gm", { secret: true });
+    const krisp = krispOf();
+    const p1 = table.join("p1", { av: ALWAYS, effects: [krisp.definition] });
+    await table.settle();
+    await p1.api.commands.setEffectEnabled("krisp", true);
+    await table.settle();
+
+    table.hub.loseConnection("p1");
+    await table.settle();
+    expect(p1.api.state.get().local.effects.krisp?.status).toBe("running");
+    await vi.advanceTimersByTimeAsync(1000);
+    await table.settle();
+
+    expect(p1.api.state.get().session.status).toBe("connected");
+    expect(p1.api.state.get().local.effects.krisp?.status).toBe("running");
+    expect(krisp.instances).toHaveLength(1);
+  });
+
+  it("stops once the player left the call, and keeps the choice", async () => {
+    const table = createTable({}, { features: [CLOUD] });
+    table.join("gm", { secret: true });
+    const krisp = krispOf();
+    const p1 = table.join("p1", { av: ALWAYS, effects: [krisp.definition] });
+    await table.settle();
+    await p1.api.commands.setEffectEnabled("krisp", true);
+    await table.settle();
+
+    await p1.api.commands.leave();
+    await table.settle();
+
+    expect(p1.api.state.get().local.effects.krisp?.status).toBe("unavailable");
+    expect(krisp.instances[0]?.disposed).toBe(true);
+    expect(savedEffects(p1)).toEqual(["krisp"]);
+  });
+});

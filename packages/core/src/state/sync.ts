@@ -27,23 +27,24 @@ export interface StateSyncDeps {
   readonly outbound: () => MediaPermissions;
   readonly effects: Registry<EffectDefinition>;
   readonly isSupported: (definition: EffectDefinition) => boolean;
+  readonly isAvailable: (definition: EffectDefinition) => boolean;
 }
 
 const OFF: EffectState = { status: "off", error: null };
 const UNSUPPORTED: EffectState = { status: "unsupported", error: null };
+const UNAVAILABLE: EffectState = { status: "unavailable", error: null };
+
+function effectState(deps: StateSyncDeps, d: EffectDefinition): EffectState {
+  if (!deps.isSupported(d)) return UNSUPPORTED;
+  if (!deps.isAvailable(d)) return UNAVAILABLE;
+  return deps.local.effectStatus(d.id) ?? OFF;
+}
 
 function effectStates(
   deps: StateSyncDeps,
 ): Readonly<Record<string, EffectState>> {
   return Object.fromEntries(
-    deps.effects
-      .list()
-      .map((d) => [
-        d.id,
-        deps.isSupported(d)
-          ? (deps.local.effectStatus(d.id) ?? OFF)
-          : UNSUPPORTED,
-      ]),
+    deps.effects.list().map((d) => [d.id, effectState(deps, d)]),
   );
 }
 

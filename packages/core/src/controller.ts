@@ -183,6 +183,7 @@ function buildParts(deps: ControllerDeps): Parts {
   });
   choices = createEffectChoices({
     ...{ game, env, effects: deps.effects, local },
+    features: () => rt.features,
     onError: deps.onError,
   });
   const remote = createRemoteMedia(
@@ -205,6 +206,7 @@ function buildParts(deps: ControllerDeps): Parts {
     ...{ store: deps.store, game, facts, rt, local, remote },
     ...{ service, outbound, effects: deps.effects },
     isSupported: choices.isSupported,
+    isAvailable: choices.isAvailable,
   });
   remote.onChange(refreshState);
   const devices = createDeviceSync(deps, { facts, rt, local }, refreshState);
@@ -215,6 +217,9 @@ function buildParts(deps: ControllerDeps): Parts {
     refreshState: () => {
       refreshState();
       devices.sync();
+    },
+    onFeatures: () => {
+      choices.apply();
     },
   });
   // Created after `apply`, which it calls.

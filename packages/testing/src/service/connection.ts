@@ -21,8 +21,6 @@ const PARTICIPANT_STATS = {
   jitterMs: 5,
 } as const;
 
-const noop = (): void => undefined;
-
 /** Read through a call: the signal can change while a connect awaits. */
 const isAborted = (signal: AbortSignal): boolean => signal.aborted;
 
@@ -42,10 +40,17 @@ export function createMockConnection(
   const events = createEmitter<ServiceEvents>((error) => {
     hub.recordError(error);
   });
-  const capabilities: ServiceCapabilities = {
+  const base: ServiceCapabilities = {
     moderation: hub.moderation,
     speakingDetection: true,
     simulcast: false,
+  };
+  // Like a server's edition, the features are known once joined.
+  let capabilities = base;
+  let capabilityListeners: readonly ((c: ServiceCapabilities) => void)[] = [];
+  const reportFeatures = (): void => {
+    capabilities = { ...base, features: hub.features };
+    for (const listener of capabilityListeners) listener(capabilities);
   };
   let state: ServiceConnectionState = "idle";
   let member: Member | undefined;
@@ -95,7 +100,17 @@ export function createMockConnection(
   });
 
   return {
-    capabilities: { get: () => capabilities, subscribe: () => noop },
+    capabilities: {
+      get: () => capabilities,
+      subscribe(listener) {
+        capabilityListeners = [...capabilityListeners, listener];
+        return () => {
+          capabilityListeners = capabilityListeners.filter(
+            (l) => l !== listener,
+          );
+        };
+      },
+    },
 
     async connect(room, token, signal) {
       if (member) throw new Error("The mock service is already connected");
@@ -122,6 +137,7 @@ export function createMockConnection(
       canPublish = claims.canPublish;
       member = createMember(room.name);
       hub.join(member);
+      reportFeatures();
       setState("connected");
     },
 

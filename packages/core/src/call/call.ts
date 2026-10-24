@@ -1,6 +1,7 @@
 import type {
   MediaPermissions,
   ParticipantId,
+  ServiceCapabilities,
   ServiceConnection,
   ServiceDefinition,
   TokenRequest,
@@ -34,6 +35,8 @@ export interface CallDeps {
   readonly service: () => ServiceDefinition | undefined;
   readonly outbound: () => MediaPermissions;
   readonly refreshState: () => void;
+  /** `rt.features` changed. */
+  readonly onFeatures: () => void;
   readonly renderDock: () => void;
   readonly onError: (error: unknown) => void;
   readonly now: () => number;
@@ -85,19 +88,35 @@ function createRelay(
   });
 }
 
+/** Replaces `rt.features`, telling the call's owner when they changed. */
+function setFeatures(deps: CallDeps, features: readonly string[]): void {
+  const { rt } = deps;
+  const same =
+    features.length === rt.features.size &&
+    features.every((f) => rt.features.has(f));
+  if (same) return;
+  rt.features = new Set(features);
+  deps.onFeatures();
+}
+
 /** Keeps the runtime in step with the live connection, or its absence. */
 function connectionTracker(
   deps: CallDeps,
 ): (connection: ServiceConnection | null) => void {
   const { rt, remote } = deps;
   let unsubscribe = (): void => undefined;
+  const take = (capabilities: ServiceCapabilities | null): void => {
+    rt.capabilities = capabilities;
+    // Kept until a connection knows its own: the call may be reconnecting.
+    if (capabilities?.features) setFeatures(deps, capabilities.features);
+  };
   return (connection) => {
     unsubscribe();
     rt.connection = connection;
-    rt.capabilities = connection?.capabilities.get() ?? null;
+    take(connection?.capabilities.get() ?? null);
     unsubscribe =
       connection?.capabilities.subscribe((capabilities) => {
-        rt.capabilities = capabilities;
+        take(capabilities);
         deps.refreshState();
       }) ?? (() => undefined);
     if (!connection) {
@@ -132,6 +151,9 @@ export function createCall(deps: CallDeps): Session {
     },
     onState: (state) => {
       rt.session = state;
+      // Out of the call: nothing is offered until the next one says so.
+      if (state.status === "left" || state.status === "idle")
+        setFeatures(deps, []);
       deps.refreshState();
     },
     onConnection: connectionTracker(deps),

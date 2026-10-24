@@ -17,6 +17,13 @@ export interface ServiceCapabilities {
   readonly moderation: boolean;
   readonly speakingDetection: boolean;
   readonly simulcast: boolean;
+  /**
+   * What else this connection offers, named by the service and prefixed
+   * with its id, e.g. "livekit-cloud". Effects that need one name it in
+   * `requires`. Undefined until known (e.g. before joining): the core
+   * keeps what the last connection reported.
+   */
+  readonly features?: readonly string[];
 }
 
 export type ServiceConnectionState =

@@ -38,6 +38,13 @@ interface EffectDefinitionBase {
    */
   readonly exclusiveGroup?: string;
   readonly cost: EffectCost;
+  /**
+   * Features the call's service must report (`ServiceCapabilities.features`).
+   * Until it has, the effect is "unavailable": UIs don't offer it, and a
+   * saved choice waits for it. Kept while the call reconnects.
+   */
+  readonly requires?: readonly string[];
+  /** Whether this browser can run it. */
   isSupported(): boolean;
 }
 

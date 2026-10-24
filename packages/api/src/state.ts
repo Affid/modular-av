@@ -99,9 +99,13 @@ export interface InputSensitivity {
   readonly threshold: number;
 }
 
-/** Where an effect stands on this client. */
+/**
+ * Where an effect stands on this client. `unsupported`: this browser can't
+ * run it. `unavailable`: the call's service doesn't offer what it
+ * `requires` (e.g. Krisp off LiveKit Cloud); UIs don't offer it.
+ */
 export type EffectStatus =
-  "off" | "starting" | "running" | "failed" | "unsupported";
+  "off" | "starting" | "running" | "failed" | "unsupported" | "unavailable";
 
 export interface EffectState {
   readonly status: EffectStatus;

@@ -379,6 +379,44 @@ describe("mock service", () => {
   });
 });
 
+describe("mock service features", () => {
+  it("reports its features once joined, telling subscribers", async () => {
+    // Arrange
+    const hub = createMockServiceHub({ features: ["livekit-cloud"] });
+    const connection = await hub.definition().create({ participant: "p1" });
+    const seen = vi.fn();
+    connection.capabilities.subscribe(seen);
+    const before = connection.capabilities.get().features;
+
+    // Act
+    await connection.connect(
+      ROOM,
+      hub.signToken({
+        participant: "p1",
+        room: ROOM.name,
+        canPublish: { audio: true, video: true },
+        ttlSeconds: 60,
+      }),
+      new AbortController().signal,
+    );
+
+    // Assert
+    expect(before).toBeUndefined();
+    expect(connection.capabilities.get().features).toEqual(["livekit-cloud"]);
+    expect(seen).toHaveBeenCalledWith(
+      expect.objectContaining({ features: ["livekit-cloud"] }),
+    );
+  });
+
+  it("reports no features by default, once joined", async () => {
+    const hub = createMockServiceHub();
+
+    const connection = await join(hub, "p1");
+
+    expect(connection.capabilities.get().features).toEqual([]);
+  });
+});
+
 describe("mock service edge cases", () => {
   it("stops a connect aborted during the network wait", async () => {
     // Arrange

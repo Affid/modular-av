@@ -26,6 +26,11 @@ export interface Runtime {
   session: SessionState;
   connection: ServiceConnection | null;
   capabilities: ServiceCapabilities | null;
+  /**
+   * What the service last reported it offers: kept while the call
+   * reconnects, so effects that need it don't restart each time.
+   */
+  features: ReadonlySet<string>;
   connected: ReadonlySet<ParticipantId>;
   speaking: ReadonlyMap<ParticipantId, boolean>;
   quality: ReadonlyMap<ParticipantId, ConnectionQuality>;
@@ -57,6 +62,7 @@ export function createRuntime(deafened: boolean): Runtime {
     session: IDLE_SESSION,
     connection: null,
     capabilities: null,
+    features: new Set(),
     connected: new Set(),
     speaking: new Map(),
     quality: new Map(),

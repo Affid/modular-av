@@ -13,6 +13,8 @@ export interface EffectChoicesDeps {
   readonly env: Pick<MediaEnv, "canWatchFrames">;
   readonly effects: Registry<EffectDefinition>;
   readonly local: LocalMedia;
+  /** What the call's service offers (see `EffectDefinition.requires`). */
+  readonly features: () => ReadonlySet<string>;
   readonly onError: (error: unknown) => void;
 }
 
@@ -23,6 +25,8 @@ export interface EffectChoices {
   /** Replaced by another of their group: no longer wanted. */
   replaced(ids: readonly string[]): void;
   readonly isSupported: (definition: EffectDefinition) => boolean;
+  /** The call's service offers what it requires. */
+  readonly isAvailable: (definition: EffectDefinition) => boolean;
 }
 
 /** Video effects also need the frame watchdog, or they can't fail closed. */
@@ -36,6 +40,13 @@ export function isEffectSupported(
   } catch {
     return false;
   }
+}
+
+export function isEffectAvailable(
+  definition: EffectDefinition,
+  features: ReadonlySet<string>,
+): boolean {
+  return (definition.requires ?? []).every((f) => features.has(f));
 }
 
 /** Video effects form one group: one runs at a time. */
@@ -54,8 +65,12 @@ export function createEffectChoices(deps: EffectChoicesDeps): EffectChoices {
     );
   };
 
+  const isAvailable = (definition: EffectDefinition): boolean =>
+    isEffectAvailable(definition, deps.features());
+
+  /** A saved choice that is unavailable waits: it isn't handed over. */
   const apply = (ids: readonly string[] = saved()): void => {
-    local.setEffects(effects.list(), new Set(ids));
+    local.setEffects(effects.list().filter(isAvailable), new Set(ids));
   };
 
   const save = (ids: readonly string[]): Promise<void> => {
@@ -106,5 +121,6 @@ export function createEffectChoices(deps: EffectChoicesDeps): EffectChoices {
       save(saved().filter((id) => !ids.includes(id))).catch(deps.onError);
     },
     isSupported: (definition) => isEffectSupported(definition, deps.env),
+    isAvailable,
   };
 }

@@ -20,6 +20,8 @@ export interface MockServiceOptions {
   readonly moderation?: boolean;
   /** False: joins with no token and full rights, like a P2P service. */
   readonly needsToken?: boolean;
+  /** Reported in the capabilities once connected, e.g. "livekit-cloud". */
+  readonly features?: readonly string[];
 }
 
 /**
@@ -96,6 +98,7 @@ export function createMockServiceHub(
   const hub: Hub = {
     now,
     moderation: options.moderation ?? false,
+    features: options.features ?? [],
     needsToken: options.needsToken ?? true,
     participants: (room) => membersOf(room).map((m) => m.participant),
     join(member) {

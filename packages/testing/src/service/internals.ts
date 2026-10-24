@@ -35,6 +35,7 @@ export interface Member {
 export interface Hub {
   readonly now: () => number;
   readonly moderation: boolean;
+  readonly features: readonly string[];
   readonly needsToken: boolean;
   join(member: Member): void;
   leave(member: Member): void;
