@@ -21,5 +21,6 @@ export const INITIAL_STATE: AVState = {
     inputSensitivity: { auto: true, threshold: -50 },
     cameraHold: null,
   },
+  devices: { audioInput: [], videoInput: [], audioOutput: [] },
   service: { id: null, capabilities: null },
 };

@@ -1,3 +1,4 @@
+import type { DeviceList } from "@modular-av/api";
 import { createFakeTrack } from "../service/fake-track.ts";
 import {
   createFakeCaptureContext,
@@ -30,7 +31,15 @@ export interface FakeMediaEnvOptions {
   readonly deny?: { readonly audio?: string; readonly video?: string };
   /** Whether frames can be watched (MediaStreamTrackProcessor); default true. */
   readonly watchFrames?: boolean;
+  /** What `listDevices` reports; one default device of each kind if absent. */
+  readonly devices?: DeviceList;
 }
+
+export const FAKE_DEVICES: DeviceList = {
+  audioInput: [{ id: "default", label: "Fake microphone" }],
+  videoInput: [{ id: "default", label: "Fake camera" }],
+  audioOutput: [{ id: "default", label: "Fake speakers" }],
+};
 
 export interface FakeMediaEnv {
   captureAudio(deviceId: string): Promise<MediaStreamTrack>;
@@ -42,6 +51,8 @@ export interface FakeMediaEnv {
   onOnline(listener: () => void): () => void;
   createCaptureContext(): Promise<FakeCaptureContext>;
   canWatchFrames(): boolean;
+  listDevices(): Promise<DeviceList>;
+  onDeviceChange(listener: () => void): () => void;
   watchFrames(track: MediaStreamTrack, onFrame: () => void): () => void;
 
   /** Every capture context created, in order. */
@@ -58,6 +69,8 @@ export interface FakeMediaEnv {
   /** Plays a frame arriving on a watched track. */
   frame(track: MediaStreamTrack | undefined): void;
   watching(track: MediaStreamTrack | undefined): boolean;
+  /** Plays devices being plugged in or out: the list, then `devicechange`. */
+  setDevices(devices: DeviceList): void;
 }
 
 let nextStream = 1;
@@ -113,6 +126,8 @@ export function createFakeMediaEnv(
   let removalWatchers = new Map<HTMLVideoElement, readonly (() => void)[]>();
   let onlineListeners: readonly (() => void)[] = [];
   let captureContexts: readonly FakeCaptureContext[] = [];
+  let devices = options.devices ?? FAKE_DEVICES;
+  let deviceListeners: readonly (() => void)[] = [];
   let frameWatchers: readonly {
     readonly track: MediaStreamTrack;
     readonly onFrame: () => void;
@@ -167,6 +182,17 @@ export function createFakeMediaEnv(
       return captureContexts;
     },
     canWatchFrames: () => options.watchFrames ?? true,
+    listDevices: () => Promise.resolve(devices),
+    onDeviceChange(listener) {
+      deviceListeners = [...deviceListeners, listener];
+      return () => {
+        deviceListeners = deviceListeners.filter((l) => l !== listener);
+      };
+    },
+    setDevices(next) {
+      devices = next;
+      for (const listener of deviceListeners) listener();
+    },
     watchFrames(track, onFrame) {
       const watcher = { track, onFrame };
       frameWatchers = [...frameWatchers, watcher];

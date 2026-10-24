@@ -1,4 +1,8 @@
-import type { InputSensitivity, MediaPermissions } from "./state.ts";
+import type {
+  DeviceKind,
+  InputSensitivity,
+  MediaPermissions,
+} from "./state.ts";
 import type { ParticipantId } from "./service.ts";
 
 export type CommandErrorCode =
@@ -40,6 +44,8 @@ export interface AVCommands {
   setEffectEnabled(effect: string, enabled: boolean): Promise<void>;
   /** For this device; what isn't given stays. */
   setInputSensitivity(sensitivity: Partial<InputSensitivity>): Promise<void>;
+  /** Saved in Foundry's A/V settings; "default" for the system default. */
+  setDevice(kind: DeviceKind, deviceId: string): Promise<void>;
   /** GM only: Foundry's `BROADCAST_AUDIO` / `BROADCAST_VIDEO`. */
   setBroadcastPermissions(
     participant: ParticipantId,

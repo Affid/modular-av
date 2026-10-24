@@ -37,6 +37,9 @@ export type { Channel } from "./socket.ts";
 export type {
   AVState,
   CameraHold,
+  DeviceInfo,
+  DeviceKind,
+  DeviceList,
   EffectState,
   EffectStatus,
   InputSensitivity,

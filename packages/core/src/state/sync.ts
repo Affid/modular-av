@@ -90,6 +90,7 @@ export function createStateSync(deps: StateSyncDeps): () => void {
             capabilities: rt.capabilities,
           },
           local: localState(deps),
+          devices: rt.devices,
           connected: rt.connected,
           speaking: rt.speaking,
           hasMedia: (id, kind) => remote.has(id, kind),

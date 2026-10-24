@@ -127,15 +127,31 @@ interface DeviceSync {
 }
 
 function createDeviceSync(
-  facts: AVFacts,
-  rt: Runtime,
-  local: LocalMedia,
-  onError: (error: unknown) => void,
+  deps: Pick<ControllerDeps, "env" | "onError">,
+  parts: { facts: AVFacts; rt: Runtime; local: LocalMedia },
+  refreshState: () => void,
 ): DeviceSync {
+  const { facts, rt, local } = parts;
+  const { onError } = deps;
   let requested: DeviceChoice | null = null;
-  const acquire = (): Promise<void> => {
+  /** Labels appear once a device of that kind was granted: list again. */
+  const listDevices = (): void => {
+    deps.env
+      .listDevices()
+      .then((devices) => {
+        rt.devices = devices;
+        refreshState();
+      })
+      .catch(onError);
+  };
+  deps.env.onDeviceChange(listDevices);
+  const acquire = async (): Promise<void> => {
     requested = wantedDevices(facts, rt.session.status);
-    return local.acquire(requested);
+    try {
+      await local.acquire(requested);
+    } finally {
+      listDevices();
+    }
   };
   return {
     acquire,
@@ -188,7 +204,7 @@ function buildParts(deps: ControllerDeps): Parts {
     isSupported: choices.isSupported,
   });
   remote.onChange(refreshState);
-  const devices = createDeviceSync(facts, rt, local, deps.onError);
+  const devices = createDeviceSync(deps, { facts, rt, local }, refreshState);
   const session = createCall({
     ...deps,
     ...{ facts, rt, local, remote, service, outbound },

@@ -1,4 +1,5 @@
 import type {
+  DeviceList,
   MediaPermissions,
   ParticipantId,
   ServiceCapabilities,
@@ -28,7 +29,14 @@ export interface Runtime {
   speaking: ReadonlyMap<ParticipantId, boolean>;
   /** The local player's rights when last applied: a change needs a new token. */
   rights: MediaPermissions | null;
+  devices: DeviceList;
 }
+
+export const NO_DEVICES: DeviceList = {
+  audioInput: [],
+  videoInput: [],
+  audioOutput: [],
+};
 
 export const IDLE_SESSION: SessionState = {
   status: "idle",
@@ -50,5 +58,6 @@ export function createRuntime(deafened: boolean): Runtime {
     connected: new Set(),
     speaking: new Map(),
     rights: null,
+    devices: NO_DEVICES,
   };
 }

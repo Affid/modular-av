@@ -1,5 +1,6 @@
 import type {
   AVState,
+  DeviceList,
   LocalState,
   ParticipantId,
   ParticipantState,
@@ -16,6 +17,7 @@ export interface ProjectionInput {
   readonly session: SessionState;
   readonly service: ServiceState;
   readonly local: LocalState;
+  readonly devices: DeviceList;
   /** Present in the call, as the service reports. */
   readonly connected: ReadonlySet<ParticipantId>;
   /** From the service, used when it detects speaking. */
@@ -101,6 +103,7 @@ export function project(
     session: keep(previous?.session, input.session),
     participants: keep(previous?.participants, participants),
     local: keep(previous?.local, input.local),
+    devices: keep(previous?.devices, input.devices),
     service: keep(previous?.service, input.service),
   };
   return previous && sameData(previous, next) ? previous : next;

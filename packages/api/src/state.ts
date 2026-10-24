@@ -127,6 +127,17 @@ export interface LocalState {
   readonly cameraHold: CameraHold | null;
 }
 
+export interface DeviceInfo {
+  readonly id: string;
+  /** Empty until the browser granted access to a device of that kind. */
+  readonly label: string;
+}
+
+export type DeviceKind = "audioInput" | "videoInput" | "audioOutput";
+
+/** The browser's devices, refreshed when they change. */
+export type DeviceList = Readonly<Record<DeviceKind, readonly DeviceInfo[]>>;
+
 export interface ServiceState {
   readonly id: string | null;
   readonly capabilities: ServiceCapabilities | null;
@@ -136,5 +147,6 @@ export interface AVState {
   readonly session: SessionState;
   readonly participants: Readonly<Record<ParticipantId, ParticipantState>>;
   readonly local: LocalState;
+  readonly devices: DeviceList;
   readonly service: ServiceState;
 }

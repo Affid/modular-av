@@ -121,4 +121,26 @@ describe("fake media environment", () => {
       false,
     );
   });
+
+  it("lists devices and tells about changes until unsubscribed", async () => {
+    const env = createFakeMediaEnv();
+    const changes = vi.fn();
+    const off = env.onDeviceChange(changes);
+    const usb = {
+      audioInput: [{ id: "usb", label: "USB microphone" }],
+      videoInput: [],
+      audioOutput: [],
+    };
+
+    const before = await env.listDevices();
+    env.setDevices(usb);
+    off();
+    env.setDevices(usb);
+
+    expect(before.audioInput).toEqual([
+      { id: "default", label: "Fake microphone" },
+    ]);
+    expect(await env.listDevices()).toBe(usb);
+    expect(changes).toHaveBeenCalledTimes(1);
+  });
 });

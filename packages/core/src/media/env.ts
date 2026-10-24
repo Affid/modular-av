@@ -3,6 +3,8 @@
  * this, so the session and media logic run in unit tests without a browser.
  * `browser-env.ts` is the real one; @modular-av/testing has a fake.
  */
+import type { DeviceList } from "@modular-av/api";
+
 export interface MediaEnv {
   /** Rejects as `getUserMedia` does (NotAllowedError, NotFoundError…). */
   captureAudio(deviceId: string): Promise<MediaStreamTrack>;
@@ -15,6 +17,10 @@ export interface MediaEnv {
   watchRemoval(element: HTMLVideoElement, onRemoved: () => void): () => void;
   /** The browser's `online` event. */
   onOnline(listener: () => void): () => void;
+  /** Devices with an id; labels once access was granted. */
+  listDevices(): Promise<DeviceList>;
+  /** The browser's `devicechange` event. */
+  onDeviceChange(listener: () => void): () => void;
   /** The one capture context; call once and keep it. Loads its code lazily. */
   createCaptureContext(): Promise<CaptureContext>;
   /** Whether `watchFrames` works here (MediaStreamTrackProcessor). */

@@ -59,6 +59,7 @@ export type { MockServiceHub, MockServiceOptions } from "./service/hub.ts";
 export {
   createFakeMediaEnv,
   createFakeVideoElement,
+  FAKE_DEVICES,
 } from "./media/fake-media-env.ts";
 export type {
   FakeAudioOutput,

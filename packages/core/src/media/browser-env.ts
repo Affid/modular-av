@@ -1,3 +1,4 @@
+import type { DeviceKind, DeviceList } from "@modular-av/api";
 import { canWatchFrames, watchFrames } from "./browser-frames.ts";
 import type { AudioOutput, MediaEnv } from "./env.ts";
 
@@ -83,6 +84,26 @@ function createRemovalWatcher(): MediaEnv["watchRemoval"] {
   };
 }
 
+const DEVICE_KINDS: Readonly<Record<MediaDeviceKind, DeviceKind>> = {
+  audioinput: "audioInput",
+  videoinput: "videoInput",
+  audiooutput: "audioOutput",
+};
+
+/** Before any access is granted, browsers list devices without ids. */
+async function listDevices(): Promise<DeviceList> {
+  const found = await navigator.mediaDevices.enumerateDevices();
+  const of = (kind: DeviceKind) =>
+    found
+      .filter((d) => d.deviceId !== "" && DEVICE_KINDS[d.kind] === kind)
+      .map((d) => ({ id: d.deviceId, label: d.label }));
+  return {
+    audioInput: of("audioInput"),
+    videoInput: of("videoInput"),
+    audioOutput: of("audioOutput"),
+  };
+}
+
 /** `assetUrl` resolves a file of the core's `public/` directory. */
 export function createBrowserMediaEnv(
   assetUrl: (path: string) => string,
@@ -105,6 +126,13 @@ export function createBrowserMediaEnv(
     },
     canWatchFrames,
     watchFrames,
+    listDevices,
+    onDeviceChange(listener) {
+      navigator.mediaDevices.addEventListener("devicechange", listener);
+      return () => {
+        navigator.mediaDevices.removeEventListener("devicechange", listener);
+      };
+    },
     // Only needed once a microphone is captured: kept out of the entry.
     async createCaptureContext() {
       const { createBrowserCaptureContext } =

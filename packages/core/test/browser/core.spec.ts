@@ -1,5 +1,8 @@
 import type {} from "@modular-av/testing/harness";
+import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
+
+const ENV_MODULE = `/@fs${join(import.meta.dirname, "..", "..", "src", "media", "browser-env.ts")}`;
 
 async function openHarness(page: Page): Promise<void> {
   const errors: string[] = [];
@@ -57,4 +60,38 @@ test("fake devices give live microphone and camera tracks", async ({
     { kind: "audio", state: "live" },
     { kind: "video", state: "live" },
   ]);
+});
+
+test("the browser environment lists the fake devices with ids", async ({
+  page,
+}) => {
+  await openHarness(page);
+
+  const devices = await page.evaluate(async (modulePath) => {
+    const { createBrowserMediaEnv } = (await import(modulePath)) as {
+      createBrowserMediaEnv: (assetUrl: (p: string) => string) => {
+        listDevices(): Promise<Record<string, { id: string }[]>>;
+      };
+    };
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: true,
+      video: true,
+    });
+    const list = await createBrowserMediaEnv((p) => p).listDevices();
+    stream.getTracks().forEach((t) => {
+      t.stop();
+    });
+    return Object.fromEntries(
+      Object.entries(list).map(([kind, found]) => [
+        kind,
+        found.length > 0 && found.every((d) => d.id !== ""),
+      ]),
+    );
+  }, ENV_MODULE);
+
+  expect(devices).toEqual({
+    audioInput: true,
+    videoInput: true,
+    audioOutput: true,
+  });
 });

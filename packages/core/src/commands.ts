@@ -1,5 +1,6 @@
 import type {
   AVCommands,
+  DeviceKind,
   InputSensitivity,
   MediaPermissions,
 } from "@modular-av/api";
@@ -22,6 +23,16 @@ const PERMISSION_KEYS = {
   audio: "permissions.BROADCAST_AUDIO",
   video: "permissions.BROADCAST_VIDEO",
 } as const satisfies Record<keyof MediaPermissions, string>;
+
+/** Where Foundry's A/V settings keep each device choice. */
+const DEVICE_KEYS = {
+  audioInput: "audioSrc",
+  videoInput: "videoSrc",
+  audioOutput: "audioSink",
+} as const satisfies Record<DeviceKind, string>;
+
+const isDeviceKind = (kind: unknown): kind is DeviceKind =>
+  typeof kind === "string" && Object.hasOwn(DEVICE_KEYS, kind);
 
 /** Commands return promises: a failed check rejects, never throws. */
 const attempt = (run: () => void): Promise<void> => {
@@ -83,6 +94,19 @@ export function createCommands(
 
     setEffectEnabled: (effect: string, enabled: boolean) =>
       controller().setEffectEnabled(effect, enabled),
+
+    async setDevice(kind: DeviceKind, deviceId: string) {
+      if (!isDeviceKind(kind))
+        throw new AVCommandError("invalid-argument", "No such kind of device", {
+          kind: String(kind),
+        });
+      if (typeof deviceId !== "string" || deviceId === "")
+        throw new AVCommandError("invalid-argument", "A device id is needed");
+      const c = controller();
+      avSettings(c).set("client", DEVICE_KEYS[kind], deviceId);
+      if (kind === "audioOutput") c.apply();
+      else await c.reacquire();
+    },
 
     async setInputSensitivity(sensitivity: Partial<InputSensitivity>) {
       await writeSensitivity(game, sensitivity);
