@@ -9,6 +9,7 @@
     ".": "./src/index.ts",
     "./harness": "./src/harness/types.ts",
     "./harness/service": "./src/harness/service-types.ts",
+    "./harness/relay": "./src/harness/relay-channel.ts",
     "./contract": "./src/contract/service-contract.ts"
   },
   "scripts": {

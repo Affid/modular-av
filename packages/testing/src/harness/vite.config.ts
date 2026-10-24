@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, normalize, sep } from "node:path";
 import { defineConfig, type Plugin } from "vite";
+import { signalRelay } from "./signal-relay.ts";
 
 export const HARNESS_PORT = 5174;
 
@@ -61,5 +62,5 @@ export default defineConfig({
     fs: { allow: [join(import.meta.dirname, "..", "..", "..", "..")] },
   },
   build: { target: "es2023" },
-  plugins: [moduleFiles()],
+  plugins: [moduleFiles(), signalRelay()],
 });

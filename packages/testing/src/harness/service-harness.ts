@@ -155,6 +155,12 @@ function createHarness(definition: ServiceDefinition): ServiceHarness {
       const entry = local.get(source);
       if (entry) await live().unpublish(entry.published);
     },
+    async republish(source) {
+      const entry = local.get(source);
+      if (!entry) return;
+      const published = await live().publish(entry.track, source);
+      local = new Map(local).set(source, { track: entry.track, published });
+    },
     setSubscription(participant, source, enabled) {
       live().setSubscription(participant, source, { enabled });
     },

@@ -73,6 +73,8 @@ export interface ServiceHarness {
   /** As the core mutes: on its own track. */
   setEnabled(source: TrackSource, enabled: boolean): void;
   unpublish(source: TrackSource): Promise<void>;
+  /** Publishes the same local track again, as the core does after a hold. */
+  republish(source: TrackSource): Promise<void>;
   setSubscription(
     participant: string,
     source: TrackSource,

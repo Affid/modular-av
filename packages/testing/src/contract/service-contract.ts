@@ -25,6 +25,11 @@ export interface ServiceContractOptions {
   /** Passed to it through an exposed function: keys, secrets. */
   readonly secrets: Readonly<Record<string, string>>;
   /**
+   * "none" for a service that joins without a token (P2P): the token
+   * tests don't apply, since the core enforces rights on the receivers.
+   */
+  readonly auth?: "token" | "none";
+  /**
    * Cuts every client off the server, then restores it (e.g. by pausing
    * its container): the browser's offline mode keeps open localhost sockets.
    */
@@ -45,6 +50,8 @@ export interface Peer {
   run<T>(fn: (h: ServiceHarness) => T | Promise<T>): Promise<T>;
   join(options?: Partial<JoinOptions>): Promise<JoinResult>;
   events(): Promise<RecordedEvent[]>;
+  /** Peak level of a participant's microphone here, over 1.5 s. */
+  level(participant: string): Promise<number>;
 }
 
 async function openPeer(
@@ -58,8 +65,10 @@ async function openPeer(
   });
   const page = await context.newPage();
   await page.exposeFunction("serviceSecrets", () => ({ ...options.secrets }));
+  // The room, so a service that signals between pages keeps tests apart.
   const query = new URLSearchParams({
     service: options.service,
+    room,
     ...options.params,
   });
   await page.goto(`/service.html?${query.toString()}`);
@@ -95,24 +104,37 @@ async function openPeer(
         },
       ),
     events: () => run((h) => h.events()),
+    level: (participant) =>
+      page.evaluate((p) => {
+        const h = window.serviceHarness;
+        if (!h) throw new Error("No service harness");
+        return h.audioLevel(p, 1500);
+      }, participant),
   };
+}
+
+/** One browser context per player, all in a fresh room. */
+export function openPeers(
+  browser: Browser,
+  options: ServiceContractOptions,
+  ...ids: string[]
+): Promise<Peer[]> {
+  const room = `contract-${crypto.randomUUID()}`;
+  return Promise.all(ids.map((id) => openPeer(browser, options, id, room)));
 }
 
 const states = (events: readonly RecordedEvent[]): string[] =>
   events.flatMap((e) => (e.type === "state" ? [e.state] : []));
 
 export function serviceContract(options: ServiceContractOptions): void {
-  const peers = async (browser: Browser, ...ids: string[]): Promise<Peer[]> => {
-    const room = `contract-${crypto.randomUUID()}`;
-    return Promise.all(ids.map((id) => openPeer(browser, options, id, room)));
-  };
+  const tokens = (options.auth ?? "token") === "token";
+  const peers = (browser: Browser, ...ids: string[]): Promise<Peer[]> =>
+    openPeers(browser, options, ...ids);
 
   test.describe(`service contract: ${options.service}`, () => {
     test.describe.configure({ mode: "parallel" });
 
-    test("joins with a relayed token and sees the others", async ({
-      browser,
-    }) => {
+    test("joins and sees the others", async ({ browser }) => {
       const [alice, bob] = await peers(browser, "alice", "bob");
       if (!alice || !bob) throw new Error("no peers");
 
@@ -125,6 +147,33 @@ export function serviceContract(options: ServiceContractOptions): void {
       await expect
         .poll(() => bob.events())
         .toContainEqual({ type: "participantJoined", participant: "alice" });
+    });
+
+    test("three players hear each other; one leaving disturbs nobody", async ({
+      browser,
+    }) => {
+      const [alice, bob, carol] = await peers(browser, "alice", "bob", "carol");
+      if (!alice || !bob || !carol) throw new Error("no peers");
+      for (const peer of [alice, bob, carol]) {
+        expect(await peer.join()).toEqual({ ok: true });
+        await peer.run((h) => h.publish(["microphone"]));
+      }
+
+      for (const [listener, speaker] of [
+        [alice, carol],
+        [carol, bob],
+        [bob, alice],
+      ] as const)
+        await expect
+          .poll(() => listener.level(speaker.id))
+          .toBeGreaterThan(AUDIBLE);
+      await bob.run((h) => h.leave());
+
+      await expect
+        .poll(() => alice.events())
+        .toContainEqual({ type: "participantLeft", participant: "bob" });
+      await expect.poll(() => alice.level("carol")).toBeGreaterThan(AUDIBLE);
+      expect(states(await carol.events()).at(-1)).toBe("connected");
     });
 
     test("carries microphone and camera to the others", async ({ browser }) => {
@@ -225,6 +274,7 @@ export function serviceContract(options: ServiceContractOptions): void {
     test("refuses publishing outside the token's rights", async ({
       browser,
     }) => {
+      test.skip(!tokens, "the service takes no token");
       const [alice, bob] = await peers(browser, "alice", "bob");
       if (!alice || !bob) throw new Error("no peers");
       await alice.join({ canPublish: { audio: true, video: false } });
@@ -265,6 +315,7 @@ export function serviceContract(options: ServiceContractOptions): void {
     test("refuses a forged token for good, an expired one for a retry", async ({
       browser,
     }) => {
+      test.skip(!tokens, "the service takes no token");
       const [alice] = await peers(browser, "alice");
       if (!alice) throw new Error("no peers");
 
