@@ -140,14 +140,25 @@ export const NO_TURN: TurnSetting = {
   password: "",
 };
 
+/** The surfaces of the dock, or Foundry's own dock and settings window. */
+const UIS = {
+  foundry: { cameras: "foundry", settingsWindow: "foundry" },
+  dock: {
+    cameras: "modular-av-dock.cameras",
+    settingsWindow: "modular-av-dock.settings",
+  },
+} as const;
+
 /**
- * Turns A/V on for the world with `service`, and no relay server of the
- * GM's own. Changing the mode or the service takes effect for clients that
- * load afterwards (Foundry asks for a reload).
+ * Turns A/V on for the world with `service`, no relay server of the GM's
+ * own, and `ui` showing the cameras and the settings window. Changing the
+ * mode, the service or the UI takes effect for clients that load
+ * afterwards (Foundry asks for a reload).
  */
 export async function configureWorld(
   browser: Browser,
   service: "livekit" | "p2p" = "livekit",
+  ui: keyof typeof UIS = "foundry",
 ): Promise<void> {
   const gm = await openPlayer(browser, "Gamemaster");
   await gm.run(
@@ -160,8 +171,20 @@ export async function configureWorld(
       });
       await game.settings.set("modular-av-livekit", "serverUrl", config.url);
       await game.settings.set("modular-av", "service", config.service);
+      await game.settings.set("modular-av", "cameras", config.ui.cameras);
+      await game.settings.set(
+        "modular-av",
+        "settingsWindow",
+        config.ui.settingsWindow,
+      );
     },
-    { mode: AUDIO_VIDEO, url: livekitTarget().url, service, turn: NO_TURN },
+    {
+      mode: AUDIO_VIDEO,
+      url: livekitTarget().url,
+      service,
+      turn: NO_TURN,
+      ui: UIS[ui],
+    },
   );
   await gm.close();
 }
