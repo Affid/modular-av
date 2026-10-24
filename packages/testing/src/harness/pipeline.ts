@@ -107,11 +107,13 @@ function passEffect(stall: () => boolean): VideoEffectDefinition {
         const reader = new insertable.MediaStreamTrackProcessor({
           track: input,
         }).readable.getReader();
+        // Read through a call: the signal aborts while a read is pending.
+        const aborted = (): boolean => controller.signal.aborted;
         void (async () => {
-          while (!controller.signal.aborted) {
+          while (!aborted()) {
             const { value, done } = await reader.read();
             if (done) return;
-            if (stall() || controller.signal.aborted) {
+            if (stall() || aborted()) {
               value.close();
               continue;
             }
