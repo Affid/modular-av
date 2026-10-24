@@ -143,4 +143,17 @@ describe("fake media environment", () => {
     expect(await env.listDevices()).toBe(usb);
     expect(changes).toHaveBeenCalledTimes(1);
   });
+
+  it("fails captures of an unplugged device only, until plugged back", async () => {
+    const env = createFakeMediaEnv();
+
+    env.setUnplugged("audio", "usb", true);
+    const unplugged = env.captureAudio("usb");
+    const other = await env.captureAudio("default");
+    env.setUnplugged("audio", "usb", false);
+
+    await expect(unplugged).rejects.toMatchObject({ name: "NotFoundError" });
+    expect(other.kind).toBe("audio");
+    await expect(env.captureAudio("usb")).resolves.toBeDefined();
+  });
 });

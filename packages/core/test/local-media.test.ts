@@ -1,6 +1,8 @@
 import {
   createFakeMediaEnv,
   createFakeTrack,
+  endFakeTrack,
+  FAKE_DEVICES,
   fakeTrackInfo,
 } from "@modular-av/testing";
 import { describe, expect, it, vi } from "vitest";
@@ -256,5 +258,96 @@ describe("local media's voice gate", () => {
     expect(media.gateRunning).toBe(false);
     expect(changed).toHaveBeenCalled();
     expect(errors).toEqual([error]);
+  });
+});
+
+describe("local media when a device goes away", () => {
+  const settle = async (): Promise<void> => {
+    for (let i = 0; i < 5; i += 1)
+      await new Promise((resolve) => setTimeout(resolve, 0));
+  };
+
+  it("captures the same microphone again, keeping the sent track", async () => {
+    // Arrange
+    const { env, media } = setup();
+    await media.acquire(BOTH);
+    const sent = media.microphone;
+    const [raw] = rawMics(env);
+
+    // Act
+    if (raw) endFakeTrack(raw);
+    await settle();
+
+    // Assert
+    expect(env.captures.filter((c) => c === "audio:default")).toHaveLength(2);
+    expect(rawMics(env)).toHaveLength(2);
+    expect(media.microphone).toBe(sent);
+  });
+
+  it("falls back to the default device, then returns to the chosen one when it is back", async () => {
+    const { env, media } = setup();
+    await media.acquire({ audio: "usb", video: "hd" });
+    const [usb] = rawMics(env);
+    const hd = media.camera;
+
+    env.setUnplugged("audio", "usb", true);
+    env.setUnplugged("video", "hd", true);
+    if (usb) endFakeTrack(usb);
+    if (hd) endFakeTrack(hd);
+    await settle();
+    const onDefault = [...env.captures];
+    env.setUnplugged("audio", "usb", false);
+    env.setDevices(FAKE_DEVICES);
+    await settle();
+
+    expect(onDefault).toEqual(
+      expect.arrayContaining(["audio:default", "video:default"]),
+    );
+    expect(media.errors).toEqual({ audio: null, video: null });
+    // The microphone is back; the camera, still unplugged, stays on default.
+    expect(env.captures.slice(-2)).toEqual(["audio:usb", "video:hd"]);
+    expect(rawMics(env)).toHaveLength(3);
+    expect(media.camera).not.toBeNull();
+    // Asking for the same choice changes nothing while on the fallback.
+    const count = env.captures.length;
+    await media.acquire({ audio: "usb", video: "hd" });
+    expect(env.captures).toHaveLength(count);
+  });
+
+  it("starts on the default device when the chosen one is missing", async () => {
+    const { env, media } = setup();
+    env.setUnplugged("audio", "usb", true);
+
+    await media.acquire({ audio: "usb", video: null });
+
+    expect(env.captures).toEqual(["audio:usb", "audio:default"]);
+    expect(media.microphone).not.toBeNull();
+    expect(media.errors.audio).toBeNull();
+  });
+
+  it("reports the device gone when nothing can be captured", async () => {
+    const { env, media } = setup();
+    await media.acquire(BOTH);
+    const camera = media.camera;
+
+    env.setDenied("video", "NotReadableError");
+    if (camera) endFakeTrack(camera);
+    await settle();
+
+    expect(media.camera).toBeNull();
+    expect(media.errors.video).toBe("NotReadableError");
+  });
+
+  it("ignores the end of a track it already replaced", async () => {
+    const { env, media } = setup();
+    await media.acquire(BOTH);
+    const old = media.camera;
+    await media.acquire({ audio: "default", video: "hd" });
+    const count = env.captures.length;
+
+    if (old) endFakeTrack(old);
+    await settle();
+
+    expect(env.captures).toHaveLength(count);
   });
 });

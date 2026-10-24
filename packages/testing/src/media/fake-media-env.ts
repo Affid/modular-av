@@ -66,6 +66,8 @@ export interface FakeMediaEnv {
   removeElement(element: HTMLVideoElement): void;
   goOnline(): void;
   setDenied(kind: "audio" | "video", name: string | undefined): void;
+  /** Captures of this device fail with NotFoundError while unplugged. */
+  setUnplugged(kind: "audio" | "video", deviceId: string, out: boolean): void;
   /** Plays a frame arriving on a watched track. */
   frame(track: MediaStreamTrack | undefined): void;
   watching(track: MediaStreamTrack | undefined): boolean;
@@ -120,6 +122,7 @@ export function createFakeMediaEnv(
   options: FakeMediaEnvOptions = {},
 ): FakeMediaEnv {
   let deny = { ...options.deny };
+  let unplugged: ReadonlySet<string> = new Set();
   let captures: readonly string[] = [];
   let outputs: readonly FakeAudioOutput[] = [];
   let shown = new Map<HTMLVideoElement, MediaStream | null>();
@@ -140,6 +143,8 @@ export function createFakeMediaEnv(
     captures = [...captures, `${kind}:${deviceId}`];
     const denied = deny[kind];
     if (denied) return Promise.reject(new DOMException("Denied", denied));
+    if (unplugged.has(`${kind}:${deviceId}`))
+      return Promise.reject(new DOMException("Unplugged", "NotFoundError"));
     return Promise.resolve(createFakeTrack(kind, `${kind} ${deviceId}`));
   };
 
@@ -223,6 +228,12 @@ export function createFakeMediaEnv(
     },
     setDenied(kind, name) {
       deny = { ...deny, [kind]: name };
+    },
+    setUnplugged(kind, deviceId, out) {
+      const id = `${kind}:${deviceId}`;
+      unplugged = out
+        ? new Set([...unplugged, id])
+        : new Set([...unplugged].filter((x) => x !== id));
     },
   };
 }

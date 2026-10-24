@@ -7,6 +7,12 @@ import type {
   VideoEffectDefinition,
 } from "@modular-av/api";
 import { errorName } from "../errors.ts";
+import {
+  type Captured,
+  captureDevice,
+  captureRaw,
+  type DeviceKindOf,
+} from "./device-capture.ts";
 import type { GateConfig, MediaEnv } from "./env.ts";
 import { createLocalVideo } from "./local-video.ts";
 import type { Microphone } from "./microphone.ts";
@@ -59,11 +65,6 @@ export interface LocalMedia {
   release(): void;
   /** Tracks were replaced or removed, or the gate stopped or started. */
   onChange(listener: () => void): () => void;
-}
-
-interface Captured {
-  readonly device: string;
-  readonly raw: MediaStreamTrack;
 }
 
 type Listeners<T> = readonly { readonly listener: (value: T) => void }[];
@@ -122,73 +123,116 @@ export function createLocalMedia(
   /** Its code loads with the first microphone, outside the entry chunk. */
   const microphone = (): Promise<Microphone> => (loading ??= load());
 
-  const captureAudio = async (device: string): Promise<Captured> => ({
-    device,
-    raw: await env.captureAudio(device),
-  });
+  const current = (kind: DeviceKindOf): Captured | null =>
+    kind === "audio" ? audio : video;
 
-  /** Fail closed: a new track starts with the current outbound state. */
-  const captureVideo = async (device: string): Promise<Captured> => {
-    const raw = await env.captureVideo(device);
-    raw.enabled = outbound.video;
-    return { device, raw };
+  const feed = async (
+    kind: DeviceKindOf,
+    raw: MediaStreamTrack | null,
+  ): Promise<void> => {
+    if (kind === "video") await camera.setInput(raw);
+    else if (raw || mic) await (await microphone()).setInput(raw);
   };
 
   /** The new device joins the chain before the old one stops. */
-  const switchVideo = async (
+  const switchTo = async (
+    kind: DeviceKindOf,
     next: PromiseSettledResult<Captured | null>,
   ): Promise<void> => {
-    const previous = video;
-    video = next.status === "fulfilled" ? next.value : null;
+    const previous = current(kind);
+    const captured = next.status === "fulfilled" ? next.value : null;
+    // Fail closed: a new camera starts with the current outbound state.
+    if (kind === "video" && captured) captured.raw.enabled = outbound.video;
+    if (kind === "audio") audio = captured;
+    else video = captured;
     errors = {
       ...errors,
-      video: next.status === "rejected" ? errorName(next.reason) : null,
+      [kind]: next.status === "rejected" ? errorName(next.reason) : null,
     };
-    await camera.setInput(video?.raw ?? null);
+    if (captured) watchEnd(kind, captured);
+    await feed(kind, captured?.raw ?? null);
     previous?.raw.stop();
   };
 
-  /** The new device joins the chain before the old one stops. */
-  const switchAudio = async (
-    next: PromiseSettledResult<Captured | null>,
-  ): Promise<void> => {
-    const previous = audio;
-    audio = next.status === "fulfilled" ? next.value : null;
-    errors = {
-      ...errors,
-      audio: next.status === "rejected" ? errorName(next.reason) : null,
-    };
-    if (audio || mic) await (await microphone()).setInput(audio?.raw ?? null);
-    previous?.raw.stop();
+  const enqueue = (run: () => Promise<void>): Promise<void> => {
+    const next = queue.then(run);
+    // A failure reaches this caller only, never the next acquisition.
+    queue = next.catch(() => undefined);
+    return next;
   };
 
-  const update = async (devices: DeviceChoice): Promise<void> => {
-    const wantAudio = devices.audio !== (audio?.device ?? null);
-    const wantVideo = devices.video !== (video?.device ?? null);
-    if (!wantAudio && !wantVideo) return;
+  /** Captures, then switches, unless `release()` came in between. */
+  const replace = async (
+    kinds: readonly DeviceKindOf[],
+    capture: (kind: DeviceKindOf) => Promise<Captured | null>,
+  ): Promise<void> => {
     const started = epoch;
-    const [nextAudio, nextVideo] = await Promise.allSettled([
-      wantAudio && devices.audio !== null ? captureAudio(devices.audio) : null,
-      wantVideo && devices.video !== null ? captureVideo(devices.video) : null,
-    ]);
+    const results = await Promise.allSettled(kinds.map(capture));
     if (started !== epoch) {
-      for (const next of [nextAudio, nextVideo])
+      for (const next of results)
         if (next.status === "fulfilled") next.value?.raw.stop();
       return;
     }
-    if (wantVideo) await switchVideo(nextVideo);
-    if (wantAudio) await switchAudio(nextAudio);
+    for (const [i, next] of results.entries()) {
+      const kind = kinds[i];
+      if (kind) await switchTo(kind, next);
+    }
     applyOutbound();
     changed();
   };
 
+  /** Unplugged or revoked: the same choice again, or the default. */
+  function watchEnd(kind: DeviceKindOf, captured: Captured): void {
+    captured.raw.addEventListener(
+      "ended",
+      () => {
+        enqueue(async () => {
+          if (current(kind) !== captured) return;
+          await replace([kind], () =>
+            captureDevice(env, kind, captured.device),
+          );
+        }).catch(deps.onError);
+      },
+      { once: true },
+    );
+  }
+
+  /** A device came back: leave the default for the player's choice. */
+  const returnFromFallbacks = (): Promise<void> =>
+    enqueue(async () => {
+      for (const kind of ["audio", "video"] as const) {
+        const fallen = current(kind);
+        if (!fallen?.fallback) continue;
+        let raw: MediaStreamTrack;
+        try {
+          raw = await captureRaw(env, kind, fallen.device);
+        } catch {
+          continue;
+        }
+        await replace([kind], () =>
+          Promise.resolve({ device: fallen.device, raw, fallback: false }),
+        );
+      }
+    });
+  env.onDeviceChange(() => {
+    returnFromFallbacks().catch(deps.onError);
+  });
+
+  const update = async (devices: DeviceChoice): Promise<void> => {
+    const kinds = (["audio", "video"] as const).filter(
+      (kind) => devices[kind] !== (current(kind)?.device ?? null),
+    );
+    if (kinds.length === 0) return;
+    await replace(kinds, (kind) => {
+      const device = devices[kind];
+      return device === null
+        ? Promise.resolve(null)
+        : captureDevice(env, kind, device);
+    });
+  };
+
   return {
-    acquire(devices) {
-      const run = queue.then(() => update(devices));
-      // A failure reaches this caller only, never the next acquisition.
-      queue = run.catch(() => undefined);
-      return run;
-    },
+    acquire: (devices) => enqueue(() => update(devices)),
     get microphone() {
       return audio ? (mic?.output ?? null) : null;
     },

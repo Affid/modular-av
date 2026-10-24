@@ -61,6 +61,16 @@ export function createFakeTrack(
   return new FakeMediaStreamTrack(kind, label);
 }
 
+/** Plays the device going away: the track ends and says so, as unplugging does. */
+export function endFakeTrack(track: MediaStreamTrack): void {
+  if (!((track as unknown) instanceof FakeMediaStreamTrack)) {
+    throw new Error("not a fake track");
+  }
+  const fake = track as unknown as FakeMediaStreamTrack;
+  fake.readyState = "ended";
+  fake.dispatchEvent(new Event("ended"));
+}
+
 /** What a test needs to assert on a fake track; throws for real tracks. */
 export function fakeTrackInfo(track: MediaStreamTrack): FakeTrackInfo {
   if (!((track as unknown) instanceof FakeMediaStreamTrack)) {
