@@ -53,8 +53,15 @@ const tap = (
   return { node, probe };
 };
 
+/** Its node may be cut off already: the chain disconnects a replaced source. */
 const untap = ({ node, probe }: Tap): void => {
-  node.disconnect(probe.node);
+  try {
+    node.disconnect(probe.node);
+  } catch (error: unknown) {
+    const gone =
+      error instanceof DOMException && error.name === "InvalidAccessError";
+    if (!gone) throw error;
+  }
   probe.dispose();
 };
 

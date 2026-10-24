@@ -28,6 +28,19 @@ describe("fake audio graph", () => {
     expect(graph.labelOf(b)).toBe("b");
   });
 
+  it("throws as browsers do when told to disconnect what isn't connected", () => {
+    const graph = createFakeAudioGraph();
+    const a = graph.node("a");
+    const b = graph.node("b");
+
+    expect(() => {
+      a.disconnect(b);
+    }).toThrow(expect.objectContaining({ name: "InvalidAccessError" }));
+    expect(() => {
+      a.disconnect();
+    }).not.toThrow();
+  });
+
   it("disconnects one destination or all of them, and logs both ways", () => {
     const graph = createFakeAudioGraph();
     const [a, b, c] = ["a", "b", "c"].map((label) => graph.node(label)) as [

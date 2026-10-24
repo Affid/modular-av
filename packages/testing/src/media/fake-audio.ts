@@ -109,6 +109,12 @@ export function createFakeAudioGraph(): FakeAudioGraph {
         const removed = edges.filter(
           ([a, b]) => a === from && (!destination || b === destination),
         );
+        // As in browsers: naming a destination that isn't connected throws.
+        if (destination && removed.length === 0)
+          throw new DOMException(
+            "the given destination is not connected",
+            "InvalidAccessError",
+          );
         edges = edges.filter((e) => !removed.includes(e));
         log = [...log, ...removed.map((e) => `-${name(e)}`)];
       },
