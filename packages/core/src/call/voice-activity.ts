@@ -12,6 +12,9 @@ export interface VoiceActivityDeps {
   readonly apply: () => void;
 }
 
+/** How long the gate must stay open to count as speech, not a cough. */
+export const SUSTAINED_SPEECH_MS = 700;
+
 export interface VoiceActivity {
   /** Foundry's `toggleBroadcast`: push to talk, or Foundry's own calls. */
   onIntent(intent: boolean): void;
@@ -61,9 +64,17 @@ export function createVoiceActivity(deps: VoiceActivityDeps): VoiceActivity {
     reported = null;
   };
 
+  let sustained: ReturnType<typeof setTimeout> | undefined;
   // `apply()` syncs.
   local.onGate((open) => {
     rt.gateOpen = open;
+    clearTimeout(sustained);
+    rt.sustainedSpeech = false;
+    if (open)
+      sustained = setTimeout(() => {
+        rt.sustainedSpeech = true;
+        deps.apply();
+      }, SUSTAINED_SPEECH_MS);
     deps.apply();
   });
 

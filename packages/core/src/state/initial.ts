@@ -16,6 +16,7 @@ export const INITIAL_STATE: AVState = {
     microphoneError: null,
     cameraError: null,
     openMic: false,
+    speakingWhileMuted: false,
   },
   service: { id: null, capabilities: null },
 };

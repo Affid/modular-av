@@ -41,6 +41,10 @@ function localState(deps: StateSyncDeps): LocalState {
     microphoneError: local.errors.audio,
     cameraError: local.errors.video,
     openMic: sending && voiceMode === "activity" && !local.gateRunning,
+    speakingWhileMuted:
+      deps.rt.sustainedSpeech &&
+      local.microphone !== null &&
+      ((own.muted ?? false) || deps.rt.deafened),
   };
 }
 

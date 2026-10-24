@@ -16,6 +16,8 @@ export interface Runtime {
   intent: boolean;
   /** The voice gate hears speech. */
   gateOpen: boolean;
+  /** The gate has heard speech for a while, not just a cough. */
+  sustainedSpeech: boolean;
   deafened: boolean;
   /** `AVMaster` connected the client class (A/V is enabled). */
   foundryConnected: boolean;
@@ -39,6 +41,7 @@ export function createRuntime(deafened: boolean): Runtime {
   return {
     intent: false,
     gateOpen: false,
+    sustainedSpeech: false,
     deafened,
     foundryConnected: false,
     session: IDLE_SESSION,

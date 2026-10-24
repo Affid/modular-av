@@ -104,6 +104,8 @@ export interface LocalState {
   readonly cameraError: string | null;
   /** Voice activity mode, but the gate can't run: everything is sent. */
   readonly openMic: boolean;
+  /** Muted or deafened, and the microphone hears sustained speech. */
+  readonly speakingWhileMuted: boolean;
 }
 
 export interface ServiceState {

@@ -190,6 +190,7 @@ function onReady(
     notifications: ui.notifications,
     i18n: game.i18n,
     renderPlayers: () => deps.ui().players?.render(),
+    now: deps.now,
   });
   if (!game.user.isGM) return;
   const warn = (key: string): void => {

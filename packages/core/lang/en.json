@@ -14,6 +14,7 @@
       "gmNeedsSecret": "Voice and video: enter the service's key in this browser's module settings, so players can join.",
       "noMicrophone": "Voice and video: your microphone can't be used. Check this site's microphone permission in the browser.",
       "noCamera": "Voice and video: your camera can't be used. Check this site's camera permission in the browser.",
+      "speakingWhileMuted": "Voice and video: you're muted, so the others can't hear you.",
       "openMic": "Voice and video: voice activity can't run, so your microphone is always on. Mute yourself or use push to talk.",
       "deafened": "Deafened",
       "ended": {

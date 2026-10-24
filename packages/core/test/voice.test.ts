@@ -209,3 +209,103 @@ describe("an open mic", () => {
     expect(muted.api.state.get().local.openMic).toBe(false);
   });
 });
+
+describe("speaking while muted", () => {
+  const MUTED_HINT =
+    "Voice and video: you're muted, so the others can't hear you.";
+  const hints = (tab: Tab): number =>
+    tab.client.notifications.filter((n) => n.message === MUTED_HINT).length;
+
+  it("tells a muted player who keeps talking, and clears when they stop", async () => {
+    // Arrange
+    const table = createTable();
+    table.join("gm", { secret: true });
+    const p1 = table.join("p1", { av: PTT });
+    await p1.api.commands.setMuted(true);
+    await table.settle();
+
+    // Act
+    gateOf(p1).emit(true);
+    await vi.advanceTimersByTimeAsync(800);
+    await table.settle();
+    const talking = p1.api.state.get().local.speakingWhileMuted;
+    gateOf(p1).emit(false);
+    await table.settle();
+
+    // Assert
+    expect(talking).toBe(true);
+    expect(p1.api.state.get().local.speakingWhileMuted).toBe(false);
+    expect(hints(p1)).toBe(1);
+  });
+
+  it("ignores a short sound, like a cough", async () => {
+    const table = createTable();
+    const p1 = table.join("p1", { av: ACTIVITY });
+    await p1.api.commands.setMuted(true);
+    await table.settle();
+
+    gateOf(p1).emit(true);
+    await vi.advanceTimersByTimeAsync(300);
+    gateOf(p1).emit(false);
+    await vi.advanceTimersByTimeAsync(1000);
+    await table.settle();
+
+    expect(p1.api.state.get().local.speakingWhileMuted).toBe(false);
+    expect(hints(p1)).toBe(0);
+  });
+
+  it("counts deafened as muted, and never an unmuted player", async () => {
+    const table = createTable();
+    const deafened = table.join("p1", { av: ALWAYS });
+    const unmuted = table.join("gm", { secret: true, av: ALWAYS });
+    await deafened.api.commands.setDeafened(true);
+    await table.settle();
+
+    for (const tab of [deafened, unmuted]) gateOf(tab).emit(true);
+    await vi.advanceTimersByTimeAsync(800);
+    await table.settle();
+
+    expect(deafened.api.state.get().local.speakingWhileMuted).toBe(true);
+    expect(unmuted.api.state.get().local.speakingWhileMuted).toBe(false);
+  });
+
+  it("shows at once when a player mutes in the middle of talking, and clears on unmute", async () => {
+    const table = createTable();
+    const p1 = table.join("p1", { av: ALWAYS });
+    await table.settle();
+    gateOf(p1).emit(true);
+    await vi.advanceTimersByTimeAsync(800);
+
+    await p1.api.commands.setMuted(true);
+    await table.settle();
+    const muted = p1.api.state.get().local.speakingWhileMuted;
+    await p1.api.commands.setMuted(false);
+    await table.settle();
+
+    expect(muted).toBe(true);
+    expect(p1.api.state.get().local.speakingWhileMuted).toBe(false);
+  });
+
+  it("repeats the hint at most every 30 seconds", async () => {
+    const table = createTable();
+    const p1 = table.join("p1", { av: PTT });
+    await p1.api.commands.setMuted(true);
+    await table.settle();
+    const talk = async (): Promise<void> => {
+      gateOf(p1).emit(true);
+      await vi.advanceTimersByTimeAsync(800);
+      gateOf(p1).emit(false);
+      await table.settle();
+    };
+
+    await talk();
+    await vi.advanceTimersByTimeAsync(5_000);
+    await talk();
+    const soon = hints(p1);
+    await vi.advanceTimersByTimeAsync(30_000);
+    await talk();
+
+    expect(soon).toBe(1);
+    expect(hints(p1)).toBe(2);
+  });
+});

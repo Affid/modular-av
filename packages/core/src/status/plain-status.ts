@@ -75,7 +75,11 @@ export interface PlainStatusDeps {
   readonly i18n: FoundryI18n;
   /** Re-renders the player list so the badges follow the state. */
   renderPlayers(): void;
+  now(): number;
 }
+
+/** The "you're muted" hint comes back at most this often. */
+export const MUTED_HINT_INTERVAL_MS = 30_000;
 
 export function startPlainStatus(deps: PlainStatusDeps): () => void {
   const notify = (notice: Notice): void => {
@@ -106,6 +110,15 @@ export function startPlainStatus(deps: PlainStatusDeps): () => void {
       if (openMic) notify({ kind: "warn", key: key("openMic") });
     },
   );
+  let lastHint = -Infinity;
+  const offMutedHint = deps.store.subscribe(
+    (s) => s.local.speakingWhileMuted,
+    (speaking) => {
+      if (!speaking || deps.now() - lastHint < MUTED_HINT_INTERVAL_MS) return;
+      lastHint = deps.now();
+      notify({ kind: "info", key: key("speakingWhileMuted") });
+    },
+  );
   const offBadges = deps.store.subscribe(
     (s) =>
       Object.values(s.participants)
@@ -120,6 +133,7 @@ export function startPlainStatus(deps: PlainStatusDeps): () => void {
     offSession();
     offDevices();
     offOpenMic();
+    offMutedHint();
     offBadges();
   };
 }
