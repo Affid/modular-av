@@ -8,7 +8,6 @@ export default defineConfig({
     environmentOptions: {
       happyDOM: {
         settings: {
-          disableCSSFileLoading: true,
           disableJavaScriptFileLoading: true,
           navigation: { disableChildFrameNavigation: true },
           handleDisabledFileLoadingAsSuccess: true,
