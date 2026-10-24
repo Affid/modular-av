@@ -83,6 +83,11 @@ export function foundryModuleConfig(packageDir: string): UserConfig {
       target: "es2023",
       // Readable bundles: Foundry hook names come from constructor names.
       minify: false,
+      // Doc comments stay in the source maps' sources; licences and
+      // bundler annotations stay in the code.
+      rolldownOptions: {
+        output: { comments: { legal: true, annotation: true, jsdoc: false } },
+      },
       lib: {
         entry: join(packageDir, "src/index.ts"),
         formats: ["es"],
