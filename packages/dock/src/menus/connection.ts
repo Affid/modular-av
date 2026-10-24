@@ -12,6 +12,18 @@ export const DETAILS_EVERY_MS = 2000;
 
 type Row = readonly [label: string, value: string];
 
+const EXPECTED: ReadonlySet<unknown> = new Set([
+  "not-ready",
+  "unsupported",
+  "unknown-participant",
+]);
+
+/** A command error the details expect, rather than a bug. */
+const isExpected = (error: unknown): boolean =>
+  typeof error === "object" &&
+  error !== null &&
+  EXPECTED.has((error as { code?: unknown }).code);
+
 /** The rows for what a service measured; it may measure nothing. */
 export function statsRows(ctx: DockContext, stats: ConnectionStats): Row[] {
   const ms = (value: number): string =>
@@ -110,7 +122,9 @@ export function openConnectionDetails(
           table(doc, statsRows(ctx, stats), ctx.t("connection.none")),
         );
       })
-      .catch(() => {
+      .catch((error: unknown) => {
+        // Nothing measured yet, or not per player: shown, not an error.
+        if (!isExpected(error)) ctx.onError(error);
         measured.replaceChildren(
           el("p", { doc, text: ctx.t("connection.none") }),
         );

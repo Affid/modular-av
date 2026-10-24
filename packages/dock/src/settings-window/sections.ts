@@ -3,7 +3,13 @@ import { createMeter, el } from "@modular-av/kit";
 import type { Rendered } from "../contributions/controls.ts";
 import type { DockContext } from "../context.ts";
 import { run } from "../ui/run.ts";
-import { row, section, selectField, switchField } from "./fields.ts";
+import {
+  type Option,
+  row,
+  section,
+  selectField,
+  switchField,
+} from "./fields.ts";
 
 const KINDS: readonly [DeviceKind, string][] = [
   ["audioInput", "settings.microphone"],
@@ -21,6 +27,34 @@ const watch =
   (ctx: DockContext, select: (s: AVState) => unknown) =>
   (render: () => void): (() => void) =>
     ctx.api.state.subscribe(select, render, { equals: shallow });
+
+/**
+ * The devices of a kind and the one chosen. A chosen device the browser
+ * doesn't list now (unplugged) still shows as chosen, not as a blank.
+ */
+function deviceChoice(
+  ctx: DockContext,
+  kind: DeviceKind,
+): { readonly options: readonly Option[]; readonly value: string } {
+  const state = ctx.api.state.get();
+  const chosen = state.local.chosenDevices[kind];
+  const listed = state.devices[kind].map((d, i) => ({
+    value: d.id,
+    label: d.label || ctx.t("settings.unnamed", { number: String(i + 1) }),
+  }));
+  const missing =
+    chosen !== "default" && !listed.some((d) => d.value === chosen)
+      ? [{ value: chosen, label: ctx.t("settings.missingDevice") }]
+      : [];
+  return {
+    options: [
+      { value: "default", label: ctx.t("settings.systemDefault") },
+      ...listed,
+      ...missing,
+    ],
+    value: chosen,
+  };
+}
 
 /** The player's level, with the gate's threshold and state. */
 function selfMeter(ctx: DockContext, doc: Document): Rendered {
@@ -42,21 +76,7 @@ export function devicesSection(
       ctx,
       doc,
       {
-        read: () => {
-          const state = ctx.api.state.get();
-          return {
-            options: [
-              { value: "default", label: ctx.t("settings.systemDefault") },
-              ...state.devices[kind].map((d, i) => ({
-                value: d.id,
-                label:
-                  d.label ||
-                  ctx.t("settings.unnamed", { number: String(i + 1) }),
-              })),
-            ],
-            value: state.local.chosenDevices[kind],
-          };
-        },
+        read: () => deviceChoice(ctx, kind),
         write: (id) => ctx.api.commands.setDevice(kind, id),
         subscribe: watch(
           ctx,

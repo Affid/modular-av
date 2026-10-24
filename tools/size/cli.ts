@@ -1,9 +1,13 @@
 import { listModulePackages } from "../workspace.ts";
-import { checkEntrySize } from "./check.ts";
+import { checkEntrySize, checkStyleSize } from "./check.ts";
 
-const results = await Promise.all(
-  (await listModulePackages()).map(checkEntrySize),
-);
+const modules = await listModulePackages();
+const results = [
+  ...(await Promise.all(modules.map(checkEntrySize))),
+  ...(await Promise.all(modules.map(checkStyleSize))).filter(
+    (r) => r !== undefined,
+  ),
+];
 
 for (const r of results) {
   const size = r.bytes === undefined ? "?" : String(r.bytes);

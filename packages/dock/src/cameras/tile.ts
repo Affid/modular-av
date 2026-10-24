@@ -1,5 +1,12 @@
 import type { ParticipantId } from "@modular-av/api";
-import { createMeter, el, icon, setLabel, uniqueId } from "@modular-av/kit";
+import {
+  createMeter,
+  el,
+  icon,
+  iconOf,
+  setLabel,
+  uniqueId,
+} from "@modular-av/kit";
 import type { DockContext } from "../context.ts";
 import { syncIndicators } from "../ui/indicators.ts";
 import type { TileFlags, TileView } from "../view/tile-view.ts";
@@ -37,19 +44,22 @@ const FLAG_ATTRIBUTES: Readonly<Record<keyof TileFlags, string>> = {
   hiddenByMe: "data-hidden-by-me",
 };
 
-/** Contributions name icons as "fa-solid fa-x" (checked when registered). */
-function badgeIcon(doc: Document, classes: string): HTMLElement {
-  const name = classes.split(" ").find((c) => c !== "fa-solid") ?? "fa-circle";
-  return icon(name, doc);
-}
-
 /** A user's colour from Foundry, used only if it is a plain hex colour. */
 const HEX = /^#[0-9a-f]{3,8}$/i;
 
 function avatarOf(doc: Document, view: TileView): HTMLElement {
   const box = el("div", { doc, className: "mav-dock-tile-avatar" });
   if (view.avatar) {
-    const image = el("img", { doc, attrs: { alt: "", src: view.avatar } });
+    // Another player's avatar may be anywhere: don't tell that host who looks.
+    const image = el("img", {
+      doc,
+      attrs: {
+        alt: "",
+        src: view.avatar,
+        referrerpolicy: "no-referrer",
+        decoding: "async",
+      },
+    });
     box.append(image);
   } else box.append(icon("fa-user", doc));
   return box;
@@ -192,7 +202,7 @@ export function createTile(
             doc,
             className: "mav-indicator",
             attrs: { role: "img", "data-contribution": b.id },
-            children: [badgeIcon(doc, b.icon)],
+            children: [iconOf(b.icon, doc)],
           });
           setLabel(badge, b.label, { trusted: false });
           return badge;

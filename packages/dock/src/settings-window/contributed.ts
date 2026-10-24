@@ -9,6 +9,86 @@ import type { DockContext, FoundrySettingConfig } from "../context.ts";
 import { run } from "../ui/run.ts";
 import { row, section } from "./fields.ts";
 
+/** Only plain values: an object setting edited as text would be lost. */
+const isPlain = (config: FoundrySettingConfig): boolean =>
+  config.choices !== undefined ||
+  config.type === String ||
+  config.type === Number ||
+  config.type === Boolean;
+
+/**
+ * A secret: a password field that starts empty and never reads the value,
+ * whatever the setting's type; a failed write never repeats what was typed.
+ */
+function secretField(
+  ctx: DockContext,
+  doc: Document,
+  config: FoundrySettingConfig,
+  alerts: HTMLElement,
+): HTMLInputElement {
+  const input = el("input", {
+    doc,
+    attrs: { type: "password", autocomplete: "new-password" },
+  });
+  input.addEventListener("change", () => {
+    const typed = input.value;
+    input.value = "";
+    if (typed === "") return;
+    ctx.settings
+      .set(config.namespace, config.key, typed)
+      .catch((error: unknown) => {
+        ctx.onError(new Error(`Saving a secret failed (${errorName(error)})`));
+        alerts.textContent = ctx.t("panel.failedSecret");
+      });
+  });
+  return input;
+}
+
+const errorName = (error: unknown): string =>
+  error instanceof Error ? error.name : "Error";
+
+function plainField(
+  ctx: DockContext,
+  doc: Document,
+  config: FoundrySettingConfig,
+  alerts: HTMLElement,
+): HTMLInputElement | HTMLSelectElement {
+  const value = ctx.settings.get(config.namespace, config.key);
+  const write = (next: unknown): void => {
+    run(ctx, alerts, () =>
+      ctx.settings.set(config.namespace, config.key, next),
+    );
+  };
+  if (config.type === Boolean) {
+    const box = el("input", { doc, attrs: { type: "checkbox" } });
+    box.checked = value === true;
+    box.addEventListener("change", () => {
+      write(box.checked);
+    });
+    return box;
+  }
+  if (config.choices) {
+    const select = el("select", {
+      doc,
+      children: Object.entries(config.choices).map(([v, label]) =>
+        el("option", { doc, text: ctx.text(label), attrs: { value: v } }),
+      ),
+    });
+    select.value = String(value);
+    select.addEventListener("change", () => {
+      write(select.value);
+    });
+    return select;
+  }
+  const input = textInput(doc, config, value);
+  input.addEventListener("change", () => {
+    const next = config.type === Number ? Number(input.value) : input.value;
+    if (typeof next === "number" && !Number.isFinite(next)) return;
+    write(next);
+  });
+  return input;
+}
+
 /** One Foundry setting, from its registration; world settings for GMs only. */
 function foundryField(
   ctx: DockContext,
@@ -16,39 +96,11 @@ function foundryField(
   config: FoundrySettingConfig,
   secret: boolean,
   alerts: HTMLElement,
-): HTMLElement {
-  const value = ctx.settings.get(config.namespace, config.key);
-  const write = (next: unknown): void => {
-    run(ctx, alerts, () =>
-      ctx.settings.set(config.namespace, config.key, next),
-    );
-  };
-  let control: HTMLInputElement | HTMLSelectElement;
-  if (config.type === Boolean) {
-    control = el("input", { doc, attrs: { type: "checkbox" } });
-    control.checked = value === true;
-    control.addEventListener("change", () => {
-      write((control as HTMLInputElement).checked);
-    });
-  } else if (config.choices) {
-    control = el("select", {
-      doc,
-      children: Object.entries(config.choices).map(([v, label]) =>
-        el("option", { doc, text: ctx.text(label), attrs: { value: v } }),
-      ),
-    });
-    control.value = String(value);
-    control.addEventListener("change", () => {
-      write(control.value);
-    });
-  } else {
-    control = textInput(doc, config, value, secret);
-    control.addEventListener("change", () => {
-      const raw = control.value;
-      if (secret && raw === "") return;
-      write(config.type === Number ? Number(raw) : raw);
-    });
-  }
+): HTMLElement | null {
+  if (!secret && !isPlain(config)) return null;
+  const control = secret
+    ? secretField(ctx, doc, config, alerts)
+    : plainField(ctx, doc, config, alerts);
   return row(
     doc,
     ctx.text(config.name ?? config.key),
@@ -57,25 +109,18 @@ function foundryField(
   );
 }
 
-/** A secret's field starts empty: its value never reaches the page. */
 function textInput(
   doc: Document,
   config: FoundrySettingConfig,
   value: unknown,
-  secret: boolean,
 ): HTMLInputElement {
   const range = config.range;
+  const number = config.type === Number;
   const input = el("input", {
     doc,
     attrs: {
-      type: secret
-        ? "password"
-        : config.type === Number
-          ? range
-            ? "range"
-            : "number"
-          : "text",
-      autocomplete: secret ? "new-password" : "off",
+      type: number ? (range ? "range" : "number") : "text",
+      autocomplete: "off",
       ...(range
         ? {
             min: String(range.min),
@@ -85,11 +130,8 @@ function textInput(
         : {}),
     },
   });
-  if (!secret)
-    input.value =
-      typeof value === "string" || typeof value === "number"
-        ? String(value)
-        : "";
+  input.value =
+    typeof value === "string" || typeof value === "number" ? String(value) : "";
   return input;
 }
 
@@ -104,7 +146,8 @@ function contributedSection(
   const fields = c.settings.flatMap((key) => {
     const config = ctx.foundrySetting(key);
     if (!config || (config.scope === "world" && !ctx.isGM)) return [];
-    return [foundryField(ctx, doc, config, secrets.has(key), alerts)];
+    const field = foundryField(ctx, doc, config, secrets.has(key), alerts);
+    return field ? [field] : [];
   });
   const controls = (c.controls ?? []).map((control) =>
     renderControl(ctx, doc, control, alerts),

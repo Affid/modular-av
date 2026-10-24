@@ -51,8 +51,10 @@ describe("a participant's menu", () => {
     if (!slider) throw new Error("no slider");
     slider.value = "80";
     slider.dispatchEvent(new Event("input"));
-
     expect(slider.getAttribute("aria-valuetext")).toBe("80%");
+    expect(api.calls).toEqual([]);
+    slider.dispatchEvent(new Event("change"));
+
     expect(api.calls).toContainEqual({
       command: "setVolume",
       args: ["p1", 0.8],
@@ -131,6 +133,29 @@ describe("a participant's menu", () => {
     expect(
       menu?.element.querySelector('[data-contribution="x.gm"]'),
     ).toBeNull();
+  });
+});
+
+describe("a participant's menu with a broken plugin", () => {
+  it("still opens, without the plugin's action, and says why", () => {
+    const { ctx, api, errors } = testDock({ state });
+    api.contributions.register({
+      kind: "participant-action",
+      id: "x.broken",
+      label: "Broken",
+      appliesTo: () => {
+        throw new Error("plugin bug");
+      },
+      run: () => Promise.resolve(),
+    });
+
+    const menu = openParticipantMenu(ctx, "p1", anchor());
+
+    expect(menu).not.toBeNull();
+    expect(
+      menu?.element.querySelector('[data-contribution="x.broken"]'),
+    ).toBeNull();
+    expect(errors).toHaveLength(1);
   });
 });
 

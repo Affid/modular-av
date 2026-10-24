@@ -78,7 +78,8 @@
       "leave": "Leave the call",
       "rejoin": "Rejoin",
       "reconnect": "Reconnect now",
-      "failed": "That didn't work: {reason}"
+      "failed": "That didn't work: {reason}",
+      "failedSecret": "That wasn't saved. The value you typed isn't shown again."
     },
     "menu": {
       "volume": "Volume",
@@ -143,7 +144,8 @@
       "receiveVideo": "Show other players' video",
       "dock": "Dock",
       "foundry": "Foundry's A/V settings",
-      "foundryHint": "The world's voice and video mode and relay server stay in Foundry's own settings."
+      "foundryHint": "The world's voice and video mode and relay server stay in Foundry's own settings.",
+      "missingDevice": "Not connected now"
     }
   }
 }

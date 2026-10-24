@@ -8,6 +8,8 @@ export interface Status {
   readonly element: HTMLElement;
   /** Runs with each new view, e.g. for the panel's action button. */
   onChange(listener: (view: StatusView) => void): void;
+  /** Moved to another window (Picture-in-Picture): count and watch there. */
+  rehome(): void;
   dispose(): void;
 }
 
@@ -57,7 +59,19 @@ export function createStatus(ctx: DockContext, doc: Document): Status {
     syncTick();
     render();
   };
-  doc.addEventListener("visibilitychange", onVisibility);
+  let watched = doc;
+  watched.addEventListener("visibilitychange", onVisibility);
+  const rehome = (): void => {
+    const now = element.ownerDocument;
+    if (now === watched) return;
+    watched.removeEventListener("visibilitychange", onVisibility);
+    watched = now;
+    watched.addEventListener("visibilitychange", onVisibility);
+    // The timer belongs to the window it runs in: start it again there.
+    stopTick?.();
+    stopTick = null;
+    syncTick();
+  };
   const off = ctx.api.state.subscribe(
     (s: AVState) => s.session,
     () => {
@@ -74,10 +88,11 @@ export function createStatus(ctx: DockContext, doc: Document): Status {
       listeners = [...listeners, listener];
       listener(sessionView(ctx.api.state.get().session, ctx.now()));
     },
+    rehome,
     dispose() {
       off();
       stopTick?.();
-      doc.removeEventListener("visibilitychange", onVisibility);
+      watched.removeEventListener("visibilitychange", onVisibility);
     },
   };
 }

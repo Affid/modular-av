@@ -17,7 +17,13 @@ export function settingsSurface(ctx: DockContext): SettingsSurfaceDefinition {
         .then(({ renderSettings }) => {
           if (!closed) undo = renderSettings(ctx, host);
         })
-        .catch(ctx.onError);
+        .catch((error: unknown) => {
+          // Without its code the window would stay empty: Foundry's instead.
+          ctx.onError(error);
+          if (closed) return;
+          host.openFoundrySettings();
+          host.close().catch(ctx.onError);
+        });
       return () => {
         closed = true;
         undo?.();

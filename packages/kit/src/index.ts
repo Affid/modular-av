@@ -1,4 +1,4 @@
-export { el, icon, placeInOrder, setLabel, uniqueId } from "./dom.ts";
+export { el, icon, iconOf, placeInOrder, setLabel, uniqueId } from "./dom.ts";
 export type { ElementOptions } from "./dom.ts";
 export { dragToMove, dragToResize } from "./drag.ts";
 export type { Edge } from "./drag.ts";

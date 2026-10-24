@@ -6,7 +6,7 @@ import type {
   RangeControl,
   ToggleControl,
 } from "@modular-av/api";
-import { el, icon, uniqueId } from "@modular-av/kit";
+import { el, iconOf, uniqueId } from "@modular-av/kit";
 import type { DockContext } from "../context.ts";
 import { run } from "../ui/run.ts";
 
@@ -45,16 +45,10 @@ function labelOf(
     className: "mav-control-label",
     attrs: forId ? { for: forId } : {},
     children: [
-      control.icon ? safeIcon(doc, control.icon) : null,
+      control.icon ? iconOf(control.icon, doc) : null,
       ctx.text(control.label),
     ],
   });
-}
-
-/** Contributions name icons as "fa-solid fa-x" (checked when registered). */
-function safeIcon(doc: Document, classes: string): HTMLElement {
-  const name = classes.split(" ").find((c) => c !== "fa-solid") ?? "fa-circle";
-  return icon(name, doc);
 }
 
 function toggle(
@@ -218,7 +212,8 @@ function custom(
   const element = el("div", { doc, className: "mav-control-custom" });
   let undo: () => void = () => undefined;
   try {
-    undo = draw(element);
+    const result: unknown = draw(element);
+    if (typeof result === "function") undo = result as () => void;
   } catch (error: unknown) {
     ctx.onError(error);
   }

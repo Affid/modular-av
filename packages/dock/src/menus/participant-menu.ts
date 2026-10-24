@@ -63,14 +63,24 @@ function volume(
       ctx.t("menu.volumeValue", { percent: input.value }),
     );
   };
-  input.value = String(percent());
-  describe();
-  input.addEventListener("input", () => {
+  const follow = (): void => {
+    // Not while the player drags it: their hand wins.
+    if (input.ownerDocument.activeElement === input) return;
+    input.value = String(percent());
     describe();
+  };
+  follow();
+  input.addEventListener("input", describe);
+  // Once released: each step of a drag would write Foundry's settings.
+  input.addEventListener("change", () => {
     run(ctx, alerts, () =>
       ctx.api.commands.setVolume(id, Number(input.value) / 100),
     );
   });
+  const offVolume = ctx.api.state.subscribe(
+    (s) => s.participants[id]?.volume,
+    follow,
+  );
   const meter = createMeter(doc, { label: ctx.t("menu.level") });
   const unmeter = ctx.api.meters.subscribe(id, meter.element, (reading) => {
     meter.set(reading);
@@ -85,7 +95,13 @@ function volume(
       meter.element,
     ],
   });
-  return { element, dispose: unmeter };
+  return {
+    element,
+    dispose() {
+      unmeter();
+      offVolume();
+    },
+  };
 }
 
 /** Hiding them here, and a GM's blocks. */
@@ -129,6 +145,20 @@ function ownActions(
   ];
 }
 
+/** A plugin's own test; one that throws is reported and left out. */
+function applies(
+  ctx: DockContext,
+  c: ParticipantActionContribution,
+  participant: ParticipantState,
+): boolean {
+  try {
+    return c.appliesTo?.(participant) ?? true;
+  } catch (error: unknown) {
+    ctx.onError(error);
+    return false;
+  }
+}
+
 /** Other modules' actions that apply to this participant. */
 function contributedActions(
   ctx: DockContext,
@@ -142,7 +172,7 @@ function contributedActions(
       (c): c is ParticipantActionContribution =>
         c.kind === "participant-action" &&
         (!c.gmOnly || ctx.isGM) &&
-        (c.appliesTo?.(participant) ?? true),
+        applies(ctx, c, participant),
     )
     .sort(byOrder)
     .map((c) => {

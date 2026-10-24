@@ -120,13 +120,17 @@ export function createPlacement(
     },
     async openWindow() {
       const rect = root.getBoundingClientRect();
-      pip = await ctx.api.windows.pip.request(MODULE_ID, {
+      const opened = await ctx.api.windows.pip.request(MODULE_ID, {
         width: Math.max(rect.width, MIN_FLOATING.width),
         height: Math.max(rect.height, MIN_FLOATING.height),
         title: ctx.t("dock.windowTitle"),
       });
-      pip.onClose(back);
-      pip.document.body.append(root);
+      pip = opened;
+      // Only the window the dock is in brings it back when it closes.
+      opened.onClose(() => {
+        if (pip === opened) back();
+      });
+      opened.document.body.append(root);
       where = "window";
       await apply();
     },

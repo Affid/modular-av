@@ -63,12 +63,40 @@ export function icon(name: string, doc: Document = document): HTMLElement {
   });
 }
 
-/** An id no element of `doc` has yet, e.g. to tie a label to its control. */
+/**
+ * An id no element of `doc` has yet, e.g. to tie a label to its control.
+ * Not `crypto.randomUUID()`: it exists only on secure pages, and Foundry
+ * is often served over plain HTTP on a LAN.
+ */
 export function uniqueId(doc: Document, prefix: string): string {
   for (;;) {
-    const id = `${prefix}-${crypto.randomUUID().slice(0, 8)}`;
+    const id = `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
     if (!doc.getElementById(id)) return id;
   }
+}
+
+/** Font Awesome's style and width classes, not glyphs. */
+const STYLES: ReadonlySet<string> = new Set([
+  "fa-solid",
+  "fa-regular",
+  "fa-brands",
+  "fa-light",
+  "fa-thin",
+  "fa-duotone",
+  "fa-fw",
+]);
+
+/**
+ * The icon named by a contribution's classes ("fa-solid fa-droplet"): its
+ * glyph, drawn as the UI draws its own icons.
+ */
+export function iconOf(classes: string, doc: Document = document): HTMLElement {
+  const glyph =
+    classes
+      .split(" ")
+      .filter((c) => c !== "" && !STYLES.has(c))
+      .at(-1) ?? "fa-circle";
+  return icon(glyph, doc);
 }
 
 interface MovingParent {

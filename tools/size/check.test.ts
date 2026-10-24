@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { checkEntrySize } from "./check.ts";
+import { checkEntrySize, checkStyleSize } from "./check.ts";
 
 let dir: string;
 
@@ -82,5 +82,57 @@ describe("checkEntrySize", () => {
       "package.json has no modularAV.entryBudgetBytes",
     );
     expect(noBuild.problem).toBe("dist/modular-av.js not found: build first");
+  });
+});
+
+describe("checkStyleSize", () => {
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), "mav-size-"));
+  });
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  const mod = (): { dir: string; id: string; version: string } => ({
+    dir,
+    id: "modular-av-dock",
+    version: "1.0.0",
+  });
+
+  async function styles(budget: unknown, css?: string): Promise<void> {
+    await writeFile(
+      join(dir, "package.json"),
+      JSON.stringify({
+        ...(budget === undefined
+          ? {}
+          : { modularAV: { styleBudgetBytes: budget } }),
+      }),
+    );
+    if (css === undefined) return;
+    await mkdir(join(dir, "dist"), { recursive: true });
+    await writeFile(join(dir, "dist", "modular-av-dock.css"), css);
+  }
+
+  it("skips a module without styles", async () => {
+    await styles(10);
+
+    expect(await checkStyleSize(mod())).toBeUndefined();
+  });
+
+  it("passes styles within their budget and fails those over it", async () => {
+    await styles(4, "a{}");
+    expect((await checkStyleSize(mod()))?.problem).toBeUndefined();
+
+    await styles(2, "a{}");
+    expect((await checkStyleSize(mod()))?.problem).toMatch(
+      /over their budget of 2/,
+    );
+  });
+
+  it("fails styles without a budget", async () => {
+    await styles(undefined, "a{}");
+
+    expect((await checkStyleSize(mod()))?.problem).toMatch(/styleBudgetBytes/);
   });
 });

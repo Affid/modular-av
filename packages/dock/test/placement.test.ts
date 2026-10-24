@@ -181,6 +181,26 @@ describe("the settings window", () => {
     ]);
   });
 
+  it("shows a chosen device that isn't connected now", () => {
+    const { content } = open({
+      state: avState({
+        participants: [me],
+        local: {
+          chosenDevices: {
+            audioInput: "gone",
+            videoInput: "default",
+            audioOutput: "default",
+          },
+        },
+      }),
+    });
+
+    const mic = content.querySelector("select");
+
+    expect(mic?.value).toBe("gone");
+    expect(mic?.selectedOptions[0]?.textContent).toBe("Not connected now");
+  });
+
   it("shows the push to talk key and sends the player to Foundry's controls", () => {
     const { content, opened } = open({ pushToTalk: ["Backquote"] });
 
@@ -241,6 +261,52 @@ describe("the settings window", () => {
     expect(gm.saved.get("lk.secret")).toBe("new");
     expect(player.content.textContent).not.toContain("Server URL");
     expect(player.content.textContent).toContain("API secret");
+  });
+
+  it("never shows a secret of any type, nor what was typed when saving fails", async () => {
+    const settings = [
+      {
+        namespace: "lk",
+        key: "flag",
+        name: "Secret flag",
+        scope: "client" as const,
+        type: Boolean,
+        value: true,
+      },
+      {
+        namespace: "lk",
+        key: "data",
+        name: "Some data",
+        scope: "client" as const,
+        type: Object,
+        value: { a: 1 },
+      },
+    ];
+    const { content, ctx } = open({ foundrySettings: settings }, (api) => {
+      api.contributions.register({
+        kind: "settings-section",
+        id: "lk.section",
+        label: "LiveKit",
+        settings: ["lk.flag", "lk.data"],
+        secrets: ["lk.flag"],
+      });
+    });
+    ctx.settings.set = () => Promise.reject(new Error("Invalid value hunter2"));
+
+    const field = content.querySelector<HTMLInputElement>(
+      '[data-contribution="lk.section"] input',
+    );
+    expect(field?.type).toBe("password");
+    expect(field?.value).toBe("");
+    expect(content.textContent).not.toContain("Some data");
+    if (!field) throw new Error("no field");
+    field.value = "hunter2";
+    field.dispatchEvent(new Event("change"));
+    await settle();
+
+    expect(field.value).toBe("");
+    expect(content.textContent).not.toContain("hunter2");
+    expect(content.textContent).toContain("That wasn't saved.");
   });
 
   it("still reaches Foundry's own A/V settings", () => {

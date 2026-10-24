@@ -26,6 +26,8 @@ export interface TileList {
   focus(participant: ParticipantId): void;
   /** How many tiles there are now. */
   readonly count: number;
+  /** The list moved to another window (Picture-in-Picture): watch it there. */
+  rehome(): void;
   /** After tiles came, went or changed. */
   onChange(listener: () => void): void;
   dispose(): void;
@@ -137,6 +139,7 @@ export function createTileList(
       tile.update(tileView(p, state.local, state.worldMode));
       next.set(p.id, tile);
     }
+    const counted = next.size !== tiles.size;
     for (const [id, tile] of tiles) if (!next.has(id)) tile.dispose();
     for (const [id, tile] of next) tile.setBadges(badgesOf(id));
     placeInOrder(
@@ -147,7 +150,8 @@ export function createTileList(
     element.dataset.count = String(tiles.size);
     markFocus();
     keys.refresh();
-    fit();
+    // Speaking or a volume changes nothing of the layout: no layout reads.
+    if (counted) fit();
     for (const listener of listeners) listener();
   };
 
@@ -158,10 +162,20 @@ export function createTileList(
     },
     { equals: sameSlice },
   );
-  const Observer = doc.defaultView?.ResizeObserver;
-  const resize = Observer ? new Observer(fit) : null;
-  resize?.observe(element);
+  /** A resize observer from the window the list is in now. */
+  let resize: ResizeObserver | null = null;
+  let observedIn: Window | null = null;
+  const observe = (): void => {
+    const view = element.ownerDocument.defaultView;
+    if (view === observedIn) return;
+    resize?.disconnect();
+    observedIn = view;
+    resize = view ? new view.ResizeObserver(fit) : null;
+    resize?.observe(element);
+  };
+  observe();
   sync(ctx.api.state.get());
+  fit();
 
   return {
     element,
@@ -179,6 +193,10 @@ export function createTileList(
     },
     get count() {
       return tiles.size;
+    },
+    rehome() {
+      observe();
+      fit();
     },
     onChange(listener) {
       listeners = [...listeners, listener];

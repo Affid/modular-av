@@ -3,8 +3,8 @@ import { el, icon, setLabel } from "@modular-av/kit";
 import { type DockContext, MODULE_ID } from "../context.ts";
 import { openParticipantMenu } from "../menus/participant-menu.ts";
 import { openQuickControls } from "../panel/quick-controls.ts";
-import { createStatus } from "../panel/status.ts";
-import { createVoicePanel } from "../panel/voice-panel.ts";
+import { createStatus, type Status } from "../panel/status.ts";
+import { createVoicePanel, type VoicePanel } from "../panel/voice-panel.ts";
 import {
   isCollapsed,
   save,
@@ -21,6 +21,8 @@ interface Dock {
   readonly root: HTMLElement;
   readonly header: Header;
   readonly tiles: TileList;
+  readonly status: Status;
+  readonly panel: VoicePanel;
   layout: TileLayout;
   collapsed: boolean;
   placement: Placement | null;
@@ -85,6 +87,8 @@ function build(ctx: DockContext, host: CamerasHost): Dock {
       },
     }),
     tiles,
+    status,
+    panel,
     layout: tileLayout(ctx),
     collapsed: isCollapsed(ctx),
     placement: null,
@@ -116,6 +120,9 @@ export function camerasSurface(ctx: DockContext): CamerasSurfaceDefinition {
       });
       dock.placement = placement;
       placement.onChange((where) => {
+        // In or out of the Picture-in-Picture window: timers and observers follow.
+        dock.tiles.rehome();
+        dock.status.rehome();
         dock.tiles.setHorizontal(where === "top" || where === "bottom");
         show(dock);
       });
@@ -128,6 +135,8 @@ export function camerasSurface(ctx: DockContext): CamerasSurfaceDefinition {
           placement.dispose();
           dock.tiles.dispose();
           dock.header.dispose();
+          dock.panel.dispose();
+          dock.status.dispose();
           dock.root.remove();
         },
       };

@@ -1,6 +1,13 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from "vitest";
-import { el, icon, placeInOrder, setLabel, uniqueId } from "../src/dom.ts";
+import {
+  el,
+  icon,
+  iconOf,
+  placeInOrder,
+  setLabel,
+  uniqueId,
+} from "../src/dom.ts";
 import { createMeter, levelFraction } from "../src/meter.ts";
 import { roving } from "../src/roving.ts";
 
@@ -62,6 +69,15 @@ describe("icon and uniqueId", () => {
     expect(i.className).toBe("fa-solid fa-fw fa-microphone-slash");
     expect(i.getAttribute("aria-hidden")).toBe("true");
     expect(() => icon('fa-x" onclick="')).toThrow(/Font Awesome/);
+  });
+
+  it("draws a contribution's glyph whatever its style class", () => {
+    expect(iconOf("fa-brands fa-discord").className).toBe(
+      "fa-solid fa-fw fa-discord",
+    );
+    expect(iconOf("fa-solid fa-droplet fa-fw").className).toBe(
+      "fa-solid fa-fw fa-droplet",
+    );
   });
 
   it("gives ids no element of the document has", () => {
