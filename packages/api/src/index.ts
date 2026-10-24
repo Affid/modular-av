@@ -28,6 +28,7 @@ export type {
   VideoEffect,
   VideoEffectDefinition,
 } from "./effects.ts";
+export type { MeterReading, Meters } from "./meters.ts";
 export type { ModuleKind, ModularAVModuleFlags } from "./module.ts";
 export type { Registry } from "./registry.ts";
 export type {

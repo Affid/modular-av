@@ -4,6 +4,7 @@ import type {
   EffectDefinition,
   EffectState,
   MediaPermissions,
+  MeterReading,
   VideoEffectDefinition,
 } from "@modular-av/api";
 import { errorName } from "../errors.ts";
@@ -56,6 +57,8 @@ export interface LocalMedia {
   setGate(config: GateConfig): void;
   /** The gate's open and close transitions. */
   onGate(listener: (open: boolean) => void): () => void;
+  /** The microphone's level, also once it is first captured. */
+  onLevel(listener: (reading: MeterReading) => void): () => void;
   /** The effects that may run, and the ones the player wants on. */
   setEffects(
     definitions: readonly EffectDefinition[],
@@ -86,6 +89,20 @@ export function createLocalMedia(
   let outbound: MediaPermissions = { audio: false, video: false };
   let listeners: Listeners<void> = [];
   let gateListeners: Listeners<boolean> = [];
+  let levelListeners: Listeners<MeterReading> = [];
+  /** The microphone's level reports, on while anyone listens. */
+  let offLevels: (() => void) | null = null;
+  const syncLevels = (): void => {
+    const wanted = levelListeners.length > 0;
+    if (wanted && mic && !offLevels)
+      offLevels = mic.onLevel((reading) => {
+        for (const { listener } of levelListeners) listener(reading);
+      });
+    if (!wanted && offLevels) {
+      offLevels();
+      offLevels = null;
+    }
+  };
   let queue: Promise<void> = Promise.resolve();
   /** Bumped by `release()`: captures from before it are stopped, not kept. */
   let epoch = 0;
@@ -123,6 +140,7 @@ export function createLocalMedia(
     });
     created.setEnabled(outbound.audio);
     mic = created;
+    syncLevels();
     return created;
   };
   let loading: Promise<Microphone> | null = null;
@@ -309,6 +327,15 @@ export function createLocalMedia(
       gateListeners = [...gateListeners, registration];
       return () => {
         gateListeners = gateListeners.filter((r) => r !== registration);
+      };
+    },
+    onLevel(listener) {
+      const registration = { listener };
+      levelListeners = [...levelListeners, registration];
+      syncLevels();
+      return () => {
+        levelListeners = levelListeners.filter((r) => r !== registration);
+        syncLevels();
       };
     },
     setEffects(definitions, wanted) {

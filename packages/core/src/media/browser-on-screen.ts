@@ -1,7 +1,7 @@
 import type { MediaEnv, OnScreen } from "./env.ts";
 
 interface Watch {
-  readonly element: HTMLVideoElement;
+  readonly element: Element;
   readonly listener: (view: OnScreen) => void;
   readonly doc: Document;
   readonly intersecting: boolean;

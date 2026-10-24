@@ -46,7 +46,7 @@ function createElementOutput(): AudioOutput {
   };
 }
 
-type Watched = ReadonlyMap<HTMLVideoElement, () => void>;
+type Watched = ReadonlyMap<Element, () => void>;
 
 /**
  * One observer per document, as the handoff asks, not one per element. An
@@ -58,9 +58,9 @@ function createRemovalWatcher(): MediaEnv["watchRemoval"] {
   let observers = new Map<Document, MutationObserver>();
 
   const entriesOf = (doc: Document): Watched =>
-    watched.get(doc) ?? new Map<HTMLVideoElement, () => void>();
+    watched.get(doc) ?? new Map<Element, () => void>();
 
-  const add = (element: HTMLVideoElement, onRemoved: () => void): void => {
+  const add = (element: Element, onRemoved: () => void): void => {
     const doc = element.ownerDocument;
     if (!observers.has(doc)) {
       const Observer = doc.defaultView?.MutationObserver ?? MutationObserver;
@@ -153,6 +153,18 @@ export function createBrowserMediaEnv(
       navigator.mediaDevices.addEventListener("devicechange", listener);
       return () => {
         navigator.mediaDevices.removeEventListener("devicechange", listener);
+      };
+    },
+    // Only needed once someone shows another player's meter.
+    async createLevelMeter(track) {
+      const { createBrowserLevelMeter } = await import("./browser-meters.ts");
+      return createBrowserLevelMeter(track);
+    },
+    every(element, ms, run) {
+      const view = element.ownerDocument.defaultView ?? window;
+      const timer = view.setInterval(run, ms);
+      return () => {
+        view.clearInterval(timer);
       };
     },
     // Only needed once a microphone is captured: kept out of the entry.

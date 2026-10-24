@@ -40,6 +40,8 @@ export interface RemoteMedia {
   videoStream(participant: ParticipantId): MediaStream | null;
   /** Present and allowed. */
   has(participant: ParticipantId, kind: "audio" | "video"): boolean;
+  /** The microphone this client plays of them, if it may. */
+  audioTrack(participant: ParticipantId): MediaStreamTrack | null;
   /** Presence or permission of some track changed. */
   onChange(listener: () => void): () => void;
 }
@@ -245,6 +247,10 @@ export function createRemoteMedia(
     videoStream(participant) {
       const track = videoTrack(participant, "camera");
       return track ? streamOf(track) : null;
+    },
+    audioTrack(participant) {
+      if (!policy.canHear(participant)) return null;
+      return tracks.get(key(participant, "microphone"))?.track ?? null;
     },
     has(participant, kind) {
       if (kind === "video") return videoTrack(participant, "camera") !== null;

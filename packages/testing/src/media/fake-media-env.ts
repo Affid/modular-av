@@ -47,6 +47,14 @@ export interface FakeOnScreen {
   readonly height: number;
 }
 
+/** A level meter on a played track; `read()` gives what `setLevel` set. */
+export interface FakeLevelMeter {
+  readonly track: MediaStreamTrack;
+  read(): number;
+  dispose(): void;
+  readonly disposed: boolean;
+}
+
 export interface FakeAudioCapture {
   readonly deviceId: string;
   readonly noiseSuppression: boolean;
@@ -60,14 +68,20 @@ export interface FakeMediaEnv {
   captureVideo(deviceId: string): Promise<MediaStreamTrack>;
   createStream(tracks: readonly MediaStreamTrack[]): MediaStream;
   createAudioOutput(): FakeAudioOutput;
-  showVideo(element: HTMLVideoElement, stream: MediaStream | null): void;
-  watchRemoval(element: HTMLVideoElement, onRemoved: () => void): () => void;
+  showVideo(element: Element, stream: MediaStream | null): void;
+  watchRemoval(element: Element, onRemoved: () => void): () => void;
   watchOnScreen(
-    element: HTMLVideoElement,
+    element: Element,
     listener: (view: FakeOnScreen) => void,
   ): () => void;
+  createLevelMeter(track: MediaStreamTrack): Promise<FakeLevelMeter>;
+  /** A timer in the element's window. */
+  every(element: Element, ms: number, run: () => void): () => void;
+  /** The level, in dBFS, every meter on this track reads. */
+  setLevel(track: MediaStreamTrack | null, db: number): void;
+  readonly levelMeters: readonly FakeLevelMeter[];
   /** Plays the browser's observers: the element came into view or left it. */
-  setOnScreen(element: HTMLVideoElement, view: FakeOnScreen): void;
+  setOnScreen(element: Element, view: FakeOnScreen): void;
   onOnline(listener: () => void): () => void;
   createCaptureContext(): Promise<FakeCaptureContext>;
   canWatchFrames(): boolean;
@@ -83,9 +97,9 @@ export interface FakeMediaEnv {
   readonly audioCaptures: readonly FakeAudioCapture[];
   readonly outputs: readonly FakeAudioOutput[];
   /** The tracks an element currently shows. */
-  shownOn(element: HTMLVideoElement): readonly MediaStreamTrack[];
+  shownOn(element: Element): readonly MediaStreamTrack[];
   /** Plays the browser removing an element from its document. */
-  removeElement(element: HTMLVideoElement): void;
+  removeElement(element: Element): void;
   goOnline(): void;
   setDenied(kind: "audio" | "video", name: string | undefined): void;
   /** Captures of this device fail with NotFoundError while unplugged. */
@@ -148,11 +162,13 @@ export function createFakeMediaEnv(
   let captures: readonly string[] = [];
   let audioCaptures: readonly FakeAudioCapture[] = [];
   let outputs: readonly FakeAudioOutput[] = [];
-  let shown = new Map<HTMLVideoElement, MediaStream | null>();
-  let removalWatchers = new Map<HTMLVideoElement, readonly (() => void)[]>();
+  let shown = new Map<Element, MediaStream | null>();
+  let removalWatchers = new Map<Element, readonly (() => void)[]>();
   let onlineListeners: readonly (() => void)[] = [];
+  let levelMeters: readonly FakeLevelMeter[] = [];
+  let trackLevels = new Map<MediaStreamTrack, number>();
   let screenWatchers: readonly {
-    readonly element: HTMLVideoElement;
+    readonly element: Element;
     readonly listener: (view: FakeOnScreen) => void;
   }[] = [];
   let captureContexts: readonly FakeCaptureContext[] = [];
@@ -207,6 +223,33 @@ export function createFakeMediaEnv(
           (removalWatchers.get(element) ?? []).filter((w) => w !== onRemoved),
         );
       };
+    },
+    createLevelMeter(track) {
+      let disposed = false;
+      const meter: FakeLevelMeter = {
+        track,
+        read: () => trackLevels.get(track) ?? -100,
+        dispose() {
+          disposed = true;
+        },
+        get disposed() {
+          return disposed;
+        },
+      };
+      levelMeters = [...levelMeters, meter];
+      return Promise.resolve(meter);
+    },
+    every(_element, ms, run) {
+      const timer = setInterval(run, ms);
+      return () => {
+        clearInterval(timer);
+      };
+    },
+    setLevel(track, db) {
+      if (track) trackLevels = new Map(trackLevels).set(track, db);
+    },
+    get levelMeters() {
+      return levelMeters;
     },
     watchOnScreen(element, listener) {
       const watcher = { element, listener };

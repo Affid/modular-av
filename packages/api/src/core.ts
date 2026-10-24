@@ -1,6 +1,7 @@
 import type { AVCommands } from "./commands.ts";
 import type { Contribution } from "./contributions.ts";
 import type { EffectDefinition } from "./effects.ts";
+import type { Meters } from "./meters.ts";
 import type { Registry } from "./registry.ts";
 import type { ParticipantId, ServiceDefinition } from "./service.ts";
 import type { Channel } from "./socket.ts";
@@ -34,6 +35,7 @@ export interface ModularAV {
   readonly state: Store<AVState>;
   readonly commands: AVCommands;
   readonly media: MediaAttachment;
+  readonly meters: Meters;
   readonly services: Registry<ServiceDefinition>;
   readonly effects: Registry<EffectDefinition>;
   readonly surfaces: Registry<SurfaceDefinition>;

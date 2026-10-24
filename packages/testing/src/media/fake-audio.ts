@@ -23,12 +23,23 @@ export interface FakeAudioGraph {
   reaches(from: AudioNode, to: AudioNode): boolean;
 }
 
+export interface FakeGateLevel {
+  readonly db: number;
+  readonly threshold: number;
+}
+
 export interface FakeVoiceGate {
   readonly node: AudioNode;
   configure(config: FakeGateConfig): void;
   onTransition(listener: (open: boolean) => void): () => void;
   onError(listener: (error: unknown) => void): () => void;
+  setLevels(enabled: boolean): void;
+  onLevel(listener: (level: FakeGateLevel) => void): () => void;
   dispose(): void;
+  /** Whether level reports are on. */
+  readonly levels: boolean;
+  /** Plays a level report (sent only while reports are on). */
+  emitLevel(db: number, threshold: number): void;
   /** The configuration it was created with, then each change. */
   readonly configs: readonly FakeGateConfig[];
   readonly disposed: boolean;
@@ -120,6 +131,8 @@ function createFakeGate(
   let disposed = false;
   let transitions: readonly ((open: boolean) => void)[] = [];
   let errors: readonly ((error: unknown) => void)[] = [];
+  let levelListeners: readonly ((level: FakeGateLevel) => void)[] = [];
+  let levels = false;
   const node = graph.node("gate");
   return {
     node,
@@ -137,6 +150,22 @@ function createFakeGate(
       return () => {
         errors = errors.filter((l) => l !== listener);
       };
+    },
+    setLevels(enabled) {
+      levels = enabled;
+    },
+    onLevel(listener) {
+      levelListeners = [...levelListeners, listener];
+      return () => {
+        levelListeners = levelListeners.filter((l) => l !== listener);
+      };
+    },
+    get levels() {
+      return levels;
+    },
+    emitLevel(db, threshold) {
+      if (!levels) return;
+      for (const listener of levelListeners) listener({ db, threshold });
     },
     dispose() {
       disposed = true;

@@ -76,6 +76,7 @@ export type {
   FakeAudioOutput,
   FakeAudioOutputState,
   FakeMediaEnv,
+  FakeLevelMeter,
   FakeMediaEnvOptions,
   FakeOnScreen,
 } from "./media/fake-media-env.ts";
@@ -87,6 +88,7 @@ export type {
   FakeAudioGraph,
   FakeCaptureContext,
   FakeGateConfig,
+  FakeGateLevel,
   FakeVoiceGate,
 } from "./media/fake-audio.ts";
 export {

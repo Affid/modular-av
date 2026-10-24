@@ -1,4 +1,9 @@
-import type { CaptureContext, GateConfig, VoiceGateNode } from "./env.ts";
+import type {
+  CaptureContext,
+  GateConfig,
+  GateLevel,
+  VoiceGateNode,
+} from "./env.ts";
 
 /** RNNoise and the other noise models need 48 kHz. */
 export const CAPTURE_SAMPLE_RATE = 48_000;
@@ -27,6 +32,13 @@ const isGateMessage = (
   (data as { type?: unknown }).type === "open" &&
   typeof (data as { open?: unknown }).open === "boolean";
 
+const isLevelMessage = (data: unknown): data is GateLevel =>
+  typeof data === "object" &&
+  data !== null &&
+  (data as { type?: unknown }).type === "level" &&
+  typeof (data as { db?: unknown }).db === "number" &&
+  typeof (data as { threshold?: unknown }).threshold === "number";
+
 function createGateNode(
   context: AudioContext,
   config: GateConfig,
@@ -39,9 +51,16 @@ function createGateNode(
   });
   let transitions: Listeners<boolean> = [];
   let errors: Listeners<unknown> = [];
+  let levels: Listeners<GateLevel> = [];
   node.port.onmessage = (event: MessageEvent<unknown>) => {
-    if (!isGateMessage(event.data)) return;
-    for (const { listener } of transitions) listener(event.data.open);
+    const data = event.data;
+    if (isLevelMessage(data)) {
+      const level = { db: data.db, threshold: data.threshold };
+      for (const { listener } of levels) listener(level);
+      return;
+    }
+    if (!isGateMessage(data)) return;
+    for (const { listener } of transitions) listener(data.open);
   };
   node.onprocessorerror = (event) => {
     for (const { listener } of errors) listener(event);
@@ -61,6 +80,15 @@ function createGateNode(
       listen(
         () => errors,
         (next) => (errors = next),
+        listener,
+      ),
+    setLevels(enabled) {
+      node.port.postMessage({ type: "levels", enabled });
+    },
+    onLevel: (listener) =>
+      listen(
+        () => levels,
+        (next) => (levels = next),
         listener,
       ),
     dispose() {

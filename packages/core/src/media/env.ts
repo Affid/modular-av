@@ -20,16 +20,23 @@ export interface MediaEnv {
   /** Sets a video element's source; never unmutes it. */
   showVideo(element: HTMLVideoElement, stream: MediaStream | null): void;
   /** Calls back once `element` has left its document. */
-  watchRemoval(element: HTMLVideoElement, onRemoved: () => void): () => void;
+  watchRemoval(element: Element, onRemoved: () => void): () => void;
   /**
    * Calls back when `element` comes into view or leaves it (in a visible
    * document, the Picture-in-Picture window too) or changes height. It
    * follows the element into another document.
    */
   watchOnScreen(
-    element: HTMLVideoElement,
+    element: Element,
     listener: (view: OnScreen) => void,
   ): () => void;
+  /** Measures a played track's level. Loads its code lazily. */
+  createLevelMeter(track: MediaStreamTrack): Promise<LevelMeter>;
+  /**
+   * A repeating timer in `element`'s window: the opener's timers slow down
+   * in a hidden tab while a Picture-in-Picture window still shows.
+   */
+  every(element: Element, ms: number, run: () => void): () => void;
   /** The browser's `online` event. */
   onOnline(listener: () => void): () => void;
   /** Devices with an id; labels once access was granted. */
@@ -53,6 +60,19 @@ export interface OnScreen {
   readonly height: number;
 }
 
+/** Reads the level of one track. */
+export interface LevelMeter {
+  /** dBFS, -100 to 0. */
+  read(): number;
+  dispose(): void;
+}
+
+/** A report of the gate worklet's, in dBFS. */
+export interface GateLevel {
+  readonly db: number;
+  readonly threshold: number;
+}
+
 /** "gate" silences the microphone while closed; "detect" only reports. */
 export type GateMode = "gate" | "detect";
 
@@ -71,6 +91,9 @@ export interface VoiceGateNode {
   onTransition(listener: (open: boolean) => void): () => void;
   /** The worklet stopped working: it no longer gates anything. */
   onError(listener: (error: unknown) => void): () => void;
+  /** Level reports, 20 a second, only while turned on. */
+  setLevels(enabled: boolean): void;
+  onLevel(listener: (level: GateLevel) => void): () => void;
   dispose(): void;
 }
 

@@ -2,6 +2,7 @@ import type {
   AudioEffect,
   AudioEffectDefinition,
   EffectState,
+  MeterReading,
 } from "@modular-av/api";
 import {
   createAudioChain,
@@ -42,6 +43,8 @@ export interface Microphone {
   setEnabled(enabled: boolean): void;
   setGate(config: GateConfig): void;
   onGate(listener: (open: boolean) => void): () => void;
+  /** The gate's level reports, on only while someone listens. */
+  onLevel(listener: (reading: MeterReading) => void): () => void;
   setEffects(
     definitions: readonly AudioEffectDefinition[],
     wanted: ReadonlySet<string>,
@@ -77,6 +80,13 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
   };
   let queue: Promise<void> = Promise.resolve();
   let disposed = false;
+  let levelListeners: readonly {
+    readonly listener: (reading: MeterReading) => void;
+  }[] = [];
+  /** Tells a (new) gate whether anyone wants its levels. */
+  const applyLevels = (): void => {
+    gate?.setLevels(levelListeners.length > 0);
+  };
 
   const createParts = (capture: CaptureContext): Parts => {
     const chain = createAudioChain(capture);
@@ -123,6 +133,16 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
       // Changed while the worklet loaded.
       if (config !== requested) loaded.configure(config);
       loaded.onTransition(tellGate);
+      loaded.onLevel(({ db, threshold }) => {
+        const reading = { db, threshold, open: gateOpen };
+        for (const { listener } of levelListeners)
+          try {
+            listener(reading);
+          } catch (error: unknown) {
+            deps.onError(error);
+          }
+      });
+      applyLevels();
       loaded.onError((error) => {
         deps.onError(error);
         dropGate(loaded);
@@ -195,6 +215,15 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
       gateListeners = [...gateListeners, registration];
       return () => {
         gateListeners = gateListeners.filter((r) => r !== registration);
+      };
+    },
+    onLevel(listener) {
+      const registration = { listener };
+      levelListeners = [...levelListeners, registration];
+      applyLevels();
+      return () => {
+        levelListeners = levelListeners.filter((r) => r !== registration);
+        applyLevels();
       };
     },
     setEffects(nextDefinitions, nextWanted) {

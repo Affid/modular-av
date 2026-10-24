@@ -27,6 +27,7 @@ import type {
   FoundryUi,
 } from "./foundry/globals.ts";
 import { EFFECTS_SETTING } from "./media/effect-choices.ts";
+import { createMeters } from "./media/meters.ts";
 import type { MediaEnv } from "./media/env.ts";
 import {
   DEFAULT_SENSITIVITY,
@@ -93,6 +94,7 @@ export function installCore(deps: CoreDeps): InstalledCore {
   let current: Controller | undefined;
   const controller = (): Controller => current ?? notReady();
   let hosting: CamerasHosting | null = null;
+  const meters = createMeters({ env: deps.env, onError: deps.onError });
   /** A cameras surface shows the status: the plain one steps aside. */
   let surfaceShowsStatus = false;
 
@@ -129,6 +131,7 @@ export function installCore(deps: CoreDeps): InstalledCore {
       attach: (...args: Parameters<Controller["attach"]>) =>
         controller().attach(...args),
     }),
+    meters: meters.api,
     services: services.api,
     effects: effects.api,
     surfaces: surfaces.api,
@@ -176,6 +179,11 @@ export function installCore(deps: CoreDeps): InstalledCore {
       onError: deps.onError,
       now: deps.now,
       randomId: deps.randomId,
+    });
+    meters.start({
+      selfId: game.userId,
+      local: current.local,
+      remote: current.remote,
     });
     watchFoundry(deps, controller, surfaces.api.list());
   });
