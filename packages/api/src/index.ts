@@ -82,3 +82,4 @@ export type {
   VoiceMode,
 } from "./state.ts";
 export type { Store, SubscribeOptions } from "./store.ts";
+export type { PipRequest, PipWindow, PipWindows, Windows } from "./windows.ts";

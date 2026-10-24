@@ -38,6 +38,7 @@ import { assetUrl, createChannels } from "./socket.ts";
 import { INITIAL_STATE } from "./state/initial.ts";
 import { decoratePlayerList, startPlainStatus } from "./status/plain-status.ts";
 import { createStore } from "./store.ts";
+import { createPipWindows, type WindowsEnv } from "./windows/pip.ts";
 import {
   chosenSurface,
   playersSurfaces,
@@ -59,6 +60,7 @@ export interface CoreDeps {
   readonly foundry: FoundryNamespace;
   readonly ui: () => FoundryUi;
   readonly env: MediaEnv;
+  readonly windows: WindowsEnv;
   readonly now: () => number;
   readonly randomId: () => string;
   readonly onError: (error: unknown) => void;
@@ -132,6 +134,9 @@ export function installCore(deps: CoreDeps): InstalledCore {
         controller().attach(...args),
     }),
     meters: meters.api,
+    windows: Object.freeze({
+      pip: createPipWindows(deps.windows, deps.onError),
+    }),
     services: services.api,
     effects: effects.api,
     surfaces: surfaces.api,

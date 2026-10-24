@@ -126,6 +126,10 @@ export interface FoundryGame {
   readonly world: { readonly id: string };
   readonly ready: boolean;
   readonly webrtc: AVMasterLike | null;
+  /** Bindings by namespace and action, e.g. ("core", "pushToTalk"). */
+  readonly keybindings?: {
+    get(namespace: string, action: string): readonly { readonly key: string }[];
+  };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- hooks pass any arguments, as in Foundry

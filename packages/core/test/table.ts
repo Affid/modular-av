@@ -5,12 +5,14 @@ import type {
 } from "@modular-av/api";
 import {
   type AVClientSettings,
+  createFakeDocumentPip,
   createFakeMediaEnv,
   createFakeWorld,
   createMockServiceHub,
   type FakeAVMaster,
   type FakeCaptureContext,
   type FakeClient,
+  type FakeDocumentPip,
   type FakeMediaEnv,
   type FakeWorld,
   type FakeWorldOptions,
@@ -35,6 +37,10 @@ export const USERS = [
 export interface Tab {
   readonly client: FakeClient;
   readonly env: FakeMediaEnv;
+  readonly pip: FakeDocumentPip;
+  /** Picture-in-Picture windows the core prepared, and those it undid. */
+  readonly pipPrepared: Window[];
+  readonly pipUndone: Window[];
   readonly core: InstalledCore;
   readonly api: ModularAV;
   readonly errors: unknown[];
@@ -52,6 +58,8 @@ export interface TabOptions {
   readonly effects?: readonly EffectDefinition[];
   /** Runs in the register hook, after the service and effects. */
   readonly register?: (api: ModularAV) => void;
+  /** The browser has no Document Picture-in-Picture. */
+  readonly noPip?: boolean;
 }
 
 export interface Table {
@@ -91,6 +99,9 @@ export function createTable(
     const client = world.connect(userId, tab.av ? { av: tab.av } : {});
     const env = createFakeMediaEnv(tab.deny ? { deny: tab.deny } : {});
     const errors: unknown[] = [];
+    const pip = createFakeDocumentPip();
+    const pipPrepared: Window[] = [];
+    const pipUndone: Window[] = [];
     if (!tab.noService)
       client.Hooks.on("modularAV.register", (api: ModularAV) => {
         api.services.register(
@@ -108,12 +119,24 @@ export function createTable(
       foundry: client.foundry,
       ui: () => client.ui,
       env,
+      windows: {
+        documentPip: () => (tab.noPip ? null : pip),
+        preparePip(window) {
+          pipPrepared.push(window);
+          return Promise.resolve(() => {
+            pipUndone.push(window);
+          });
+        },
+      },
       now: () => Date.now(),
       randomId: () => `id-${String(nextId++)}`,
       onError: (e) => errors.push(e),
     });
     client.runLifecycle();
-    return { client, env, core, api: core.api, errors };
+    return {
+      ...{ client, env, core, api: core.api, errors },
+      ...{ pip, pipPrepared, pipUndone },
+    };
   };
 
   return { world, hub, join, settle };

@@ -4,6 +4,17 @@ export default defineConfig({
   test: {
     include: ["packages/*/test/**/*.test.ts", "tools/**/*.test.ts"],
     environment: "node",
+    // Tests that use happy-dom never load what pages link to.
+    environmentOptions: {
+      happyDOM: {
+        settings: {
+          disableCSSFileLoading: true,
+          disableJavaScriptFileLoading: true,
+          navigation: { disableChildFrameNavigation: true },
+          handleDisabledFileLoadingAsSuccess: true,
+        },
+      },
+    },
     restoreMocks: true,
     coverage: {
       provider: "v8",

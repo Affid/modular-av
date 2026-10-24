@@ -8,6 +8,7 @@ import type { Channel } from "./socket.ts";
 import type { AVState } from "./state.ts";
 import type { Store } from "./store.ts";
 import type { SurfaceDefinition } from "./surfaces.ts";
+import type { Windows } from "./windows.ts";
 
 export type VideoSource = "camera" | "screen";
 
@@ -36,6 +37,7 @@ export interface ModularAV {
   readonly commands: AVCommands;
   readonly media: MediaAttachment;
   readonly meters: Meters;
+  readonly windows: Windows;
   readonly services: Registry<ServiceDefinition>;
   readonly effects: Registry<EffectDefinition>;
   readonly surfaces: Registry<SurfaceDefinition>;
