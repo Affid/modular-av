@@ -20,6 +20,7 @@ import type {
   FoundryNamespace,
   FoundryUi,
 } from "./foundry/globals.ts";
+import { EFFECTS_SETTING } from "./media/effect-choices.ts";
 import type { MediaEnv } from "./media/env.ts";
 import { createRegistry } from "./registry.ts";
 import { assetUrl, createChannels } from "./socket.ts";
@@ -70,6 +71,12 @@ export function installCore(deps: CoreDeps): InstalledCore {
   deps.config.ui.webrtc = createCameraHostClass(
     deps.foundry.applications.apps.av.CameraViews,
   );
+  game.settings.register(MODULE_ID, EFFECTS_SETTING, {
+    scope: "client",
+    config: false,
+    type: Array,
+    default: [],
+  });
   game.settings.register(MODULE_ID, DEAFENED_SETTING, {
     scope: "client",
     config: false,
@@ -106,6 +113,7 @@ export function installCore(deps: CoreDeps): InstalledCore {
       env: deps.env,
       channels,
       services: services.api,
+      effects: effects.api,
       selectedService: () =>
         String(game.settings.get(MODULE_ID, SERVICE_SETTING)),
       renderDock: () => deps.ui().webrtc?.render(),
@@ -118,7 +126,12 @@ export function installCore(deps: CoreDeps): InstalledCore {
 
   hooks.once("ready", () => {
     controller().ready();
-    onReady(deps, controller(), store.view, ClientClass);
+    onReady(
+      deps,
+      controller(),
+      { store: store.view, effects: effects.api },
+      ClientClass,
+    );
   });
 
   return { api, controller };
@@ -180,7 +193,12 @@ const hasAV = (arg: unknown): boolean =>
 function onReady(
   deps: CoreDeps,
   controller: Controller,
-  store: ModularAV["state"],
+  {
+    store,
+    effects,
+  }: Pick<ModularAV, "effects"> & {
+    readonly store: ModularAV["state"];
+  },
   ClientClass: abstract new (...args: never[]) => object,
 ): void {
   const { game } = deps;
@@ -191,6 +209,7 @@ function onReady(
     i18n: game.i18n,
     renderPlayers: () => deps.ui().players?.render(),
     now: deps.now,
+    effectKind: (id) => effects.get(id)?.kind,
   });
   if (!game.user.isGM) return;
   const warn = (key: string): void => {

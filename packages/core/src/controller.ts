@@ -1,5 +1,6 @@
 import type {
   AVState,
+  EffectDefinition,
   MediaPermissions,
   ParticipantId,
   Registry,
@@ -16,6 +17,10 @@ import { MODULE_ID } from "./constants.ts";
 import { AV_MODES, type AVFacts, createAVFacts } from "./foundry/av-facts.ts";
 import type { FoundryGame, FoundryHooks } from "./foundry/globals.ts";
 import type { MediaEnv } from "./media/env.ts";
+import {
+  createEffectChoices,
+  type EffectChoices,
+} from "./media/effect-choices.ts";
 import { createLocalMedia, type LocalMedia } from "./media/local-media.ts";
 import { createRemoteMedia, type RemoteMedia } from "./media/remote-media.ts";
 import {
@@ -39,6 +44,7 @@ export interface ControllerDeps {
   readonly env: MediaEnv;
   readonly channels: Channels;
   readonly services: Registry<ServiceDefinition>;
+  readonly effects: Registry<EffectDefinition>;
   /** The id in the world's service setting. */
   readonly selectedService: () => string;
   readonly renderDock: () => void;
@@ -74,6 +80,7 @@ export interface Controller {
   apply(): void;
   /** Rebuilds the state only, e.g. after others' Foundry activity. */
   refresh(): void;
+  setEffectEnabled(id: string, enabled: boolean): Promise<void>;
 }
 
 interface Parts {
@@ -88,6 +95,7 @@ interface Parts {
   readonly refresh: () => void;
   readonly reacquire: () => Promise<void>;
   readonly voice: VoiceActivity;
+  readonly choices: EffectChoices;
 }
 
 /**
@@ -113,8 +121,15 @@ function buildParts(deps: ControllerDeps): Parts {
   );
   const service = (): ServiceDefinition | undefined =>
     deps.services.get(deps.selectedService()) ?? deps.services.list()[0];
+  // Created after `local`, which reports replaced effects to it.
+  let choices: EffectChoices | null = null;
   const local = createLocalMedia(env, {
     gate: gateConfig(facts),
+    onReplaced: (ids) => choices?.replaced(ids),
+    onError: deps.onError,
+  });
+  choices = createEffectChoices({
+    ...{ game, env, effects: deps.effects, local },
     onError: deps.onError,
   });
   const remote = createRemoteMedia(
@@ -135,8 +150,8 @@ function buildParts(deps: ControllerDeps): Parts {
     });
   const refreshState = createStateSync({
     ...{ store: deps.store, game, facts, rt, local, remote },
-    service,
-    outbound,
+    ...{ service, outbound, effects: deps.effects },
+    isSupported: choices.isSupported,
   });
   remote.onChange(refreshState);
   const session = createCall({
@@ -160,10 +175,10 @@ function buildParts(deps: ControllerDeps): Parts {
   });
   const reacquire = (): Promise<void> => local.acquire(facts.devices());
   voice = createVoiceActivity({ game, facts, rt, local, apply });
+  choices.apply();
   return {
     ...{ deps, facts, rt, local, remote, session, service, apply, reacquire },
-    refresh: refreshState,
-    voice,
+    ...{ refresh: refreshState, voice, choices },
   };
 }
 
@@ -215,6 +230,7 @@ export function createController(deps: ControllerDeps): Controller {
     service: parts.service,
     reacquire: parts.reacquire,
     refresh: parts.refresh,
+    setEffectEnabled: (id, enabled) => parts.choices.setEnabled(id, enabled),
     initialize: () => local.acquire(facts.devices()),
     foundryConnect() {
       rt.foundryConnected = true;

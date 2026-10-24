@@ -76,6 +76,9 @@ export function createCommands(
         c.apply();
       }),
 
+    setEffectEnabled: (effect: string, enabled: boolean) =>
+      controller().setEffectEnabled(effect, enabled),
+
     leave: () => controller().session.stop("left"),
 
     rejoin: () =>

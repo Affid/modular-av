@@ -76,6 +76,8 @@ export interface PlainStatusDeps {
   /** Re-renders the player list so the badges follow the state. */
   renderPlayers(): void;
   now(): number;
+  /** Which device an effect works on, by id. */
+  effectKind(id: string): "audio" | "video" | undefined;
 }
 
 /** The "you're muted" hint comes back at most this often. */
@@ -110,6 +112,7 @@ export function startPlainStatus(deps: PlainStatusDeps): () => void {
       if (openMic) notify({ kind: "warn", key: key("openMic") });
     },
   );
+  const offEffects = watchEffects(deps, notify);
   let lastHint = -Infinity;
   const offMutedHint = deps.store.subscribe(
     (s) => s.local.speakingWhileMuted,
@@ -133,8 +136,39 @@ export function startPlainStatus(deps: PlainStatusDeps): () => void {
     offSession();
     offDevices();
     offOpenMic();
+    offEffects();
     offMutedHint();
     offBadges();
+  };
+}
+
+/** An effect that fails: the camera stays off, or audio goes on without it. */
+function watchEffects(
+  deps: PlainStatusDeps,
+  notify: (notice: Notice) => void,
+): () => void {
+  const offCamera = deps.store.subscribe(
+    (s) => s.local.cameraHold,
+    (hold) => {
+      if (hold === "effect-failed")
+        notify({ kind: "warn", key: key("cameraEffectFailed") });
+    },
+  );
+  const failedAudio = (state: AVState): string =>
+    Object.entries(state.local.effects)
+      .filter(
+        ([id, e]) => e.status === "failed" && deps.effectKind(id) === "audio",
+      )
+      .map(([id]) => id)
+      .join(",");
+  const offAudio = deps.store.subscribe(failedAudio, (next, previous) => {
+    const before = new Set(previous.split(","));
+    if (next.split(",").some((id) => id && !before.has(id)))
+      notify({ kind: "warn", key: key("microphoneEffectFailed") });
+  });
+  return () => {
+    offCamera();
+    offAudio();
   };
 }
 

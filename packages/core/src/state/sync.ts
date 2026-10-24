@@ -1,7 +1,10 @@
 import type {
   AVState,
+  EffectDefinition,
+  EffectState,
   LocalState,
   MediaPermissions,
+  Registry,
   ServiceDefinition,
 } from "@modular-av/api";
 import type { Runtime } from "../call/runtime.ts";
@@ -21,6 +24,26 @@ export interface StateSyncDeps {
   readonly remote: RemoteMedia;
   readonly service: () => ServiceDefinition | undefined;
   readonly outbound: () => MediaPermissions;
+  readonly effects: Registry<EffectDefinition>;
+  readonly isSupported: (definition: EffectDefinition) => boolean;
+}
+
+const OFF: EffectState = { status: "off", error: null };
+const UNSUPPORTED: EffectState = { status: "unsupported", error: null };
+
+function effectStates(
+  deps: StateSyncDeps,
+): Readonly<Record<string, EffectState>> {
+  return Object.fromEntries(
+    deps.effects
+      .list()
+      .map((d) => [
+        d.id,
+        deps.isSupported(d)
+          ? (deps.local.effectStatus(d.id) ?? OFF)
+          : UNSUPPORTED,
+      ]),
+  );
 }
 
 function localState(deps: StateSyncDeps): LocalState {
@@ -45,6 +68,8 @@ function localState(deps: StateSyncDeps): LocalState {
       deps.rt.sustainedSpeech &&
       local.microphone !== null &&
       ((own.muted ?? false) || deps.rt.deafened),
+    effects: effectStates(deps),
+    cameraHold: local.cameraHold,
   };
 }
 

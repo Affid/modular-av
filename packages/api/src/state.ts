@@ -113,6 +113,10 @@ export interface LocalState {
   readonly openMic: boolean;
   /** Muted or deafened, and the microphone hears sustained speech. */
   readonly speakingWhileMuted: boolean;
+  /** Every registered effect, by id. */
+  readonly effects: Readonly<Record<string, EffectState>>;
+  /** Why the camera is kept off, if a video effect isn't sending. */
+  readonly cameraHold: CameraHold | null;
 }
 
 export interface ServiceState {

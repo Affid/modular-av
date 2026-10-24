@@ -11,7 +11,11 @@ const BOTH = { audio: "default", video: "default" } as const;
 const GATE: GateConfig = { mode: "detect", auto: true, threshold: -50 };
 
 const create = (env: MediaEnv, errors: unknown[] = []) =>
-  createLocalMedia(env, { gate: GATE, onError: (e) => errors.push(e) });
+  createLocalMedia(env, {
+    gate: GATE,
+    onReplaced: () => undefined,
+    onError: (e) => errors.push(e),
+  });
 
 function setup(options?: Parameters<typeof createFakeMediaEnv>[0]) {
   const env = createFakeMediaEnv(options);

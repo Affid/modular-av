@@ -1,6 +1,14 @@
-import type { MediaPermissions } from "@modular-av/api";
+import type {
+  AudioEffectDefinition,
+  CameraHold,
+  EffectDefinition,
+  EffectState,
+  MediaPermissions,
+  VideoEffectDefinition,
+} from "@modular-av/api";
 import { errorName } from "../errors.ts";
 import type { GateConfig, MediaEnv } from "./env.ts";
+import { createLocalVideo } from "./local-video.ts";
 import type { Microphone } from "./microphone.ts";
 
 /** A device id, or null to capture nothing of that kind. */
@@ -17,6 +25,8 @@ export interface CaptureErrors {
 
 export interface LocalMediaDeps {
   readonly gate: GateConfig;
+  /** Effects stopped because another of their exclusive group runs now. */
+  readonly onReplaced: (ids: readonly string[]) => void;
   readonly onError: (error: unknown) => void;
 }
 
@@ -28,13 +38,22 @@ export interface LocalMedia {
    * same track while devices and effects change. Its `enabled` is the mute.
    */
   readonly microphone: MediaStreamTrack | null;
+  /** Fail closed: null while a wanted video effect isn't running. */
   readonly camera: MediaStreamTrack | null;
+  readonly cameraHold: CameraHold | null;
   readonly errors: CaptureErrors;
   /** False while the voice gate can't run: the microphone goes out ungated. */
   readonly gateRunning: boolean;
   setGate(config: GateConfig): void;
   /** The gate's open and close transitions. */
   onGate(listener: (open: boolean) => void): () => void;
+  /** The effects that may run, and the ones the player wants on. */
+  setEffects(
+    definitions: readonly EffectDefinition[],
+    wanted: ReadonlySet<string>,
+  ): void;
+  /** Null for an effect that never started here. */
+  effectStatus(id: string): EffectState | null;
   /** Applied at once and to every track captured later. */
   setOutbound(outbound: MediaPermissions): void;
   release(): void;
@@ -57,6 +76,8 @@ export function createLocalMedia(
   let video: Captured | null = null;
   let mic: Microphone | null = null;
   let gate = deps.gate;
+  let audioEffects: readonly AudioEffectDefinition[] = [];
+  let wantedEffects: ReadonlySet<string> = new Set();
   let errors: CaptureErrors = { audio: null, video: null };
   let outbound: MediaPermissions = { audio: false, video: false };
   let listeners: Listeners<void> = [];
@@ -65,13 +86,19 @@ export function createLocalMedia(
   /** Bumped by `release()`: captures from before it are stopped, not kept. */
   let epoch = 0;
 
-  const applyOutbound = (): void => {
-    mic?.setEnabled(outbound.audio);
-    if (video) video.raw.enabled = outbound.video;
-  };
-
   const changed = (): void => {
     for (const { listener } of listeners) listener();
+  };
+  const camera = createLocalVideo({
+    env,
+    onChange: changed,
+    onReplaced: deps.onReplaced,
+    onError: deps.onError,
+  });
+
+  const applyOutbound = (): void => {
+    mic?.setEnabled(outbound.audio);
+    camera.setEnabled(outbound.video);
   };
 
   const load = async (): Promise<Microphone> => {
@@ -80,9 +107,10 @@ export function createLocalMedia(
       env,
       gate,
       onChange: changed,
-      onReplaced: () => undefined,
+      onReplaced: deps.onReplaced,
       onError: deps.onError,
     });
+    created.setEffects(audioEffects, wantedEffects);
     created.onGate((open) => {
       for (const { listener } of gateListeners) listener(open);
     });
@@ -104,6 +132,20 @@ export function createLocalMedia(
     const raw = await env.captureVideo(device);
     raw.enabled = outbound.video;
     return { device, raw };
+  };
+
+  /** The new device joins the chain before the old one stops. */
+  const switchVideo = async (
+    next: PromiseSettledResult<Captured | null>,
+  ): Promise<void> => {
+    const previous = video;
+    video = next.status === "fulfilled" ? next.value : null;
+    errors = {
+      ...errors,
+      video: next.status === "rejected" ? errorName(next.reason) : null,
+    };
+    await camera.setInput(video?.raw ?? null);
+    previous?.raw.stop();
   };
 
   /** The new device joins the chain before the old one stops. */
@@ -134,15 +176,7 @@ export function createLocalMedia(
         if (next.status === "fulfilled") next.value?.raw.stop();
       return;
     }
-    if (wantVideo) {
-      video?.raw.stop();
-      video = nextVideo.status === "fulfilled" ? nextVideo.value : null;
-      errors = {
-        ...errors,
-        video:
-          nextVideo.status === "rejected" ? errorName(nextVideo.reason) : null,
-      };
-    }
+    if (wantVideo) await switchVideo(nextVideo);
     if (wantAudio) await switchAudio(nextAudio);
     applyOutbound();
     changed();
@@ -159,7 +193,10 @@ export function createLocalMedia(
       return audio ? (mic?.output ?? null) : null;
     },
     get camera() {
-      return video?.raw ?? null;
+      return video ? camera.output : null;
+    },
+    get cameraHold() {
+      return video ? camera.hold : null;
     },
     get errors() {
       return errors;
@@ -178,6 +215,25 @@ export function createLocalMedia(
         gateListeners = gateListeners.filter((r) => r !== registration);
       };
     },
+    setEffects(definitions, wanted) {
+      audioEffects = definitions.filter(
+        (d): d is AudioEffectDefinition => d.kind === "audio",
+      );
+      wantedEffects = wanted;
+      mic?.setEffects(audioEffects, wanted);
+      camera.setEffects(
+        definitions.filter(
+          (d): d is VideoEffectDefinition => d.kind === "video",
+        ),
+        wanted,
+      );
+    },
+    effectStatus(id) {
+      const status = audioEffects.some((d) => d.id === id)
+        ? mic?.effectStatus(id)
+        : camera.effectStatus(id);
+      return status ?? null;
+    },
     setOutbound(next) {
       outbound = next;
       applyOutbound();
@@ -190,6 +246,7 @@ export function createLocalMedia(
       audio = null;
       video = null;
       mic?.setInput(null).catch(deps.onError);
+      camera.setInput(null).catch(deps.onError);
       if (had) changed();
     },
     onChange(listener) {

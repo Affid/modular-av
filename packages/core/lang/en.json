@@ -15,6 +15,8 @@
       "noMicrophone": "Voice and video: your microphone can't be used. Check this site's microphone permission in the browser.",
       "noCamera": "Voice and video: your camera can't be used. Check this site's camera permission in the browser.",
       "speakingWhileMuted": "Voice and video: you're muted, so the others can't hear you.",
+      "cameraEffectFailed": "Voice and video: your camera effect failed, so your camera stays off. Turn the effect off to show your camera.",
+      "microphoneEffectFailed": "Voice and video: a microphone effect failed; your microphone goes on without it.",
       "openMic": "Voice and video: voice activity can't run, so your microphone is always on. Mute yourself or use push to talk.",
       "deafened": "Deafened",
       "ended": {

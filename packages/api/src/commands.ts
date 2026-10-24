@@ -2,7 +2,12 @@ import type { MediaPermissions } from "./state.ts";
 import type { ParticipantId } from "./service.ts";
 
 export type CommandErrorCode =
-  "forbidden" | "invalid-argument" | "unknown-participant" | "not-ready";
+  | "forbidden"
+  | "invalid-argument"
+  | "unknown-participant"
+  | "unknown-effect"
+  | "unsupported"
+  | "not-ready";
 
 /**
  * What a failed command throws. `message` is a default English text; UIs
@@ -26,6 +31,13 @@ export interface AVCommands {
   rejoin(): Promise<void>;
   /** Skips the wait while `retrying`. */
   reconnectNow(): Promise<void>;
+  /**
+   * Turns an effect on or off, for this device. One turned on replaces the
+   * running effect of its exclusive group once it runs; the camera is held
+   * from now until a video effect runs. The effect's state tells how
+   * starting went.
+   */
+  setEffectEnabled(effect: string, enabled: boolean): Promise<void>;
   /** GM only: Foundry's `BROADCAST_AUDIO` / `BROADCAST_VIDEO`. */
   setBroadcastPermissions(
     participant: ParticipantId,

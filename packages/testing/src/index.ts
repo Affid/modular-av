@@ -76,3 +76,14 @@ export type {
   FakeGateConfig,
   FakeVoiceGate,
 } from "./media/fake-audio.ts";
+export {
+  createFakeAudioEffect,
+  createFakeVideoEffect,
+} from "./media/fake-effects.ts";
+export type {
+  FakeAudioEffect,
+  FakeAudioEffectInstance,
+  FakeEffectOptions,
+  FakeVideoEffect,
+  FakeVideoEffectInstance,
+} from "./media/fake-effects.ts";
