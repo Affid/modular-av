@@ -182,7 +182,12 @@ export function createEffectRunner<
     }
     starting.then(
       (instance) => {
-        run(definition.id, token, instance);
+        try {
+          run(definition.id, token, instance);
+        } catch (error: unknown) {
+          // E.g. its nodes belong to another context: take it out.
+          fail(definition.id, token, error);
+        }
       },
       (error: unknown) => {
         fail(definition.id, token, error);

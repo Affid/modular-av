@@ -173,10 +173,12 @@ describe("local media", () => {
     });
 
     // Act / Assert
-    await expect(media.acquire(BOTH)).rejects.toThrow(/no audio context/);
+    await media.acquire(BOTH);
+    expect(media.errors.audio).toBe("Error");
     fail = false;
     await media.acquire({ audio: "headset", video: "default" });
     expect(media.microphone).not.toBeNull();
+    expect(media.errors.audio).toBeNull();
   });
 
   it("stops tracks a capture returns after release", async () => {
@@ -406,5 +408,64 @@ describe("the browser's noise suppression", () => {
     await settle();
 
     expect(suppression(env)).toEqual([true]);
+  });
+});
+
+describe("local media after review", () => {
+  const settle = async (): Promise<void> => {
+    for (let i = 0; i < 5; i += 1)
+      await new Promise((resolve) => setTimeout(resolve, 0));
+  };
+
+  it("frees a microphone it couldn't wire, reports why, and still switches the camera", async () => {
+    // Arrange: the capture context can't be made.
+    const env = createFakeMediaEnv();
+    const errors: unknown[] = [];
+    const media = create(
+      {
+        ...env,
+        createCaptureContext: () =>
+          Promise.reject(new DOMException("no 48 kHz", "NotSupportedError")),
+      },
+      errors,
+    );
+
+    // Act
+    await media.acquire(BOTH);
+
+    // Assert
+    expect(media.microphone).toBeNull();
+    expect(media.errors.audio).toBe("NotSupportedError");
+    expect(media.camera).not.toBeNull();
+    expect(errors).toHaveLength(1);
+  });
+
+  it("keeps a device that came back out of the call once released", async () => {
+    const env = createFakeMediaEnv();
+    let resolveUsb: (track: MediaStreamTrack) => void = () => undefined;
+    let holdUsb = false;
+    const media = create({
+      ...env,
+      captureAudio: (id, options) =>
+        holdUsb && id === "usb"
+          ? new Promise((resolve) => {
+              resolveUsb = resolve;
+            })
+          : env.captureAudio(id, options),
+    });
+    env.setUnplugged("audio", "usb", true);
+    await media.acquire({ audio: "usb", video: null });
+    env.setUnplugged("audio", "usb", false);
+    holdUsb = true;
+
+    env.setDevices(FAKE_DEVICES);
+    await settle();
+    media.release();
+    const late = createFakeTrack("audio", "usb");
+    resolveUsb(late);
+    await settle();
+
+    expect(media.microphone).toBeNull();
+    expect(fakeTrackInfo(late).readyState).toBe("ended");
   });
 });

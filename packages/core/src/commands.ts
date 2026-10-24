@@ -31,6 +31,9 @@ const DEVICE_KEYS = {
   audioOutput: "audioSink",
 } as const satisfies Record<DeviceKind, string>;
 
+/** Browsers' device ids are 64 hex characters; "default" is shorter. */
+const MAX_DEVICE_ID = 256;
+
 const isDeviceKind = (kind: unknown): kind is DeviceKind =>
   typeof kind === "string" && Object.hasOwn(DEVICE_KEYS, kind);
 
@@ -100,7 +103,11 @@ export function createCommands(
         throw new AVCommandError("invalid-argument", "No such kind of device", {
           kind: String(kind),
         });
-      if (typeof deviceId !== "string" || deviceId === "")
+      if (
+        typeof deviceId !== "string" ||
+        deviceId === "" ||
+        deviceId.length > MAX_DEVICE_ID
+      )
         throw new AVCommandError("invalid-argument", "A device id is needed");
       const c = controller();
       avSettings(c).set("client", DEVICE_KEYS[kind], deviceId);

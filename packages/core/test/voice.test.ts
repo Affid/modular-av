@@ -380,3 +380,35 @@ describe("input sensitivity", () => {
     });
   });
 });
+
+describe("voice activity after review", () => {
+  it("tells Foundry the player stopped speaking when the microphone goes", async () => {
+    const table = createTable();
+    table.join("gm", { secret: true });
+    const p1 = table.join("p1", { av: ACTIVITY });
+    await table.settle();
+    gateOf(p1).emit(true);
+    await table.settle();
+
+    await p1.api.commands.leave();
+    await table.settle();
+
+    expect(speaking(p1)).toBe(false);
+  });
+
+  it("never shows a deafened player as speaking", async () => {
+    const table = createTable();
+    table.join("gm", { secret: true });
+    const p1 = table.join("p1", { av: ALWAYS });
+    await p1.api.commands.setDeafened(true);
+    await table.settle();
+
+    gateOf(p1).emit(true);
+    await table.settle();
+
+    expect(speaking(p1)).toBe(false);
+    await p1.api.commands.setDeafened(false);
+    await table.settle();
+    expect(speaking(p1)).toBe(true);
+  });
+});

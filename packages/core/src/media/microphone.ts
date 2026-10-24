@@ -68,6 +68,13 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
   let wanted: ReadonlySet<string> = new Set();
   let gateListeners: readonly { readonly listener: (open: boolean) => void }[] =
     [];
+  /** What the gate last said: it can't say "closed" once suspended. */
+  let gateOpen = false;
+  const tellGate = (open: boolean): void => {
+    if (open === gateOpen) return;
+    gateOpen = open;
+    for (const { listener } of gateListeners) listener(open);
+  };
   let queue: Promise<void> = Promise.resolve();
   let disposed = false;
 
@@ -115,9 +122,7 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
       gate = loaded;
       // Changed while the worklet loaded.
       if (config !== requested) loaded.configure(config);
-      loaded.onTransition((open) => {
-        for (const { listener } of gateListeners) listener(open);
-      });
+      loaded.onTransition(tellGate);
       loaded.onError((error) => {
         deps.onError(error);
         dropGate(loaded);
@@ -151,6 +156,7 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
 
   const disconnect = (): void => {
     input = null;
+    tellGate(false);
     if (!parts) return;
     applyEnabled();
     parts.chain.setSource(null);

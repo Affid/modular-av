@@ -364,6 +364,40 @@ describe("effect runner", () => {
     expect(h.runner.status("a").status).toBe("off");
   });
 
+  it("fails an effect whose hand-over throws, instead of leaving it half wired", async () => {
+    const errors: unknown[] = [];
+    let instance: Instance | null = null;
+    const runner = createEffectRunner<RunnableDefinition, Instance>({
+      group: () => null,
+      start: () => {
+        instance = {
+          id: "a",
+          disposed: false,
+          dispose() {
+            this.disposed = true;
+          },
+        };
+        return Promise.resolve(instance);
+      },
+      onRunning: (running) => {
+        if (running.length > 0)
+          throw new DOMException("other context", "InvalidAccessError");
+      },
+      onStatus: vi.fn(),
+      onReplaced: vi.fn(),
+      onError: (error) => errors.push(error),
+    });
+
+    runner.update([definition("a")], wanted("a"));
+    for (let i = 0; i < 5; i += 1) await Promise.resolve();
+
+    expect(runner.status("a")).toEqual({
+      status: "failed",
+      error: "InvalidAccessError",
+    });
+    expect((instance as Instance | null)?.disposed).toBe(true);
+  });
+
   it("reports a non-Error failure as Error", async () => {
     const h = createHarness();
     h.runner.update([definition("a")], wanted("a"));

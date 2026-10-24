@@ -14,11 +14,11 @@ import {
   type DeviceKindOf,
 } from "./device-capture.ts";
 import type { GateConfig, MediaEnv } from "./env.ts";
+import { createLocalVideo } from "./local-video.ts";
+import type { Microphone } from "./microphone.ts";
 
 /** Effects in this group replace the browser's own noise suppression. */
 export const NOISE_SUPPRESSION_GROUP = "noise-suppression";
-import { createLocalVideo } from "./local-video.ts";
-import type { Microphone } from "./microphone.ts";
 
 /** A device id, or null to capture nothing of that kind. */
 export interface DeviceChoice {
@@ -177,8 +177,18 @@ export function createLocalMedia(
       [kind]: next.status === "rejected" ? errorName(next.reason) : null,
     };
     if (captured) watchEnd(kind, captured);
-    await feed(kind, captured?.raw ?? null);
-    previous?.raw.stop();
+    try {
+      await feed(kind, captured?.raw ?? null);
+    } catch (error: unknown) {
+      // Not wired: free the device and say why, rather than keep it open.
+      captured?.raw.stop();
+      if (kind === "audio") audio = null;
+      else video = null;
+      errors = { ...errors, [kind]: errorName(error) };
+      deps.onError(error);
+    } finally {
+      previous?.raw.stop();
+    }
   };
 
   const enqueue = (run: () => Promise<void>): Promise<void> => {
@@ -235,6 +245,7 @@ export function createLocalMedia(
       for (const kind of ["audio", "video"] as const) {
         const fallen = current(kind);
         if (!fallen?.fallback) continue;
+        const started = epoch;
         let raw: MediaStreamTrack;
         try {
           raw = await captureRaw(
@@ -244,6 +255,10 @@ export function createLocalMedia(
             fallen.noiseSuppression,
           );
         } catch {
+          continue;
+        }
+        if (started !== epoch) {
+          raw.stop();
           continue;
         }
         await replace([kind], () =>

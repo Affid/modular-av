@@ -52,9 +52,12 @@ export function createVoiceActivity(deps: VoiceActivityDeps): VoiceActivity {
     }
   };
 
+  /** A deafened player is never shown speaking: nothing is sent. */
+  const heard = (): boolean => rt.gateOpen && !rt.deafened;
+
   const sync = (): void => {
     if (gateDrives()) {
-      if (reported !== rt.gateOpen) report(rt.gateOpen);
+      if (reported !== heard()) report(heard());
       return;
     }
     // Hand back to Foundry's key without leaving "speaking" behind.
@@ -83,7 +86,7 @@ export function createVoiceActivity(deps: VoiceActivityDeps): VoiceActivity {
       // Our own report is not the player's push to talk.
       if (echoing) return;
       rt.intent = intent;
-      if (gateDrives() && intent !== rt.gateOpen)
+      if (gateDrives() && intent !== heard())
         // After Foundry's own broadcast() has finished.
         queueMicrotask(() => {
           reported = null;

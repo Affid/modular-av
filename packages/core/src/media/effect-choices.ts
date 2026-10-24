@@ -38,6 +38,10 @@ export function isEffectSupported(
   }
 }
 
+/** Video effects form one group: one runs at a time. */
+const groupOf = (definition: EffectDefinition): string | null =>
+  definition.kind === "video" ? "video" : (definition.exclusiveGroup ?? null);
+
 export function createEffectChoices(deps: EffectChoicesDeps): EffectChoices {
   const { game, effects, local } = deps;
 
@@ -67,6 +71,11 @@ export function createEffectChoices(deps: EffectChoicesDeps): EffectChoices {
     },
     async setEnabled(id, enabled) {
       const definition = effects.get(id);
+      if (typeof enabled !== "boolean")
+        throw new AVCommandError(
+          "invalid-argument",
+          "enabled must be true or false",
+        );
       if (!definition)
         throw new AVCommandError("unknown-effect", "No such effect", {
           effect: id,
@@ -77,8 +86,20 @@ export function createEffectChoices(deps: EffectChoicesDeps): EffectChoices {
           "This effect can't run in this browser",
           { effect: id },
         );
-      const others = saved().filter((x) => x !== id);
-      // Others of its group stay until it runs: never stop, then start.
+      const group = groupOf(definition);
+      const others = saved().filter((other) => {
+        if (other === id) return false;
+        if (!enabled) return true;
+        const theirs = effects.get(other);
+        // A running one of its group stays until it runs: never stop, then
+        // start. One still starting goes, so it can't replace the newer.
+        return (
+          !theirs ||
+          groupOf(theirs) !== group ||
+          group === null ||
+          local.effectStatus(other)?.status === "running"
+        );
+      });
       await save(enabled ? [...others, id] : others);
     },
     replaced(ids) {

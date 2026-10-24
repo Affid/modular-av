@@ -153,6 +153,35 @@ describe("local video", () => {
     expect(video.hold).toBeNull();
   });
 
+  it("keeps the camera off as failed when its chain can't load, and loads again when asked", async () => {
+    const errors: unknown[] = [];
+    let fail = true;
+    const env = createFakeMediaEnv();
+    const video = createLocalVideo({
+      env,
+      onChange: vi.fn(),
+      onReplaced: vi.fn(),
+      onError: (e) => errors.push(e),
+      loadCamera: () =>
+        fail
+          ? Promise.reject(new Error("chunk 404"))
+          : import("../src/media/camera.ts"),
+    });
+    const blur = blurEffect();
+    await video.setInput(createFakeTrack("video", "cam"));
+
+    video.setEffects([blur.definition], new Set(["blur"]));
+    await flush();
+    const failed = { output: video.output, hold: video.hold };
+    fail = false;
+    video.setEffects([blur.definition], new Set(["blur"]));
+    await flush();
+
+    expect(failed).toEqual({ output: null, hold: "effect-failed" });
+    expect(errors.length).toBeGreaterThan(0);
+    expect(video.effectStatus("blur")?.status).toBe("running");
+  });
+
   it("disposes the chain, even one still loading", async () => {
     const { video } = setup();
     const blur = blurEffect();

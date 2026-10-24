@@ -3,7 +3,7 @@ import type {
   EffectState,
   VideoEffectDefinition,
 } from "@modular-av/api";
-import type { Camera } from "./camera.ts";
+import type { Camera, createCamera } from "./camera.ts";
 import type { MediaEnv } from "./env.ts";
 
 export interface LocalVideoDeps {
@@ -11,6 +11,10 @@ export interface LocalVideoDeps {
   readonly onChange: () => void;
   readonly onReplaced: (ids: readonly string[]) => void;
   readonly onError: (error: unknown) => void;
+  /** Loads the camera chain's code; tests make it fail. */
+  readonly loadCamera?: () => Promise<{
+    readonly createCamera: typeof createCamera;
+  }>;
 }
 
 /**
@@ -36,10 +40,12 @@ export interface LocalVideo {
 export function createLocalVideo(deps: LocalVideoDeps): LocalVideo {
   let raw: MediaStreamTrack | null = null;
   let camera: Camera | null = null;
-  let loading: Promise<Camera> | null = null;
+  let loading: Promise<Camera | null> | null = null;
   let definitions: readonly VideoEffectDefinition[] = [];
   let wanted: ReadonlySet<string> = new Set();
   let enabled = false;
+  /** The camera chain couldn't load: held as failed until it loads. */
+  let loadFailed = false;
   let queue: Promise<void> = Promise.resolve();
   let disposed = false;
 
@@ -64,7 +70,8 @@ export function createLocalVideo(deps: LocalVideoDeps): LocalVideo {
   };
 
   const load = async (): Promise<Camera> => {
-    const { createCamera } = await import("./camera.ts");
+    const { createCamera } = await (deps.loadCamera?.() ??
+      import("./camera.ts"));
     const created = createCamera({
       env: deps.env,
       onChange: changed,
@@ -75,9 +82,11 @@ export function createLocalVideo(deps: LocalVideoDeps): LocalVideo {
       created.dispose();
       return created;
     }
-    await created.setInput(raw);
-    created.setEffects(definitions, wanted);
+    // Before feeding it, so no device change can miss it.
     camera = created;
+    created.setEffects(definitions, wanted);
+    await created.setInput(raw);
+    loadFailed = false;
     changed();
     return created;
   };
@@ -98,7 +107,8 @@ export function createLocalVideo(deps: LocalVideoDeps): LocalVideo {
     get hold() {
       if (!raw) return null;
       if (camera) return camera.hold;
-      return wantsEffect() ? "effect-starting" : null;
+      if (!wantsEffect()) return null;
+      return loadFailed ? "effect-failed" : "effect-starting";
     },
     setEnabled(next) {
       enabled = next;
@@ -108,10 +118,16 @@ export function createLocalVideo(deps: LocalVideoDeps): LocalVideo {
       definitions = nextDefinitions;
       wanted = nextWanted;
       if (camera) camera.setEffects(definitions, wanted);
-      else if (wantsEffect()) {
-        loading ??= load();
-        loading.catch(deps.onError);
-      }
+      else if (wantsEffect())
+        loading ??= load().catch((error: unknown) => {
+          // Tried again with the next change of effects.
+          loading = null;
+          camera = null;
+          loadFailed = true;
+          deps.onError(error);
+          changed();
+          return null;
+        });
       changed();
     },
     effectStatus: (id) => camera?.effectStatus(id) ?? null,

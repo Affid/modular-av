@@ -103,6 +103,57 @@ describe("turning effects on and off", () => {
     expect(savedEffects(p1)).toEqual(["speex"]);
   });
 
+  it("keeps the newest choice of a group, even if the older one starts later", async () => {
+    const table = createTable();
+    const group = { exclusiveGroup: "noise-suppression" };
+    const fast = createFakeAudioEffect("rnnoise", group);
+    let release = (): void => undefined;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    // The older choice takes longer to start than the newer one.
+    const rnnoise = {
+      ...fast.definition,
+      create: async (context: Parameters<typeof fast.definition.create>[0]) => {
+        await held;
+        return fast.definition.create(context);
+      },
+    };
+    const speex = createFakeAudioEffect("speex", group);
+    const p1 = table.join("p1", {
+      av: ALWAYS,
+      effects: [rnnoise, speex.definition],
+    });
+    await table.settle();
+
+    // Both asked for before either runs.
+    await p1.api.commands.setEffectEnabled("rnnoise", true);
+    await p1.api.commands.setEffectEnabled("speex", true);
+    await table.settle();
+    release();
+    await table.settle();
+
+    expect(savedEffects(p1)).toEqual(["speex"]);
+    expect(p1.api.state.get().local.effects.speex?.status).toBe("running");
+  });
+
+  it("checks its arguments", async () => {
+    const table = createTable();
+    const rnnoise = createFakeAudioEffect("rnnoise");
+    const p1 = table.join("p1", { effects: [rnnoise.definition] });
+    await table.settle();
+
+    await expect(
+      p1.api.commands.setEffectEnabled(
+        "rnnoise",
+        "false" as unknown as boolean,
+      ),
+    ).rejects.toMatchObject({ code: "invalid-argument" });
+    await expect(
+      p1.api.commands.setDevice("audioInput", "x".repeat(257)),
+    ).rejects.toMatchObject({ code: "invalid-argument" });
+  });
+
   it("refuses unknown and unsupported effects", async () => {
     const table = createTable();
     const krisp = createFakeAudioEffect("krisp", { supported: false });
