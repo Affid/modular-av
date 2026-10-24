@@ -17,7 +17,7 @@ export interface SignallingDeps {
   /** A user of this world: Foundry's server named the sender. */
   readonly isUser: (user: ParticipantId) => boolean;
   readonly now: () => number;
-  /** A message was malformed, from no user of the world, or one too many. */
+  /** Messages were malformed, from no user of the world, or too many: once per window. */
   readonly onDropped: (user: ParticipantId) => void;
 }
 
@@ -30,28 +30,54 @@ export interface Signalling {
   listen(handler: (signal: Signal, user: ParticipantId) => void): () => void;
 }
 
-export function createSignalling(deps: SignallingDeps): Signalling {
-  let recent = new Map<ParticipantId, readonly number[]>();
+/** One sender's messages in the current fixed window. */
+interface Tally {
+  readonly start: number;
+  readonly count: number;
+  readonly reported: boolean;
+}
 
-  const allow = (user: ParticipantId): boolean => {
-    const since = deps.now() - RATE_LIMIT.windowMs;
-    const times = (recent.get(user) ?? []).filter((t) => t > since);
-    recent = new Map(recent).set(user, [...times, deps.now()]);
-    if (times.length < RATE_LIMIT.messages) return true;
-    // Said once per window, not for every message past the limit.
-    if (times.length === RATE_LIMIT.messages) deps.onDropped(user);
-    return false;
+/**
+ * Counts per sender in fixed windows: constant work per message, however
+ * many arrive, and each sender's drops are reported once per window.
+ */
+function createRateLimit(
+  now: () => number,
+  onDropped: (user: ParticipantId) => void,
+) {
+  let tallies = new Map<ParticipantId, Tally>();
+  const current = (user: ParticipantId): Tally => {
+    const tally = tallies.get(user);
+    const fresh = !tally || now() - tally.start >= RATE_LIMIT.windowMs;
+    return fresh ? { start: now(), count: 0, reported: false } : tally;
   };
+  return {
+    allow(user: ParticipantId): boolean {
+      const tally = current(user);
+      const next = { ...tally, count: tally.count + 1 };
+      tallies = new Map(tallies).set(user, next);
+      return next.count <= RATE_LIMIT.messages;
+    },
+    drop(user: ParticipantId): void {
+      const tally = current(user);
+      if (tally.reported) return;
+      tallies = new Map(tallies).set(user, { ...tally, reported: true });
+      onDropped(user);
+    },
+  };
+}
+
+export function createSignalling(deps: SignallingDeps): Signalling {
+  const limit = createRateLimit(deps.now, deps.onDropped);
 
   const accept = (data: unknown, user: ParticipantId): Signal | null => {
-    if (!deps.isUser(user)) {
-      deps.onDropped(user);
+    if (!deps.isUser(user) || !limit.allow(user)) {
+      limit.drop(user);
       return null;
     }
-    if (!allow(user)) return null;
     const signal = parseSignal(data);
     if (!signal) {
-      deps.onDropped(user);
+      limit.drop(user);
       return null;
     }
     const elsewhere = signal.room !== deps.room || signal.from === deps.session;

@@ -95,6 +95,24 @@ describe("signalling", () => {
     expect(got).toHaveLength(RATE_LIMIT.messages + 1);
   });
 
+  it("reports a sender's dropped messages once per window", async () => {
+    const { hub, make, dropped } = setup();
+    listen(make("bob", "s-b"));
+    const raw = hub.endpoint("alice").channel;
+    const base = { v: 1, room: ROOM, from: "s-a" };
+
+    for (let i = 0; i < RATE_LIMIT.messages + 50; i += 1)
+      raw.send({ ...base, type: i % 2 ? "kick" : "bye" });
+    await vi.advanceTimersByTimeAsync(0);
+    const first = dropped.length;
+    await vi.advanceTimersByTimeAsync(RATE_LIMIT.windowMs);
+    raw.send({ ...base, type: "kick" });
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(first).toBe(1);
+    expect(dropped).toEqual(["alice", "alice"]);
+  });
+
   it("stops delivering once the listener is removed", async () => {
     const { make } = setup();
     const alice = make("alice", "s-a");
