@@ -24,6 +24,11 @@ export const DISCOVERY_MS = 1_000;
 export const LOST_AFTER_MS = 30_000;
 /** How often connected links are rated: well under once a second. */
 export const STATS_EVERY_MS = 5_000;
+/**
+ * When a joining player says hello again: Foundry loses some messages to a
+ * page that just loaded, and a hello the others know brings a new welcome.
+ */
+export const HELLO_AGAIN_MS: readonly number[] = [2_000, 6_000, 15_000];
 
 export interface P2PConnectionDeps {
   readonly channel: Channel;
@@ -60,7 +65,7 @@ interface Live {
   readonly mesh: Mesh;
   readonly health: Health;
   readonly offs: readonly (() => void)[];
-  readonly timer: ReturnType<typeof setInterval>;
+  readonly timers: readonly ReturnType<typeof setTimeout>[];
 }
 
 interface MeshHooks {
@@ -116,7 +121,7 @@ export function createP2PConnection(
     const ending = live;
     live = null;
     if (!ending) return;
-    clearInterval(ending.timer);
+    for (const timer of ending.timers) clearTimeout(timer);
     ending.health.stop();
     for (const off of ending.offs) off();
     ending.mesh.bye();
@@ -275,8 +280,15 @@ function openMesh(
       mesh.userLeft(user);
     }),
   ];
-  const timer = setInterval(() => {
-    mesh.sampleStats().then(hooks.onStats, deps.onError);
-  }, STATS_EVERY_MS);
-  return { mesh, health: createHealth(hooks.health), offs, timer };
+  const timers = [
+    setInterval(() => {
+      mesh.sampleStats().then(hooks.onStats, deps.onError);
+    }, STATS_EVERY_MS),
+    ...HELLO_AGAIN_MS.map((ms) =>
+      setTimeout(() => {
+        mesh.hello();
+      }, ms),
+    ),
+  ];
+  return { mesh, health: createHealth(hooks.health), offs, timers };
 }

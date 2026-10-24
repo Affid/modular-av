@@ -30,6 +30,12 @@ import { rate } from "./stats.ts";
 export const LEAVE_AFTER_MS = 30_000;
 /** A link down this long is started afresh by its impolite side, and again after as long. */
 export const RESET_AFTER_MS = 15_000;
+/**
+ * A new link that hasn't connected by then counts as down: an offer lost
+ * on the way (Foundry loses some right after a page loads) would leave
+ * both sides waiting for an answer forever.
+ */
+export const CONNECT_TIMEOUT_MS = 15_000;
 
 interface Peer {
   readonly presence: Presence;
@@ -231,14 +237,23 @@ export function createMesh(deps: MeshDeps): Mesh {
   }
 
   const addPeer = (presence: Presence): void => {
+    const { user } = presence;
+    const link = openLink(presence, 0);
     setPeer({
       presence,
       epoch: 0,
-      link: openLink(presence, 0),
+      link,
       joined: false,
       emitted: [],
       downSince: null,
       quality: null,
+    });
+    // Cleared once the link connects, like every timer of this peer.
+    addTimer(user, CONNECT_TIMEOUT_MS, () => {
+      const peer = state.peers.get(user);
+      if (peer?.link !== link || peer.downSince !== null) return;
+      setPeer(startDown(peer));
+      deps.onChange();
     });
   };
 

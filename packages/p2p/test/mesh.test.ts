@@ -3,6 +3,7 @@ import { createFakeTrack, FakePeerConnection } from "@modular-av/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createEmitter } from "../src/emitter.ts";
 import {
+  CONNECT_TIMEOUT_MS,
   createMesh,
   LEAVE_AFTER_MS,
   type Mesh,
@@ -230,6 +231,35 @@ describe("the mesh", () => {
     expect(alice.pcs).toHaveLength(2);
     expect(alice.mesh.linkStates()).toEqual(["connected"]);
     expect(alice.events.at(-1)).toBe("quality bob good");
+    expect(joined(alice)).toEqual(["participantJoined bob"]);
+  });
+
+  it("starts afresh a link whose first offer was lost", async () => {
+    // Arrange: bob's first offer never arrives; alice's crosses it and
+    // bob, impolite, ignores it, so both wait for an answer forever.
+    const alice = member("alice", "s-a");
+    const bob = member("bob", "s-b");
+    let lost = 0;
+    hub.drop = (data, user) => {
+      const offer =
+        user === "bob" &&
+        (data as { type?: string }).type === "description" &&
+        lost === 0;
+      if (offer) lost += 1;
+      return offer;
+    };
+    alice.mesh.hello();
+    bob.mesh.hello();
+    await settle();
+    const stuck = alice.mesh.linkStates();
+
+    // Act
+    await vi.advanceTimersByTimeAsync(CONNECT_TIMEOUT_MS + RESET_AFTER_MS);
+    await settle();
+
+    // Assert
+    expect(stuck).toEqual(["connecting"]);
+    expect(alice.mesh.linkStates()).toEqual(["connected"]);
     expect(joined(alice)).toEqual(["participantJoined bob"]);
   });
 

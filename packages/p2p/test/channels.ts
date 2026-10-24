@@ -11,6 +11,8 @@ export interface ChannelHub {
   readonly sent: readonly { readonly user: string; readonly data: unknown }[];
   /** While true, nothing is delivered (and nothing is kept). */
   paused: boolean;
+  /** Messages it returns true for are lost, as Foundry may lose early ones. */
+  drop: ((data: unknown, user: string) => boolean) | null;
 }
 
 interface Endpoint {
@@ -24,13 +26,14 @@ export function createChannelHub(): ChannelHub {
   const hub: ChannelHub = {
     sent: [],
     paused: false,
+    drop: null,
     endpoint(user) {
       const id = next++;
       endpoints = new Map(endpoints).set(id, { user, handlers: [] });
       const channel: Channel = {
         send(data, options) {
           (hub.sent as { user: string; data: unknown }[]).push({ user, data });
-          if (hub.paused) return;
+          if (hub.paused || hub.drop?.(data, user)) return;
           const copy = structuredClone(data);
           const targets = [...endpoints].filter(([other, e]) =>
             options?.recipients

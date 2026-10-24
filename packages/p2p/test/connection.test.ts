@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createP2PConnection,
   DISCOVERY_MS,
+  HELLO_AGAIN_MS,
   LOST_AFTER_MS,
   STATS_EVERY_MS,
 } from "../src/connection.ts";
@@ -130,6 +131,35 @@ describe("joining", () => {
     expect([alice.errors, bob.errors]).toEqual([[], []]);
   });
 
+  it("says hello again, so a lost welcome still ends in a link", async () => {
+    const alice = player("alice");
+    await join(alice);
+    hub.drop = (data, user) =>
+      user === "alice" && (data as { type?: string }).type === "welcome";
+    const bob = player("bob");
+    await join(bob);
+    hub.drop = null;
+
+    await settle(Math.max(...HELLO_AGAIN_MS));
+
+    expect(bob.events).toContain("participantJoined alice");
+    expect(alice.events).toContain("participantJoined bob");
+  });
+
+  it("counts a player whose welcome came late against the cap", async () => {
+    cap = 2;
+    await join(player("alice", 100));
+    await join(player("bob", 200));
+    hub.drop = (data) => (data as { type?: string }).type === "welcome";
+    const carol = player("carol", 300);
+    await join(carol);
+    hub.drop = null;
+
+    await settle(Math.max(...HELLO_AGAIN_MS));
+
+    expect(states(carol).at(-1)).toBe("state failed full");
+  });
+
   it("turns away a player past the cap for good, never a GM", async () => {
     cap = 2;
     await join(player("alice"));
@@ -158,6 +188,12 @@ describe("joining", () => {
     const bob = player("bob", 200);
     await join(alice);
     await join(bob);
+    const carol = player("carol", 250);
+    const refused = carol.connection
+      .connect(ROOM, null, new AbortController().signal)
+      .catch((error: unknown) => error);
+    await settle();
+    expect(await refused).toMatchObject({ serviceError: { code: "full" } });
 
     await join(player("gm", 300));
 
