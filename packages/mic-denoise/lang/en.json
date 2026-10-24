@@ -1,0 +1,9 @@
+{
+  "modular-av-mic-denoise": {
+    "models": {
+      "rnnoise": "RNNoise (recommended)",
+      "speex": "Speex",
+      "gtcrn": "GTCRN"
+    }
+  }
+}

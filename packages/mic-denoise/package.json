@@ -1,0 +1,32 @@
+{
+  "name": "@modular-av/mic-denoise",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Modular A/V effect module: microphone noise cancellation with RNNoise, Speex and GTCRN.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p test/browser"
+  },
+  "dependencies": {
+    "@modular-av/api": "workspace:*",
+    "@sapphi-red/web-noise-suppressor": "0.4.1"
+  },
+  "devDependencies": {
+    "@modular-av/testing": "workspace:*"
+  },
+  "modularAV": {
+    "entryBudgetBytes": 8000,
+    "assets": {
+      "models/rnnoise-worklet.js": "@sapphi-red/web-noise-suppressor/rnnoiseWorklet.js",
+      "models/rnnoise.wasm": "@sapphi-red/web-noise-suppressor/rnnoise.wasm",
+      "models/rnnoise_simd.wasm": "@sapphi-red/web-noise-suppressor/rnnoise_simd.wasm",
+      "models/speex-worklet.js": "@sapphi-red/web-noise-suppressor/speexWorklet.js",
+      "models/speex.wasm": "@sapphi-red/web-noise-suppressor/speex.wasm",
+      "models/gtcrn-worklet.js": "@sapphi-red/web-noise-suppressor/gtcrnWorklet.js",
+      "models/gtcrn.wasm": "@sapphi-red/web-noise-suppressor/gtcrn.wasm"
+    }
+  }
+}

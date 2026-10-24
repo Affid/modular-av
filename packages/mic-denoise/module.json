@@ -1,0 +1,16 @@
+{
+  "id": "modular-av-mic-denoise",
+  "title": "Modular A/V: Noise cancellation",
+  "description": "Removes background noise from your microphone with RNNoise, Speex or GTCRN, run in your browser. Pick a model in the voice and video settings.",
+  "authors": [{ "name": "Andrei Fedorov", "url": "https://github.com/Affid" }],
+  "url": "https://github.com/Affid/modular-av",
+  "bugs": "https://github.com/Affid/modular-av/issues",
+  "license": "LICENSE",
+  "compatibility": { "minimum": "14", "verified": "14.369" },
+  "esmodules": ["modular-av-mic-denoise.js"],
+  "languages": [{ "lang": "en", "name": "English", "path": "lang/en.json" }],
+  "relationships": {
+    "requires": [{ "id": "modular-av", "type": "module" }]
+  },
+  "flags": { "modular-av": { "kind": "effect" } }
+}
