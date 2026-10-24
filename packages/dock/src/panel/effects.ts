@@ -12,28 +12,47 @@ type Effects = LocalState["effects"];
 
 const OFF: EffectState = { status: "off", error: null };
 
-/** What the player chose in a group: the one starting, else the one running. */
+/**
+ * What the player chose in a group: the one starting, else the one
+ * running, else one that failed (kept chosen, so its failure shows).
+ */
 export function chosenInGroup(
   group: readonly EffectDefinition[],
   effects: Effects,
 ): string {
   const of = (status: EffectState["status"]) =>
     group.find((d) => effects[d.id]?.status === status)?.id;
-  return of("starting") ?? of("running") ?? "";
+  return of("starting") ?? of("running") ?? of("failed") ?? "";
 }
 
-/** "On", "Starting…", "Failed"… and the cost, for one effect. */
+const costText = (ctx: DockContext, d: EffectDefinition): string =>
+  ctx.t(`effects.cost-${d.cost}`);
+
+/** Why an effect failed, in words, if the dock has words for its error. */
+function reasonText(ctx: DockContext, error: string | null): string | null {
+  if (!error) return null;
+  const key = `effects.errors.${error}`;
+  const text = ctx.t(key);
+  return text.endsWith(key) ? null : text;
+}
+
+/** "On", "Starting…", "Failed: …"… and the cost, for one effect. */
 function stateText(
   ctx: DockContext,
   d: EffectDefinition,
   effects: Effects,
 ): string {
   const status = effects[d.id] ?? OFF;
-  const state = ctx.t(
-    `effects.${status.status === "off" ? "none" : status.status}`,
-  );
-  return `${state} · ${ctx.t(`effects.cost-${d.cost}`)}`;
+  const reason =
+    status.status === "failed" ? reasonText(ctx, status.error) : null;
+  const state = reason
+    ? ctx.t("effects.failedBecause", { reason })
+    : ctx.t(`effects.${status.status === "off" ? "none" : status.status}`);
+  return `${state} · ${costText(ctx, d)}`;
 }
+
+const isOn = (status: EffectState | undefined): boolean =>
+  status?.status === "starting" || status?.status === "running";
 
 function groupLabel(ctx: DockContext, group: string): string {
   const key = `effects.group-${group}`;
@@ -60,11 +79,20 @@ function groupRow(
     children: [
       el("option", { doc, text: ctx.t("effects.none"), attrs: { value: "" } }),
       ...group.map((d) =>
-        el("option", { doc, text: ctx.text(d.label), attrs: { value: d.id } }),
+        el("option", {
+          doc,
+          text: `${ctx.text(d.label)} · ${costText(ctx, d)}`,
+          attrs: { value: d.id },
+        }),
       ),
     ],
   });
   const state = el("span", { doc, className: "mav-effect-state" });
+  const hint = el("p", {
+    doc,
+    className: "mav-settings-hint",
+    text: ctx.t("effects.heavyHint"),
+  });
   select.addEventListener("change", () => {
     const value = select.value;
     const effects = ctx.api.state.get().local.effects;
@@ -75,24 +103,37 @@ function groupRow(
         : ctx.api.commands.setEffectEnabled(current, false),
     );
   });
+  const element = el("div", {
+    doc,
+    className: "mav-control",
+    attrs: { "data-control": "choice" },
+    children: [
+      el("label", { doc, text: groupLabel(ctx, name), attrs: { for: id } }),
+      select,
+      state,
+      hint,
+    ],
+  });
   return {
-    element: el("div", {
-      doc,
-      className: "mav-control",
-      attrs: { "data-control": "choice" },
-      children: [
-        el("label", { doc, text: groupLabel(ctx, name), attrs: { for: id } }),
-        select,
-        state,
-      ],
-    }),
+    element,
     render(effects) {
       const chosen = chosenInGroup(group, effects);
       select.value = chosen;
       const definition = group.find((d) => d.id === chosen);
       state.textContent = definition ? stateText(ctx, definition, effects) : "";
-      for (const option of select.options)
-        option.disabled = effects[option.value]?.status === "unsupported";
+      hint.hidden =
+        !definition ||
+        definition.cost === "light" ||
+        !isOn(effects[definition.id]);
+      for (const option of select.options) {
+        const status = effects[option.value]?.status;
+        option.disabled = status === "unsupported";
+        // Not offered by the call's service (e.g. Krisp off LiveKit Cloud).
+        option.hidden = status === "unavailable";
+      }
+      element.hidden = group.every(
+        (d) => effects[d.id]?.status === "unavailable",
+      );
     },
   };
 }
@@ -111,23 +152,21 @@ function switchRow(
   });
   const state = el("span", { doc, className: "mav-effect-state" });
   button.addEventListener("click", () => {
-    const status = ctx.api.state.get().local.effects[d.id]?.status ?? "off";
-    const on = status === "starting" || status === "running";
+    const on = isOn(ctx.api.state.get().local.effects[d.id]);
     run(ctx, alerts, () => ctx.api.commands.setEffectEnabled(d.id, !on));
   });
+  const element = el("div", {
+    doc,
+    className: "mav-control",
+    attrs: { "data-control": "toggle" },
+    children: [button, state],
+  });
   return {
-    element: el("div", {
-      doc,
-      className: "mav-control",
-      attrs: { "data-control": "toggle" },
-      children: [button, state],
-    }),
+    element,
     render(effects) {
       const status = effects[d.id]?.status ?? "off";
-      button.setAttribute(
-        "aria-checked",
-        String(status === "starting" || status === "running"),
-      );
+      element.hidden = status === "unavailable";
+      button.setAttribute("aria-checked", String(isOn(effects[d.id])));
       button.disabled = status === "unsupported";
       button.toggleAttribute("aria-busy", status === "starting");
       state.textContent = stateText(ctx, d, effects);
