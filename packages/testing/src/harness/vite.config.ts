@@ -47,6 +47,16 @@ function fileOf(files: ModuleFiles | undefined, path: string): string | null {
   return file.startsWith(files.pub + sep) && existsSync(file) ? file : null;
 }
 
+/** Whether the page asked for this module file to fail. */
+function isBroken(referer: string | undefined, path: string): boolean {
+  if (!referer) return false;
+  const params = new URL(referer).searchParams;
+  if (params.get("gate") === "broken" && path.endsWith("voice-gate.js"))
+    return true;
+  const prefix = params.get("broken");
+  return prefix !== null && prefix !== "" && path.startsWith(prefix);
+}
+
 /**
  * Serves `/modules/<id>/<path>` as Foundry would from the built module: the
  * package's copied assets and its `public/`.
@@ -61,12 +71,10 @@ function moduleFiles(): Plugin {
           req.url?.split("?")[0] ?? "",
         );
         const files = match?.[1] ? dirs.get(match[1]) : undefined;
-        // A page opened with ?gate=broken can't load the voice gate: the
-        // core shows "open mic" in voice activity mode.
-        if (
-          req.headers.referer?.includes("gate=broken") &&
-          match?.[2]?.endsWith("voice-gate.js")
-        ) {
+        // A page opened with ?gate=broken can't load the voice gate (the
+        // core shows "open mic" in voice activity mode); with
+        // ?broken=<path> none of the files under that path loads.
+        if (match?.[2] && isBroken(req.headers.referer, match[2])) {
           res.statusCode = 404;
           res.end();
           return;
