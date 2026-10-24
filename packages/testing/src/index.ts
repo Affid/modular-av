@@ -110,3 +110,17 @@ export {
 export type { FakeDescription, FakeStats } from "./rtc/fake-peer-connection.ts";
 export { createFakeDocumentPip } from "./windows/fake-pip.ts";
 export type { FakeDocumentPip, FakePipOptions } from "./windows/fake-pip.ts";
+export {
+  avState,
+  localState,
+  participantState,
+  sessionState,
+} from "./state/fixtures.ts";
+export { createFakeApi } from "./api/fake-api.ts";
+export type {
+  Attachment,
+  CommandCall,
+  FakeApi,
+  FakeApiOptions,
+  MeterSubscription,
+} from "./api/fake-api.ts";

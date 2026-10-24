@@ -36,6 +36,16 @@ function moduleFiles(): Plugin {
           req.url?.split("?")[0] ?? "",
         );
         const dir = match?.[1] ? dirs.get(match[1]) : undefined;
+        // A page opened with ?gate=broken can't load the voice gate: the
+        // core shows "open mic" in voice activity mode.
+        if (
+          req.headers.referer?.includes("gate=broken") &&
+          match?.[2]?.endsWith("voice-gate.js")
+        ) {
+          res.statusCode = 404;
+          res.end();
+          return;
+        }
         const file = dir && match?.[2] ? normalize(join(dir, match[2])) : null;
         if (!dir || !file?.startsWith(dir + sep) || !existsSync(file)) {
           next();

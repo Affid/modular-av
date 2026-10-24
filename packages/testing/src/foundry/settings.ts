@@ -41,9 +41,17 @@ export interface FakeSettingMenu {
   readonly restricted: boolean;
 }
 
+/** A registration as `game.settings.settings` holds it. */
+export interface RegisteredSetting extends FakeSettingConfig {
+  readonly namespace: string;
+  readonly key: string;
+}
+
 export interface FakeSettings {
   /** Foundry registers "core.webrtc" (its A/V settings) before `init`. */
   readonly menus: Map<string, FakeSettingMenu>;
+  /** Every registration, by "<namespace>.<key>". */
+  readonly settings: ReadonlyMap<string, RegisteredSetting>;
   register(namespace: string, key: string, config: FakeSettingConfig): void;
   get(namespace: string, key: string): unknown;
   set(namespace: string, key: string, value: unknown): Promise<unknown>;
@@ -115,6 +123,21 @@ export function createSettings(
         },
       ],
     ]),
+    get settings() {
+      return new Map(
+        [...configs].map(([full, config]) => {
+          const dot = full.indexOf(".");
+          return [
+            full,
+            {
+              ...config,
+              namespace: full.slice(0, dot),
+              key: full.slice(dot + 1),
+            },
+          ] as const;
+        }),
+      );
+    },
     register(namespace, key, config) {
       if (!SCOPES.includes(config.scope)) {
         throw new Error(`Invalid setting scope "${config.scope}"`);

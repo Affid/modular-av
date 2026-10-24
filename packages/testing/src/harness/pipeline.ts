@@ -9,7 +9,7 @@ import type {
   VideoEffect,
   VideoEffectDefinition,
 } from "@modular-av/api";
-import { createMockServiceHub } from "../service/hub.ts";
+import { createMockServiceHub, type MockServiceHub } from "../service/hub.ts";
 
 /** What the published tracks are, by source, as the service was told. */
 export type PublishedTracks = Partial<
@@ -85,6 +85,17 @@ const gainEffect: AudioEffectDefinition = {
   },
 };
 
+/** Never starts: its state goes to "failed", for UIs to show. */
+const failingEffect: AudioEffectDefinition = {
+  id: "test-fail",
+  kind: "audio",
+  label: "Test failing",
+  stage: "post",
+  cost: "light",
+  isSupported: () => true,
+  create: () => Promise.reject(new Error("The test effect always fails")),
+};
+
 /** Passes the camera's frames through, unless told to stall. */
 function passEffect(stall: () => boolean): VideoEffectDefinition {
   return {
@@ -150,16 +161,17 @@ function passEffect(stall: () => boolean): VideoEffectDefinition {
 export function installPipeline(
   hooks: { on(name: string, fn: (api: ModularAV) => void): unknown },
   params: URLSearchParams,
+  hub: MockServiceHub = createMockServiceHub(),
 ): PipelineControls {
   const published = new Map<TrackSource, MediaStreamTrack>();
   let stalled = false;
-  const hub = createMockServiceHub();
   hooks.on("modularAV.register", (api) => {
     if (params.get("service") === "mock")
       api.services.register(recordingService(hub.definition(), published));
     if (params.get("effects") === "test") {
       api.effects.register(gainEffect);
       api.effects.register(passEffect(() => stalled));
+      api.effects.register(failingEffect);
     }
   });
   return {

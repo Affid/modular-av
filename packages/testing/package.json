@@ -10,7 +10,8 @@
     "./harness": "./src/harness/types.ts",
     "./harness/service": "./src/harness/service-types.ts",
     "./harness/relay": "./src/harness/relay-channel.ts",
-    "./contract": "./src/contract/service-contract.ts"
+    "./contract": "./src/contract/service-contract.ts",
+    "./contract/ui": "./src/contract/ui-contract.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
