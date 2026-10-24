@@ -2,6 +2,7 @@ import type {
   CaptureContext,
   GateConfig,
   GateLevel,
+  SignalProbe,
   VoiceGateNode,
 } from "./env.ts";
 
@@ -100,6 +101,27 @@ function createGateNode(
   };
 }
 
+const PROBE_SAMPLES = 2048;
+
+/** An analyser, pulled by the context even with nothing connected after it. */
+function createProbe(context: AudioContext): SignalProbe {
+  const analyser = context.createAnalyser();
+  analyser.fftSize = PROBE_SAMPLES;
+  const samples = new Float32Array(PROBE_SAMPLES);
+  return {
+    node: analyser,
+    peak() {
+      analyser.getFloatTimeDomainData(samples);
+      let peak = 0;
+      for (const sample of samples) peak = Math.max(peak, Math.abs(sample));
+      return peak;
+    },
+    dispose() {
+      analyser.disconnect();
+    },
+  };
+}
+
 /** The real capture context; `workletUrl` resolves a file in `public/`. */
 export function createBrowserCaptureContext(
   workletUrl: (path: string) => string,
@@ -136,6 +158,7 @@ export function createBrowserCaptureContext(
       }
       return createGateNode(context, config);
     },
+    createProbe: () => createProbe(context),
     get running() {
       return context.state === "running";
     },

@@ -105,3 +105,49 @@ test("in detect mode a closed gate still sends the microphone", async ({
   expect(run.transitions).toEqual([]);
   expect(run.outputPeak).toBeGreaterThan(0.01);
 });
+
+test("a probe reads the microphone's peak, and exactly 0 for digital silence", async ({
+  page,
+}) => {
+  await page.goto("/?module=core");
+  await page.waitForFunction(() => window.harness !== undefined);
+
+  const peaks = await page.evaluate(
+    async ({ modulePath }) => {
+      const { createBrowserCaptureContext } = (await import(modulePath)) as {
+        createBrowserCaptureContext: typeof CreateCapture;
+      };
+      const capture = createBrowserCaptureContext(
+        (path) => `/modules/modular-av/${path}`,
+      );
+      await capture.resume();
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const [mic] = stream.getAudioTracks();
+      if (!mic) throw new Error("no fake microphone");
+      const source = capture.createSource(mic);
+      const muted = capture.audioContext.createGain();
+      muted.gain.value = 0;
+      source.connect(muted);
+      const heard = capture.createProbe();
+      const silent = capture.createProbe();
+      source.connect(heard.node);
+      muted.connect(silent.node);
+      let micPeak = 0;
+      let silentPeak = 0;
+      const until = performance.now() + 2500;
+      while (performance.now() < until) {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        micPeak = Math.max(micPeak, heard.peak());
+        silentPeak = Math.max(silentPeak, silent.peak());
+      }
+      heard.dispose();
+      silent.dispose();
+      mic.stop();
+      return { micPeak, silentPeak };
+    },
+    { modulePath: CAPTURE_MODULE },
+  );
+
+  expect(peaks.micPeak).toBeGreaterThan(0.001);
+  expect(peaks.silentPeak).toBe(0);
+});

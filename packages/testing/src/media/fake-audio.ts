@@ -21,6 +21,8 @@ export interface FakeAudioGraph {
   readonly log: readonly string[];
   /** Whether audio entering `from` reaches `to`. */
   reaches(from: AudioNode, to: AudioNode): boolean;
+  /** Whether `from` is connected straight to `to`. */
+  feeds(from: AudioNode, to: AudioNode): boolean;
 }
 
 export interface FakeGateLevel {
@@ -49,12 +51,23 @@ export interface FakeVoiceGate {
   fail(error: unknown): void;
 }
 
+/** A tap that reads a signal's peak; tests say what it hears. */
+export interface FakeSignalProbe {
+  readonly node: AudioNode;
+  /** Linear, 0 to 1: exactly 0 for digital silence. */
+  peak(): number;
+  dispose(): void;
+  setPeak(peak: number): void;
+  readonly disposed: boolean;
+}
+
 export interface FakeCaptureContext {
   readonly audioContext: AudioContext;
   readonly output: MediaStreamTrack;
   readonly destination: AudioNode;
   createSource(track: MediaStreamTrack): AudioNode;
   createGate(config: FakeGateConfig): Promise<FakeVoiceGate>;
+  createProbe(): FakeSignalProbe;
   readonly running: boolean;
   onRunningChange(listener: (running: boolean) => void): () => void;
   resume(): Promise<void>;
@@ -62,6 +75,9 @@ export interface FakeCaptureContext {
 
   readonly graph: FakeAudioGraph;
   readonly gates: readonly FakeVoiceGate[];
+  readonly probes: readonly FakeSignalProbe[];
+  /** The probe `node` is connected to, if any. */
+  probeFedBy(node: AudioNode): FakeSignalProbe | undefined;
   /** The source node made for each microphone track, in order. */
   readonly sources: readonly { track: MediaStreamTrack; node: AudioNode }[];
   /** Makes `createGate` reject with this error, or succeed again with null. */
@@ -120,6 +136,7 @@ export function createFakeAudioGraph(): FakeAudioGraph {
       return log;
     },
     reaches,
+    feeds: (from, to) => edges.some(([a, b]) => a === from && b === to),
   };
 }
 
@@ -186,6 +203,25 @@ function createFakeGate(
   };
 }
 
+function createFakeProbe(graph: FakeAudioGraph): FakeSignalProbe {
+  const node = graph.node("probe");
+  let peak = 0;
+  let disposed = false;
+  return {
+    node,
+    peak: () => peak,
+    dispose() {
+      disposed = true;
+    },
+    setPeak(next) {
+      peak = next;
+    },
+    get disposed() {
+      return disposed;
+    },
+  };
+}
+
 export function createFakeCaptureContext(): FakeCaptureContext {
   const graph = createFakeAudioGraph();
   const destination = graph.node("destination");
@@ -195,6 +231,7 @@ export function createFakeCaptureContext(): FakeCaptureContext {
     createGain: () => graph.node("gain"),
   } as unknown as AudioContext;
   let gates: readonly FakeVoiceGate[] = [];
+  let probes: readonly FakeSignalProbe[] = [];
   let sources: readonly { track: MediaStreamTrack; node: AudioNode }[] = [];
   let gateError: Error | null = null;
   let running = false;
@@ -222,6 +259,11 @@ export function createFakeCaptureContext(): FakeCaptureContext {
       gates = [...gates, gate];
       return Promise.resolve(gate);
     },
+    createProbe() {
+      const probe = createFakeProbe(graph);
+      probes = [...probes, probe];
+      return probe;
+    },
     get running() {
       return running;
     },
@@ -243,6 +285,11 @@ export function createFakeCaptureContext(): FakeCaptureContext {
     get gates() {
       return gates;
     },
+    get probes() {
+      return probes;
+    },
+    probeFedBy: (node) =>
+      probes.find((p) => !p.disposed && graph.feeds(node, p.node)),
     get sources() {
       return sources;
     },

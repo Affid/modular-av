@@ -33,6 +33,8 @@ export interface EffectRunner<D extends RunnableDefinition> {
   /** The effects that may run now, and the ones the player wants on. */
   update(definitions: readonly D[], wanted: ReadonlySet<string>): void;
   status(id: string): EffectState;
+  /** Takes out a running (or starting) effect, as its own `fail` would. */
+  fail(id: string, error: unknown): void;
   dispose(): void;
 }
 
@@ -241,6 +243,10 @@ export function createEffectRunner<
       if (slot.kind === "failed")
         return { status: "failed", error: slot.error };
       return { status: slot.kind, error: null };
+    },
+    fail(id, error) {
+      const token = tokenOf(slots.get(id));
+      if (token) fail(id, token, error);
     },
     dispose() {
       if (disposed) return;

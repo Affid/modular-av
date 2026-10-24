@@ -89,6 +89,7 @@ export type {
   FakeCaptureContext,
   FakeGateConfig,
   FakeGateLevel,
+  FakeSignalProbe,
   FakeVoiceGate,
 } from "./media/fake-audio.ts";
 export {

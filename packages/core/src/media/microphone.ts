@@ -10,6 +10,7 @@ import {
   type AudioChain,
 } from "./audio-chain.ts";
 import { createEffectRunner, type EffectRunner } from "./effect-runner.ts";
+import { createStallWatchdog, type StallWatchdog } from "./stall-watchdog.ts";
 import type {
   CaptureContext,
   GateConfig,
@@ -57,6 +58,7 @@ interface Parts {
   readonly capture: CaptureContext;
   readonly chain: AudioChain;
   readonly runner: EffectRunner<AudioEffectDefinition>;
+  readonly watchdog: StallWatchdog;
 }
 
 const OFF: EffectState = { status: "off", error: null };
@@ -90,27 +92,32 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
 
   const createParts = (capture: CaptureContext): Parts => {
     const chain = createAudioChain(capture);
-    const runner = createEffectRunner<AudioEffectDefinition, AudioEffect>({
+    // Created before the runner, whose effects it watches.
+    let runner: EffectRunner<AudioEffectDefinition> | null = null;
+    const watchdog = createStallWatchdog(capture, (id, error) => {
+      runner?.fail(id, error);
+    });
+    runner = createEffectRunner<AudioEffectDefinition, AudioEffect>({
       group: (d) => d.exclusiveGroup ?? null,
       start: (d, context) =>
         d.create({ ...context, audioContext: capture.audioContext }),
       onRunning(running) {
-        chain.setEffects(
-          orderByStage(
-            running.flatMap(({ id, instance }) => {
-              const definition = definitions.find((d) => d.id === id);
-              return definition
-                ? [{ id, stage: definition.stage, ...nodesOf(instance) }]
-                : [];
-            }),
-          ),
+        const effects = orderByStage(
+          running.flatMap(({ id, instance }) => {
+            const definition = definitions.find((d) => d.id === id);
+            return definition
+              ? [{ id, stage: definition.stage, ...nodesOf(instance) }]
+              : [];
+          }),
         );
+        chain.setEffects(effects);
+        watchdog.setEffects(effects.filter((e) => e.stage === "denoise"));
       },
       onStatus: deps.onChange,
       onReplaced: deps.onReplaced,
       onError: deps.onError,
     });
-    return { capture, chain, runner };
+    return { capture, chain, runner, watchdog };
   };
 
   const dropGate = (broken: VoiceGateNode): void => {
@@ -169,6 +176,7 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
     input = track;
     applyEnabled();
     parts.chain.setSource(track);
+    parts.watchdog.setSource(parts.chain.source);
     applyEffects();
     // Not awaited: under an autoplay policy, resuming waits for a gesture.
     parts.capture.resume().catch(deps.onError);
@@ -180,6 +188,7 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
     if (!parts) return;
     applyEnabled();
     parts.chain.setSource(null);
+    parts.watchdog.setSource(null);
     applyEffects();
     parts.capture.suspend().catch(deps.onError);
   };
@@ -237,6 +246,7 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
       input = null;
       if (!parts) return;
       parts.runner.dispose();
+      parts.watchdog.dispose();
       parts.chain.dispose();
       gate?.dispose();
       gate = null;

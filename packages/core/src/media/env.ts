@@ -97,6 +97,15 @@ export interface VoiceGateNode {
   dispose(): void;
 }
 
+/** A tap in the capture context that reads a signal's peak. */
+export interface SignalProbe {
+  /** Connect what to read into this; it outputs nothing. */
+  readonly node: AudioNode;
+  /** Of the last few tens of ms, linear, 0 to 1: exactly 0 for digital silence. */
+  peak(): number;
+  dispose(): void;
+}
+
 /**
  * The core's one capture `AudioContext` (48 kHz) and the end of the
  * microphone chain. Its output track is the microphone the service gets:
@@ -110,6 +119,7 @@ export interface CaptureContext {
   readonly destination: AudioNode;
   createSource(track: MediaStreamTrack): AudioNode;
   createGate(config: GateConfig): Promise<VoiceGateNode>;
+  createProbe(): SignalProbe;
   /** Whether audio flows; browsers may keep a context suspended. */
   readonly running: boolean;
   onRunningChange(listener: (running: boolean) => void): () => void;
