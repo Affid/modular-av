@@ -163,9 +163,16 @@ export class FakePeerConnection extends EventTarget {
     return [...this.#transceivers];
   }
 
-  setLocalDescription(): Promise<void> {
+  setLocalDescription(description?: {
+    readonly type: "rollback";
+  }): Promise<void> {
     if (this.signalingState === "closed")
       return Promise.reject(invalidState("closed"));
+    if (description?.type === "rollback") {
+      if (this.signalingState === "have-local-offer") this.#rollback();
+      this.#queueNegotiation();
+      return Promise.resolve();
+    }
     if (this.signalingState === "have-remote-offer") this.#answer();
     else this.#offer();
     this.#trickle();

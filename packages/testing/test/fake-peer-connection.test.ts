@@ -68,6 +68,23 @@ describe("FakePeerConnection", () => {
     expect(own.mid).toBeNull();
   });
 
+  it("rolls back its own offer on request and asks to negotiate again", async () => {
+    const pc = new FakePeerConnection();
+    const line = pc.addTransceiver("audio", { direction: "sendonly" });
+    await pc.setLocalDescription();
+    const needed = record(pc, "negotiationneeded");
+
+    await pc.setLocalDescription({ type: "rollback" });
+    await turns();
+
+    expect([pc.signalingState, line.mid, pc.localDescription]).toEqual([
+      "stable",
+      null,
+      null,
+    ]);
+    expect(needed).toHaveLength(1);
+  });
+
   it("asks to negotiate again for new lines and changed directions", async () => {
     const a = new FakePeerConnection();
     const b = new FakePeerConnection();
