@@ -273,9 +273,16 @@ export class FakePeerConnection extends EventTarget {
     );
   }
 
+  /** Media ids are unique across both sides, as in browsers. */
+  #freeMid(): string {
+    const used = new Set(this.#transceivers.map((t) => t.mid));
+    while (used.has(String(this.#nextMid))) this.#nextMid += 1;
+    return String(this.#nextMid++);
+  }
+
   #offer(): void {
     this.#pendingMids = this.#transceivers.filter((t) => t.mid === null);
-    for (const t of this.#pendingMids) t.mid = String(this.#nextMid++);
+    for (const t of this.#pendingMids) t.mid = this.#freeMid();
     if (this.#restartPending) this.#ufrag = `u${String(nextUfrag++)}`;
     const sdp: FakeSdp = {
       ufrag: this.#ufrag,
@@ -376,7 +383,8 @@ export class FakePeerConnection extends EventTarget {
       sdpMid: "0",
       sdpMLineIndex: 0,
     };
-    queueMicrotask(() => {
+    // Gathered after the description is out, as in browsers.
+    setTimeout(() => {
       if (this.signalingState === "closed") return;
       this.dispatchEvent(
         Object.assign(new Event("icecandidate"), {
@@ -386,7 +394,7 @@ export class FakePeerConnection extends EventTarget {
       this.dispatchEvent(
         Object.assign(new Event("icecandidate"), { candidate: null }),
       );
-    });
+    }, 0);
   }
 
   #setConnection(state: RTCPeerConnectionState): void {
