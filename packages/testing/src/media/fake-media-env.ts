@@ -1,4 +1,8 @@
 import { createFakeTrack } from "../service/fake-track.ts";
+import {
+  createFakeCaptureContext,
+  type FakeCaptureContext,
+} from "./fake-audio.ts";
 
 /**
  * A stand-in for the core's `MediaEnv` (packages/core/src/media/env.ts),
@@ -34,7 +38,10 @@ export interface FakeMediaEnv {
   showVideo(element: HTMLVideoElement, stream: MediaStream | null): void;
   watchRemoval(element: HTMLVideoElement, onRemoved: () => void): () => void;
   onOnline(listener: () => void): () => void;
+  createCaptureContext(): Promise<FakeCaptureContext>;
 
+  /** Every capture context created, in order. */
+  readonly captureContexts: readonly FakeCaptureContext[];
   /** Device ids captured, in order, as `"audio:<id>"` / `"video:<id>"`. */
   readonly captures: readonly string[];
   readonly outputs: readonly FakeAudioOutput[];
@@ -98,6 +105,7 @@ export function createFakeMediaEnv(
   let shown = new Map<HTMLVideoElement, MediaStream | null>();
   let removalWatchers = new Map<HTMLVideoElement, readonly (() => void)[]>();
   let onlineListeners: readonly (() => void)[] = [];
+  let captureContexts: readonly FakeCaptureContext[] = [];
 
   const capture = (
     kind: "audio" | "video",
@@ -138,6 +146,14 @@ export function createFakeMediaEnv(
       return () => {
         onlineListeners = onlineListeners.filter((l) => l !== listener);
       };
+    },
+    createCaptureContext() {
+      const context = createFakeCaptureContext();
+      captureContexts = [...captureContexts, context];
+      return Promise.resolve(context);
+    },
+    get captureContexts() {
+      return captureContexts;
     },
     get captures() {
       return captures;

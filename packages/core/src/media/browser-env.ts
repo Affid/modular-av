@@ -82,7 +82,10 @@ function createRemovalWatcher(): MediaEnv["watchRemoval"] {
   };
 }
 
-export function createBrowserMediaEnv(): MediaEnv {
+/** `assetUrl` resolves a file of the core's `public/` directory. */
+export function createBrowserMediaEnv(
+  assetUrl: (path: string) => string,
+): MediaEnv {
   return {
     captureAudio: (deviceId) => capture("audio", deviceId),
     captureVideo: (deviceId) => capture("video", deviceId),
@@ -98,6 +101,12 @@ export function createBrowserMediaEnv(): MediaEnv {
       return () => {
         window.removeEventListener("online", listener);
       };
+    },
+    // Only needed once a microphone is captured: kept out of the entry.
+    async createCaptureContext() {
+      const { createBrowserCaptureContext } =
+        await import("./browser-capture.ts");
+      return createBrowserCaptureContext(assetUrl);
     },
   };
 }

@@ -66,3 +66,13 @@ export type {
   FakeMediaEnv,
   FakeMediaEnvOptions,
 } from "./media/fake-media-env.ts";
+export {
+  createFakeAudioGraph,
+  createFakeCaptureContext,
+} from "./media/fake-audio.ts";
+export type {
+  FakeAudioGraph,
+  FakeCaptureContext,
+  FakeGateConfig,
+  FakeVoiceGate,
+} from "./media/fake-audio.ts";

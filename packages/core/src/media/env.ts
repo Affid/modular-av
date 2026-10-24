@@ -15,6 +15,49 @@ export interface MediaEnv {
   watchRemoval(element: HTMLVideoElement, onRemoved: () => void): () => void;
   /** The browser's `online` event. */
   onOnline(listener: () => void): () => void;
+  /** The one capture context; call once and keep it. Loads its code lazily. */
+  createCaptureContext(): Promise<CaptureContext>;
+}
+
+/** "gate" silences the microphone while closed; "detect" only reports. */
+export type GateMode = "gate" | "detect";
+
+export interface GateConfig {
+  readonly mode: GateMode;
+  /** Follow the background noise, or use `threshold` (dBFS). */
+  readonly auto: boolean;
+  readonly threshold: number;
+}
+
+/** The voice gate worklet (public/worklets/voice-gate.js) in the context. */
+export interface VoiceGateNode {
+  readonly node: AudioNode;
+  configure(config: GateConfig): void;
+  /** Open and close transitions only. */
+  onTransition(listener: (open: boolean) => void): () => void;
+  /** The worklet stopped working: it no longer gates anything. */
+  onError(listener: (error: unknown) => void): () => void;
+  dispose(): void;
+}
+
+/**
+ * The core's one capture `AudioContext` (48 kHz) and the end of the
+ * microphone chain. Its output track is the microphone the service gets:
+ * the same track for the context's whole life, whatever the chain does.
+ */
+export interface CaptureContext {
+  /** Given to audio effects. */
+  readonly audioContext: AudioContext;
+  readonly output: MediaStreamTrack;
+  /** Where the chain ends. */
+  readonly destination: AudioNode;
+  createSource(track: MediaStreamTrack): AudioNode;
+  createGate(config: GateConfig): Promise<VoiceGateNode>;
+  /** Whether audio flows; browsers may keep a context suspended. */
+  readonly running: boolean;
+  onRunningChange(listener: (running: boolean) => void): () => void;
+  resume(): Promise<void>;
+  suspend(): Promise<void>;
 }
 
 /** Plays one remote audio track. */

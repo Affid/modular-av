@@ -73,8 +73,9 @@ export function foundryModuleConfig(packageDir: string): UserConfig {
   }
   return {
     root: packageDir,
-    // Foundry serves module files itself; Vite must not copy a public dir.
-    publicDir: false,
+    // Files Foundry serves as they are (worklets, models) go in `public/`,
+    // copied to `dist/` and resolved at run time with `api.assetUrl`.
+    publicDir: join(packageDir, "public"),
     build: {
       outDir: "dist",
       emptyOutDir: true,
