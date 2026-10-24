@@ -485,19 +485,25 @@ interface ModularAV {
 ### Plugin interfaces (sketch)
 
 ```ts
+// As built in milestones 2 and 4 (packages/api/src/service.ts). Services
+// register their own Foundry settings.
 interface ServiceDefinition {
-  id: string; // "livekit"
+  id: string; // "livekit", "p2p"
   label: string;
-  settings: SettingsSchema; // world settings (GM) — never secrets
-  secrets?: SettingsSchema; // GM-device only (client scope)
-  signToken?(request: TokenRequest, secrets: unknown): Promise<string>; // runs on the GM's client
+  needsToken(): boolean; // false: no GM relay, connect() gets null (P2P)
+  canSignTokens?(): boolean; // this device holds the GM's secret
+  signToken?(request: TokenRequest): Promise<string>; // runs on the GM's client
   mediaOwnership: "core" | "service"; // "service": the service makes its own tracks
   create(context: ServiceContext): Promise<ServiceConnection>; // lazy: import() the SDK here
 }
 
 interface ServiceConnection {
   readonly capabilities: Observable<ServiceCapabilities>; // reported once connected (e.g. Krisp only on Cloud)
-  connect(room: RoomSpec, token: string, signal: AbortSignal): Promise<void>;
+  connect(
+    room: RoomSpec,
+    token: string | null,
+    signal: AbortSignal,
+  ): Promise<void>;
   disconnect(reason: "user" | "switching" | "unload"): Promise<void>;
   publish(
     track: MediaStreamTrack,
@@ -534,7 +540,10 @@ interface RemoteTrack {
 
 // ServiceEvents: state ("connected" | "resuming" | "lost" | "failed", with a
 // ServiceError), participant joined/left, track added/removed (RemoteTrack),
-// speaking (if the service detects it), quality, token expiring.
+// speaking (if the service detects it), quality (per participant, shown as
+// ParticipantState.quality), token expiring. participantJoined means a media
+// path to them is up: entering the room on a server, the link in a mesh;
+// trackAdded for someone comes after their participantJoined.
 
 interface ServiceError {
   code:
@@ -1197,3 +1206,129 @@ Foundry 14.369, Chromium from Playwright 1.64, livekit-server 1.13.8):
   (milestone 5; the worklet already reports levels on request); a capture
   context at 48 kHz fed by a 44.1 kHz microphone may fail in Firefox
   (mixed sample rates), unchecked.
+
+## 12. Findings from milestone 4
+
+Verified while building and testing `modular-av-p2p` (core and P2P,
+Foundry 14.369, Chromium from Playwright 1.64, coturn 4.7.0):
+
+- **The mesh as built**: one `RTCPeerConnection` per other player, the W3C
+  "perfect negotiation" pattern (the smaller user id is polite), each side
+  sending on its own two lines (microphone, camera). It announces which
+  media id is for which source, and which of them carry a track, with
+  each description (so they apply together) and on its own when a track
+  comes or goes, which needs no renegotiation. `replaceTrack` changes no
+  line; `unpublish` sends nothing on the line and says so; `setMuted` does
+  nothing (the core's disabled track already sends silence or black). A
+  side receives only on lines the other announced and it accepts: every
+  other line, and every line `setSubscription(false)`
+  refused (GM blocks, a player's own mute or hide), is negotiated
+  inactive, so that media never arrives at all, which is the enforcement a
+  mesh has. Offers may carry 8 audio or video lines at most and no data
+  channel. The camera's share of the upload (2.4 Mbps across the links,
+  150 to 800 kbps each, half size past 4 links) is applied after each
+  negotiation. The connection code is a lazy chunk; the entry is about 5
+  KB.
+- **Signalling** goes over the core's socket (channel `p2p`): `hello` to
+  everyone, `welcome` back, then descriptions, candidates and source lists
+  to one session, `bye` on leaving. Every message names a session (one per
+  connection) and, for a link, an epoch; the sender must be a user of the
+  world, and each user may send 200 messages per 10 s (counted in fixed
+  windows, so a flood costs a constant amount per message). No token and
+  no GM:
+  Foundry's server names every sender and the rights are Foundry's
+  permissions, so `ServiceDefinition.needsToken()` is false.
+- **"Connected" for a mesh**: `connect()` resolves after listening for a
+  second (being alone counts); a participant joins once the link to them
+  is up. The service reports `resuming` while links are down and none is
+  up (most likely the player's own network) and `lost` after 30 s of that.
+  A single broken link shows as that participant's quality "lost"; its
+  impolite side starts a new link (the next epoch) after 15 s, and after
+  45 s the player is dropped (they left, and no longer hold a cap slot)
+  and sent a hello, which brings them back if they are still there: a
+  known hello while the link is down starts it afresh. The other side may
+  make this side rebuild a link once per 5 s at most. A GM's change to a
+  player's rights doesn't rebuild the call (the core rejoins only for
+  services with tokens).
+- **Cap**: `maxParticipants` (default 6, 2 to 10) counts everyone; GMs are
+  always let in. Everyone ranks the call the same way (GMs first, then the
+  earliest join, then the user id) and a player past the cap leaves with
+  `full` (final), also when a GM's arrival pushes them out. The join time
+  is the sender's own clock and kept across reconnects of a page; a
+  modified client could claim an early place (the trust model accepts it).
+- **The same player in two tabs**: the newer session wins; the older one
+  sees its hello and ends with `duplicate`. Foundry delivers a message
+  with `recipients` to every tab of those users, the sender's own tabs
+  too, and one without them to every other tab, so tabs of one user hear
+  each other.
+- **Foundry's socket**: a disconnect of more than 5 s reloads the page
+  when the socket comes back, and its client gives up after 10 tries;
+  the server notices a vanished client only after its ping timeout (10
+  minutes), but a closed tab at once (`userConnected` false). So a
+  signalling outage is either short or ends the page; the outage that
+  matters to a mesh is the media path, which ICE handles.
+- **A page that just loaded handles socket messages late**: without a
+  GPU, a Foundry page is busy for tens of seconds after `ready`, and
+  messages sent to it in that time reach its handlers 30 to 45 s late, in
+  one burst. So a joining player's second of listening ends before it has
+  read any welcome; it joins, then counts the others (and leaves if past
+  the cap) once it reads them. Messages are really lost when Foundry's
+  socket reconnects (the server doesn't keep what it sends meanwhile), so
+  a joining player says hello again after 2, 6 and 15 s (a known hello
+  brings a new welcome), a link that hasn't connected 15 s after it was
+  made counts as down and is started afresh, and when Foundry's socket
+  connects again every link says its sources again and withdraws an offer
+  still waiting for its answer (`setLocalDescription({ type: "rollback"
+  })`, after which the browser asks for a new one). Foundry also replays the
+  socket events it buffered before `ready` to every listener, so the
+  core's channel handler (registered at `init`) can see such a message
+  twice; P2P isn't listening before its session starts, so it doesn't
+  matter there, but a channel used before `ready` must expect repeats.
+- **TURN**: Foundry's `world.turn` is `server` (no relay of the GM's own:
+  Foundry's SimplePeer client then uses SimplePeer's public STUN servers,
+  which are P2P's default too) or `custom` (one TURN URL with a user name
+  and password). P2P follows a change of it, and of its own STUN and relay
+  settings, with `setConfiguration` and an ICE restart on every link.
+  Foundry keeps the TURN password in a world setting every player can
+  read, so anyone at the table can use that relay for anything: the same
+  class of problem as the LiveKit secret (§7). A later option: the GM's
+  device holds coturn's `static-auth-secret` and the relay signs
+  short-lived TURN credentials per player (`needsToken()` is a function so
+  that mode can switch it on).
+- **Chrome leaves loopback out of a page's ICE candidates once the page
+  may use the camera or microphone**, so a TURN server on 127.0.0.1 is
+  unreachable from Foundry pages (it worked from a blank page). The test
+  configs pass `--allow-loopback-in-peer-connection`. Docker Desktop's
+  container addresses aren't reachable from WSL, and publishing coturn on
+  the LAN address would open the relay to the network.
+- **coturn in Docker** relays between its own allocations when its relay
+  sockets bind to 127.0.0.1 inside the container (`--relay-ip=127.0.0.1
+  --allow-loopback-peers`), so with everything relayed only port 3478 is
+  published. It answers STUN a while after its log says it started: the
+  test setup waits for a binding response.
+- **Test tooling**: `@modular-av/testing` has a fake `RTCPeerConnection`
+  (signalling states with implicit rollback, media ids unique across both
+  sides, `negotiationneeded` and candidates as tasks, as in browsers) and
+  the harness's Vite server relays signalling between pages the way
+  Foundry's socket does. Under Vitest's fake timers a zero timeout set
+  inside a timer is due a millisecond later. The P2P contract runs in the
+  browser tier with direct links (no server), and relayed through coturn
+  in `pnpm test:services`, where pausing coturn is the 20 s outage. In
+  the Foundry suite four pages at once don't load within a minute without
+  a GPU: a test closes a page it no longer needs before opening another.
+- **API changes**: `ServiceDefinition.needsToken()`; `connect(room, token:
+  string | null, signal)`; `ParticipantState.quality` from the service's
+  `quality` event; what `participantJoined` means, in the `ServiceEvents`
+  docs. The service contract takes `auth: "none"`, has a three-player
+  test, and its harness page can publish a track again. The core rejoins
+  on a rights change only when the service needs tokens. The plain status
+  for `full` now says to rejoin when someone leaves.
+- **Not done yet**: screen share in P2P (`publish` refuses it: it needs a
+  line per source added by renegotiation); `maxQuality` is ignored (the
+  core doesn't send it yet); `getStats` per participant (milestone 5's
+  connection details); GM-signed TURN credentials; the event emitter is
+  copied in the mock, LiveKit and P2P (a shared runtime helper would break
+  "`api` is types only"). The reviews' remaining notes: a malicious
+  player's candidates can make others probe any address (inherent to
+  WebRTC), hello and bye tell every user in the world who joins, and a
+  player past the cap may show briefly to the others before leaving.
