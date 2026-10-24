@@ -26,8 +26,13 @@ test("two players who join at the same moment link once and hear each other", as
 
   // Assert
   expect(joined).toEqual([{ ok: true }, { ok: true }]);
-  await expect.poll(() => alice.level("bob")).toBeGreaterThan(0.01);
-  await expect.poll(() => bob.level("alice")).toBeGreaterThan(0.01);
+  // Each reading listens for 1.5 s: allow a few while the offers settle.
+  await expect
+    .poll(() => alice.level("bob"), { timeout: 15_000 })
+    .toBeGreaterThan(0.01);
+  await expect
+    .poll(() => bob.level("alice"), { timeout: 15_000 })
+    .toBeGreaterThan(0.01);
   const joins = (await alice.events()).filter(
     (e) => e.type === "participantJoined",
   );

@@ -125,11 +125,30 @@ export async function openGm(
   return gm;
 }
 
+/** Foundry's relay setting: "server" means none of the GM's own. */
+export interface TurnSetting {
+  readonly type: "server" | "custom";
+  readonly url: string;
+  readonly username: string;
+  readonly password: string;
+}
+
+export const NO_TURN: TurnSetting = {
+  type: "server",
+  url: "",
+  username: "",
+  password: "",
+};
+
 /**
- * Turns A/V on for the world with the LiveKit service. Changing the mode
- * takes effect for clients that load afterwards (Foundry asks for a reload).
+ * Turns A/V on for the world with `service`, and no relay server of the
+ * GM's own. Changing the mode or the service takes effect for clients that
+ * load afterwards (Foundry asks for a reload).
  */
-export async function configureWorld(browser: Browser): Promise<void> {
+export async function configureWorld(
+  browser: Browser,
+  service: "livekit" | "p2p" = "livekit",
+): Promise<void> {
   const gm = await openPlayer(browser, "Gamemaster");
   await gm.run(
     async (_api, game, config) => {
@@ -137,11 +156,12 @@ export async function configureWorld(browser: Browser): Promise<void> {
       await game.settings.set("core", "rtcWorldSettings", {
         ...world,
         mode: config.mode,
+        turn: config.turn,
       });
       await game.settings.set("modular-av-livekit", "serverUrl", config.url);
-      await game.settings.set("modular-av", "service", "livekit");
+      await game.settings.set("modular-av", "service", config.service);
     },
-    { mode: AUDIO_VIDEO, url: livekitTarget().url },
+    { mode: AUDIO_VIDEO, url: livekitTarget().url, service, turn: NO_TURN },
   );
   await gm.close();
 }

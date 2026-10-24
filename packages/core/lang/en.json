@@ -24,7 +24,7 @@
         "kicked": "You were removed from the voice and video call.",
         "roomClosed": "The voice and video call was closed.",
         "auth": "The voice and video service refused to let you in. Ask the GM to check the service settings.",
-        "full": "The voice and video call is full.",
+        "full": "The voice and video call is full. Rejoin when someone leaves.",
         "unsupported": "This browser can't join the voice and video call.",
         "noService": "No voice and video service module is enabled in this world."
       },
