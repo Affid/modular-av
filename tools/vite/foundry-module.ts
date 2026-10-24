@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Plugin, UserConfig } from "vite";
+import { readAssets } from "../assets/assets.ts";
 import {
   disallowed,
   packageDirs,
@@ -60,6 +61,17 @@ function foundryFiles(packageDir: string, version: string): Plugin {
   };
 }
 
+/** Copies the files listed in `modularAV.assets` from their packages. */
+function packageAssets(packageDir: string): Plugin {
+  return {
+    name: "modular-av:package-assets",
+    generateBundle() {
+      for (const [fileName, file] of readAssets(packageDir))
+        this.emitFile({ type: "asset", fileName, source: readFileSync(file) });
+    },
+  };
+}
+
 /** Vite config for a package that builds into a Foundry module in `dist/`. */
 export function foundryModuleConfig(packageDir: string): UserConfig {
   const manifest = readJson(join(packageDir, "module.json"));
@@ -96,6 +108,6 @@ export function foundryModuleConfig(packageDir: string): UserConfig {
         cssFileName: id,
       },
     },
-    plugins: [foundryFiles(packageDir, version)],
+    plugins: [foundryFiles(packageDir, version), packageAssets(packageDir)],
   };
 }

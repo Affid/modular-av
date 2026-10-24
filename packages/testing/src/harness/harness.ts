@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 // Browser test harness: installs a fake Foundry as page globals, loads the
-// module named in ?module=<package dir> from source (the core first, for
-// any other module) and runs Foundry's startup hooks. With
+// modules named in ?module=<package dir>[,<package dir>…] from source (the
+// core first) and runs Foundry's startup hooks. With
 // ?players=p1,p2 the other players run as cores in the same page; with
 // ?sample=1 a sample plugin contributes one item of each kind. Tests read
 // window.harness.
@@ -55,7 +55,10 @@ async function start(): Promise<Harness> {
     params.get("sample") === "1"
       ? installSamplePlugin(client.Hooks, client.game.settings)
       : undefined;
-  const dirs = dir === "core" ? ["core"] : ["core", dir];
+  const dirs = [
+    "core",
+    ...dir.split(",").filter((d) => d !== "" && d !== "core"),
+  ];
   for (const d of dirs) {
     const load = entries[`../../../${d}/src/index.ts`];
     if (!load) return { client, ready: false, error: `No package "${d}"` };
