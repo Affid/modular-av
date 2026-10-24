@@ -61,10 +61,11 @@ const toLinkMessage = (signal: Linking): LinkMessage => {
       type: "description",
       description: signal.description,
       sources: signal.sources,
+      sending: signal.sending,
     };
   if (signal.type === "candidate")
     return { type: "candidate", candidate: signal.candidate };
-  return { type: "sources", sources: signal.sources };
+  return { type: "sources", sources: signal.sources, sending: signal.sending };
 };
 
 /** A link's message; a newer epoch means the other side started afresh. */

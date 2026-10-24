@@ -6,6 +6,7 @@ import {
   type OutgoingSource,
   type OutgoingTracks,
   type OwnLines,
+  ownSending,
   ownSources,
   type RemoteSourceTrack,
   remoteLines,
@@ -23,13 +24,18 @@ export type {
 } from "./link-lines.ts";
 
 export type LinkMessage =
-  | {
+  | ({
       readonly type: "description";
       readonly description: SessionDescription;
-      readonly sources: SourceMap;
-    }
+    } & Announcement)
   | { readonly type: "candidate"; readonly candidate: CandidateInit | null }
-  | { readonly type: "sources"; readonly sources: SourceMap };
+  | ({ readonly type: "sources" } & Announcement);
+
+/** A side's lines by media id, and which of their sources carry a track. */
+export interface Announcement {
+  readonly sources: SourceMap;
+  readonly sending: readonly TrackSource[];
+}
 
 /** `down`: the path broke; ICE may still recover it. */
 export type LinkState = "connecting" | "connected" | "down" | "closed";
@@ -94,6 +100,7 @@ interface LinkFields {
   state: LinkState;
   tracks: OutgoingTracks;
   remoteSources: SourceMap;
+  remoteSending: readonly TrackSource[];
   refused: ReadonlySet<TrackSource>;
   /** The sources last said, to say them once per change. */
   sentSources: string | null;
@@ -121,13 +128,22 @@ const limit = (p: Parts): Promise<void> =>
     ? limitSender(p.own.bySource.get("camera"), p.s.limits)
     : Promise.resolve();
 
+/** What this side says about its lines, and remembers having said. */
+function announce(p: Parts): Announcement {
+  const announcement = {
+    sources: ownSources(p.own),
+    sending: ownSending(p.own, p.s.tracks),
+  };
+  p.s.sentSources = JSON.stringify(announcement);
+  return announcement;
+}
+
 /** Says this side's sources, once per change unless `again`. */
 function saySources(p: Parts, again = false): void {
-  const sources = ownSources(p.own, p.s.tracks);
-  const key = JSON.stringify(sources);
-  if (key === p.s.sentSources && !again) return;
-  p.s.sentSources = key;
-  p.send({ type: "sources", sources });
+  const before = p.s.sentSources;
+  const announcement = announce(p);
+  if (p.s.sentSources === before && !again) return;
+  p.send({ type: "sources", ...announcement });
 }
 
 function negotiate(p: Parts): Negotiation {
@@ -139,12 +155,10 @@ function negotiate(p: Parts): Negotiation {
         p.send({ type: "candidate", candidate: message.candidate });
         return;
       }
-      const sources = ownSources(p.own, p.s.tracks);
-      p.s.sentSources = JSON.stringify(sources);
       p.send({
         type: "description",
         description: message.description,
-        sources,
+        ...announce(p),
       });
     },
     onDescriptionApplied: () => {
@@ -182,6 +196,7 @@ function createParts(deps: LinkDeps): Parts {
     state: STATES[deps.pc.connectionState],
     tracks: deps.tracks,
     remoteSources: {},
+    remoteSending: [],
     refused: new Set(),
     sentSources: null,
     totals: { lost: 0, received: 0 },
@@ -221,6 +236,7 @@ function receive(
   }
   // Known before the description applies, so its lines start right.
   p.s.remoteSources = message.sources;
+  p.s.remoteSending = message.sending;
   if (message.type === "description") {
     void negotiation.receiveDescription(message.description);
     return;
@@ -251,10 +267,9 @@ function linkApi(p: Parts, negotiation: Negotiation): Link {
       directions(p);
     },
     remoteTracks: () =>
-      remoteLines(pc, p.own, p.s.remoteSources).map(({ source, track }) => ({
-        source,
-        track,
-      })),
+      remoteLines(pc, p.own, p.s.remoteSources)
+        .filter(({ source }) => p.s.remoteSending.includes(source))
+        .map(({ source, track }) => ({ source, track })),
     limitVideo(limits) {
       p.s.limits = limits;
       return limit(p);

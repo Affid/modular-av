@@ -118,6 +118,24 @@ describe("a link", () => {
     expect(impolite.link.remoteTracks()[0]?.track).toBe(before);
   });
 
+  it("keeps a line open while its track comes and goes, without renegotiating", async () => {
+    const { polite, impolite, sent } = pair();
+    await settle();
+    const descriptions = (): number =>
+      sent.filter(([, m]) => m.type === "description").length;
+    const before = descriptions();
+
+    await polite.link.setTrack("camera", createFakeTrack("video"));
+    await settle();
+    const shown = sources(impolite);
+    await polite.link.setTrack("camera", null);
+    await settle();
+
+    expect(shown).toEqual(["camera:video"]);
+    expect(sources(impolite)).toEqual([]);
+    expect(descriptions()).toBe(before);
+  });
+
   it("refuses a source by negotiating it inactive, and keeps listing it", async () => {
     // Arrange
     const { polite, impolite } = pair({
@@ -175,6 +193,7 @@ describe("a link", () => {
         [remoteAudio?.mid ?? "x"]: "camera",
         [own?.mid ?? "y"]: "microphone",
       },
+      sending: ["camera", "microphone"],
     });
     // Right away: the next description brings the real sources back.
 

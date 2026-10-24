@@ -51,13 +51,23 @@ export function createOwnLines(
   return { bySource, all: new Set(bySource.values()) };
 }
 
-/** The lines with a media id and a track, by media id. */
-export function ownSources(own: OwnLines, tracks: OutgoingTracks): SourceMap {
+/** This side's negotiated lines, by media id, whether they carry a track. */
+export function ownSources(own: OwnLines): SourceMap {
   return Object.fromEntries(
     OUTGOING.flatMap(({ source }) => {
       const mid = own.bySource.get(source)?.mid;
-      return mid && tracks[source] ? [[mid, source]] : [];
+      return mid ? [[mid, source]] : [];
     }),
+  );
+}
+
+/** The negotiated lines that carry a track now. */
+export function ownSending(
+  own: OwnLines,
+  tracks: OutgoingTracks,
+): readonly OutgoingSource[] {
+  return OUTGOING.flatMap(({ source }) =>
+    own.bySource.get(source)?.mid && tracks[source] ? [source] : [],
   );
 }
 

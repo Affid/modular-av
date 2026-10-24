@@ -23,6 +23,7 @@ describe("parseSignal", () => {
           sdp: "v=0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\n",
         },
         sources: { "0": "microphone" },
+        sending: ["microphone"],
       },
       {
         ...base,
@@ -43,6 +44,7 @@ describe("parseSignal", () => {
         to: "s-bob",
         epoch: 1,
         sources: { "0": "microphone", "1": "camera" },
+        sending: [],
       },
       { ...base, type: "bye" },
       { ...base, type: "bye", to: "s-bob" },
@@ -257,6 +259,38 @@ describe("parseSignal", () => {
           sdpMLineIndex: 0,
           usernameFragment: 5,
         },
+      },
+    ],
+    [
+      "a source sent that has no line",
+      {
+        ...base,
+        type: "sources",
+        to: "s-b",
+        epoch: 0,
+        sources: { "0": "microphone" },
+        sending: ["camera"],
+      },
+    ],
+    [
+      "a source sent twice",
+      {
+        ...base,
+        type: "sources",
+        to: "s-b",
+        epoch: 0,
+        sources: { "0": "microphone" },
+        sending: ["microphone", "microphone"],
+      },
+    ],
+    [
+      "sources without what is sent",
+      {
+        ...base,
+        type: "sources",
+        to: "s-b",
+        epoch: 0,
+        sources: { "0": "microphone" },
       },
     ],
     [

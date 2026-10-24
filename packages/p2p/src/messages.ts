@@ -68,6 +68,7 @@ export interface Description extends Base {
   readonly epoch: number;
   readonly description: SessionDescription;
   readonly sources: Readonly<Record<string, TrackSource>>;
+  readonly sending: readonly TrackSource[];
 }
 
 export interface Candidate extends Base {
@@ -78,12 +79,17 @@ export interface Candidate extends Base {
   readonly candidate: CandidateInit | null;
 }
 
-/** What the sender sends on which of its media lines, by media id. */
+/**
+ * The source each of the sender's media lines is for, by media id, and
+ * which of them carry a track now: a line is announced once, whether its
+ * track comes and goes.
+ */
 export interface Sources extends Base {
   readonly type: "sources";
   readonly to: string;
   readonly epoch: number;
   readonly sources: Readonly<Record<string, TrackSource>>;
+  readonly sending: readonly TrackSource[];
 }
 
 /** Leaving: to one session, or without `to` to everyone. */
@@ -173,6 +179,18 @@ function parseSources(
   return Object.fromEntries(entries) as Record<string, TrackSource>;
 }
 
+/** The sources with a track: each one once, each one a line's. */
+function parseSending(
+  value: unknown,
+  sources: Readonly<Record<string, TrackSource>>,
+): readonly TrackSource[] | null {
+  if (!Array.isArray(value) || value.length > MAX_SOURCES) return null;
+  const lines = Object.values(sources);
+  const valid = value.every((source) => lines.includes(source as TrackSource));
+  if (!valid || new Set(value).size !== value.length) return null;
+  return value as TrackSource[];
+}
+
 /** Fields of the messages to one session. */
 function parseAddressed(value: Fields, base: Base): Signal | null {
   const { to, epoch } = value;
@@ -185,8 +203,17 @@ function parseAddressed(value: Fields, base: Base): Signal | null {
   if (value.type === "description") {
     const description = parseDescription(value.description);
     const sources = parseSources(value.sources);
-    return description && sources
-      ? { ...base, type: "description", to, epoch, description, sources }
+    const sending = sources && parseSending(value.sending, sources);
+    return description && sources && sending
+      ? {
+          ...base,
+          type: "description",
+          to,
+          epoch,
+          description,
+          sources,
+          sending,
+        }
       : null;
   }
   if (value.type === "candidate") {
@@ -196,7 +223,10 @@ function parseAddressed(value: Fields, base: Base): Signal | null {
       : { ...base, type: "candidate", to, epoch, candidate };
   }
   const sources = parseSources(value.sources);
-  return sources ? { ...base, type: "sources", to, epoch, sources } : null;
+  const sending = sources && parseSending(value.sending, sources);
+  return sources && sending
+    ? { ...base, type: "sources", to, epoch, sources, sending }
+    : null;
 }
 
 const ADDRESSED = new Set(["welcome", "description", "candidate", "sources"]);

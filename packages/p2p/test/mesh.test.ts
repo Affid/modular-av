@@ -339,6 +339,7 @@ describe("the mesh", () => {
         to: "s-a",
         epoch: 0,
         sources: {},
+        sending: [],
       },
       "bob",
     );
