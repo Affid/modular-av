@@ -88,6 +88,7 @@ describe("deafened badges", () => {
       deafened: true,
       canBroadcast: { audio: true, video: true },
       volume: 1,
+      quality: null,
     };
     const state = {
       ...INITIAL_STATE,

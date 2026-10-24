@@ -1,4 +1,5 @@
 import type {
+  ConnectionQuality,
   DeviceList,
   MediaPermissions,
   ParticipantId,
@@ -27,6 +28,7 @@ export interface Runtime {
   capabilities: ServiceCapabilities | null;
   connected: ReadonlySet<ParticipantId>;
   speaking: ReadonlyMap<ParticipantId, boolean>;
+  quality: ReadonlyMap<ParticipantId, ConnectionQuality>;
   /** The local player's rights when last applied: a change needs a new token. */
   rights: MediaPermissions | null;
   devices: DeviceList;
@@ -57,6 +59,7 @@ export function createRuntime(deafened: boolean): Runtime {
     capabilities: null,
     connected: new Set(),
     speaking: new Map(),
+    quality: new Map(),
     rights: null,
     devices: NO_DEVICES,
   };

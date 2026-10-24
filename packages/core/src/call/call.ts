@@ -103,6 +103,7 @@ function connectionTracker(
     if (!connection) {
       rt.connected = new Set();
       rt.speaking = new Map();
+      rt.quality = new Map();
       remote.clear();
       deps.renderDock();
     }
@@ -149,11 +150,16 @@ export function createCall(deps: CallDeps): Session {
       participantLeft: (id) => {
         rt.connected = new Set([...rt.connected].filter((p) => p !== id));
         rt.speaking = new Map([...rt.speaking].filter(([p]) => p !== id));
+        rt.quality = new Map([...rt.quality].filter(([p]) => p !== id));
         remote.removeParticipant(id);
         deps.renderDock();
       },
       speaking: (id, speaking) => {
         rt.speaking = new Map(rt.speaking).set(id, speaking);
+        deps.refreshState();
+      },
+      quality: (id, quality) => {
+        rt.quality = new Map(rt.quality).set(id, quality);
         deps.refreshState();
       },
     },

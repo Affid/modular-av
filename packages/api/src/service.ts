@@ -80,6 +80,11 @@ export interface ConnectionStats {
   readonly packetLoss?: number;
 }
 
+/**
+ * `participantJoined` means a media path to them is up: entering the room
+ * for a media server, the link to them for a P2P mesh. `trackAdded` for a
+ * participant comes after their `participantJoined`.
+ */
 export interface ServiceEvents {
   state: (state: ServiceConnectionState, error?: ServiceError) => void;
   participantJoined: (participant: ParticipantId) => void;

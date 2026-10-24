@@ -1,4 +1,5 @@
 import type {
+  ConnectionQuality,
   ParticipantId,
   ServiceDefinition,
   ServiceError,
@@ -45,6 +46,12 @@ export interface MockServiceHub {
   closeRoom(room: string): void;
   warnTokenExpiring(participant: ParticipantId): void;
   setSpeaking(participant: ParticipantId, speaking: boolean): void;
+  /** How `viewer`'s connection rates its link to `target`. */
+  setQuality(
+    viewer: ParticipantId,
+    target: ParticipantId,
+    quality: ConnectionQuality,
+  ): void;
   /** Errors thrown by connection event handlers. */
   readonly errors: readonly unknown[];
 }
@@ -177,6 +184,9 @@ export function createMockServiceHub(
     },
     get errors() {
       return errors;
+    },
+    setQuality: (viewer, target, quality) => {
+      find(viewer).events.emit("quality", target, quality);
     },
     setSpeaking: (participant, speaking) => {
       const member = find(participant);

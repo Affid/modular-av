@@ -77,6 +77,26 @@ describe("joining with a GM-relayed token", () => {
     expect(participants.p1).toMatchObject({ isLocal: true, connected: true });
   });
 
+  it("shows each participant's connection quality as the service reports it", async () => {
+    // Arrange
+    const table = createTable();
+    table.join("gm", { secret: true });
+    const p1 = table.join("p1");
+    await table.settle();
+    const before = p1.api.state.get().participants.gm?.quality;
+
+    // Act
+    table.hub.setQuality("p1", "gm", "poor");
+    await table.settle();
+
+    // Assert
+    expect(before).toBeNull();
+    expect(p1.api.state.get().participants.gm?.quality).toBe("poor");
+    table.hub.loseConnection("p1");
+    await table.settle();
+    expect(p1.api.state.get().participants.gm?.quality).toBeNull();
+  });
+
   it("waits for a GM, says so, and joins when one logs in", async () => {
     // Arrange
     const table = createTable();

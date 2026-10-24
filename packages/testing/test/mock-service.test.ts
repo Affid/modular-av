@@ -133,6 +133,17 @@ describe("mock service", () => {
     ).rejects.toMatchObject({ serviceError: { code: "auth", final: true } });
   });
 
+  it("reports a participant's quality to one viewer", async () => {
+    const hub = createMockServiceHub();
+    const alice = await join(hub, "alice");
+    await join(hub, "bob");
+    const qualities = record(alice, "quality");
+
+    hub.setQuality("alice", "bob", "poor");
+
+    expect(qualities).toEqual([["bob", "poor"]]);
+  });
+
   it("stops connecting when aborted", async () => {
     const hub = createMockServiceHub();
     const connection = await hub.definition().create({ participant: "p1" });

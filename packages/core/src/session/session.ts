@@ -42,6 +42,7 @@ export interface SessionDeps {
     | "participantJoined"
     | "participantLeft"
     | "speaking"
+    | "quality"
   >;
   onOnline(listener: () => void): () => void;
   now(): number;
@@ -234,6 +235,7 @@ export function createSession(deps: SessionDeps): Session {
       connection.on("participantJoined", deps.remote.participantJoined),
       connection.on("participantLeft", deps.remote.participantLeft),
       connection.on("speaking", deps.remote.speaking),
+      connection.on("quality", deps.remote.quality),
     ],
   });
 

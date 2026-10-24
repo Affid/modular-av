@@ -1,5 +1,6 @@
 import type {
   AVState,
+  ConnectionQuality,
   DeviceList,
   LocalState,
   ParticipantId,
@@ -22,6 +23,8 @@ export interface ProjectionInput {
   readonly connected: ReadonlySet<ParticipantId>;
   /** From the service, used when it detects speaking. */
   readonly speaking: ReadonlyMap<ParticipantId, boolean>;
+  /** From the service, per participant. */
+  readonly quality: ReadonlyMap<ParticipantId, ConnectionQuality>;
   hasMedia(participant: ParticipantId, kind: "audio" | "video"): boolean;
 }
 
@@ -82,6 +85,7 @@ function participant(
     deafened: user.getFlag(MODULE_ID, DEAFENED_FLAG) === true,
     canBroadcast: facts.canBroadcast(user.id),
     volume: facts.entry(user.id).volume ?? 1,
+    quality: input.quality.get(user.id) ?? null,
   };
 }
 

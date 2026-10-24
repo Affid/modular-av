@@ -1,4 +1,8 @@
-import type { ParticipantId, ServiceCapabilities } from "./service.ts";
+import type {
+  ConnectionQuality,
+  ParticipantId,
+  ServiceCapabilities,
+} from "./service.ts";
 
 /**
  * Where the local player's session stands.
@@ -70,6 +74,11 @@ export interface ParticipantState {
   readonly canBroadcast: MediaPermissions;
   /** This client's playback volume for them, 0 to 1. */
   readonly volume: number;
+  /**
+   * The link to them as the service rates it; null until it says. In a P2P
+   * mesh one link can be reconnecting ("lost") while the call goes on.
+   */
+  readonly quality: ConnectionQuality | null;
 }
 
 export type VoiceMode = "always" | "activity" | "ptt";
