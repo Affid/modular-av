@@ -3,6 +3,7 @@ import type {
   DeviceKind,
   InputSensitivity,
   MediaPermissions,
+  VoiceMode,
 } from "@modular-av/api";
 import type { Controller } from "./controller.ts";
 import { AVCommandError } from "./errors.ts";
@@ -34,6 +35,8 @@ const DEVICE_KEYS = {
 /** Browsers' device ids are 64 hex characters; "default" is shorter. */
 const MAX_DEVICE_ID = 256;
 
+const VOICE_MODES: readonly VoiceMode[] = ["always", "activity", "ptt"];
+
 const isDeviceKind = (kind: unknown): kind is DeviceKind =>
   typeof kind === "string" && Object.hasOwn(DEVICE_KEYS, kind);
 
@@ -55,10 +58,29 @@ export function createCommands(
 ): AVCommands {
   const self = (): string => controller().facts.selfId;
 
-  const setOwn = (key: "muted" | "hidden", value: boolean): void => {
+  /** Writes Foundry's client A/V settings, then applies what follows. */
+  const setClient = (path: string, value: unknown): void => {
     const c = controller();
-    avSettings(c).set("client", `users.${self()}.${key}`, value);
+    avSettings(c).set("client", path, value);
     c.apply();
+  };
+
+  const setOwn = (key: "muted" | "hidden", value: boolean): void => {
+    setClient(`users.${self()}.${key}`, value);
+  };
+
+  /** Someone else known to Foundry: own settings have their own commands. */
+  const other = (participant: string): void => {
+    if (!game.users.get(participant))
+      throw new AVCommandError("unknown-participant", "No such player", {
+        participant,
+      });
+    if (participant === self())
+      throw new AVCommandError(
+        "invalid-argument",
+        "This applies to other players only",
+        { participant },
+      );
   };
 
   return Object.freeze({
@@ -90,9 +112,27 @@ export function createCommands(
           throw new AVCommandError("unknown-participant", "No such player", {
             participant,
           });
-        const c = controller();
-        avSettings(c).set("client", `users.${participant}.volume`, volume);
-        c.apply();
+        setClient(`users.${participant}.volume`, volume);
+      }),
+
+    setHiddenByMe: (participant: string, hidden: boolean) =>
+      attempt(() => {
+        other(participant);
+        setClient(`users.${participant}.blocked`, hidden);
+      }),
+
+    setReceiveVideo: (enabled: boolean) =>
+      attempt(() => {
+        setClient("disableVideo", !enabled);
+      }),
+
+    setVoiceMode: (mode: VoiceMode) =>
+      attempt(() => {
+        if (!VOICE_MODES.includes(mode))
+          throw new AVCommandError("invalid-argument", "No such voice mode", {
+            mode,
+          });
+        setClient("voice.mode", mode);
       }),
 
     setEffectEnabled: (effect: string, enabled: boolean) =>

@@ -74,6 +74,8 @@ export interface ParticipantState {
   readonly canBroadcast: MediaPermissions;
   /** This client's playback volume for them, 0 to 1. */
   readonly volume: number;
+  /** This client neither plays nor shows them (Foundry's "hide user"). */
+  readonly hiddenByMe: boolean;
   /**
    * The link to them as the service rates it; null until it says. In a P2P
    * mesh one link can be reconnecting ("lost") while the call goes on.
@@ -111,6 +113,8 @@ export interface LocalState {
   readonly muted: boolean;
   readonly videoEnabled: boolean;
   readonly deafened: boolean;
+  /** The others' video is shown on this client (Foundry's `disableVideo` off). */
+  readonly receiveVideo: boolean;
   /**
    * Whether the microphone is sent right now: in voice activity mode, while
    * the gate is open.

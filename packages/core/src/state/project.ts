@@ -85,6 +85,7 @@ function participant(
     deafened: user.getFlag(MODULE_ID, DEAFENED_FLAG) === true,
     canBroadcast: facts.canBroadcast(user.id),
     volume: facts.entry(user.id).volume ?? 1,
+    hiddenByMe: !isLocal && (facts.entry(user.id).blocked ?? false),
     quality: input.quality.get(user.id) ?? null,
   };
 }

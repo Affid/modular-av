@@ -2,6 +2,7 @@ import type {
   DeviceKind,
   InputSensitivity,
   MediaPermissions,
+  VoiceMode,
 } from "./state.ts";
 import type { ParticipantId } from "./service.ts";
 
@@ -30,6 +31,15 @@ export interface AVCommands {
   setDeafened(deafened: boolean): Promise<void>;
   /** This client's playback volume for a participant, 0 to 1. */
   setVolume(participant: ParticipantId, volume: number): Promise<void>;
+  /**
+   * Neither plays nor shows another participant on this client (Foundry's
+   * "hide user"); the others aren't told.
+   */
+  setHiddenByMe(participant: ParticipantId, hidden: boolean): Promise<void>;
+  /** Shows the others' video on this client, or none of it. */
+  setReceiveVideo(enabled: boolean): Promise<void>;
+  /** Saved in Foundry's A/V settings. */
+  setVoiceMode(mode: VoiceMode): Promise<void>;
   /** Leaves the call on purpose: no reconnecting until `rejoin`. */
   leave(): Promise<void>;
   rejoin(): Promise<void>;

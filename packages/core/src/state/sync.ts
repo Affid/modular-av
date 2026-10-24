@@ -57,6 +57,7 @@ function localState(deps: StateSyncDeps): LocalState {
     muted: own.muted ?? false,
     videoEnabled: !(own.hidden ?? false),
     deafened: deps.rt.deafened,
+    receiveVideo: !(facts.settings()?.client.disableVideo ?? false),
     broadcasting: sending && (!gated || deps.rt.gateOpen),
     voiceMode,
     canPublish: facts.canBroadcast(facts.selfId),

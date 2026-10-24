@@ -8,6 +8,7 @@ export const INITIAL_STATE: AVState = {
     muted: false,
     videoEnabled: true,
     deafened: false,
+    receiveVideo: true,
     broadcasting: false,
     voiceMode: "ptt",
     canPublish: { audio: false, video: false },
