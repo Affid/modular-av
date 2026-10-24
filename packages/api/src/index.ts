@@ -1,4 +1,21 @@
 export type { AVCommands, CommandError, CommandErrorCode } from "./commands.ts";
+export type {
+  ButtonControl,
+  ChoiceControl,
+  ChoiceOption,
+  Contribution,
+  ContributionKind,
+  Control,
+  ControlContribution,
+  IndicatorContribution,
+  Label,
+  ParticipantActionContribution,
+  RangeControl,
+  SettingsSectionContribution,
+  StatusRowContribution,
+  ToggleControl,
+  ToggleState,
+} from "./contributions.ts";
 export type { MediaAttachment, ModularAV, VideoSource } from "./core.ts";
 export type {
   AudioEffect,
@@ -34,6 +51,16 @@ export type {
   TrackSource,
 } from "./service.ts";
 export type { Channel } from "./socket.ts";
+export type {
+  CamerasHost,
+  CamerasPlacement,
+  CamerasSurfaceDefinition,
+  MountedSurface,
+  PlayersSurfaceDefinition,
+  SettingsSurfaceDefinition,
+  SurfaceDefinition,
+  SurfaceKind,
+} from "./surfaces.ts";
 export type {
   AVState,
   CameraHold,

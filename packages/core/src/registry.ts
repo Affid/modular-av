@@ -8,8 +8,10 @@ export interface CoreRegistry<T extends { readonly id: string }> {
 
 type Phase = "before" | "open" | "closed";
 
+/** `validate` throws for a definition the registry must refuse. */
 export function createRegistry<T extends { readonly id: string }>(
   name: string,
+  validate: (definition: unknown) => void = () => undefined,
 ): CoreRegistry<T> {
   let phase: Phase = "before";
   let definitions: readonly T[] = [];
@@ -32,6 +34,14 @@ export function createRegistry<T extends { readonly id: string }>(
       );
     if (definitions.some((d) => d.id === id))
       throw new Error(`${name}: "${id}" is already registered`);
+    try {
+      validate(definition);
+    } catch (error: unknown) {
+      throw new Error(
+        `${name}: ${error instanceof Error ? error.message : String(error)}`,
+        { cause: error },
+      );
+    }
     definitions = [...definitions, definition];
     for (const { listener } of listeners) listener(definitions);
   };

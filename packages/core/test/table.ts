@@ -50,6 +50,8 @@ export interface TabOptions {
   readonly service?: ServiceDefinition;
   readonly deny?: { readonly audio?: string; readonly video?: string };
   readonly effects?: readonly EffectDefinition[];
+  /** Runs in the register hook, after the service and effects. */
+  readonly register?: (api: ModularAV) => void;
 }
 
 export interface Table {
@@ -97,6 +99,7 @@ export function createTable(
       });
     client.Hooks.on("modularAV.register", (api: ModularAV) => {
       for (const effect of tab.effects ?? []) api.effects.register(effect);
+      tab.register?.(api);
     });
     const core = installCore({
       game: client.game,

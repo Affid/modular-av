@@ -1,10 +1,13 @@
 import type {
   AVState,
+  Contribution,
   EffectDefinition,
   ModularAV,
   ServiceDefinition,
+  SurfaceDefinition,
 } from "@modular-av/api";
 import { createCommands } from "./commands.ts";
+import { validateContribution, validateSurface } from "./contributions.ts";
 import { MODULE_ID } from "./constants.ts";
 import {
   type Controller,
@@ -66,6 +69,14 @@ export function installCore(deps: CoreDeps): InstalledCore {
   const store = createStore<AVState>(INITIAL_STATE, deps.onError);
   const services = createRegistry<ServiceDefinition>("services");
   const effects = createRegistry<EffectDefinition>("effects");
+  const surfaces = createRegistry<SurfaceDefinition>(
+    "surfaces",
+    validateSurface,
+  );
+  const contributions = createRegistry<Contribution>(
+    "contributions",
+    validateContribution,
+  );
   const channels = createChannels(game.socket, deps.onError);
   let current: Controller | undefined;
   const controller = (): Controller => current ?? notReady();
@@ -104,6 +115,8 @@ export function installCore(deps: CoreDeps): InstalledCore {
     }),
     services: services.api,
     effects: effects.api,
+    surfaces: surfaces.api,
+    contributions: contributions.api,
     socket: (name: string) => channels.channel(name),
     assetUrl: (moduleId: string, path: string) =>
       assetUrl((p) => deps.foundry.utils.getRoute(p), moduleId, path),
@@ -111,7 +124,7 @@ export function installCore(deps: CoreDeps): InstalledCore {
   mod.api = api;
 
   hooks.once("setup", () => {
-    const registries = [services, effects];
+    const registries = [services, effects, surfaces, contributions];
     for (const registry of registries) registry.open();
     hooks.callAll(REGISTER_HOOK, api);
     for (const registry of registries) registry.close();
