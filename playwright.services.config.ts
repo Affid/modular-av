@@ -8,6 +8,9 @@ const CHROMIUM = {
       "--use-fake-ui-for-media-stream",
       "--use-fake-device-for-media-stream",
       "--autoplay-policy=no-user-gesture-required",
+      // A page with camera access gathers ICE candidates per interface,
+      // leaving out loopback, where the test TURN server listens.
+      "--allow-loopback-in-peer-connection",
     ],
   },
 };

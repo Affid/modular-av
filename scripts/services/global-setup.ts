@@ -1,6 +1,10 @@
+import { startCoturn } from "./coturn.ts";
 import { startLiveKit } from "./livekit.ts";
 
-/** Playwright global setup for `pnpm test:services`: returns the teardown. */
+/** Playwright global setup for the service and Foundry suites: returns the teardown. */
 export default async function setup(): Promise<() => Promise<void>> {
-  return startLiveKit();
+  const stops = await Promise.all([startLiveKit(), startCoturn()]);
+  return async () => {
+    await Promise.all(stops.map((stop) => stop()));
+  };
 }
