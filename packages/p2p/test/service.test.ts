@@ -20,6 +20,7 @@ function deps(
     turn: () => null,
     onIceChange: () => () => undefined,
     onUserLeft: () => () => undefined,
+    onReconnect: () => () => undefined,
     isUser: () => true,
     isGM: () => false,
     createPeerConnection: (configuration) =>

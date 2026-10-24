@@ -25,6 +25,7 @@ interface Player {
   readonly errors: unknown[];
   readonly iceListeners: (() => void)[];
   readonly leftListeners: ((user: string) => void)[];
+  readonly reconnectListeners: (() => void)[];
 }
 
 let hub: ChannelHub;
@@ -48,6 +49,7 @@ function player(user: string, joinedAt = Date.now()): Player {
   const errors: unknown[] = [];
   const iceListeners: (() => void)[] = [];
   const leftListeners: ((user: string) => void)[] = [];
+  const reconnectListeners: (() => void)[] = [];
   const connection = createP2PConnection(
     { participant: user },
     {
@@ -64,6 +66,10 @@ function player(user: string, joinedAt = Date.now()): Player {
       },
       onUserLeft: (listener) => {
         leftListeners.push(listener);
+        return () => undefined;
+      },
+      onReconnect: (listener) => {
+        reconnectListeners.push(listener);
         return () => undefined;
       },
       isUser: () => true,
@@ -87,7 +93,10 @@ function player(user: string, joinedAt = Date.now()): Player {
     connection.on(name, (...args: unknown[]) => {
       events.push(`${name} ${describeArgs(args)}`);
     });
-  return { connection, pcs, events, errors, iceListeners, leftListeners };
+  return {
+    ...{ connection, pcs, events, errors },
+    ...{ iceListeners, leftListeners, reconnectListeners },
+  };
 }
 
 const settle = async (ms = DISCOVERY_MS + 100): Promise<void> => {
@@ -341,6 +350,28 @@ describe("staying connected", () => {
 
     expect(alice.pcs[0]?.restarts).toBe(1);
     expect(alice.events.at(-1)).toBe("participantLeft bob");
+  });
+
+  it("says its sources again once Foundry's socket reconnects", async () => {
+    // Arrange: alice's camera arrives while the socket drops her messages
+    const alice = player("alice");
+    const bob = player("bob");
+    await join(alice);
+    await join(bob);
+    await settle(Math.max(...HELLO_AGAIN_MS));
+    hub.drop = (_data, user) => user === "alice";
+    await alice.connection.publish(createFakeTrack("video"), "camera");
+    await settle(0);
+    hub.drop = null;
+    const before = bob.events.includes("trackAdded alice:camera");
+
+    // Act
+    for (const listener of alice.reconnectListeners) listener();
+    await settle(0);
+
+    // Assert
+    expect(before).toBe(false);
+    expect(bob.events).toContain("trackAdded alice:camera");
   });
 
   it("leaves on purpose: the others see it, the tracks stay live", async () => {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   MAX_CANDIDATE_LENGTH,
+  MAX_MEDIA_LINES,
   MAX_SDP_LENGTH,
   parseSignal,
 } from "../src/messages.ts";
@@ -17,7 +18,11 @@ describe("parseSignal", () => {
         type: "description",
         to: "s-bob",
         epoch: 0,
-        description: { type: "offer", sdp: "v=0\r\n" },
+        description: {
+          type: "offer",
+          sdp: "v=0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\n",
+        },
+        sources: { "0": "microphone" },
       },
       {
         ...base,
@@ -87,6 +92,7 @@ describe("parseSignal", () => {
         to: "s-b",
         epoch: 0,
         description: { type: "rollback", sdp: "" },
+        sources: {},
       },
     ],
     [
@@ -97,6 +103,7 @@ describe("parseSignal", () => {
         to: "s-b",
         epoch: 0,
         description: { type: "offer", sdp: "x".repeat(MAX_SDP_LENGTH + 1) },
+        sources: {},
       },
     ],
     [
@@ -171,12 +178,57 @@ describe("parseSignal", () => {
     ],
     ["a bye to an odd session", { ...base, type: "bye", to: "a b" }],
     [
+      "an SDP with too many media lines",
+      {
+        ...base,
+        type: "description",
+        to: "s-b",
+        epoch: 0,
+        sources: {},
+        description: {
+          type: "offer",
+          sdp: "m=video 9 X 96\r\n".repeat(MAX_MEDIA_LINES + 1),
+        },
+      },
+    ],
+    [
+      "an SDP with a data channel",
+      {
+        ...base,
+        type: "description",
+        to: "s-b",
+        epoch: 0,
+        sources: {},
+        description: {
+          type: "offer",
+          sdp: "m=application 9 UDP/DTLS/SCTP webrtc-datachannel\r\n",
+        },
+      },
+    ],
+    [
+      "a description without its sources",
+      {
+        ...base,
+        type: "description",
+        to: "s-b",
+        epoch: 0,
+        description: { type: "answer", sdp: "" },
+      },
+    ],
+    [
       "a welcome with no join time",
       { ...base, type: "welcome", to: "s-b", joinedAt: null },
     ],
     [
       "a description that is no object",
-      { ...base, type: "description", to: "s-b", epoch: 0, description: "x" },
+      {
+        ...base,
+        type: "description",
+        to: "s-b",
+        epoch: 0,
+        description: "x",
+        sources: {},
+      },
     ],
     [
       "a candidate that is no object",

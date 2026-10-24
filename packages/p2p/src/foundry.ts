@@ -12,6 +12,10 @@ export interface FoundryGameSlice {
     ): { readonly id: string; readonly isGM: boolean } | undefined;
   };
   readonly user: { readonly isGM: boolean };
+  readonly socket: {
+    on(event: string, fn: () => void): unknown;
+    off(event: string, fn: () => void): unknown;
+  };
   readonly webrtc: {
     readonly settings: { readonly world: { readonly turn: FoundryTurn } };
   } | null;
@@ -34,8 +38,12 @@ export function randomSessionId(): string {
 export function redact(text: string): string {
   return (text.split("\n")[0] ?? "")
     .replace(/\b\d{1,3}(?:\.\d{1,3}){3}\b/g, "[address]")
-    .replace(/\b[\da-f]{0,4}(?::[\da-f]{0,4}){2,7}\b/gi, (match) =>
-      match.includes("::") || match.split(":").length > 3 ? "[address]" : match,
+    .replace(
+      /(?<![\w:])[\da-f]{0,4}(?::[\da-f]{0,4}){2,7}(?![\w:])/gi,
+      (match) =>
+        match.includes("::") || match.split(":").length > 3
+          ? "[address]"
+          : match,
     );
 }
 
@@ -85,6 +93,13 @@ export function foundryServiceDeps(
           if (!connected) listener(user.id);
         },
       ),
+    // socket.io's "connect" comes again after every reconnection.
+    onReconnect: (listener) => {
+      game.socket.on("connect", listener);
+      return () => {
+        game.socket.off("connect", listener);
+      };
+    },
     isUser: (id) => game.users.get(id) !== undefined,
     isGM: (id) => game.users.get(id)?.isGM ?? false,
     now: () => Date.now(),

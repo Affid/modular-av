@@ -20,6 +20,66 @@ export interface NegotiationDeps {
 export interface Negotiation {
   receiveDescription(description: SessionDescription): Promise<void>;
   receiveCandidate(candidate: CandidateInit | null): Promise<void>;
+  /**
+   * Withdraws an offer still waiting for its answer (one may have been
+   * lost); the browser then asks for a new one.
+   */
+  unstick(): Promise<void>;
+}
+
+/** Where this side's negotiation stands, shared by its steps. */
+interface Flags {
+  makingOffer: boolean;
+  ignoreOffer: boolean;
+  applyingAnswer: boolean;
+}
+
+/** Sends the offer or answer just set, if there is one. */
+function sendLocal(deps: NegotiationDeps): void {
+  const local = deps.pc.localDescription;
+  if (local?.type !== "offer" && local?.type !== "answer") return;
+  deps.send({ description: { type: local.type, sdp: local.sdp } });
+  deps.onDescriptionSent?.();
+}
+
+/** An offer or answer from the other side; a colliding offer per politeness. */
+async function applyDescription(
+  deps: NegotiationDeps,
+  flags: Flags,
+  description: SessionDescription,
+): Promise<void> {
+  const { pc } = deps;
+  const ready =
+    !flags.makingOffer &&
+    (pc.signalingState === "stable" || flags.applyingAnswer);
+  const collision = description.type === "offer" && !ready;
+  flags.ignoreOffer = !deps.polite && collision;
+  if (flags.ignoreOffer) return;
+  flags.applyingAnswer = description.type === "answer";
+  try {
+    await pc.setRemoteDescription(description);
+  } finally {
+    flags.applyingAnswer = false;
+  }
+  deps.onDescriptionApplied?.();
+  if (description.type !== "offer") return;
+  await pc.setLocalDescription();
+  sendLocal(deps);
+}
+
+async function applyCandidate(
+  deps: NegotiationDeps,
+  flags: Flags,
+  candidate: CandidateInit | null,
+): Promise<void> {
+  // The end of candidates needs no action: ICE ends by itself.
+  if (!candidate) return;
+  try {
+    await deps.pc.addIceCandidate(candidate);
+  } catch (error: unknown) {
+    // Candidates of an offer this side ignored are expected to fail.
+    if (!flags.ignoreOffer) throw error;
+  }
 }
 
 /**
@@ -30,60 +90,24 @@ export interface Negotiation {
  */
 export function createNegotiation(deps: NegotiationDeps): Negotiation {
   const { pc } = deps;
-  let makingOffer = false;
-  let ignoreOffer = false;
-  let applyingAnswer = false;
+  const flags: Flags = {
+    makingOffer: false,
+    ignoreOffer: false,
+    applyingAnswer: false,
+  };
   let queue: Promise<void> = Promise.resolve();
 
-  const sendLocal = (): void => {
-    const local = pc.localDescription;
-    if (local?.type !== "offer" && local?.type !== "answer") return;
-    deps.send({ description: { type: local.type, sdp: local.sdp } });
-    deps.onDescriptionSent?.();
-  };
-
   pc.addEventListener("negotiationneeded", () => {
-    makingOffer = true;
+    flags.makingOffer = true;
     pc.setLocalDescription()
-      .then(sendLocal)
+      .then(() => {
+        sendLocal(deps);
+      })
       .catch(deps.onError)
       .finally(() => {
-        makingOffer = false;
+        flags.makingOffer = false;
       });
   });
-
-  const applyDescription = async (
-    description: SessionDescription,
-  ): Promise<void> => {
-    const ready =
-      !makingOffer && (pc.signalingState === "stable" || applyingAnswer);
-    const collision = description.type === "offer" && !ready;
-    ignoreOffer = !deps.polite && collision;
-    if (ignoreOffer) return;
-    applyingAnswer = description.type === "answer";
-    try {
-      await pc.setRemoteDescription(description);
-    } finally {
-      applyingAnswer = false;
-    }
-    deps.onDescriptionApplied?.();
-    if (description.type !== "offer") return;
-    await pc.setLocalDescription();
-    sendLocal();
-  };
-
-  const applyCandidate = async (
-    candidate: CandidateInit | null,
-  ): Promise<void> => {
-    // The end of candidates needs no action: ICE ends by itself.
-    if (!candidate) return;
-    try {
-      await pc.addIceCandidate(candidate);
-    } catch (error: unknown) {
-      // Candidates of an offer this side ignored are expected to fail.
-      if (!ignoreOffer) throw error;
-    }
-  };
 
   const enqueue = (run: () => Promise<void>): Promise<void> => {
     const next = queue.then(run).catch(deps.onError);
@@ -93,7 +117,13 @@ export function createNegotiation(deps: NegotiationDeps): Negotiation {
 
   return {
     receiveDescription: (description) =>
-      enqueue(() => applyDescription(description)),
-    receiveCandidate: (candidate) => enqueue(() => applyCandidate(candidate)),
+      enqueue(() => applyDescription(deps, flags, description)),
+    receiveCandidate: (candidate) =>
+      enqueue(() => applyCandidate(deps, flags, candidate)),
+    unstick: () =>
+      enqueue(async () => {
+        if (pc.signalingState === "have-local-offer")
+          await pc.setLocalDescription({ type: "rollback" });
+      }),
   };
 }

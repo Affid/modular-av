@@ -7,6 +7,7 @@ import {
   createMesh,
   LEAVE_AFTER_MS,
   type Mesh,
+  MIN_REPLACE_MS,
   RESET_AFTER_MS,
 } from "../src/mesh.ts";
 import { createSignalling } from "../src/signalling.ts";
@@ -263,7 +264,8 @@ describe("the mesh", () => {
     expect(joined(alice)).toEqual(["participantJoined bob"]);
   });
 
-  it("reports them gone when the link stays down", async () => {
+  it("lets them go when the link stays down, and asks them back with a hello", async () => {
+    // Arrange
     const alice = member("alice", "s-a");
     const bob = member("bob", "s-b");
     alice.mesh.hello();
@@ -273,15 +275,42 @@ describe("the mesh", () => {
     await settle();
     hub.paused = true;
 
+    // Act
     for (const pc of [...alice.pcs, ...bob.pcs]) pc.cut("failed");
     await vi.advanceTimersByTimeAsync(LEAVE_AFTER_MS);
     await settle();
 
+    // Assert
     expect(alice.events.slice(-2)).toEqual([
       "trackRemoved bob:microphone",
       "participantLeft bob",
     ]);
-    expect(alice.mesh.linkStates()).toEqual(["down"]);
+    expect(alice.mesh.linkStates()).toEqual([]);
+    expect(alice.mesh.roster.members.size).toBe(0);
+    const asked = hub.sent.filter(
+      (m) =>
+        m.user === "alice" && (m.data as { type?: string }).type === "hello",
+    );
+    expect(asked).toHaveLength(2);
+  });
+
+  it("links again with someone it let go once they answer", async () => {
+    const alice = member("alice", "s-a");
+    const bob = member("bob", "s-b");
+    alice.mesh.hello();
+    bob.mesh.hello();
+    await settle();
+    hub.paused = true;
+    for (const pc of [...alice.pcs, ...bob.pcs]) pc.cut("failed");
+    await vi.advanceTimersByTimeAsync(LEAVE_AFTER_MS);
+    await settle();
+    hub.paused = false;
+
+    alice.mesh.resync();
+    await settle();
+
+    expect(alice.mesh.linkStates()).toEqual(["connected"]);
+    expect(joined(alice).at(-1)).toBe("participantJoined bob");
   });
 
   it("keeps a refusal across links and drops stale or unknown messages", async () => {
@@ -340,6 +369,75 @@ describe("the mesh", () => {
     expect(alice.events.filter((e) => e.startsWith("quality"))).toEqual([
       "quality bob poor",
     ]);
+  });
+
+  it("starts a link afresh for the other side at most once in a while", async () => {
+    // Arrange
+    const alice = member("alice", "s-a");
+    const bob = member("bob", "s-b");
+    alice.mesh.hello();
+    bob.mesh.hello();
+    await settle();
+    const before = alice.pcs.length;
+    const bump = (epoch: number): void => {
+      alice.mesh.handle(
+        {
+          v: 1,
+          room: ROOM,
+          from: "s-b",
+          type: "candidate",
+          to: "s-a",
+          epoch,
+          candidate: null,
+        },
+        "bob",
+      );
+    };
+
+    // Act
+    for (const epoch of [1, 2, 3, 4]) bump(epoch);
+    const burst = alice.pcs.length - before;
+    await vi.advanceTimersByTimeAsync(MIN_REPLACE_MS);
+    bump(5);
+
+    // Assert
+    expect(burst).toBe(1);
+    expect(alice.pcs.length - before).toBe(2);
+  });
+
+  it("shares the upload for video between the connected links", async () => {
+    const alice = member("alice", "s-a");
+    await alice.mesh.setTrack("camera", createFakeTrack("video"));
+    const bob = member("bob", "s-b");
+    alice.mesh.hello();
+    bob.mesh.hello();
+    await settle();
+
+    const camera = alice.pcs[0]
+      ?.getTransceivers()
+      .find((t) => t.kind === "video" && t.sender.track !== null);
+
+    expect(camera?.sender.getParameters().encodings).toEqual([
+      { active: true, maxBitrate: 800_000, scaleResolutionDownBy: 1 },
+    ]);
+  });
+
+  it("hands new ICE servers to the other links when one refuses them", async () => {
+    const alice = member("alice", "s-a");
+    alice.mesh.hello();
+    member("bob", "s-b").mesh.hello();
+    member("carol", "s-c").mesh.hello();
+    await settle();
+    const [first, second] = alice.pcs;
+    if (!first || !second) throw new Error("no links");
+    first.setConfiguration = () => {
+      throw new DOMException("bad server", "SyntaxError");
+    };
+
+    alice.mesh.setConfiguration({ iceTransportPolicy: "relay" });
+
+    expect(second.configuration).toEqual({ iceTransportPolicy: "relay" });
+    expect(alice.errors).toHaveLength(1);
   });
 
   it("hands new ICE servers to every link", async () => {

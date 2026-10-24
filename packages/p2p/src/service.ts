@@ -16,6 +16,8 @@ export interface P2PServiceDeps {
   readonly turn: () => FoundryTurn | null;
   readonly onIceChange: (listener: () => void) => () => void;
   readonly onUserLeft: (listener: (user: ParticipantId) => void) => () => void;
+  /** Foundry's socket connected again: what it sent meanwhile is lost. */
+  readonly onReconnect: (listener: () => void) => () => void;
   readonly isUser: (user: ParticipantId) => boolean;
   readonly isGM: (user: ParticipantId) => boolean;
   /** The browser's `RTCPeerConnection` unless given. */

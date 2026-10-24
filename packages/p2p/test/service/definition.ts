@@ -35,6 +35,7 @@ export const createDefinition: CreateDefinition = (params, secrets) => {
         turn: () => turn,
         onIceChange: () => () => undefined,
         onUserLeft: () => () => undefined,
+        onReconnect: () => () => undefined,
         isUser: () => true,
         isGM: () => false,
         now: () => Date.now(),

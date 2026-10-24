@@ -22,6 +22,7 @@ function pair(
     readonly polite?: OutgoingTracks;
     readonly impolite?: OutgoingTracks;
   } = {},
+  lose: (from: number, message: LinkMessage) => boolean = () => false,
 ): {
   readonly polite: End;
   readonly impolite: End;
@@ -42,6 +43,7 @@ function pair(
         tracks: (index === 0 ? tracks.polite : tracks.impolite) ?? NONE,
         send: (message) => {
           sent.push([index, message]);
+          if (lose(index, message)) return;
           setTimeout(() => {
             ends[1 - index]?.link.receive(message);
           }, 0);
@@ -174,9 +176,91 @@ describe("a link", () => {
         [own?.mid ?? "y"]: "microphone",
       },
     });
-    await settle();
+    // Right away: the next description brings the real sources back.
 
     expect(sources(polite)).toEqual([]);
+  });
+
+  it("refuses lines the other side never announced", async () => {
+    // Arrange: a line beside the link's own, carrying a track it never names
+    const { polite, impolite } = pair();
+    const hidden = impolite.pc.addTransceiver("video", {
+      direction: "sendonly",
+    });
+    await hidden.sender.replaceTrack(createFakeTrack("video"));
+
+    // Act
+    await settle();
+
+    // Assert
+    expect(hidden.currentDirection).toBe("inactive");
+    expect(sources(polite)).toEqual([]);
+  });
+
+  it("sends its sources with each description", async () => {
+    const { sent } = pair({
+      polite: { microphone: createFakeTrack("audio"), camera: null },
+    });
+    await settle();
+
+    const descriptions = sent.filter(
+      ([from, m]) => from === 0 && m.type === "description",
+    );
+
+    expect(descriptions.length).toBeGreaterThan(0);
+    for (const [, m] of descriptions) expect(m).toHaveProperty("sources");
+  });
+
+  it("recovers lost sources and a lost answer on resync", async () => {
+    // Arrange: everything from the polite side is lost for a while
+    let losing = false;
+    const { polite, impolite } = pair(
+      { impolite: { microphone: createFakeTrack("audio"), camera: null } },
+      (from) => losing && from === 0,
+    );
+    await settle();
+    losing = true;
+    await impolite.link.setTrack("camera", createFakeTrack("video"));
+    impolite.link.setRefused("microphone", true);
+    polite.link.setRefused("microphone", true);
+    await settle();
+    losing = false;
+    const before = sources(polite);
+
+    // Act
+    impolite.link.resync();
+    polite.link.resync();
+    await settle();
+
+    // Assert
+    expect(before).toEqual(["camera:video", "microphone:audio"]);
+    expect(impolite.pc.signalingState).toBe("stable");
+    expect(polite.pc.signalingState).toBe("stable");
+    const line = impolite.pc
+      .getTransceivers()
+      .find((t) => t.kind === "audio" && t.sender.track !== null);
+    expect(line?.currentDirection).toBe("inactive");
+  });
+
+  it("stays quiet once closed", async () => {
+    const { polite, sent } = pair();
+    await settle();
+    const count = sent.length;
+    const changes = polite.changes;
+
+    polite.link.close();
+    polite.pc.dispatchEvent(
+      Object.assign(new Event("icecandidate"), { candidate: null }),
+    );
+    polite.link.receive({
+      type: "candidate",
+      candidate: { candidate: "c", sdpMid: "0", sdpMLineIndex: 0 },
+    });
+    await settle();
+
+    expect(sent.length).toBe(count);
+    expect(polite.changes).toBe(changes);
+    expect(polite.errors).toEqual([]);
   });
 
   it("goes down with its path; the impolite side restarts ICE when it failed", async () => {

@@ -31,7 +31,10 @@ export interface PeerConnectionLike extends EventTarget {
     init: { readonly direction: RTCRtpTransceiverDirection },
   ): TransceiverLike;
   getTransceivers(): TransceiverLike[];
-  setLocalDescription(): Promise<void>;
+  /** No argument: the offer or answer due; `rollback` withdraws an offer. */
+  setLocalDescription(description?: {
+    readonly type: "rollback";
+  }): Promise<void>;
   setRemoteDescription(description: DescriptionLike): Promise<void>;
   addIceCandidate(candidate: RTCIceCandidateInit): Promise<void>;
   restartIce(): void;

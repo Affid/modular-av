@@ -9,6 +9,8 @@ export const PROTOCOL = 1;
 /** Far above a real offer with four media lines. */
 export const MAX_SDP_LENGTH = 65_536;
 export const MAX_CANDIDATE_LENGTH = 1_024;
+/** Each side's microphone and camera: four lines, with room for screen share. */
+export const MAX_MEDIA_LINES = 8;
 const MAX_SOURCES = 4;
 const MAX_MLINE_INDEX = 15;
 const MAX_EPOCH = 2 ** 31 - 1;
@@ -56,12 +58,16 @@ export interface CandidateInit {
   readonly usernameFragment?: string;
 }
 
-/** `epoch` counts the links between two sessions: a new one starts afresh. */
+/**
+ * `epoch` counts the links between two sessions: a new one starts afresh.
+ * The sender's sources come along, so they apply with the media lines.
+ */
 export interface Description extends Base {
   readonly type: "description";
   readonly to: string;
   readonly epoch: number;
   readonly description: SessionDescription;
+  readonly sources: Readonly<Record<string, TrackSource>>;
 }
 
 export interface Candidate extends Base {
@@ -111,11 +117,22 @@ function parseBase(value: Fields): Base | null {
   return { v: PROTOCOL, room, from };
 }
 
+/** Audio and video lines only, and few: no data channel, no line flood. */
+function plausibleSdp(sdp: string): boolean {
+  const lines = sdp.match(/^m=\w+/gm) ?? [];
+  return (
+    lines.length <= MAX_MEDIA_LINES &&
+    lines.every((line) => line === "m=audio" || line === "m=video")
+  );
+}
+
 function parseDescription(value: unknown): SessionDescription | null {
   if (!isRecord(value)) return null;
   const { type, sdp } = value;
   if (type !== "offer" && type !== "answer") return null;
-  return isText(sdp, MAX_SDP_LENGTH) ? { type, sdp } : null;
+  return isText(sdp, MAX_SDP_LENGTH) && plausibleSdp(sdp)
+    ? { type, sdp }
+    : null;
 }
 
 function parseCandidate(value: unknown): CandidateInit | null | undefined {
@@ -167,8 +184,9 @@ function parseAddressed(value: Fields, base: Base): Signal | null {
   if (!isEpoch(epoch)) return null;
   if (value.type === "description") {
     const description = parseDescription(value.description);
-    return description
-      ? { ...base, type: "description", to, epoch, description }
+    const sources = parseSources(value.sources);
+    return description && sources
+      ? { ...base, type: "description", to, epoch, description, sources }
       : null;
   }
   if (value.type === "candidate") {

@@ -14,10 +14,14 @@ interface Side {
 }
 
 /** Two sides whose messages reach each other in order, a turn later. */
-function pair(): { readonly polite: Side; readonly impolite: Side } {
+function pair(lose: (message: Wire) => boolean = () => false): {
+  readonly polite: Side;
+  readonly impolite: Side;
+} {
   const pcs = [new FakePeerConnection(), new FakePeerConnection()] as const;
   const sides: Side[] = [];
   const deliver = (to: number, message: Wire): void => {
+    if (lose(message)) return;
     setTimeout(() => {
       const side = sides[to];
       if (!side) return;
@@ -70,6 +74,30 @@ describe("perfect negotiation", () => {
       ).toEqual(["recvonly", "sendonly"]);
       expect(side.errors).toEqual([]);
     }
+  });
+
+  it("makes an offer again whose answer was lost, once unstuck", async () => {
+    // Arrange
+    let answers = 0;
+    const { polite, impolite } = pair((m) => {
+      const answer = "description" in m && m.description.type === "answer";
+      if (answer) answers += 1;
+      return answer && answers === 1;
+    });
+    impolite.pc.addTransceiver("audio", { direction: "sendonly" });
+    await settle();
+    const stuck = impolite.pc.signalingState;
+
+    // Act
+    await impolite.negotiation.unstick();
+    await polite.negotiation.unstick();
+    await settle();
+
+    // Assert
+    expect(stuck).toBe("have-local-offer");
+    expect(impolite.pc.signalingState).toBe("stable");
+    expect(impolite.pc.connectionState).toBe("connected");
+    expect([polite.errors, impolite.errors]).toEqual([[], []]);
   });
 
   it("renegotiates a changed direction from either side", async () => {

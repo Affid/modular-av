@@ -17,6 +17,15 @@ const TURN = {
   password: "p",
 };
 
+const socket = new (class extends EventTarget {
+  on(event: string, fn: () => void): void {
+    this.addEventListener(event, fn);
+  }
+  off(event: string, fn: () => void): void {
+    this.removeEventListener(event, fn);
+  }
+})();
+
 function fakeGame(values: Record<string, unknown> = {}): FoundryGameSlice {
   const users = new Map([
     ["gm", { id: "gm", isGM: true }],
@@ -29,6 +38,7 @@ function fakeGame(values: Record<string, unknown> = {}): FoundryGameSlice {
     },
     users: { get: (id) => users.get(id) },
     user: { isGM: true },
+    socket,
     webrtc: { settings: { world: { turn: TURN } } },
   };
 }
@@ -72,6 +82,12 @@ describe("the Foundry side of the P2P service", () => {
     hooks.callAll("updateSetting", { key: "core.permissions" });
     hooks.callAll("userConnected", { id: "p1" }, false);
     hooks.callAll("userConnected", { id: "p1" }, true);
+    const reconnected = vi.fn();
+    const offReconnect = deps.onReconnect(reconnected);
+    socket.dispatchEvent(new Event("connect"));
+    offReconnect();
+    socket.dispatchEvent(new Event("connect"));
+    expect(reconnected).toHaveBeenCalledTimes(1);
     offIce();
     offLeft();
     hooks.callAll("updateSetting", { key: "core.rtcWorldSettings" });
@@ -108,5 +124,8 @@ describe("the Foundry side of the P2P service", () => {
     expect(
       redact("Failed: candidate 192.0.2.10 5000 and [2001:db8::1]:3478\nsdp"),
     ).toBe("Failed: candidate [address] 5000 and [[address]]:3478");
+    expect(redact("from ::1 and ::ffff:c000:280 at 12:30:45")).toBe(
+      "from [address] and [address] at 12:30:45",
+    );
   });
 });

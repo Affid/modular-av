@@ -1,39 +1,38 @@
 import type { ConnectionStats, TrackSource } from "@modular-av/api";
-import type { CandidateInit, SessionDescription, Sources } from "./messages.ts";
-import { createNegotiation } from "./negotiation.ts";
-import type { PeerConnectionLike, TransceiverLike } from "./peer.ts";
+import {
+  applyDirections,
+  createOwnLines,
+  limitSender,
+  type OutgoingSource,
+  type OutgoingTracks,
+  type OwnLines,
+  ownSources,
+  type RemoteSourceTrack,
+  remoteLines,
+  type SourceMap,
+} from "./link-lines.ts";
+import type { CandidateInit, SessionDescription } from "./messages.ts";
+import { createNegotiation, type Negotiation } from "./negotiation.ts";
+import type { PeerConnectionLike } from "./peer.ts";
 import { type PacketTotals, readStats, type VideoLimits } from "./stats.ts";
 
-/** What the core publishes: one track per kind, the same for the session. */
-export type OutgoingSource = "microphone" | "camera";
-export type OutgoingTracks = Readonly<
-  Record<OutgoingSource, MediaStreamTrack | null>
->;
-
-const OUTGOING = [
-  { source: "microphone", kind: "audio" },
-  { source: "camera", kind: "video" },
-] as const;
-
-const KIND: Readonly<Record<TrackSource, "audio" | "video">> = {
-  microphone: "audio",
-  "screen-audio": "audio",
-  camera: "video",
-  screen: "video",
-};
+export type {
+  OutgoingSource,
+  OutgoingTracks,
+  RemoteSourceTrack,
+} from "./link-lines.ts";
 
 export type LinkMessage =
-  | { readonly type: "description"; readonly description: SessionDescription }
+  | {
+      readonly type: "description";
+      readonly description: SessionDescription;
+      readonly sources: SourceMap;
+    }
   | { readonly type: "candidate"; readonly candidate: CandidateInit | null }
-  | { readonly type: "sources"; readonly sources: Sources["sources"] };
+  | { readonly type: "sources"; readonly sources: SourceMap };
 
 /** `down`: the path broke; ICE may still recover it. */
 export type LinkState = "connecting" | "connected" | "down" | "closed";
-
-export interface RemoteSourceTrack {
-  readonly source: TrackSource;
-  readonly track: MediaStreamTrack;
-}
 
 export interface LinkDeps {
   readonly pc: PeerConnectionLike;
@@ -60,6 +59,11 @@ export interface Link {
   limitVideo(limits: VideoLimits): Promise<void>;
   stats(): Promise<ConnectionStats>;
   setConfiguration(configuration: RTCConfiguration): void;
+  /**
+   * After messages may have been lost (Foundry's socket reconnected): says
+   * its sources again and withdraws an offer still waiting for its answer.
+   */
+  resync(): void;
   close(): void;
 }
 
@@ -84,168 +88,194 @@ const toInit = (candidate: RTCIceCandidate): CandidateInit => {
   };
 };
 
-/** The other side's lines, by the source it says each one carries. */
-function remoteLines(
-  pc: PeerConnectionLike,
-  own: ReadonlySet<TransceiverLike>,
-  sources: Sources["sources"],
-): readonly (RemoteSourceTrack & { readonly line: TransceiverLike })[] {
-  return Object.entries(sources).flatMap(([mid, source]) => {
-    const line = pc.getTransceivers().find((t) => t.mid === mid && !own.has(t));
-    if (line?.receiver.track.kind !== KIND[source]) return [];
-    return [{ source, track: line.receiver.track, line }];
+/** One link's state; fields are replaced, never changed in place. */
+interface LinkFields {
+  closed: boolean;
+  state: LinkState;
+  tracks: OutgoingTracks;
+  remoteSources: SourceMap;
+  refused: ReadonlySet<TrackSource>;
+  /** The sources last said, to say them once per change. */
+  sentSources: string | null;
+  totals: PacketTotals;
+  /** Applied again after each negotiation: a line gets encodings then. */
+  limits: VideoLimits | null;
+}
+
+interface Parts {
+  readonly deps: LinkDeps;
+  readonly own: OwnLines;
+  readonly s: LinkFields;
+  /** Quiet once closed: nothing goes out and nothing is reported. */
+  readonly send: (message: LinkMessage) => void;
+  readonly changed: () => void;
+  readonly failed: (error: unknown) => void;
+}
+
+const directions = (p: Parts): void => {
+  applyDirections(p.deps.pc, p.own, p.s.remoteSources, p.s.refused);
+};
+
+const limit = (p: Parts): Promise<void> =>
+  p.s.limits
+    ? limitSender(p.own.bySource.get("camera"), p.s.limits)
+    : Promise.resolve();
+
+/** Says this side's sources, once per change unless `again`. */
+function saySources(p: Parts, again = false): void {
+  const sources = ownSources(p.own, p.s.tracks);
+  const key = JSON.stringify(sources);
+  if (key === p.s.sentSources && !again) return;
+  p.s.sentSources = key;
+  p.send({ type: "sources", sources });
+}
+
+function negotiate(p: Parts): Negotiation {
+  return createNegotiation({
+    pc: p.deps.pc,
+    polite: p.deps.polite,
+    send: (message) => {
+      if ("candidate" in message) {
+        p.send({ type: "candidate", candidate: message.candidate });
+        return;
+      }
+      const sources = ownSources(p.own, p.s.tracks);
+      p.s.sentSources = JSON.stringify(sources);
+      p.send({
+        type: "description",
+        description: message.description,
+        sources,
+      });
+    },
+    onDescriptionApplied: () => {
+      directions(p);
+      limit(p).catch(p.failed);
+      p.changed();
+    },
+    onError: p.failed,
   });
 }
 
+/** Candidates out, and the connection state; the impolite side restarts ICE. */
+function wireEvents(p: Parts): void {
+  const { pc } = p.deps;
+  pc.addEventListener("icecandidate", (event) => {
+    const { candidate } = event as RTCPeerConnectionIceEvent;
+    p.send({
+      type: "candidate",
+      candidate: candidate ? toInit(candidate) : null,
+    });
+  });
+  pc.addEventListener("track", p.changed);
+  pc.addEventListener("connectionstatechange", () => {
+    if (pc.connectionState === "failed" && !p.deps.polite) pc.restartIce();
+    const next = STATES[pc.connectionState];
+    if (next === p.s.state) return;
+    p.s.state = next;
+    p.changed();
+  });
+}
+
+function createParts(deps: LinkDeps): Parts {
+  const s: LinkFields = {
+    closed: false,
+    state: STATES[deps.pc.connectionState],
+    tracks: deps.tracks,
+    remoteSources: {},
+    refused: new Set(),
+    sentSources: null,
+    totals: { lost: 0, received: 0 },
+    limits: null,
+  };
+  const open =
+    <A extends unknown[]>(fn: (...args: A) => void) =>
+    (...args: A): void => {
+      if (!s.closed) fn(...args);
+    };
+  return {
+    deps,
+    s,
+    own: createOwnLines(deps.pc, deps.tracks, deps.onError),
+    send: open(deps.send),
+    changed: open(deps.onChange),
+    failed: open(deps.onError),
+  };
+}
+
 export function createLink(deps: LinkDeps): Link {
-  const { pc } = deps;
-  const lines = new Map(
-    OUTGOING.map(({ source, kind }) => [
-      source,
-      pc.addTransceiver(kind, { direction: "sendonly" }),
-    ]),
-  );
-  const own: ReadonlySet<TransceiverLike> = new Set(lines.values());
-  let tracks = deps.tracks;
-  let remoteSources: Sources["sources"] = {};
-  let refused: ReadonlySet<TrackSource> = new Set();
-  let sentSources: string | null = null;
-  let state = STATES[pc.connectionState];
-  let totals: PacketTotals = { lost: 0, received: 0 };
+  const p = createParts(deps);
+  const negotiation = negotiate(p);
+  wireEvents(p);
+  return linkApi(p, negotiation);
+}
 
-  /** Only lines with a media id and a track are announced. */
-  const sendSources = (): void => {
-    const sources = Object.fromEntries(
-      OUTGOING.flatMap(({ source }) => {
-        const mid = lines.get(source)?.mid;
-        return mid && tracks[source] ? [[mid, source]] : [];
-      }),
-    );
-    const key = JSON.stringify(sources);
-    if (key === sentSources) return;
-    sentSources = key;
-    deps.send({ type: "sources", sources });
-  };
-
-  const applyRefusals = (): void => {
-    for (const { source, line } of remoteLines(pc, own, remoteSources)) {
-      const wanted = refused.has(source) ? "inactive" : "recvonly";
-      if (line.direction !== wanted) line.direction = wanted;
-    }
-  };
-
-  const negotiation = createNegotiation({
-    pc,
-    polite: deps.polite,
-    send: (message) => {
-      deps.send(
-        "description" in message
-          ? { type: "description", description: message.description }
-          : { type: "candidate", candidate: message.candidate },
-      );
-    },
-    onDescriptionSent: sendSources,
-    onDescriptionApplied: () => {
-      applyRefusals();
-      deps.onChange();
-    },
-    onError: deps.onError,
-  });
-
-  for (const [source, line] of lines) {
-    const track = tracks[source];
-    if (track) line.sender.replaceTrack(track).catch(deps.onError);
+function receive(
+  p: Parts,
+  negotiation: Negotiation,
+  message: LinkMessage,
+): void {
+  if (p.s.closed) return;
+  if (message.type === "candidate") {
+    void negotiation.receiveCandidate(message.candidate);
+    return;
   }
-  wireEvents(pc, deps, (next) => {
-    if (next === state) return;
-    state = next;
-    deps.onChange();
-  });
+  // Known before the description applies, so its lines start right.
+  p.s.remoteSources = message.sources;
+  if (message.type === "description") {
+    void negotiation.receiveDescription(message.description);
+    return;
+  }
+  directions(p);
+  p.changed();
+}
 
+function linkApi(p: Parts, negotiation: Negotiation): Link {
+  const { pc } = p.deps;
   return {
     get state() {
-      return state;
+      return p.s.state;
     },
-    receive(message) {
-      if (message.type === "description")
-        void negotiation.receiveDescription(message.description);
-      else if (message.type === "candidate")
-        void negotiation.receiveCandidate(message.candidate);
-      else {
-        remoteSources = message.sources;
-        applyRefusals();
-        deps.onChange();
-      }
+    receive: (message) => {
+      receive(p, negotiation, message);
     },
     async setTrack(source, track) {
-      tracks = { ...tracks, [source]: track };
-      await lines.get(source)?.sender.replaceTrack(track);
-      sendSources();
+      p.s.tracks = { ...p.s.tracks, [source]: track };
+      await p.own.bySource.get(source)?.sender.replaceTrack(track);
+      saySources(p);
     },
-    setRefused(source, isRefused) {
-      const next = new Set(refused);
-      if (isRefused) next.add(source);
+    setRefused(source, refused) {
+      const next = new Set(p.s.refused);
+      if (refused) next.add(source);
       else next.delete(source);
-      refused = next;
-      applyRefusals();
+      p.s.refused = next;
+      directions(p);
     },
     remoteTracks: () =>
-      remoteLines(pc, own, remoteSources).map(({ source, track }) => ({
+      remoteLines(pc, p.own, p.s.remoteSources).map(({ source, track }) => ({
         source,
         track,
       })),
-    limitVideo: (limits) => limitSender(lines.get("camera"), limits),
+    limitVideo(limits) {
+      p.s.limits = limits;
+      return limit(p);
+    },
     async stats() {
-      const reading = readStats(await pc.getStats(), totals);
-      totals = reading.totals;
+      const reading = readStats(await pc.getStats(), p.s.totals);
+      p.s.totals = reading.totals;
       return reading.stats;
     },
     setConfiguration(configuration) {
       pc.setConfiguration(configuration);
       pc.restartIce();
     },
+    resync() {
+      saySources(p, true);
+      void negotiation.unstick();
+    },
     close() {
-      state = "closed";
+      p.s.closed = true;
+      p.s.state = "closed";
       pc.close();
     },
   };
-}
-
-/** Candidates out, and the connection state; the impolite side restarts ICE. */
-function wireEvents(
-  pc: PeerConnectionLike,
-  deps: LinkDeps,
-  setState: (state: LinkState) => void,
-): void {
-  pc.addEventListener("icecandidate", (event) => {
-    const { candidate } = event as RTCPeerConnectionIceEvent;
-    deps.send({
-      type: "candidate",
-      candidate: candidate ? toInit(candidate) : null,
-    });
-  });
-  pc.addEventListener("track", () => {
-    deps.onChange();
-  });
-  pc.addEventListener("connectionstatechange", () => {
-    if (pc.connectionState === "failed" && !deps.polite) pc.restartIce();
-    setState(STATES[pc.connectionState]);
-  });
-}
-
-/** Encodings exist once the line is negotiated; until then, nothing to do. */
-async function limitSender(
-  line: TransceiverLike | undefined,
-  limits: VideoLimits,
-): Promise<void> {
-  if (!line) return;
-  const parameters = line.sender.getParameters();
-  if (parameters.encodings.length === 0) return;
-  await line.sender.setParameters({
-    ...parameters,
-    encodings: parameters.encodings.map((encoding) => ({
-      ...encoding,
-      ...limits,
-    })),
-  });
 }
