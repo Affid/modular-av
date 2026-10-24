@@ -93,3 +93,9 @@ export type {
   FakeVideoEffect,
   FakeVideoEffectInstance,
 } from "./media/fake-effects.ts";
+export {
+  FakePeerConnection,
+  FakeSender,
+  FakeTransceiver,
+} from "./rtc/fake-peer-connection.ts";
+export type { FakeDescription, FakeStats } from "./rtc/fake-peer-connection.ts";
