@@ -2,9 +2,11 @@ import type {
   InputSensitivity,
   MediaPermissions,
   ParticipantId,
+  SessionStatus,
 } from "@modular-av/api";
 import type { AVFacts } from "../foundry/av-facts.ts";
 import type { GateConfig } from "./env.ts";
+import type { DeviceChoice } from "./local-media.ts";
 import type { PlaybackPolicy } from "./remote-media.ts";
 
 export interface OutboundInput {
@@ -76,4 +78,23 @@ export function gateConfig(
     mode: facts.voiceMode() === "activity" ? "gate" : "detect",
     ...sensitivity,
   };
+}
+
+/**
+ * The devices to capture. The camera runs only while video can go out (in
+ * a call, allowed, not hidden), so its light means something. The
+ * microphone stays while muted, for an instant unmute and "speaking while
+ * muted"; once the player left the call, both are freed.
+ */
+export function wantedDevices(
+  facts: AVFacts,
+  session: SessionStatus,
+): DeviceChoice {
+  if (session === "left") return { audio: null, video: null };
+  const chosen = facts.devices();
+  const shown =
+    session !== "idle" &&
+    facts.canBroadcast(facts.selfId).video &&
+    !(facts.entry(facts.selfId).hidden ?? false);
+  return { audio: chosen.audio, video: shown ? chosen.video : null };
 }

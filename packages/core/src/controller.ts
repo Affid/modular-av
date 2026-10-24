@@ -24,10 +24,12 @@ import {
 import { createLocalMedia, type LocalMedia } from "./media/local-media.ts";
 import { readSensitivity } from "./media/sensitivity.ts";
 import { createRemoteMedia, type RemoteMedia } from "./media/remote-media.ts";
+import type { DeviceChoice } from "./media/local-media.ts";
 import {
   computeOutbound,
   createPlaybackPolicy,
   gateConfig,
+  wantedDevices,
 } from "./media/rules.ts";
 import type { Session } from "./session/session.ts";
 import type { Channels } from "./socket.ts";
@@ -114,6 +116,37 @@ function rightsChanged(rt: Runtime, facts: AVFacts): boolean {
   );
 }
 
+const sameDevices = (a: DeviceChoice, b: DeviceChoice): boolean =>
+  a.audio === b.audio && a.video === b.video;
+
+interface DeviceSync {
+  /** Captures what is wanted now, whatever was asked before. */
+  readonly acquire: () => Promise<void>;
+  /** Captures again only if what is wanted changed. */
+  sync(): void;
+}
+
+function createDeviceSync(
+  facts: AVFacts,
+  rt: Runtime,
+  local: LocalMedia,
+  onError: (error: unknown) => void,
+): DeviceSync {
+  let requested: DeviceChoice | null = null;
+  const acquire = (): Promise<void> => {
+    requested = wantedDevices(facts, rt.session.status);
+    return local.acquire(requested);
+  };
+  return {
+    acquire,
+    sync() {
+      const next = wantedDevices(facts, rt.session.status);
+      if (requested && sameDevices(requested, next)) return;
+      acquire().catch(onError);
+    },
+  };
+}
+
 function buildParts(deps: ControllerDeps): Parts {
   const { game, env } = deps;
   const facts = createAVFacts(game);
@@ -155,13 +188,20 @@ function buildParts(deps: ControllerDeps): Parts {
     isSupported: choices.isSupported,
   });
   remote.onChange(refreshState);
+  const devices = createDeviceSync(facts, rt, local, deps.onError);
   const session = createCall({
     ...deps,
-    ...{ facts, rt, local, remote, service, outbound, refreshState },
+    ...{ facts, rt, local, remote, service, outbound },
+    // The session's status decides which devices run.
+    refreshState: () => {
+      refreshState();
+      devices.sync();
+    },
   });
   // Created after `apply`, which it calls.
   let voice: VoiceActivity | null = null;
   const apply = (): void => {
+    devices.sync();
     local.setGate(gateConfig(facts, readSensitivity(game)));
     local.setOutbound(outbound());
     remote.refresh();
@@ -174,7 +214,7 @@ function buildParts(deps: ControllerDeps): Parts {
     remote.setLocalVideo(facts.selfId, local.camera);
     apply();
   });
-  const reacquire = (): Promise<void> => local.acquire(facts.devices());
+  const reacquire = devices.acquire;
   voice = createVoiceActivity({ game, facts, rt, local, apply });
   choices.apply();
   return {
@@ -232,7 +272,7 @@ export function createController(deps: ControllerDeps): Controller {
     reacquire: parts.reacquire,
     refresh: parts.refresh,
     setEffectEnabled: (id, enabled) => parts.choices.setEnabled(id, enabled),
-    initialize: () => local.acquire(facts.devices()),
+    initialize: parts.reacquire,
     foundryConnect() {
       rt.foundryConnected = true;
       startIfReady();
