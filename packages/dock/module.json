@@ -1,0 +1,17 @@
+{
+  "id": "modular-av-dock",
+  "title": "Modular A/V: Dock",
+  "description": "A camera dock, voice panel and settings window for Modular A/V.",
+  "authors": [{ "name": "Andrei Fedorov", "url": "https://github.com/Affid" }],
+  "url": "https://github.com/Affid/modular-av",
+  "bugs": "https://github.com/Affid/modular-av/issues",
+  "license": "LICENSE",
+  "compatibility": { "minimum": "14", "verified": "14.369" },
+  "esmodules": ["modular-av-dock.js"],
+  "styles": ["modular-av-dock.css"],
+  "languages": [{ "lang": "en", "name": "English", "path": "lang/en.json" }],
+  "relationships": {
+    "requires": [{ "id": "modular-av", "type": "module" }]
+  },
+  "flags": { "modular-av": { "kind": "ui" } }
+}

@@ -92,6 +92,8 @@ export function foundryModuleConfig(packageDir: string): UserConfig {
         entry: join(packageDir, "src/index.ts"),
         formats: ["es"],
         fileName: () => `${id}.js`,
+        // A UI module's styles, listed in its module.json.
+        cssFileName: id,
       },
     },
     plugins: [foundryFiles(packageDir, version)],

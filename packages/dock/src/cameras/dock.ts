@@ -1,0 +1,136 @@
+import type { CamerasHost, CamerasSurfaceDefinition } from "@modular-av/api";
+import { el, icon, setLabel } from "@modular-av/kit";
+import { type DockContext, MODULE_ID } from "../context.ts";
+import { openParticipantMenu } from "../menus/participant-menu.ts";
+import { openQuickControls } from "../panel/quick-controls.ts";
+import { createStatus } from "../panel/status.ts";
+import { createVoicePanel } from "../panel/voice-panel.ts";
+import {
+  isCollapsed,
+  save,
+  SETTINGS,
+  tileLayout,
+  type TileLayout,
+} from "../settings.ts";
+import { createHeader, type Header } from "./header.ts";
+import { createPlacement, type Placement } from "./placement.ts";
+import { openPlacementMenu } from "./placement-menu.ts";
+import { createTileList, type TileList } from "./tiles.ts";
+
+interface Dock {
+  readonly root: HTMLElement;
+  readonly header: Header;
+  readonly tiles: TileList;
+  layout: TileLayout;
+  collapsed: boolean;
+  placement: Placement | null;
+}
+
+/** The header shows where the dock is, its layout and how many are in. */
+function show(dock: Dock): void {
+  dock.root.dataset.tileLayout = dock.layout;
+  dock.root.toggleAttribute("data-collapsed", dock.collapsed);
+  dock.tiles.setLayout(dock.layout);
+  dock.header.show({
+    where: dock.placement?.where ?? "left",
+    layout: dock.layout,
+    collapsed: dock.collapsed,
+    count: dock.tiles.count,
+  });
+}
+
+function resizeHandle(ctx: DockContext, doc: Document): HTMLButtonElement {
+  const button = el("button", {
+    doc,
+    className: "mav-dock-resize",
+    attrs: { type: "button" },
+    children: [icon("fa-up-right-and-down-left-from-center", doc)],
+  });
+  setLabel(button, ctx.t("dock.resize"));
+  return button;
+}
+
+function build(ctx: DockContext, host: CamerasHost): Dock {
+  const doc = host.element.ownerDocument;
+  const status = createStatus(ctx, doc);
+  const tiles = createTileList(ctx, doc, {
+    menu: (id, anchor) => {
+      openParticipantMenu(ctx, id, anchor);
+    },
+  });
+  const panel = createVoicePanel(ctx, doc, status, {
+    quick: (anchor) => {
+      openQuickControls(ctx, anchor);
+    },
+  });
+  const dock: Dock = {
+    root: el("section", {
+      doc,
+      className: "mav-dock",
+      attrs: { "aria-label": ctx.t("dock.label") },
+    }),
+    header: createHeader(ctx, doc, status, {
+      layout: () => {
+        dock.layout = dock.layout === "grid" ? "focus" : "grid";
+        save(ctx, SETTINGS.tileLayout, dock.layout);
+        show(dock);
+      },
+      placement: (anchor) => {
+        if (dock.placement) openPlacementMenu(ctx, anchor, dock.placement);
+      },
+      collapse: () => {
+        dock.collapsed = !dock.collapsed;
+        save(ctx, SETTINGS.collapsed, dock.collapsed);
+        show(dock);
+      },
+    }),
+    tiles,
+    layout: tileLayout(ctx),
+    collapsed: isCollapsed(ctx),
+    placement: null,
+  };
+  dock.root.append(dock.header.element, tiles.element, panel.element);
+  return dock;
+}
+
+/**
+ * The cameras surface: a dock in the core's camera dock host, docked on
+ * a side, floating or in its own window, with the voice panel. Mounted
+ * once per page; every state it shows comes from the core.
+ */
+export function camerasSurface(ctx: DockContext): CamerasSurfaceDefinition {
+  return {
+    kind: "cameras",
+    id: `${MODULE_ID}.cameras`,
+    label: `${MODULE_ID}.surfaces.cameras`,
+    mount(host) {
+      const dock = build(ctx, host);
+      const resize = resizeHandle(ctx, dock.root.ownerDocument);
+      dock.root.append(resize);
+      host.element.append(dock.root);
+      const placement = createPlacement(ctx, host, {
+        root: dock.root,
+        handle: dock.header.element,
+        move: dock.header.move,
+        resize,
+      });
+      dock.placement = placement;
+      placement.onChange((where) => {
+        dock.tiles.setHorizontal(where === "top" || where === "bottom");
+        show(dock);
+      });
+      dock.tiles.onChange(() => {
+        show(dock);
+      });
+      show(dock);
+      return {
+        unmount() {
+          placement.dispose();
+          dock.tiles.dispose();
+          dock.header.dispose();
+          dock.root.remove();
+        },
+      };
+    },
+  };
+}

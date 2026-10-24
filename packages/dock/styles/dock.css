@@ -1,0 +1,665 @@
+/*
+ * Modular A/V dock: the default theme. Every colour, size and radius is a
+ * token: `--mav-*` are shared by UI modules, `--mav-dock-*` are the dock's.
+ * A theme sets tokens, or restyles the documented classes and attributes
+ * (docs/dock-theming.md); it may restyle indicators but never hide them.
+ * Contrast: text at least 4.5:1, icons, rings and borders at least 3:1
+ * against what they sit on.
+ */
+
+:root {
+  --mav-text: #f2f3f5;
+  --mav-text-muted: #b5bac1;
+  --mav-surface: #2b2d31;
+  --mav-surface-raised: #313338;
+  --mav-surface-sunken: #1e1f22;
+  --mav-border: #4e5058;
+  --mav-speaking: #23a55a;
+  --mav-muted: #f23f43;
+  --mav-warning: #f0b232;
+  --mav-blocked: #f23f43;
+  --mav-focus: #00a8fc;
+  --mav-on-accent: #ffffff;
+  --mav-accent: #4752c4;
+  --mav-meter: #23a55a;
+  --mav-meter-closed: #80848e;
+
+  --mav-dock-radius: 8px;
+  --mav-dock-gap: 6px;
+  --mav-dock-width: 300px;
+  --mav-dock-height: 225px;
+  --mav-dock-tile-bg: #111214;
+  --mav-dock-ring: 3px;
+  --mav-dock-button: 32px;
+  --mav-dock-font: var(--font-body, system-ui, sans-serif);
+  --mav-dock-font-size: 13px;
+  --mav-dock-shadow: 0 8px 24px rgb(0 0 0 / 45%);
+}
+
+/* ---- The host: Foundry's camera dock element, which the dock fills ---- */
+
+#camera-views:has(> .mav-dock) {
+  background: none;
+  padding: 0;
+  gap: 0;
+}
+
+#camera-views:has(> .mav-dock[data-placement="left"]),
+#camera-views:has(> .mav-dock[data-placement="right"]) {
+  width: var(--mav-dock-width);
+}
+
+#camera-views:has(> .mav-dock[data-placement="top"]),
+#camera-views:has(> .mav-dock[data-placement="bottom"]) {
+  height: var(--mav-dock-height);
+}
+
+/* Floating, or in its own window: nothing left in the page's layout. */
+#camera-views:has(> .mav-dock[data-placement="floating"]),
+#camera-views:not(:has(> .mav-dock)) {
+  width: 0;
+  min-width: 0;
+  height: 0;
+  min-height: 0;
+  overflow: visible;
+}
+
+/* ---- The dock ---- */
+
+.mav-dock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mav-dock-gap);
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  padding: var(--mav-dock-gap);
+  color: var(--mav-text);
+  background: var(--mav-surface-sunken);
+  font-family: var(--mav-dock-font);
+  font-size: var(--mav-dock-font-size);
+  line-height: 1.3;
+}
+
+.mav-dock[data-placement="floating"] {
+  position: fixed;
+  z-index: calc(var(--z-index-app, 100) + 1);
+  border: 1px solid var(--mav-border);
+  border-radius: var(--mav-dock-radius);
+  box-shadow: var(--mav-dock-shadow);
+}
+
+.mav-dock[data-placement="window"] {
+  position: fixed;
+  inset: 0;
+}
+
+.mav-dock[data-placement="top"],
+.mav-dock[data-placement="bottom"] {
+  flex-direction: row;
+}
+
+.mav-dock[data-collapsed] {
+  height: auto;
+}
+
+.mav-dock[data-collapsed] .mav-dock-tiles {
+  display: none;
+}
+
+.mav-dock *,
+.mav-popover * {
+  box-sizing: border-box;
+}
+
+/* Foundry styles buttons in a cascade layer: these win, unlayered. */
+.mav-dock button,
+.mav-popover button {
+  font: inherit;
+  color: inherit;
+}
+
+/* ---- Header ---- */
+
+.mav-dock-header {
+  display: flex;
+  align-items: center;
+  gap: var(--mav-dock-gap);
+  min-height: var(--mav-dock-button);
+}
+
+.mav-dock[data-placement="floating"] .mav-dock-header {
+  cursor: grab;
+}
+
+.mav-dock[data-dragging] .mav-dock-header {
+  cursor: grabbing;
+}
+
+.mav-dock-status {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mav-dock-status::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-inline-end: 6px;
+  border-radius: 50%;
+  background: var(--mav-text-muted);
+  vertical-align: middle;
+}
+
+.mav-dock-status[data-status="connected"]::before {
+  background: var(--mav-speaking);
+}
+
+.mav-dock-status[data-status="reconnecting"]::before,
+.mav-dock-status[data-status="waiting"]::before {
+  background: var(--mav-warning);
+}
+
+.mav-dock-status[data-status="ended"]::before {
+  background: var(--mav-muted);
+}
+
+.mav-dock-count {
+  color: var(--mav-text-muted);
+  white-space: nowrap;
+}
+
+.mav-dock-tools,
+.mav-dock-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* ---- Buttons ---- */
+
+.mav-dock-button,
+.mav-dock-tile-menu,
+.mav-dock-resize {
+  display: inline-grid;
+  place-items: center;
+  width: var(--mav-dock-button);
+  height: var(--mav-dock-button);
+  margin: 0;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--mav-dock-radius);
+  background: var(--mav-surface-raised);
+  cursor: pointer;
+}
+
+.mav-dock-button:hover:not(:disabled) {
+  border-color: var(--mav-border);
+}
+
+.mav-dock-button[aria-pressed="true"].mav-dock-mute,
+.mav-dock-button[aria-pressed="true"].mav-dock-deafen,
+.mav-dock-leave {
+  color: var(--mav-on-accent);
+  background: #a12828;
+}
+
+.mav-dock-button[aria-pressed="true"].mav-dock-video {
+  color: var(--mav-on-accent);
+  background: var(--mav-accent);
+}
+
+.mav-dock-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.mav-dock button:focus-visible,
+.mav-popover button:focus-visible,
+.mav-popover input:focus-visible,
+.mav-popover select:focus-visible,
+.mav-settings :is(button, input, select):focus-visible {
+  outline: 2px solid var(--mav-focus);
+  outline-offset: 2px;
+}
+
+/* ---- Tiles ---- */
+
+.mav-dock-tiles {
+  --mav-dock-columns: 1;
+  --mav-dock-tile-width: 100%;
+  display: grid;
+  grid-template-columns: repeat(
+    var(--mav-dock-columns),
+    var(--mav-dock-tile-width)
+  );
+  align-content: start;
+  justify-content: center;
+  gap: var(--mav-dock-gap);
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+
+.mav-dock[data-placement="top"] .mav-dock-tiles,
+.mav-dock[data-placement="bottom"] .mav-dock-tiles {
+  grid-auto-flow: column;
+  grid-template-columns: none;
+  grid-auto-columns: var(--mav-dock-tile-width);
+  grid-template-rows: 100%;
+}
+
+.mav-dock-tiles[data-tile-layout="focus"] .mav-dock-tile[data-focused] {
+  grid-column: 1 / -1;
+  order: -1;
+}
+
+.mav-dock-tile {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--mav-dock-radius);
+  background: var(--mav-dock-tile-bg);
+  outline: var(--mav-dock-ring) solid transparent;
+  outline-offset: calc(-1 * var(--mav-dock-ring));
+}
+
+/* Speaking: a ring, and a thicker one so colour isn't the only cue. */
+.mav-dock-tile[data-speaking] {
+  outline-color: var(--mav-speaking);
+  outline-width: calc(var(--mav-dock-ring) + 1px);
+}
+
+.mav-dock-tile[data-blocked-audio],
+.mav-dock-tile[data-blocked-video] {
+  border: 2px dashed var(--mav-blocked);
+}
+
+.mav-dock-tile:not([data-connected]) {
+  opacity: 0.6;
+}
+
+.mav-dock-tile-media,
+.mav-dock-tile-video,
+.mav-dock-tile-avatar,
+.mav-dock-tile-frame {
+  position: absolute;
+  inset: 0;
+}
+
+.mav-dock-tile-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Laid out even when hidden: the core sees what is on screen. */
+.mav-dock-tile:not([data-video="on"]) .mav-dock-tile-video {
+  visibility: hidden;
+}
+
+.mav-dock-tile-avatar {
+  display: grid;
+  place-items: center;
+  font-size: 2em;
+  color: var(--mav-text-muted);
+}
+
+.mav-dock-tile[data-video="on"] .mav-dock-tile-avatar {
+  display: none;
+}
+
+.mav-dock-tile-avatar img {
+  width: 40%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border: 2px solid var(--mav-dock-tile-color, var(--mav-border));
+  border-radius: 50%;
+}
+
+.mav-dock-tile-frame {
+  pointer-events: none;
+}
+
+.mav-dock-tile-bar {
+  position: absolute;
+  inset: auto 4px 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: calc(100% - 8px);
+}
+
+.mav-dock-tile-name {
+  overflow: hidden;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgb(0 0 0 / 70%);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mav-dock-tile-indicators {
+  display: flex;
+  gap: 2px;
+}
+
+.mav-dock-tile-menu {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 28px;
+  height: 28px;
+  background: rgb(0 0 0 / 70%);
+  opacity: 0;
+}
+
+.mav-dock-tile:hover .mav-dock-tile-menu,
+.mav-dock-tile-menu:focus-visible,
+.mav-dock-tile-menu[aria-expanded="true"] {
+  opacity: 1;
+}
+
+.mav-dock-tile .mav-meter {
+  position: absolute;
+  inset: auto 0 0;
+  height: 3px;
+}
+
+/* ---- Indicators ---- */
+
+.mav-indicator {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 3px;
+  border-radius: 4px;
+  background: rgb(0 0 0 / 75%);
+  color: var(--mav-text);
+}
+
+.mav-indicator:is(
+  [data-indicator="muted"],
+  [data-indicator="deafened"],
+  [data-indicator="blocked-audio"],
+  [data-indicator="blocked-video"],
+  [data-indicator="microphone-error"],
+  [data-indicator="camera-error"],
+  [data-indicator="effect-failed"]
+) {
+  color: #ff6b6e;
+}
+
+.mav-indicator:is(
+  [data-indicator="connection"],
+  [data-indicator="open-mic"],
+  [data-indicator="speaking-while-muted"],
+  [data-indicator="camera-held"]
+) {
+  color: var(--mav-warning);
+}
+
+.mav-dock-warnings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.mav-dock-warnings:empty {
+  display: none;
+}
+
+/* ---- Panel ---- */
+
+.mav-dock-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mav-dock-gap);
+  padding: var(--mav-dock-gap);
+  border-radius: var(--mav-dock-radius);
+  background: var(--mav-surface);
+}
+
+.mav-dock[data-placement="top"] .mav-dock-panel,
+.mav-dock[data-placement="bottom"] .mav-dock-panel {
+  max-width: 220px;
+}
+
+.mav-dock-alert {
+  margin: 0;
+  color: #ff8e90;
+}
+
+.mav-dock-alert:empty {
+  display: none;
+}
+
+.mav-dock-resize {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 20px;
+  height: 20px;
+  cursor: nwse-resize;
+  background: transparent;
+}
+
+.mav-dock:not([data-placement="floating"]) .mav-dock-resize {
+  display: none;
+}
+
+/* ---- Meter ---- */
+
+.mav-meter {
+  position: relative;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--mav-surface-sunken);
+}
+
+.mav-meter-fill {
+  position: absolute;
+  inset: 0;
+  transform: scaleX(0);
+  transform-origin: left;
+  background: var(--mav-meter-closed);
+}
+
+.mav-meter[data-open] .mav-meter-fill {
+  background: var(--mav-meter);
+}
+
+.mav-meter-threshold {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--mav-meter-threshold, 0) * 100%);
+  width: 2px;
+  background: var(--mav-text);
+}
+
+/* ---- Popovers, menus and controls ---- */
+
+.mav-popover {
+  position: fixed;
+  inset: auto;
+  max-width: min(320px, calc(100vw - 16px));
+  max-height: var(--mav-popover-room, 70vh);
+  margin: 0;
+  padding: 10px;
+  overflow: auto;
+  border: 1px solid var(--mav-border);
+  border-radius: var(--mav-dock-radius);
+  color: var(--mav-text);
+  background: var(--mav-surface-raised);
+  box-shadow: var(--mav-dock-shadow);
+  font-family: var(--mav-dock-font);
+  font-size: var(--mav-dock-font-size);
+}
+
+.mav-popover h2 {
+  margin: 0 0 8px;
+  border: 0;
+  font-size: 1.1em;
+}
+
+.mav-dock-menu,
+.mav-dock-quick-controls,
+.mav-effects,
+.mav-control-nested {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mav-dock-menu-item,
+.mav-control-switch,
+.mav-control-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 30px;
+  margin: 0;
+  padding: 4px 8px;
+  border: 1px solid var(--mav-border);
+  border-radius: 6px;
+  background: var(--mav-surface);
+  text-align: start;
+  cursor: pointer;
+}
+
+.mav-control-switch::after {
+  content: "";
+  flex: none;
+  width: 30px;
+  height: 16px;
+  margin-inline-start: auto;
+  border: 2px solid var(--mav-text-muted);
+  border-radius: 8px;
+  background: radial-gradient(
+    circle at 25% 50%,
+    var(--mav-text-muted) 4px,
+    transparent 5px
+  );
+}
+
+.mav-control-switch[aria-checked="true"]::after {
+  border-color: var(--mav-speaking);
+  background: radial-gradient(
+    circle at 75% 50%,
+    var(--mav-speaking) 4px,
+    transparent 5px
+  );
+}
+
+.mav-dock-menu-item[aria-checked="true"] {
+  border-color: var(--mav-focus);
+}
+
+.mav-control-switch[aria-busy] {
+  cursor: progress;
+}
+
+.mav-control-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mav-effect-state,
+.mav-settings-hint {
+  color: var(--mav-text-muted);
+}
+
+.mav-dock-details {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 12px;
+  margin: 0;
+}
+
+.mav-dock-details dd {
+  margin: 0;
+}
+
+/* ---- Settings window ---- */
+
+.mav-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.mav-settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mav-settings-row {
+  display: grid;
+  grid-template-columns: 40% 1fr;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.mav-settings-row .mav-settings-hint {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.mav-settings-preview {
+  width: 100%;
+  max-width: 320px;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--mav-dock-radius);
+  background: var(--mav-dock-tile-bg);
+  object-fit: cover;
+}
+
+/* ---- Player list ---- */
+
+.mav-players-badges {
+  display: inline-flex;
+  gap: 2px;
+  margin-inline-start: 4px;
+}
+
+.mav-players-badges .mav-indicator {
+  min-width: 16px;
+  height: 16px;
+  font-size: 10px;
+}
+
+li[data-user-id][data-speaking] {
+  box-shadow: inset 3px 0 0 var(--mav-speaking);
+}
+
+/* ---- The Picture-in-Picture window ---- */
+
+body.modular-av-pip {
+  margin: 0;
+  background: var(--mav-surface-sunken);
+}
+
+/* ---- Motion ---- */
+
+@media (prefers-reduced-motion: no-preference) {
+  .mav-dock-tile {
+    transition: outline-color 120ms ease-out;
+  }
+
+  .mav-dock-tile-menu {
+    transition: opacity 120ms ease-out;
+  }
+}
