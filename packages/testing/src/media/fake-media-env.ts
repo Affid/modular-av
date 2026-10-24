@@ -41,6 +41,12 @@ export const FAKE_DEVICES: DeviceList = {
   audioOutput: [{ id: "default", label: "Fake speakers" }],
 };
 
+/** Whether an element is seen, and how tall it is in device pixels (0: unknown). */
+export interface FakeOnScreen {
+  readonly visible: boolean;
+  readonly height: number;
+}
+
 export interface FakeAudioCapture {
   readonly deviceId: string;
   readonly noiseSuppression: boolean;
@@ -56,6 +62,12 @@ export interface FakeMediaEnv {
   createAudioOutput(): FakeAudioOutput;
   showVideo(element: HTMLVideoElement, stream: MediaStream | null): void;
   watchRemoval(element: HTMLVideoElement, onRemoved: () => void): () => void;
+  watchOnScreen(
+    element: HTMLVideoElement,
+    listener: (view: FakeOnScreen) => void,
+  ): () => void;
+  /** Plays the browser's observers: the element came into view or left it. */
+  setOnScreen(element: HTMLVideoElement, view: FakeOnScreen): void;
   onOnline(listener: () => void): () => void;
   createCaptureContext(): Promise<FakeCaptureContext>;
   canWatchFrames(): boolean;
@@ -139,6 +151,10 @@ export function createFakeMediaEnv(
   let shown = new Map<HTMLVideoElement, MediaStream | null>();
   let removalWatchers = new Map<HTMLVideoElement, readonly (() => void)[]>();
   let onlineListeners: readonly (() => void)[] = [];
+  let screenWatchers: readonly {
+    readonly element: HTMLVideoElement;
+    readonly listener: (view: FakeOnScreen) => void;
+  }[] = [];
   let captureContexts: readonly FakeCaptureContext[] = [];
   let devices = options.devices ?? FAKE_DEVICES;
   let deviceListeners: readonly (() => void)[] = [];
@@ -191,6 +207,17 @@ export function createFakeMediaEnv(
           (removalWatchers.get(element) ?? []).filter((w) => w !== onRemoved),
         );
       };
+    },
+    watchOnScreen(element, listener) {
+      const watcher = { element, listener };
+      screenWatchers = [...screenWatchers, watcher];
+      return () => {
+        screenWatchers = screenWatchers.filter((w) => w !== watcher);
+      };
+    },
+    setOnScreen(element, view) {
+      for (const w of screenWatchers.filter((x) => x.element === element))
+        w.listener(view);
     },
     onOnline(listener) {
       onlineListeners = [...onlineListeners, listener];

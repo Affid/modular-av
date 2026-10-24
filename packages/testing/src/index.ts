@@ -77,6 +77,7 @@ export type {
   FakeAudioOutputState,
   FakeMediaEnv,
   FakeMediaEnvOptions,
+  FakeOnScreen,
 } from "./media/fake-media-env.ts";
 export {
   createFakeAudioGraph,

@@ -1,5 +1,6 @@
 import type { DeviceKind, DeviceList } from "@modular-av/api";
 import { canWatchFrames, watchFrames } from "./browser-frames.ts";
+import { createOnScreenWatcher } from "./browser-on-screen.ts";
 import type { AudioOutput, MediaEnv } from "./env.ts";
 
 const deviceConstraint = (deviceId: string): MediaTrackConstraints =>
@@ -47,40 +48,56 @@ function createElementOutput(): AudioOutput {
 
 type Watched = ReadonlyMap<HTMLVideoElement, () => void>;
 
-/** One observer per document, as the handoff asks, not one per element. */
+/**
+ * One observer per document, as the handoff asks, not one per element. An
+ * element moved to another document (the Picture-in-Picture window) is
+ * watched there from then on.
+ */
 function createRemovalWatcher(): MediaEnv["watchRemoval"] {
   let watched = new Map<Document, Watched>();
   let observers = new Map<Document, MutationObserver>();
 
-  const check = (doc: Document): void => {
-    const entries = watched.get(doc) ?? new Map<HTMLVideoElement, () => void>();
-    const removed = [...entries].filter(([element]) => !element.isConnected);
-    if (removed.length === 0) return;
-    watched = new Map(watched).set(
-      doc,
-      new Map([...entries].filter(([element]) => element.isConnected)),
-    );
-    for (const [, onRemoved] of removed) onRemoved();
-  };
+  const entriesOf = (doc: Document): Watched =>
+    watched.get(doc) ?? new Map<HTMLVideoElement, () => void>();
 
-  return (element, onRemoved) => {
+  const add = (element: HTMLVideoElement, onRemoved: () => void): void => {
     const doc = element.ownerDocument;
     if (!observers.has(doc)) {
-      const observer = new MutationObserver(() => {
+      const Observer = doc.defaultView?.MutationObserver ?? MutationObserver;
+      const observer = new Observer(() => {
         check(doc);
       });
       observer.observe(doc, { childList: true, subtree: true });
       observers = new Map(observers).set(doc, observer);
     }
-    const entries = watched.get(doc) ?? new Map<HTMLVideoElement, () => void>();
     watched = new Map(watched).set(
       doc,
-      new Map(entries).set(element, onRemoved),
+      new Map(entriesOf(doc)).set(element, onRemoved),
     );
+  };
+
+  function check(doc: Document): void {
+    const entries = [...entriesOf(doc)];
+    const stays = entries.filter(
+      ([element]) => element.isConnected && element.ownerDocument === doc,
+    );
+    if (stays.length === entries.length) return;
+    watched = new Map(watched).set(doc, new Map(stays));
+    for (const [element, onRemoved] of entries) {
+      if (!element.isConnected) onRemoved();
+      else if (element.ownerDocument !== doc) add(element, onRemoved);
+    }
+  }
+
+  return (element, onRemoved) => {
+    add(element, onRemoved);
     return () => {
-      const current = new Map(watched.get(doc));
-      current.delete(element);
-      watched = new Map(watched).set(doc, current);
+      for (const [doc, entries] of watched) {
+        if (!entries.has(element)) continue;
+        const current = new Map(entries);
+        current.delete(element);
+        watched = new Map(watched).set(doc, current);
+      }
     };
   };
 }
@@ -122,6 +139,7 @@ export function createBrowserMediaEnv(
       if (element.srcObject !== stream) element.srcObject = stream;
     },
     watchRemoval: createRemovalWatcher(),
+    watchOnScreen: createOnScreenWatcher(),
     onOnline(listener) {
       window.addEventListener("online", listener);
       return () => {

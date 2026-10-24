@@ -1,14 +1,27 @@
-import type { RemoteTrack, TrackSource } from "@modular-av/api";
+import type {
+  RemoteTrack,
+  SubscriptionOptions,
+  TrackSource,
+} from "@modular-av/api";
 import {
   createFakeMediaEnv,
   createFakeTrack,
   createFakeVideoElement,
 } from "@modular-av/testing";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { OFF_SCREEN_GRACE_MS } from "../src/media/on-screen.ts";
 import {
   createRemoteMedia,
   type PlaybackPolicy,
 } from "../src/media/remote-media.ts";
+
+beforeEach(() => {
+  vi.useFakeTimers();
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 interface Rules {
   deaf: boolean;
@@ -35,7 +48,7 @@ function setup(rules: Partial<Rules> = {}) {
     sinkId: () => current.sink,
   };
   const subscriptions =
-    vi.fn<(p: string, s: TrackSource, on: boolean) => void>();
+    vi.fn<(p: string, s: TrackSource, options: SubscriptionOptions) => void>();
   const errors: unknown[] = [];
   const media = createRemoteMedia(env, policy, subscriptions, (e) =>
     errors.push(e),
@@ -232,9 +245,9 @@ describe("subscriptions and changes", () => {
 
     // Assert
     expect(subscriptions.mock.calls).toEqual([
-      ["p1", "microphone", true],
-      ["p1", "camera", true],
-      ["p1", "camera", false],
+      ["p1", "microphone", { enabled: true }],
+      ["p1", "camera", { enabled: true }],
+      ["p1", "camera", { enabled: false }],
     ]);
   });
 
@@ -250,5 +263,118 @@ describe("subscriptions and changes", () => {
 
     expect(listener).toHaveBeenCalledTimes(2);
     expect(env.outputs[0]?.state.disposed).toBe(true);
+  });
+});
+
+describe("videos nobody can see", () => {
+  const ON = { visible: true, height: 360 };
+  const OFF = { visible: false, height: 360 };
+
+  it("pause a while after leaving the screen, and resume at once", () => {
+    // Arrange
+    const { env, media, subscriptions } = setup();
+    const element = createFakeVideoElement();
+    media.add(remote("p1", "camera"));
+    media.attach("p1", "camera", element);
+    env.setOnScreen(element, ON);
+    subscriptions.mockClear();
+
+    // Act
+    env.setOnScreen(element, OFF);
+    vi.advanceTimersByTime(OFF_SCREEN_GRACE_MS - 1);
+    const early = subscriptions.mock.calls.length;
+    vi.advanceTimersByTime(1);
+
+    // Assert
+    expect(early).toBe(0);
+    expect(subscriptions.mock.calls).toEqual([
+      ["p1", "camera", { enabled: false }],
+    ]);
+    env.setOnScreen(element, ON);
+    expect(subscriptions.mock.calls.at(-1)).toEqual([
+      "p1",
+      "camera",
+      { enabled: true, maxQuality: "medium" },
+    ]);
+  });
+
+  it("don't pause for a moment off screen", () => {
+    const { env, media, subscriptions } = setup();
+    const element = createFakeVideoElement();
+    media.add(remote("p1", "camera"));
+    media.attach("p1", "camera", element);
+    env.setOnScreen(element, ON);
+    subscriptions.mockClear();
+
+    env.setOnScreen(element, OFF);
+    vi.advanceTimersByTime(OFF_SCREEN_GRACE_MS / 2);
+    env.setOnScreen(element, ON);
+    vi.advanceTimersByTime(OFF_SCREEN_GRACE_MS);
+
+    expect(subscriptions).not.toHaveBeenCalled();
+  });
+
+  it("pause when shown nowhere, and resume once shown", () => {
+    const { env, media, subscriptions } = setup();
+    media.add(remote("p1", "camera"));
+    vi.advanceTimersByTime(OFF_SCREEN_GRACE_MS);
+    expect(subscriptions.mock.calls.at(-1)?.[2]).toEqual({ enabled: false });
+
+    const element = createFakeVideoElement();
+    media.attach("p1", "camera", element);
+
+    expect(subscriptions.mock.calls.at(-1)?.[2]).toEqual({ enabled: true });
+    env.setOnScreen(element, { visible: true, height: 1080 });
+    expect(subscriptions.mock.calls.at(-1)?.[2]).toEqual({
+      enabled: true,
+      maxQuality: "high",
+    });
+  });
+
+  it("ask for the quality the largest element on screen needs", () => {
+    const { env, media, subscriptions } = setup();
+    const small = createFakeVideoElement();
+    const large = createFakeVideoElement();
+    media.add(remote("p1", "camera"));
+    media.attach("p1", "camera", small);
+    env.setOnScreen(small, { visible: true, height: 180 });
+    expect(subscriptions.mock.calls.at(-1)?.[2]).toEqual({
+      enabled: true,
+      maxQuality: "low",
+    });
+
+    media.attach("p1", "camera", large);
+    env.setOnScreen(large, { visible: true, height: 720 });
+    expect(subscriptions.mock.calls.at(-1)?.[2]).toEqual({
+      enabled: true,
+      maxQuality: "high",
+    });
+    env.setOnScreen(large, { visible: false, height: 720 });
+    expect(subscriptions.mock.calls.at(-1)?.[2]).toEqual({
+      enabled: true,
+      maxQuality: "low",
+    });
+  });
+
+  it("stay refused when allowed on screen but not by the rules", () => {
+    const { env, media, subscriptions } = setup({ refusedVideo: ["p1"] });
+    const element = createFakeVideoElement();
+    media.add(remote("p1", "camera"));
+    media.attach("p1", "camera", element);
+
+    env.setOnScreen(element, ON);
+
+    expect(subscriptions.mock.calls.map((c) => c[2].enabled)).toEqual([false]);
+  });
+
+  it("leave audio alone", () => {
+    const { media, subscriptions } = setup();
+    media.add(remote("p1", "microphone"));
+
+    vi.advanceTimersByTime(OFF_SCREEN_GRACE_MS * 2);
+
+    expect(subscriptions.mock.calls).toEqual([
+      ["p1", "microphone", { enabled: true }],
+    ]);
   });
 });

@@ -185,8 +185,8 @@ function buildParts(deps: ControllerDeps): Parts {
   const remote = createRemoteMedia(
     env,
     createPlaybackPolicy(facts, () => rt.deafened),
-    (participant, source, enabled) => {
-      rt.connection?.setSubscription(participant, source, { enabled });
+    (participant, source, options) => {
+      rt.connection?.setSubscription(participant, source, options);
     },
     deps.onError,
   );

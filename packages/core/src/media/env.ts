@@ -21,6 +21,15 @@ export interface MediaEnv {
   showVideo(element: HTMLVideoElement, stream: MediaStream | null): void;
   /** Calls back once `element` has left its document. */
   watchRemoval(element: HTMLVideoElement, onRemoved: () => void): () => void;
+  /**
+   * Calls back when `element` comes into view or leaves it (in a visible
+   * document, the Picture-in-Picture window too) or changes height. It
+   * follows the element into another document.
+   */
+  watchOnScreen(
+    element: HTMLVideoElement,
+    listener: (view: OnScreen) => void,
+  ): () => void;
   /** The browser's `online` event. */
   onOnline(listener: () => void): () => void;
   /** Devices with an id; labels once access was granted. */
@@ -36,6 +45,12 @@ export interface MediaEnv {
    * the returned function is called. Reads a clone: `track` is untouched.
    */
   watchFrames(track: MediaStreamTrack, onFrame: () => void): () => void;
+}
+
+/** Whether an element is seen, and how tall it is in device pixels (0: unknown). */
+export interface OnScreen {
+  readonly visible: boolean;
+  readonly height: number;
 }
 
 /** "gate" silences the microphone while closed; "detect" only reports. */

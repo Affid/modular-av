@@ -36,10 +36,13 @@ const QUALITIES = {
 /**
  * Defaults that worked for the fork (handoff §6): VP8, simulcast at 180p
  * and 360p, DTX. The core owns the tracks, so LiveKit must never stop them.
+ * The core attaches videos itself and tells `setSubscription` what is on
+ * screen and how big, so LiveKit's adaptive stream (which watches the
+ * elements LiveKit attached) stays off.
  */
 function createRoom(): Room {
   return new Room({
-    adaptiveStream: true,
+    adaptiveStream: false,
     dynacast: true,
     stopLocalTrackOnUnpublish: false,
     publishDefaults: {
