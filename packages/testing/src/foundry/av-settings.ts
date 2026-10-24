@@ -37,6 +37,7 @@ export interface AVClientSettings {
   readonly muteAll: boolean;
   readonly disableVideo: boolean;
   readonly hideDock: boolean;
+  readonly dockPosition: "top" | "right" | "bottom" | "left";
   readonly voice: {
     readonly mode: VoiceMode;
     readonly pttName: string;
@@ -85,6 +86,7 @@ export const DEFAULT_AV_CLIENT: AVClientSettings = {
   muteAll: false,
   disableVideo: false,
   hideDock: false,
+  dockPosition: "left",
   voice: { mode: "ptt", pttName: "`", pttDelay: 100, activityThreshold: -45 },
   users: {},
 };

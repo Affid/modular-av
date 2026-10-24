@@ -255,6 +255,10 @@ export function createClient(parts: ClientParts): ClientHandle {
       hooks.callAll("setup");
       initializeRTC(client.CONFIG.WebRTC.clientClass);
       ui.webrtc = new client.CONFIG.ui.webrtc();
+      // Foundry's initializeUI renders the camera dock without awaiting it.
+      ui.webrtc.render({ force: true }).catch((error: unknown) => {
+        errors = [...errors, error];
+      });
       ready = true;
       hooks.callAll("ready");
     },

@@ -15,7 +15,10 @@ import {
   DEAFENED_SETTING,
 } from "./controller.ts";
 import { createAVClientClass } from "./foundry/av-client.ts";
-import { createCameraHostClass } from "./foundry/camera-host.ts";
+import {
+  type CamerasHosting,
+  createCameraHostClass,
+} from "./foundry/camera-host.ts";
 import type {
   FoundryConfig,
   FoundryGame,
@@ -34,6 +37,12 @@ import { assetUrl, createChannels } from "./socket.ts";
 import { INITIAL_STATE } from "./state/initial.ts";
 import { decoratePlayerList, startPlainStatus } from "./status/plain-status.ts";
 import { createStore } from "./store.ts";
+import {
+  chosenSurface,
+  playersSurfaces,
+  registerSurfaceSettings,
+} from "./surfaces/choice.ts";
+import { createPlacement } from "./surfaces/placement.ts";
 
 export const REGISTER_HOOK = "modularAV.register";
 export const SERVICE_SETTING = "service";
@@ -80,11 +89,15 @@ export function installCore(deps: CoreDeps): InstalledCore {
   const channels = createChannels(game.socket, deps.onError);
   let current: Controller | undefined;
   const controller = (): Controller => current ?? notReady();
+  let hosting: CamerasHosting | null = null;
+  /** A cameras surface shows the status: the plain one steps aside. */
+  let surfaceShowsStatus = false;
 
   const ClientClass = createAVClientClass(deps.foundry.av.AVClient, controller);
   deps.config.WebRTC.clientClass = ClientClass;
   deps.config.ui.webrtc = createCameraHostClass(
     deps.foundry.applications.apps.av.CameraViews,
+    () => hosting,
   );
   game.settings.register(MODULE_ID, SENSITIVITY_SETTING, {
     scope: "client",
@@ -129,6 +142,23 @@ export function installCore(deps: CoreDeps): InstalledCore {
     hooks.callAll(REGISTER_HOOK, api);
     for (const registry of registries) registry.close();
     registerServiceSetting(game, services.api.list());
+    registerSurfaceSettings(game, surfaces.api.list());
+    const placement = createPlacement(
+      () => game.webrtc?.settings ?? null,
+      deps.ui,
+    );
+    hosting = {
+      surface: chosenSurface(game, surfaces.api.list(), "cameras"),
+      placement: placement.get,
+      setPlacement: placement.set,
+      mounted() {
+        surfaceShowsStatus = true;
+      },
+      failed(error) {
+        surfaceShowsStatus = false;
+        deps.onError(error);
+      },
+    };
     current = createController({
       store,
       game,
@@ -144,7 +174,7 @@ export function installCore(deps: CoreDeps): InstalledCore {
       now: deps.now,
       randomId: deps.randomId,
     });
-    watchFoundry(deps, controller);
+    watchFoundry(deps, controller, surfaces.api.list());
   });
 
   hooks.once("ready", () => {
@@ -152,7 +182,11 @@ export function installCore(deps: CoreDeps): InstalledCore {
     onReady(
       deps,
       controller(),
-      { store: store.view, effects: effects.api },
+      {
+        store: store.view,
+        effects: effects.api,
+        quiet: () => surfaceShowsStatus,
+      },
       ClientClass,
     );
   });
@@ -177,7 +211,11 @@ function registerServiceSetting(
 }
 
 /** Foundry events that change what the core sends, plays or shows. */
-function watchFoundry(deps: CoreDeps, controller: () => Controller): void {
+function watchFoundry(
+  deps: CoreDeps,
+  controller: () => Controller,
+  surfaces: readonly SurfaceDefinition[],
+): void {
   const { game, hooks } = deps;
   // Rights, names, flags or presence changed: the controller works out
   // what follows (refusing media, rejoining with new rights).
@@ -199,14 +237,34 @@ function watchFoundry(deps: CoreDeps, controller: () => Controller): void {
   hooks.on("updateSetting", (setting: { key?: unknown }) => {
     if (setting.key === "core.permissions") controller().apply();
   });
+  const decorators = playersSurfaces(surfaces);
   hooks.on("renderPlayers", (_app: unknown, element: unknown) => {
-    if (!(typeof Element !== "undefined" && element instanceof Element)) return;
+    if (!(typeof HTMLElement !== "undefined" && element instanceof HTMLElement))
+      return;
+    if (decorators.length > 0) {
+      decorateWith(decorators, element, deps.onError);
+      return;
+    }
     decoratePlayerList(
       element,
       controller().store.get(),
       game.i18n.localize(`${MODULE_ID}.status.deafened`),
     );
   });
+}
+
+/** Player list surfaces in place of the core's badges; one failing spoils none. */
+function decorateWith(
+  decorators: readonly { decorate(list: HTMLElement): void }[],
+  list: HTMLElement,
+  onError: (error: unknown) => void,
+): void {
+  for (const surface of decorators)
+    try {
+      surface.decorate(list);
+    } catch (error: unknown) {
+      onError(error);
+    }
 }
 
 /** Foundry passes (userId, activity); only A/V activity matters here. */
@@ -219,8 +277,10 @@ function onReady(
   {
     store,
     effects,
+    quiet,
   }: Pick<ModularAV, "effects"> & {
     readonly store: ModularAV["state"];
+    readonly quiet: () => boolean;
   },
   ClientClass: abstract new (...args: never[]) => object,
 ): void {
@@ -233,6 +293,7 @@ function onReady(
     renderPlayers: () => deps.ui().players?.render(),
     now: deps.now,
     effectKind: (id) => effects.get(id)?.kind,
+    quiet,
   });
   if (!game.user.isGM) return;
   const warn = (key: string): void => {

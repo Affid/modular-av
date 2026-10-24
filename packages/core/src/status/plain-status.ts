@@ -78,6 +78,8 @@ export interface PlainStatusDeps {
   now(): number;
   /** Which device an effect works on, by id. */
   effectKind(id: string): "audio" | "video" | undefined;
+  /** A UI module shows the status itself: say nothing. */
+  quiet(): boolean;
 }
 
 /** The "you're muted" hint comes back at most this often. */
@@ -85,6 +87,7 @@ export const MUTED_HINT_INTERVAL_MS = 30_000;
 
 export function startPlainStatus(deps: PlainStatusDeps): () => void {
   const notify = (notice: Notice): void => {
+    if (deps.quiet()) return;
     deps.notifications[notice.kind](deps.i18n.localize(notice.key));
   };
   let memo: NoticeMemo = { lost: false };

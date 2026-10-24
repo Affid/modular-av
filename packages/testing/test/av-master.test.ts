@@ -108,7 +108,7 @@ describe("AVMaster#connect (master.mjs connect, #initialize)", () => {
     ]);
     expect(master.connected).toBe(true);
     expect(master.detectionStream).not.toBeNull();
-    expect(client.ui.webrtc?.renders).toEqual([{}]);
+    expect(client.ui.webrtc?.renders).toEqual([{ force: true }, {}]);
     expect(client.ui.webrtc?.speaking).toEqual({ p1: true });
   });
 

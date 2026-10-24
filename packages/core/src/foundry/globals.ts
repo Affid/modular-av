@@ -78,6 +78,7 @@ export interface AVSettingsLike {
     readonly audioSink: string;
     readonly muteAll: boolean;
     readonly disableVideo: boolean;
+    readonly dockPosition?: string;
     readonly voice: { readonly mode: string };
     readonly users: Readonly<Record<string, AVUserEntry | undefined>>;
   };
@@ -138,6 +139,8 @@ export interface FoundryUi {
   readonly notifications: FoundryNotifications;
   readonly webrtc: { render(options?: object): unknown } | null;
   readonly players?: { render(options?: object): unknown } | null;
+  /** Foundry makes room for a vertical camera dock in it. */
+  readonly hotbar?: { _onResize?(): unknown } | null;
 }
 
 /** The core replaces both classes at `init`. */

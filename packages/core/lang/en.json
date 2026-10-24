@@ -5,6 +5,23 @@
       "service": {
         "name": "Voice and video service",
         "hint": "The service module that carries the call for everyone in this world."
+      },
+      "cameras": {
+        "name": "Cameras shown by",
+        "hint": "The module that shows everyone's cameras in this world. Players may choose their own."
+      },
+      "camerasPlayer": {
+        "name": "My cameras shown by",
+        "hint": "Shows the cameras your own way on this account, or as the GM chose."
+      },
+      "settingsWindow": {
+        "name": "Voice and video settings window",
+        "hint": "The module whose window opens for the voice and video settings."
+      },
+      "choices": {
+        "foundryDock": "Foundry's camera dock",
+        "foundrySettings": "Foundry's settings",
+        "asWorld": "As the GM chose"
       }
     },
     "status": {

@@ -123,15 +123,102 @@ export interface CameraRender {
   readonly parts?: readonly string[];
 }
 
-/** v14 applications/apps/av/cameras.mjs, as far as AVMaster uses it. */
+/** The page's document, if the test runs with one (happy-dom, a browser). */
+const pageDocument = (): Document | undefined =>
+  (globalThis as { document?: Document }).document;
+
+/**
+ * v14 applications/apps/av/cameras.mjs, as far as AVMaster and a subclass
+ * use it, with the ApplicationV2 render steps (api/application.mjs) a
+ * subclass overrides. Without a document it only records renders. Its own
+ * parts stand in for Foundry's templates; the dock sits on the left.
+ */
 export class FakeCameraViews {
   renders: readonly CameraRender[] = [];
   speaking: Readonly<Record<string, boolean>> = {};
+  element: HTMLElement | null = null;
+  rendered = false;
 
-  render(options: CameraRender = {}): Promise<this> {
+  async render(options: CameraRender = {}): Promise<this> {
     this.renders = [...this.renders, options];
-    return Promise.resolve(this);
+    const doc = pageDocument();
+    if (!doc) return this;
+    const renderOptions = { ...options };
+    this._configureRenderOptions(renderOptions);
+    const parts = this._configureRenderParts(renderOptions);
+    const result = await this._renderHTML({ parts }, renderOptions);
+    const first = this.element === null;
+    const element = this.element ?? doc.createElement("aside");
+    element.id = "camera-views";
+    this.element = element;
+    this._replaceHTML(result, element, renderOptions);
+    if (first) await this._onFirstRender({}, renderOptions);
+    await this._onRender({}, renderOptions);
+    this.rendered = true;
+    return this;
   }
+
+  _configureRenderOptions(_options: { parts?: readonly string[] }): void {
+    // Foundry's default fills in which parts to render.
+  }
+
+  _configureRenderParts(_options: object): Record<string, object> {
+    return { cameras: {}, controls: {} };
+  }
+
+  _renderHTML(
+    context: { readonly parts?: Record<string, object> },
+    _options: object,
+  ): Promise<Record<string, HTMLElement>> {
+    const doc = pageDocument();
+    if (!doc) return Promise.resolve({});
+    const parts = Object.keys(context.parts ?? {}).map((id) => {
+      const part = doc.createElement("section");
+      part.dataset.part = id;
+      return [id, part] as const;
+    });
+    return Promise.resolve(Object.fromEntries(parts));
+  }
+
+  _replaceHTML(
+    result: Readonly<Record<string, HTMLElement>>,
+    content: HTMLElement,
+    _options: object,
+  ): void {
+    content.replaceChildren(...Object.values(result));
+  }
+
+  _onFirstRender(_context: object, _options: object): Promise<void> {
+    return Promise.resolve();
+  }
+
+  /** Foundry moves the dock next to #interface and hides it if needed. */
+  _onRender(_context: object, _options: object): Promise<void> {
+    const element = this.element;
+    const doc = pageDocument();
+    if (!element || !doc) return Promise.resolve();
+    const iface = doc.getElementById("interface");
+    if (iface) iface.before(element);
+    else if (!element.isConnected) doc.body.append(element);
+    element.hidden = this.hidden;
+    return Promise.resolve();
+  }
+
+  // Getters, as in Foundry, so subclasses can override them.
+  /* eslint-disable @typescript-eslint/class-literal-property-style */
+  /** Foundry: every connected camera is popped out. */
+  get hidden(): boolean {
+    return false;
+  }
+
+  get isVertical(): boolean {
+    return true;
+  }
+
+  get isHorizontal(): boolean {
+    return false;
+  }
+  /* eslint-enable @typescript-eslint/class-literal-property-style */
 
   setUserIsSpeaking(userId: string, speaking: boolean): void {
     this.speaking = { ...this.speaking, [userId]: speaking };
