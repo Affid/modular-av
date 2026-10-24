@@ -37,7 +37,10 @@ interface Tap {
 }
 
 interface Watched extends Tap {
-  /** How long it has sent digital silence while there was sound. */
+  /**
+   * How long it sent digital silence while the microphone heard sound,
+   * since it last sent any: pauses in speech don't start it over.
+   */
   readonly silentMs: number;
 }
 
@@ -68,16 +71,16 @@ export function createStallWatchdog(
   const hearsSound = (): boolean =>
     capture.running && source !== null && source.probe.peak() >= SOUND_PEAK;
 
+  /** Sound in, nothing out counts; any sound out starts over; pauses wait. */
+  const next = (w: Watched, sound: boolean): number => {
+    if (w.probe.peak() !== 0) return 0;
+    return sound ? w.silentMs + CHECK_MS : w.silentMs;
+  };
+
   const check = (): void => {
     const sound = hearsSound();
     watched = new Map(
-      [...watched].map(([id, w]) => [
-        id,
-        {
-          ...w,
-          silentMs: sound && w.probe.peak() === 0 ? w.silentMs + CHECK_MS : 0,
-        },
-      ]),
+      [...watched].map(([id, w]) => [id, { ...w, silentMs: next(w, sound) }]),
     );
     for (const [id, w] of watched)
       if (w.silentMs >= STALL_MS) onStalled(id, new StalledError());

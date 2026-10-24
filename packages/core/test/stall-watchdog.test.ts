@@ -136,6 +136,19 @@ describe("the stall watchdog", () => {
     expect(r.mic.effectStatus("rnnoise").status).toBe("running");
   });
 
+  it("keeps counting through pauses in the speech", async () => {
+    const r = await running();
+    for (let i = 0; i < 4; i += 1) {
+      r.input.setPeak(SPEECH);
+      await vi.advanceTimersByTimeAsync(STALL_MS / 3);
+      r.input.setPeak(0);
+      await vi.advanceTimersByTimeAsync(1000);
+    }
+    await flush();
+
+    expect(r.mic.effectStatus("rnnoise").status).toBe("failed");
+  });
+
   it("leaves a quiet effect alone: removing noise isn't silence", async () => {
     const r = await running();
     r.input.setPeak(SPEECH);
