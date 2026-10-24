@@ -74,6 +74,13 @@ export interface ParticipantState {
 
 export type VoiceMode = "always" | "activity" | "ptt";
 
+/**
+ * Why the camera is kept off although the player wants it on: its effect
+ * isn't running yet, stopped sending frames, or failed (or can't run in
+ * this browser). Raw video is never sent instead.
+ */
+export type CameraHold = "effect-starting" | "effect-stalled" | "effect-failed";
+
 /** Where an effect stands on this client. */
 export type EffectStatus =
   "off" | "starting" | "running" | "failed" | "unsupported";

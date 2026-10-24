@@ -3,6 +3,9 @@ import {
   createFakeMediaEnv,
   createFakeVideoElement,
 } from "../src/media/fake-media-env.ts";
+import { createFakeTrack } from "../src/service/fake-track.ts";
+
+const createFakeVideoTrack = (): MediaStreamTrack => createFakeTrack("video");
 
 describe("fake media environment", () => {
   it("captures fake tracks and records the devices asked for", async () => {
@@ -96,5 +99,26 @@ describe("fake media environment", () => {
     env.goOnline();
 
     expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  it("delivers frames to the watchers of a track until they stop", () => {
+    const env = createFakeMediaEnv();
+    const track = createFakeVideoTrack();
+    const frames = vi.fn();
+
+    const stop = env.watchFrames(track, frames);
+    env.frame(track);
+    env.frame(undefined);
+    const watched = env.watching(track);
+    stop();
+    env.frame(track);
+
+    expect(frames).toHaveBeenCalledTimes(1);
+    expect(watched).toBe(true);
+    expect(env.watching(track)).toBe(false);
+    expect(env.canWatchFrames()).toBe(true);
+    expect(createFakeMediaEnv({ watchFrames: false }).canWatchFrames()).toBe(
+      false,
+    );
   });
 });

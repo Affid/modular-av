@@ -28,6 +28,8 @@ export interface FakeAudioOutput {
 export interface FakeMediaEnvOptions {
   /** DOMException names to reject captures with, per kind. */
   readonly deny?: { readonly audio?: string; readonly video?: string };
+  /** Whether frames can be watched (MediaStreamTrackProcessor); default true. */
+  readonly watchFrames?: boolean;
 }
 
 export interface FakeMediaEnv {
@@ -39,6 +41,8 @@ export interface FakeMediaEnv {
   watchRemoval(element: HTMLVideoElement, onRemoved: () => void): () => void;
   onOnline(listener: () => void): () => void;
   createCaptureContext(): Promise<FakeCaptureContext>;
+  canWatchFrames(): boolean;
+  watchFrames(track: MediaStreamTrack, onFrame: () => void): () => void;
 
   /** Every capture context created, in order. */
   readonly captureContexts: readonly FakeCaptureContext[];
@@ -51,6 +55,9 @@ export interface FakeMediaEnv {
   removeElement(element: HTMLVideoElement): void;
   goOnline(): void;
   setDenied(kind: "audio" | "video", name: string | undefined): void;
+  /** Plays a frame arriving on a watched track. */
+  frame(track: MediaStreamTrack | undefined): void;
+  watching(track: MediaStreamTrack | undefined): boolean;
 }
 
 let nextStream = 1;
@@ -106,6 +113,10 @@ export function createFakeMediaEnv(
   let removalWatchers = new Map<HTMLVideoElement, readonly (() => void)[]>();
   let onlineListeners: readonly (() => void)[] = [];
   let captureContexts: readonly FakeCaptureContext[] = [];
+  let frameWatchers: readonly {
+    readonly track: MediaStreamTrack;
+    readonly onFrame: () => void;
+  }[] = [];
 
   const capture = (
     kind: "audio" | "video",
@@ -155,6 +166,18 @@ export function createFakeMediaEnv(
     get captureContexts() {
       return captureContexts;
     },
+    canWatchFrames: () => options.watchFrames ?? true,
+    watchFrames(track, onFrame) {
+      const watcher = { track, onFrame };
+      frameWatchers = [...frameWatchers, watcher];
+      return () => {
+        frameWatchers = frameWatchers.filter((w) => w !== watcher);
+      };
+    },
+    frame(track) {
+      for (const w of frameWatchers) if (w.track === track) w.onFrame();
+    },
+    watching: (track) => frameWatchers.some((w) => w.track === track),
     get captures() {
       return captures;
     },

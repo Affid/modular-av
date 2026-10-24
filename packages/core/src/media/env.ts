@@ -17,6 +17,13 @@ export interface MediaEnv {
   onOnline(listener: () => void): () => void;
   /** The one capture context; call once and keep it. Loads its code lazily. */
   createCaptureContext(): Promise<CaptureContext>;
+  /** Whether `watchFrames` works here (MediaStreamTrackProcessor). */
+  canWatchFrames(): boolean;
+  /**
+   * Calls back for each frame `track` delivers, also in a hidden tab, until
+   * the returned function is called. Reads a clone: `track` is untouched.
+   */
+  watchFrames(track: MediaStreamTrack, onFrame: () => void): () => void;
 }
 
 /** "gate" silences the microphone while closed; "detect" only reports. */

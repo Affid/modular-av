@@ -1,3 +1,4 @@
+import { canWatchFrames, watchFrames } from "./browser-frames.ts";
 import type { AudioOutput, MediaEnv } from "./env.ts";
 
 const deviceConstraint = (deviceId: string): MediaTrackConstraints =>
@@ -102,6 +103,8 @@ export function createBrowserMediaEnv(
         window.removeEventListener("online", listener);
       };
     },
+    canWatchFrames,
+    watchFrames,
     // Only needed once a microphone is captured: kept out of the entry.
     async createCaptureContext() {
       const { createBrowserCaptureContext } =
