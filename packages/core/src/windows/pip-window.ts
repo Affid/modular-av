@@ -104,7 +104,8 @@ function tooltipText(element: HTMLElement): string | null {
 
 /** Native tooltips: a title from the nearest Foundry tooltip attribute. */
 function useNativeTooltips(target: Document): () => void {
-  let titled = new Set<HTMLElement>();
+  /** Each element titled here, with the title it had before. */
+  let titled = new Map<HTMLElement, string | null>();
   const onOver = (event: Event): void => {
     // Elements here may come from either window: no instanceof checks.
     const from = event.target as Partial<Element> | null;
@@ -114,15 +115,26 @@ function useNativeTooltips(target: Document): () => void {
         : null;
     const text = element ? tooltipText(element) : null;
     if (!element || !text || element.title === text) return;
+    if (!titled.has(element))
+      titled = new Map(titled).set(element, element.getAttribute("title"));
     element.title = text;
-    titled = new Set(titled).add(element);
   };
   target.addEventListener("pointerover", onOver);
   return () => {
     target.removeEventListener("pointerover", onOver);
-    for (const element of titled) element.removeAttribute("title");
+    for (const [element, before] of titled)
+      if (before === null) element.removeAttribute("title");
+      else element.title = before;
   };
 }
+
+const isEditable = (target: EventTarget | null): boolean => {
+  const element = target as Partial<HTMLElement> | null;
+  return (
+    element?.isContentEditable === true ||
+    /^(INPUT|TEXTAREA|SELECT)$/.test(element?.tagName ?? "")
+  );
+};
 
 /** Foundry listens for keys in its own window: forward push to talk there. */
 function forwardKeys(
@@ -131,6 +143,8 @@ function forwardKeys(
   keys: () => readonly string[],
 ): () => void {
   const forward = (event: KeyboardEvent): void => {
+    // Typing in a field is typing, not talking: Foundry ignores it too.
+    if (isEditable(event.target)) return;
     if (!keys().includes(event.code)) return;
     const KeyEvent = source.defaultView?.KeyboardEvent ?? KeyboardEvent;
     source.body.dispatchEvent(

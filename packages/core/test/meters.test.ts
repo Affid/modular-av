@@ -121,6 +121,25 @@ describe("another player's meter", () => {
     expect(gm.env.levelMeters.every((m) => m.disposed)).toBe(true);
   });
 
+  it("keeps sampling for others when the element it ran in goes", async () => {
+    const { gm, p1 } = await call();
+    const first = createFakeVideoElement();
+    const readings: MeterReading[] = [];
+    const offFirst = gm.api.meters.subscribe("p1", first, () => undefined);
+    gm.api.meters.subscribe("p1", createFakeVideoElement(), (r) =>
+      readings.push(r),
+    );
+    gm.env.setLevel(micOf(p1), -30);
+    await vi.advanceTimersByTimeAsync(METER_INTERVAL_MS);
+    const before = readings.length;
+
+    offFirst();
+    await vi.advanceTimersByTimeAsync(METER_INTERVAL_MS * 3);
+
+    expect(before).toBeGreaterThan(0);
+    expect(readings.length).toBeGreaterThanOrEqual(before + 2);
+  });
+
   it("keeps a listener's error from stopping the others", async () => {
     const { gm } = await call();
     const readings: MeterReading[] = [];

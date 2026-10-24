@@ -69,6 +69,8 @@ export function createPipWindows(
 ): PipWindows {
   let current: PipWindow | null = null;
   let changes: Listeners<PipWindow | null> = [];
+  /** Counts requests: one overtaken while the browser opened it loses. */
+  let requests = 0;
 
   const announce = (): void => {
     for (const { listener } of changes)
@@ -137,6 +139,8 @@ export function createPipWindows(
           "This browser has no Picture-in-Picture windows for pages",
         );
       current?.close();
+      requests += 1;
+      const mine = requests;
       let win: Window;
       try {
         win = await pip.requestWindow({
@@ -145,6 +149,13 @@ export function createPipWindows(
         });
       } catch (error: unknown) {
         throw refused(error);
+      }
+      if (mine !== requests) {
+        win.close();
+        throw new AVCommandError(
+          "forbidden",
+          "A newer Picture-in-Picture request took the window",
+        );
       }
       current = open(owner, win, options.title);
       announce();

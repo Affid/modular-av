@@ -51,7 +51,8 @@ type Watched = ReadonlyMap<Element, () => void>;
 /**
  * One observer per document, as the handoff asks, not one per element. An
  * element moved to another document (the Picture-in-Picture window) is
- * watched there from then on.
+ * watched there from then on, and back again; another window's document
+ * is let go once nothing in it is watched.
  */
 function createRemovalWatcher(): MediaEnv["watchRemoval"] {
   let watched = new Map<Document, Watched>();
@@ -60,13 +61,22 @@ function createRemovalWatcher(): MediaEnv["watchRemoval"] {
   const entriesOf = (doc: Document): Watched =>
     watched.get(doc) ?? new Map<Element, () => void>();
 
+  const release = (doc: Document): void => {
+    if (doc === document || entriesOf(doc).size > 0) return;
+    observers.get(doc)?.disconnect();
+    const lessObservers = new Map(observers);
+    lessObservers.delete(doc);
+    observers = lessObservers;
+    const lessWatched = new Map(watched);
+    lessWatched.delete(doc);
+    watched = lessWatched;
+  };
+
   const add = (element: Element, onRemoved: () => void): void => {
     const doc = element.ownerDocument;
     if (!observers.has(doc)) {
       const Observer = doc.defaultView?.MutationObserver ?? MutationObserver;
-      const observer = new Observer(() => {
-        check(doc);
-      });
+      const observer = new Observer(later);
       observer.observe(doc, { childList: true, subtree: true });
       observers = new Map(observers).set(doc, observer);
     }
@@ -76,17 +86,31 @@ function createRemovalWatcher(): MediaEnv["watchRemoval"] {
     );
   };
 
-  function check(doc: Document): void {
-    const entries = [...entriesOf(doc)];
-    const stays = entries.filter(
-      ([element]) => element.isConnected && element.ownerDocument === doc,
-    );
-    if (stays.length === entries.length) return;
-    watched = new Map(watched).set(doc, new Map(stays));
-    for (const [element, onRemoved] of entries) {
-      if (!element.isConnected) onRemoved();
-      else if (element.ownerDocument !== doc) add(element, onRemoved);
+  /** Every watched element, wherever it went: removed, or moved. */
+  function check(): void {
+    for (const [doc, entries] of watched) {
+      const stays = [...entries].filter(
+        ([element]) => element.isConnected && element.ownerDocument === doc,
+      );
+      if (stays.length === entries.size) continue;
+      watched = new Map(watched).set(doc, new Map(stays));
+      for (const [element, onRemoved] of entries) {
+        if (!element.isConnected) onRemoved();
+        else if (element.ownerDocument !== doc) add(element, onRemoved);
+      }
+      release(doc);
     }
+  }
+
+  // Foundry's page changes all the time: one pass per task.
+  let scheduled = false;
+  function later(): void {
+    if (scheduled) return;
+    scheduled = true;
+    queueMicrotask(() => {
+      scheduled = false;
+      check();
+    });
   }
 
   return (element, onRemoved) => {
@@ -97,6 +121,7 @@ function createRemovalWatcher(): MediaEnv["watchRemoval"] {
         const current = new Map(entries);
         current.delete(element);
         watched = new Map(watched).set(doc, current);
+        release(doc);
       }
     };
   };

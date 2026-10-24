@@ -106,4 +106,37 @@ describe("preparing the Picture-in-Picture window", () => {
     expect(keys).not.toHaveBeenCalled();
     expect(win.document.head.textContent).not.toContain(".late");
   });
+
+  it("doesn't forward the key while the player types in a field", () => {
+    const win = pipWindow();
+    preparePipWindow(win, document, () => ["Space"]);
+    const field = win.document.createElement("input");
+    win.document.body.append(field);
+    const keys = vi.fn();
+    // Forwarded keys arrive on the page's own body.
+    document.body.addEventListener("keydown", keys);
+
+    win.dispatchEvent(new KeyboardEvent("keydown", { code: "Space" }));
+    const typed = new KeyboardEvent("keydown", { code: "Space" });
+    Object.defineProperty(typed, "target", { value: field });
+    win.dispatchEvent(typed);
+    document.body.removeEventListener("keydown", keys);
+
+    expect(keys).toHaveBeenCalledTimes(1);
+  });
+
+  it("gives an element back the title it had", () => {
+    const win = pipWindow();
+    const undo = preparePipWindow(win, document, () => []);
+    const button = win.document.createElement("button");
+    button.title = "Own title";
+    button.dataset.tooltip = "Mute";
+    win.document.body.append(button);
+
+    button.dispatchEvent(new PointerEvent("pointerover", { bubbles: true }));
+    expect(button.title).toBe("Mute");
+    undo();
+
+    expect(button.title).toBe("Own title");
+  });
 });

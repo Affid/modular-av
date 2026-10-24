@@ -12,6 +12,8 @@ interface Watch {
 interface Observers {
   readonly intersection: IntersectionObserver;
   readonly resize: ResizeObserver;
+  readonly mutation: MutationObserver;
+  readonly onVisibility: () => void;
 }
 
 /**
@@ -42,6 +44,20 @@ export function createOnScreenWatcher(): MediaEnv["watchOnScreen"] {
     for (const w of watches.filter((x) => x.element === element)) tell(w);
   };
 
+  /** Another window's document, once nothing in it is watched. */
+  const release = (doc: Document): void => {
+    if (doc === document || watches.some((w) => w.doc === doc)) return;
+    const o = observers.get(doc);
+    if (!o) return;
+    o.intersection.disconnect();
+    o.resize.disconnect();
+    o.mutation.disconnect();
+    doc.removeEventListener("visibilitychange", o.onVisibility);
+    const next = new Map(observers);
+    next.delete(doc);
+    observers = next;
+  };
+
   const follow = (): void => {
     const moved = watches.filter(
       (w) => w.element.isConnected && w.element.ownerDocument !== w.doc,
@@ -51,7 +67,19 @@ export function createOnScreenWatcher(): MediaEnv["watchOnScreen"] {
       const next = { ...w, doc: w.element.ownerDocument };
       watches = watches.map((x) => (x === w ? next : x));
       start(next);
+      release(w.doc);
     }
+  };
+
+  // Foundry's page changes all the time: one pass per task, if anything is watched.
+  let scheduled = false;
+  const later = (): void => {
+    if (scheduled || watches.length === 0) return;
+    scheduled = true;
+    queueMicrotask(() => {
+      scheduled = false;
+      follow();
+    });
   };
 
   const observersOf = (doc: Document): Observers | null => {
@@ -59,7 +87,12 @@ export function createOnScreenWatcher(): MediaEnv["watchOnScreen"] {
     if (known) return known;
     const view = doc.defaultView;
     if (!view) return null;
+    const onVisibility = (): void => {
+      for (const w of watches.filter((x) => x.doc === doc)) tell(w);
+    };
     const made: Observers = {
+      onVisibility,
+      mutation: new view.MutationObserver(later),
       intersection: new view.IntersectionObserver((entries) => {
         for (const e of entries)
           update(e.target, {
@@ -72,13 +105,8 @@ export function createOnScreenWatcher(): MediaEnv["watchOnScreen"] {
           update(e.target, { height: e.contentRect.height });
       }),
     };
-    new view.MutationObserver(follow).observe(doc, {
-      childList: true,
-      subtree: true,
-    });
-    doc.addEventListener("visibilitychange", () => {
-      for (const w of watches.filter((x) => x.doc === doc)) tell(w);
-    });
+    made.mutation.observe(doc, { childList: true, subtree: true });
+    doc.addEventListener("visibilitychange", onVisibility);
     observers = new Map(observers).set(doc, made);
     return made;
   };
@@ -112,6 +140,7 @@ export function createOnScreenWatcher(): MediaEnv["watchOnScreen"] {
       if (!current) return;
       stop(current);
       watches = watches.filter((w) => w !== current);
+      release(current.doc);
     };
   };
 }

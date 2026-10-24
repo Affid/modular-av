@@ -40,6 +40,8 @@ interface Subscription {
 /** Sampling one other player's track, for as long as it is shown. */
 interface Sampling {
   readonly track: MediaStreamTrack;
+  /** Whose window the timer runs in. */
+  readonly element: Element;
   readonly stop: () => void;
 }
 
@@ -95,6 +97,7 @@ export function createMeters(deps: MetersDeps): CoreMeters {
     });
     return {
       track,
+      element,
       stop() {
         stopped = true;
         stopTimer();
@@ -107,8 +110,11 @@ export function createMeters(deps: MetersDeps): CoreMeters {
     const next = new Map<ParticipantId, Sampling>();
     for (const [participant, current] of samplings) {
       const track = remote.audioTrack(participant);
-      if (track === current.track && shownFor(participant).length > 0)
-        next.set(participant, current);
+      // Its element still shown: else the timer moves to another's window.
+      const kept = shownFor(participant).some(
+        (s) => s.element === current.element,
+      );
+      if (track === current.track && kept) next.set(participant, current);
       else current.stop();
     }
     for (const s of subscriptions) {

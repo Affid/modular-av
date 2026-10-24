@@ -24,6 +24,10 @@ export interface CamerasHost {
 }
 
 export interface MountedSurface {
+  /**
+   * Undoes the mount. The core doesn't call it yet: a surface lives as
+   * long as Foundry's page. Tests and a later teardown use it.
+   */
   unmount(): void;
 }
 

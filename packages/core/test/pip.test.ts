@@ -67,6 +67,23 @@ describe("the Picture-in-Picture window", () => {
     expect(second.owner).toBe("modular-av-tokens");
   });
 
+  it("gives the window to the newer of two requests made at once", async () => {
+    const p1 = await tab();
+
+    const [first, second] = await Promise.allSettled([
+      p1.api.windows.pip.request("modular-av-dock", SIZE),
+      p1.api.windows.pip.request("modular-av-tokens", SIZE),
+    ]);
+
+    expect(first).toMatchObject({
+      status: "rejected",
+      reason: { code: "forbidden" },
+    });
+    expect(second.status).toBe("fulfilled");
+    expect(p1.api.windows.pip.current?.owner).toBe("modular-av-tokens");
+    expect(p1.pip.window?.closed).toBe(false);
+  });
+
   it("is unsupported where the browser has none", async () => {
     const p1 = await tab({ noPip: true });
 
