@@ -37,6 +37,8 @@ export interface ServiceContractOptions {
     readonly start: () => Promise<void>;
     readonly end: () => Promise<void>;
   };
+  /** What a connection to this server reports it offers once joined. */
+  readonly features?: readonly string[];
 }
 
 const BOTH = { audio: true, video: true } as const;
@@ -357,6 +359,17 @@ export function serviceContract(options: ServiceContractOptions): void {
         code: "token-expired",
         final: false,
       });
+    });
+
+    test("reports what it offers once joined", async ({ browser }) => {
+      const expected = options.features;
+      test.skip(expected === undefined, "the service reports no features");
+      const [alice] = await peers(browser, "alice");
+      if (!alice) throw new Error("no peers");
+
+      await alice.join();
+
+      expect(await alice.run((h) => h.features())).toEqual(expected);
     });
 
     test("leaves on purpose: no error, the others see it", async ({

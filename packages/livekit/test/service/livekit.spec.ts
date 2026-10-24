@@ -12,4 +12,5 @@ serviceContract({
   secrets: { key: target.apiKey, secret: target.apiSecret },
   // LiveKit Cloud can't be paused from here.
   ...(target.cloud ? {} : { outage: livekitOutage }),
+  features: target.cloud ? ["livekit-cloud"] : [],
 });

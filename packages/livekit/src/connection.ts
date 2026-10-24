@@ -8,13 +8,16 @@ import {
   type LocalTrackPublication,
   type RemoteParticipant,
   Room,
+  RoomEvent,
   VideoPresets,
   VideoQuality,
 } from "livekit-client";
+import { featuresOf } from "./cloud.ts";
 import { createEmitter } from "./emitter.ts";
 import { fromConnectError } from "./errors.ts";
 import { LiveKitServiceError } from "./failure.ts";
 import { SOURCES, wireRoom } from "./room-events.ts";
+import type { Rooms } from "./rooms.ts";
 import { fromReceivers, fromSender, type PacketTotals } from "./stats.ts";
 
 const NO_PACKETS: PacketTotals = { lost: 0, received: 0 };
@@ -32,6 +35,8 @@ async function receiverReports(
 /** Loaded with `import()` only when a call starts: the SDK is heavy. */
 export interface LiveKitConnectionOptions {
   readonly url: string;
+  /** Told about the room once joined, and when it is gone. */
+  readonly rooms: Pick<Rooms, "set" | "clear">;
   readonly onError: (error: unknown) => void;
 }
 
@@ -67,6 +72,32 @@ function createRoom(): Room {
       red: true,
     },
   });
+}
+
+type CapabilityListener = (capabilities: ServiceCapabilities) => void;
+
+/** The server says what it offers (e.g. LiveKit Cloud) once joined. */
+function createCapabilities(): {
+  readonly observable: ServiceConnection["capabilities"];
+  joined(room: Room): void;
+} {
+  let current = CAPABILITIES;
+  let listeners: readonly CapabilityListener[] = [];
+  return {
+    observable: {
+      get: () => current,
+      subscribe(listener) {
+        listeners = [...listeners, listener];
+        return () => {
+          listeners = listeners.filter((l) => l !== listener);
+        };
+      },
+    },
+    joined(room) {
+      current = { ...CAPABILITIES, features: featuresOf(room.serverInfo) };
+      for (const listener of listeners) listener(current);
+    },
+  };
 }
 
 /** Read through a call: the signal can change while `connect` awaits. */
@@ -106,6 +137,10 @@ export function createLiveKitConnection(
   const room = createRoom();
   const emitter = createEmitter(options.onError);
   const state = { leaving: false };
+  const capabilities = createCapabilities();
+  room.on(RoomEvent.Disconnected, () => {
+    options.rooms.clear(room);
+  });
   let publications = new Map<string, LocalTrackPublication>();
   /** Per participant, for the loss since the last reading. */
   let totals = new Map<string, PacketTotals>();
@@ -119,7 +154,7 @@ export function createLiveKitConnection(
   };
 
   return {
-    capabilities: { get: () => CAPABILITIES, subscribe: () => () => undefined },
+    capabilities: capabilities.observable,
     async connect(_room, token, signal) {
       if (token === null)
         throw new LiveKitServiceError({
@@ -128,12 +163,15 @@ export function createLiveKitConnection(
           message: "LiveKit needs a join token",
         });
       await join(room, options.url, token, signal);
+      capabilities.joined(room);
+      options.rooms.set(room);
       for (const participant of room.remoteParticipants.values())
         emitter.emit("participantJoined", participant.identity);
       emitter.emit("state", "connected");
     },
     async disconnect() {
       state.leaving = true;
+      options.rooms.clear(room);
       await room.disconnect(false);
     },
     async publish(track, source) {

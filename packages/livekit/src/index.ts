@@ -1,7 +1,10 @@
 import type { ModularAV } from "@modular-av/api";
+import { createModuleApi } from "./api.ts";
 import { maskSecretField, type FormRoot } from "./mask.ts";
+import { createRooms } from "./rooms.ts";
 import { createLiveKitService } from "./service.ts";
 import {
+  MODULE_ID,
   readSettings,
   registerSecretSettings,
   registerWorldSettings,
@@ -10,7 +13,11 @@ import {
 
 /** The slice of Foundry's globals this module uses. */
 declare global {
-  var game: { settings: SettingsApi; user: { isGM: boolean } };
+  var game: {
+    settings: SettingsApi;
+    user: { isGM: boolean };
+    modules: { get(id: string): { api?: unknown } | undefined };
+  };
   var Hooks: {
     once(hook: string, fn: (...args: never[]) => void): number;
     on(hook: string, fn: (...args: never[]) => void): number;
@@ -29,8 +36,12 @@ const reportError = (error: unknown): void => {
   console.error(`Modular A/V: LiveKit | ${redact(text)}`);
 };
 
+const rooms = createRooms(reportError);
+
 Hooks.once("init", () => {
   registerWorldSettings(game.settings);
+  const module = game.modules.get(MODULE_ID);
+  if (module) module.api = createModuleApi(rooms.observable);
 });
 
 Hooks.once("setup", () => {
@@ -46,6 +57,7 @@ Hooks.once("modularAV.register", (api: ModularAV) => {
     createLiveKitService({
       settings: readSettings(game.settings),
       now: () => Date.now(),
+      rooms,
       onError: reportError,
     }),
   );

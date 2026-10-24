@@ -175,6 +175,7 @@ function createHarness(definition: ServiceDefinition): ServiceHarness {
         readyState: t.track.readyState,
         enabled: t.track.enabled,
       })),
+    features: () => live().capabilities.get().features ?? null,
     localTracks: (): TrackView[] =>
       [...local].map(([source, { track }]) => ({
         participant: "",

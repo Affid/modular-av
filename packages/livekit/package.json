@@ -5,6 +5,9 @@
   "description": "Modular A/V service module for LiveKit (self-hosted and LiveKit Cloud).",
   "license": "MIT",
   "type": "module",
+  "exports": {
+    "./api": "./src/api.ts"
+  },
   "scripts": {
     "build": "vite build",
     "dev": "vite build --watch",

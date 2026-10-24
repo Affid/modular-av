@@ -1,13 +1,21 @@
 import type { ServiceDefinition } from "@modular-av/api";
 import { LiveKitServiceError } from "./failure.ts";
+import type { Rooms } from "./rooms.ts";
 import { type LiveKitSettings, MODULE_ID } from "./settings.ts";
 import { signLiveKitToken } from "./token.ts";
 
 export interface LiveKitServiceDeps {
   readonly settings: LiveKitSettings;
   readonly now: () => number;
+  /** Where the joined room goes, for add-ons; none in tests. */
+  readonly rooms?: Pick<Rooms, "set" | "clear">;
   readonly onError: (error: unknown) => void;
 }
+
+const NO_ROOMS: Pick<Rooms, "set" | "clear"> = {
+  set: () => undefined,
+  clear: () => undefined,
+};
 
 /** WebCrypto exists only in secure contexts (https, or localhost). */
 const canUseWebCrypto = (): boolean =>
@@ -52,7 +60,11 @@ export function createLiveKitService(
             "Set a wss:// LiveKit server URL in the module settings (ws:// only on a local network)",
         });
       const { createLiveKitConnection } = await import("./connection.ts");
-      return createLiveKitConnection(context, { url, onError: deps.onError });
+      return createLiveKitConnection(context, {
+        url,
+        rooms: deps.rooms ?? NO_ROOMS,
+        onError: deps.onError,
+      });
     },
   };
 }

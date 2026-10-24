@@ -85,6 +85,8 @@ export interface ServiceHarness {
   events(): RecordedEvent[];
   remoteTracks(): TrackView[];
   localTracks(): TrackView[];
+  /** What the connection says it offers (`capabilities.features`), null if unknown. */
+  features(): readonly string[] | null;
   /** Peak level (0-1) of a participant's remote microphone over `ms`; 0 without one. */
   audioLevel(participant: string, ms: number): Promise<number>;
   /** Mean luminance (0-255) of a participant's remote camera frame; 0 without one. */
