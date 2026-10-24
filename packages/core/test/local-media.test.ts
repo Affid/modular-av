@@ -1,4 +1,5 @@
 import {
+  createFakeAudioEffect,
   createFakeMediaEnv,
   createFakeTrack,
   endFakeTrack,
@@ -349,5 +350,61 @@ describe("local media when a device goes away", () => {
     await settle();
 
     expect(env.captures).toHaveLength(count);
+  });
+});
+
+describe("the browser's noise suppression", () => {
+  const settle = async (): Promise<void> => {
+    for (let i = 0; i < 5; i += 1)
+      await new Promise((resolve) => setTimeout(resolve, 0));
+  };
+  const suppression = (env: ReturnType<typeof createFakeMediaEnv>) =>
+    env.audioCaptures.map((c) => c.noiseSuppression);
+
+  it("is on without a noise model, and off while one runs", async () => {
+    // Arrange
+    const { env, media } = setup();
+    const rnnoise = createFakeAudioEffect("rnnoise", {
+      exclusiveGroup: "noise-suppression",
+    });
+    await media.acquire(BOTH);
+    const sent = media.microphone;
+
+    // Act
+    media.setEffects([rnnoise.definition], new Set(["rnnoise"]));
+    await settle();
+    const withModel = suppression(env);
+    media.setEffects([rnnoise.definition], new Set());
+    await settle();
+
+    // Assert
+    expect(withModel).toEqual([true, false]);
+    expect(suppression(env)).toEqual([true, false, true]);
+    expect(media.microphone).toBe(sent);
+  });
+
+  it("stays on for effects of other groups", async () => {
+    const { env, media } = setup();
+    const pitch = createFakeAudioEffect("pitch", { stage: "voice" });
+    await media.acquire(BOTH);
+
+    media.setEffects([pitch.definition], new Set(["pitch"]));
+    await settle();
+
+    expect(suppression(env)).toEqual([true]);
+  });
+
+  it("stays on when the noise model fails to start", async () => {
+    const { env, media } = setup();
+    const broken = createFakeAudioEffect("rnnoise", {
+      exclusiveGroup: "noise-suppression",
+      fail: new Error("no wasm"),
+    });
+    await media.acquire(BOTH);
+
+    media.setEffects([broken.definition], new Set(["rnnoise"]));
+    await settle();
+
+    expect(suppression(env)).toEqual([true]);
   });
 });

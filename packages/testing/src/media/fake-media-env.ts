@@ -41,8 +41,16 @@ export const FAKE_DEVICES: DeviceList = {
   audioOutput: [{ id: "default", label: "Fake speakers" }],
 };
 
+export interface FakeAudioCapture {
+  readonly deviceId: string;
+  readonly noiseSuppression: boolean;
+}
+
 export interface FakeMediaEnv {
-  captureAudio(deviceId: string): Promise<MediaStreamTrack>;
+  captureAudio(
+    deviceId: string,
+    options?: { readonly noiseSuppression?: boolean },
+  ): Promise<MediaStreamTrack>;
   captureVideo(deviceId: string): Promise<MediaStreamTrack>;
   createStream(tracks: readonly MediaStreamTrack[]): MediaStream;
   createAudioOutput(): FakeAudioOutput;
@@ -59,6 +67,8 @@ export interface FakeMediaEnv {
   readonly captureContexts: readonly FakeCaptureContext[];
   /** Device ids captured, in order, as `"audio:<id>"` / `"video:<id>"`. */
   readonly captures: readonly string[];
+  /** Each microphone capture asked for, with its processing options. */
+  readonly audioCaptures: readonly FakeAudioCapture[];
   readonly outputs: readonly FakeAudioOutput[];
   /** The tracks an element currently shows. */
   shownOn(element: HTMLVideoElement): readonly MediaStreamTrack[];
@@ -124,6 +134,7 @@ export function createFakeMediaEnv(
   let deny = { ...options.deny };
   let unplugged: ReadonlySet<string> = new Set();
   let captures: readonly string[] = [];
+  let audioCaptures: readonly FakeAudioCapture[] = [];
   let outputs: readonly FakeAudioOutput[] = [];
   let shown = new Map<HTMLVideoElement, MediaStream | null>();
   let removalWatchers = new Map<HTMLVideoElement, readonly (() => void)[]>();
@@ -149,7 +160,16 @@ export function createFakeMediaEnv(
   };
 
   return {
-    captureAudio: (deviceId) => capture("audio", deviceId),
+    captureAudio(deviceId, captureOptions = {}) {
+      audioCaptures = [
+        ...audioCaptures,
+        {
+          deviceId,
+          noiseSuppression: captureOptions.noiseSuppression ?? true,
+        },
+      ];
+      return capture("audio", deviceId);
+    },
     captureVideo: (deviceId) => capture("video", deviceId),
     createStream: createFakeStream,
     createAudioOutput() {
@@ -211,6 +231,9 @@ export function createFakeMediaEnv(
     watching: (track) => frameWatchers.some((w) => w.track === track),
     get captures() {
       return captures;
+    },
+    get audioCaptures() {
+      return audioCaptures;
     },
     get outputs() {
       return outputs;

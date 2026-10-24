@@ -11,14 +11,19 @@ export interface Captured {
   readonly raw: MediaStreamTrack;
   /** The choice couldn't be used: the system default runs instead. */
   readonly fallback: boolean;
+  /** The browser's own, for a microphone. */
+  readonly noiseSuppression: boolean;
 }
 
 export const captureRaw = (
   env: Pick<MediaEnv, "captureAudio" | "captureVideo">,
   kind: DeviceKindOf,
   device: string,
+  noiseSuppression = true,
 ): Promise<MediaStreamTrack> =>
-  kind === "audio" ? env.captureAudio(device) : env.captureVideo(device);
+  kind === "audio"
+    ? env.captureAudio(device, { noiseSuppression })
+    : env.captureVideo(device);
 
 /**
  * The chosen device, or the system default when it can't be used (e.g.
@@ -29,18 +34,21 @@ export async function captureDevice(
   env: Pick<MediaEnv, "captureAudio" | "captureVideo">,
   kind: DeviceKindOf,
   device: string,
+  noiseSuppression = true,
 ): Promise<Captured> {
+  const of = (raw: MediaStreamTrack, fallback: boolean): Captured => ({
+    ...{ device, raw, fallback },
+    noiseSuppression,
+  });
   try {
-    return {
-      device,
-      raw: await captureRaw(env, kind, device),
-      fallback: false,
-    };
+    return of(await captureRaw(env, kind, device, noiseSuppression), false);
   } catch (error: unknown) {
     if (device === DEFAULT_DEVICE) throw error;
     try {
-      const raw = await captureRaw(env, kind, DEFAULT_DEVICE);
-      return { device, raw, fallback: true };
+      return of(
+        await captureRaw(env, kind, DEFAULT_DEVICE, noiseSuppression),
+        true,
+      );
     } catch {
       throw error;
     }

@@ -8,9 +8,10 @@ const deviceConstraint = (deviceId: string): MediaTrackConstraints =>
 async function capture(
   kind: "audio" | "video",
   deviceId: string,
+  constraints: MediaTrackConstraints = {},
 ): Promise<MediaStreamTrack> {
   const stream = await navigator.mediaDevices.getUserMedia({
-    [kind]: deviceConstraint(deviceId),
+    [kind]: { ...deviceConstraint(deviceId), ...constraints },
   });
   const [track] =
     kind === "audio" ? stream.getAudioTracks() : stream.getVideoTracks();
@@ -109,7 +110,10 @@ export function createBrowserMediaEnv(
   assetUrl: (path: string) => string,
 ): MediaEnv {
   return {
-    captureAudio: (deviceId) => capture("audio", deviceId),
+    captureAudio: (deviceId, options = {}) =>
+      capture("audio", deviceId, {
+        noiseSuppression: options.noiseSuppression ?? true,
+      }),
     captureVideo: (deviceId) => capture("video", deviceId),
     createStream: (tracks) => new MediaStream([...tracks]),
     createAudioOutput: createElementOutput,

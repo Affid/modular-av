@@ -156,4 +156,16 @@ describe("fake media environment", () => {
     expect(other.kind).toBe("audio");
     await expect(env.captureAudio("usb")).resolves.toBeDefined();
   });
+
+  it("records the noise suppression asked for with each microphone", async () => {
+    const env = createFakeMediaEnv();
+
+    await env.captureAudio("default");
+    await env.captureAudio("usb", { noiseSuppression: false });
+
+    expect(env.audioCaptures).toEqual([
+      { deviceId: "default", noiseSuppression: true },
+      { deviceId: "usb", noiseSuppression: false },
+    ]);
+  });
 });

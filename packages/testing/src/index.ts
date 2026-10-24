@@ -66,6 +66,7 @@ export {
   FAKE_DEVICES,
 } from "./media/fake-media-env.ts";
 export type {
+  FakeAudioCapture,
   FakeAudioOutput,
   FakeAudioOutputState,
   FakeMediaEnv,

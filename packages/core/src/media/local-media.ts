@@ -14,6 +14,9 @@ import {
   type DeviceKindOf,
 } from "./device-capture.ts";
 import type { GateConfig, MediaEnv } from "./env.ts";
+
+/** Effects in this group replace the browser's own noise suppression. */
+export const NOISE_SUPPRESSION_GROUP = "noise-suppression";
 import { createLocalVideo } from "./local-video.ts";
 import type { Microphone } from "./microphone.ts";
 
@@ -107,7 +110,10 @@ export function createLocalMedia(
     const created = createMicrophone({
       env,
       gate,
-      onChange: changed,
+      onChange: () => {
+        changed();
+        syncNoiseSuppression();
+      },
       onReplaced: deps.onReplaced,
       onError: deps.onError,
     });
@@ -125,6 +131,27 @@ export function createLocalMedia(
 
   const current = (kind: DeviceKindOf): Captured | null =>
     kind === "audio" ? audio : video;
+
+  /** Off while a noise model runs: the two fight each other. */
+  const browserNoiseSuppression = (): boolean =>
+    !audioEffects.some(
+      (d) =>
+        d.exclusiveGroup === NOISE_SUPPRESSION_GROUP &&
+        mic?.effectStatus(d.id).status === "running",
+    );
+
+  /** Captures the same microphone again once that changed. */
+  const syncNoiseSuppression = (): void => {
+    if (!audio || audio.noiseSuppression === browserNoiseSuppression()) return;
+    enqueue(async () => {
+      const captured = audio;
+      const wanted = browserNoiseSuppression();
+      if (!captured || captured.noiseSuppression === wanted) return;
+      await replace(["audio"], () =>
+        captureDevice(env, "audio", captured.device, wanted),
+      );
+    }).catch(deps.onError);
+  };
 
   const feed = async (
     kind: DeviceKindOf,
@@ -189,7 +216,12 @@ export function createLocalMedia(
         enqueue(async () => {
           if (current(kind) !== captured) return;
           await replace([kind], () =>
-            captureDevice(env, kind, captured.device),
+            captureDevice(
+              env,
+              kind,
+              captured.device,
+              captured.noiseSuppression,
+            ),
           );
         }).catch(deps.onError);
       },
@@ -205,12 +237,17 @@ export function createLocalMedia(
         if (!fallen?.fallback) continue;
         let raw: MediaStreamTrack;
         try {
-          raw = await captureRaw(env, kind, fallen.device);
+          raw = await captureRaw(
+            env,
+            kind,
+            fallen.device,
+            fallen.noiseSuppression,
+          );
         } catch {
           continue;
         }
         await replace([kind], () =>
-          Promise.resolve({ device: fallen.device, raw, fallback: false }),
+          Promise.resolve({ ...fallen, raw, fallback: false }),
         );
       }
     });
@@ -227,7 +264,7 @@ export function createLocalMedia(
       const device = devices[kind];
       return device === null
         ? Promise.resolve(null)
-        : captureDevice(env, kind, device);
+        : captureDevice(env, kind, device, browserNoiseSuppression());
     });
   };
 

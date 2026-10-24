@@ -6,8 +6,14 @@
 import type { DeviceList } from "@modular-av/api";
 
 export interface MediaEnv {
-  /** Rejects as `getUserMedia` does (NotAllowedError, NotFoundError…). */
-  captureAudio(deviceId: string): Promise<MediaStreamTrack>;
+  /**
+   * Rejects as `getUserMedia` does (NotAllowedError, NotFoundError…).
+   * `noiseSuppression` is the browser's own, on unless turned off.
+   */
+  captureAudio(
+    deviceId: string,
+    options?: { readonly noiseSuppression?: boolean },
+  ): Promise<MediaStreamTrack>;
   captureVideo(deviceId: string): Promise<MediaStreamTrack>;
   createStream(tracks: readonly MediaStreamTrack[]): MediaStream;
   createAudioOutput(): AudioOutput;
