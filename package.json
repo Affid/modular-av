@@ -33,6 +33,7 @@
     "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm lang:check && pnpm test:coverage && pnpm build && pnpm size:check && pnpm test:browser"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
     "@changesets/cli": "^3.0.3",
     "@eslint/js": "^10.0.1",
     "@modular-av/api": "workspace:*",

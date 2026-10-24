@@ -83,6 +83,7 @@ describe("level meter", () => {
 
   it("draws with a transform, marks the threshold and the gate's state", () => {
     const meter = createMeter(document, { label: "Input level" });
+    expect(meter.element.getAttribute("aria-valuenow")).toBe("-80");
 
     meter.set({ db: -40, threshold: -60, open: true });
 

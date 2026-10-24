@@ -61,6 +61,7 @@ export function renderSettings(
     effects.element,
     ...extra.map((e) => e.element),
   ]);
+  effectsSection.hidden = effects.element.hidden && extra.length === 0;
   const form = el("div", {
     doc,
     className: "mav-settings",

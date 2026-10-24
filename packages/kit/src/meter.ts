@@ -46,6 +46,8 @@ export function createMeter(
       "aria-label": options.label,
       "aria-valuemin": String(METER_MIN_DB),
       "aria-valuemax": String(METER_MAX_DB),
+      // Until the first reading: nothing heard.
+      "aria-valuenow": String(METER_MIN_DB),
     },
     children: [fill, marker],
   });

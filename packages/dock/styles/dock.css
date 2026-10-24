@@ -123,6 +123,7 @@
 
 .mav-dock-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--mav-dock-gap);
   min-height: var(--mav-dock-button);
@@ -136,8 +137,9 @@
   cursor: grabbing;
 }
 
+/* A line of its own: the status is never cut short by the tools. */
 .mav-dock-status {
-  flex: 1;
+  flex: 1 1 100%;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -169,6 +171,7 @@
 }
 
 .mav-dock-count {
+  flex: 1;
   color: var(--mav-text-muted);
   white-space: nowrap;
 }
@@ -594,10 +597,22 @@
 
 /* ---- Settings window ---- */
 
+/* Its own colours, whatever Foundry's theme gives the window around it. */
 .mav-settings {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  padding: 12px;
+  border-radius: var(--mav-dock-radius);
+  color: var(--mav-text);
+  background: var(--mav-surface-sunken);
+  font-family: var(--mav-dock-font);
+  font-size: var(--mav-dock-font-size);
+}
+
+.mav-settings button {
+  font: inherit;
+  color: inherit;
 }
 
 .mav-settings-section {
