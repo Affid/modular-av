@@ -106,9 +106,11 @@ function createHarness(definition: ServiceDefinition): ServiceHarness {
         const c = await definition.create({ participant: options.participant });
         wire(c);
         connection = c;
+        const token =
+          definition.needsToken() || options.token ? await sign(options) : null;
         await c.connect(
           { name: options.room },
-          await sign(options),
+          token,
           new AbortController().signal,
         );
         return { ok: true };

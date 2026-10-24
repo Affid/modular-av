@@ -17,6 +17,8 @@ export interface MockServiceOptions {
   readonly now?: () => number;
   /** Whether connections offer GM moderation. */
   readonly moderation?: boolean;
+  /** False: joins with no token and full rights, like a P2P service. */
+  readonly needsToken?: boolean;
 }
 
 /**
@@ -87,6 +89,7 @@ export function createMockServiceHub(
   const hub: Hub = {
     now,
     moderation: options.moderation ?? false,
+    needsToken: options.needsToken ?? true,
     join(member) {
       membersOf(member.room)
         .filter((m) => m.participant === member.participant)
@@ -143,6 +146,7 @@ export function createMockServiceHub(
       id: "mock",
       label: "Mock service",
       mediaOwnership: "core",
+      needsToken: () => hub.needsToken,
       signToken: (request) => Promise.resolve(signMockToken(request, now())),
       create: (context) =>
         Promise.resolve(createMockConnection(hub, context.participant)),

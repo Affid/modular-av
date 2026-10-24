@@ -129,6 +129,21 @@ describe("session lifecycle", () => {
     expect(h.session.state).toMatchObject({ attempt: 0, reason: null });
   });
 
+  it("connects with no token when the service needs none", async () => {
+    // Arrange
+    const hub = createMockServiceHub({ needsToken: false });
+    const h = harness(hub, "p1");
+
+    // Act
+    h.session.start();
+    await settle();
+
+    // Assert
+    expect(h.statuses).toEqual(["connecting", "connected"]);
+    expect(h.tokens).toBe(0);
+    expect(hub.participants(ROOM)).toEqual(["p1"]);
+  });
+
   it("starts only from idle or left", async () => {
     const hub = createMockServiceHub();
     const h = harness(hub, "p1");

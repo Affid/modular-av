@@ -1,6 +1,6 @@
 /**
  * Service plugin interfaces (handoff §3 "Plugin interfaces"), settled in
- * milestone 2 against LiveKit. Milestone 4 (P2P) may still change them.
+ * milestone 2 against LiveKit and milestone 4 against a P2P mesh.
  */
 
 /** A Foundry user id, taken from the service token, never self-asserted. */
@@ -100,9 +100,14 @@ export interface ServiceConnection {
   /**
    * Resolves once joined; rejects on failure (with `serviceError` set to a
    * `ServiceError` when the reason is known). `state` events matter to the
-   * core only after this resolved.
+   * core only after this resolved. `token` is null when the service
+   * needs none (`needsToken()` is false).
    */
-  connect(room: RoomSpec, token: string, signal: AbortSignal): Promise<void>;
+  connect(
+    room: RoomSpec,
+    token: string | null,
+    signal: AbortSignal,
+  ): Promise<void>;
   disconnect(reason: "user" | "switching" | "unload"): Promise<void>;
   publish(
     track: MediaStreamTrack,
@@ -141,6 +146,12 @@ export interface ServiceDefinition {
   readonly id: string;
   /** Plain text or an i18n key. */
   readonly label: string;
+  /**
+   * Whether joining needs a token from the GM relay. A service that needs
+   * none (P2P: Foundry's server already names every sender) joins without
+   * a GM online. Asked before every join.
+   */
+  needsToken(): boolean;
   /** Whether this device holds what `signToken` needs (the GM's secret). */
   canSignTokens?(): boolean;
   /** Runs on a GM's client, only when `canSignTokens()` is true. */

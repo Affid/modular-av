@@ -100,6 +100,39 @@ describe("mock service", () => {
     );
   });
 
+  it("says whether it needs a token", () => {
+    expect(createMockServiceHub().definition().needsToken()).toBe(true);
+    expect(
+      createMockServiceHub({ needsToken: false }).definition().needsToken(),
+    ).toBe(false);
+  });
+
+  it("joins with no token and full rights when it needs none", async () => {
+    // Arrange
+    const hub = createMockServiceHub({ needsToken: false });
+    const connection = await hub.definition().create({ participant: "p1" });
+    await connection.connect(ROOM, null, new AbortController().signal);
+
+    // Act
+    const published = await connection.publish(
+      createFakeTrack("video"),
+      "camera",
+    );
+
+    // Assert
+    expect(hub.participants(ROOM.name)).toEqual(["p1"]);
+    expect(published.source).toBe("camera");
+  });
+
+  it("refuses a missing token for good when it needs one", async () => {
+    const hub = createMockServiceHub();
+    const connection = await hub.definition().create({ participant: "p1" });
+
+    await expect(
+      connection.connect(ROOM, null, new AbortController().signal),
+    ).rejects.toMatchObject({ serviceError: { code: "auth", final: true } });
+  });
+
   it("stops connecting when aborted", async () => {
     const hub = createMockServiceHub();
     const connection = await hub.definition().create({ participant: "p1" });

@@ -35,6 +35,7 @@ export interface Member {
 export interface Hub {
   readonly now: () => number;
   readonly moderation: boolean;
+  readonly needsToken: boolean;
   join(member: Member): void;
   leave(member: Member): void;
   trackAdded(member: Member, track: RemoteTrack): void;

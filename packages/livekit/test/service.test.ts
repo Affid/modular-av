@@ -141,6 +141,7 @@ describe("LiveKit service definition", () => {
       label: "modular-av-livekit.label",
       mediaOwnership: "core",
     });
+    expect(service.needsToken()).toBe(true);
   });
 });
 

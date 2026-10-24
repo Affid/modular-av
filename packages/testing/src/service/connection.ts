@@ -103,11 +103,13 @@ export function createMockConnection(
         setState("disconnected");
         throw aborted();
       }
-      const claims = verifyMockToken(
-        token,
-        { participant, room: room.name },
-        hub.now(),
-      );
+      const claims = hub.needsToken
+        ? verifyMockToken(
+            token ?? "",
+            { participant, room: room.name },
+            hub.now(),
+          )
+        : { canPublish: { audio: true, video: true } };
       if ("code" in claims) {
         setState("failed", claims);
         throw new MockServiceFailure(claims);

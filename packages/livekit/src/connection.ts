@@ -102,6 +102,12 @@ export function createLiveKitConnection(
   return {
     capabilities: { get: () => CAPABILITIES, subscribe: () => () => undefined },
     async connect(_room, token, signal) {
+      if (token === null)
+        throw new LiveKitServiceError({
+          code: "auth",
+          final: true,
+          message: "LiveKit needs a join token",
+        });
       await join(room, options.url, token, signal);
       for (const participant of room.remoteParticipants.values())
         emitter.emit("participantJoined", participant.identity);

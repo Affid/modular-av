@@ -9,6 +9,7 @@ import type {
   ServiceEvents,
   SessionEndReason,
   SessionState,
+  SessionStatus,
 } from "@modular-av/api";
 import { backoffDelay, endReasonFor } from "./backoff.ts";
 import {
@@ -121,6 +122,10 @@ function serviceErrorOf(error: unknown): ServiceError {
     return candidate as ServiceError;
   return NETWORK;
 }
+
+/** Where a start shows first: no service ends at once in `connect`. */
+const firstStatus = (service: ServiceDefinition | undefined): SessionStatus =>
+  service?.needsToken() === false ? "connecting" : "waiting-for-token";
 
 interface Live {
   readonly connection: ServiceConnection;
@@ -238,10 +243,17 @@ export function createSession(deps: SessionDeps): Session {
       finish("no-service");
       return;
     }
-    setState({ status: "waiting-for-token", nextRetryAt: null, reason: null });
-    const token = await deps.requestToken(signal);
-    if (current !== generation) return;
-    setState({ status: "connecting" });
+    let token: string | null = null;
+    if (service.needsToken()) {
+      setState({
+        status: "waiting-for-token",
+        nextRetryAt: null,
+        reason: null,
+      });
+      token = await deps.requestToken(signal);
+      if (current !== generation) return;
+    }
+    setState({ status: "connecting", nextRetryAt: null, reason: null });
     const timer = setTimeout(() => {
       controller?.abort(new JoinTimeout());
     }, JOIN_TIMEOUT_MS);
@@ -256,7 +268,7 @@ export function createSession(deps: SessionDeps): Session {
   async function join(
     current: number,
     service: ServiceDefinition,
-    token: string,
+    token: string | null,
     signal: AbortSignal,
   ): Promise<void> {
     const creating = service.create({ participant: deps.participant });
@@ -320,7 +332,7 @@ export function createSession(deps: SessionDeps): Session {
     },
     start() {
       if (state.status !== "idle" && state.status !== "left") return;
-      setState({ ...IDLE, status: "waiting-for-token" });
+      setState({ ...IDLE, status: firstStatus(deps.service()) });
       run();
     },
     async stop(reason) {
