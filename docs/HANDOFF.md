@@ -1333,9 +1333,99 @@ Foundry 14.369, Chromium from Playwright 1.64, coturn 4.7.0):
   WebRTC), hello and bye tell every user in the world who joins, and a
   player past the cap may show briefly to the others before leaving.
 
-## 13. Open items
+## 13. Findings from milestone 5
 
-Left open after milestone 4. None of them is part of a milestone unless
+Verified while building `kit`, `modular-av-dock` and the UI contract
+(Foundry 14.369, Chromium from Playwright 1.64, livekit-server 1.13.8,
+coturn 4.7.0):
+
+- **The UI as built**: the dock fills the core's three surfaces
+  (cameras, settings, players) on the public API only. The core hosts
+  them: its camera dock host renders none of Foundry's parts and hands
+  its element to the cameras surface once (Foundry still places it by
+  `#interface` on every render; `hidden`, `isVertical` and `isHorizontal`
+  follow where the surface says it is, so the hotbar makes room), and its
+  "Voice & Video Settings" window replaces Foundry's A/V settings in the
+  settings menu and as `game.webrtc.config`, with a way back to Foundry's
+  own (the world's mode, the relay server). A surface that throws gets
+  Foundry's dock or window instead. The world picks the cameras and
+  settings UI, a player may pick their own cameras UI (`user` scope), all
+  on reload. With a cameras surface mounted the plain status is quiet; a
+  players surface replaces the core's badges.
+- **Foundry discovers modules only when its server starts**: a module
+  linked into `Data/modules` later is invisible (`game.modules` lacks it)
+  until Foundry restarts, whatever the world's module settings say.
+- **Every player looked muted and hidden to the others** until they
+  changed an A/V setting (since milestone 2): Foundry broadcasts a
+  player's own `{ muted, hidden }` when its settings load or change,
+  computed as "set, or nothing sent" (`isAudioEnabled()`), and at load the
+  core has captured nothing yet. The core now broadcasts it again whenever
+  it changes. The fake Foundry broadcasts it as Foundry does.
+- **`canBroadcast` can't tell a GM's block from the world's mode**; UIs
+  need `AVState.worldMode` (what the mode allows) to show "blocked" only
+  where the mode allows the kind.
+- **Hidden videos stop downloading**: the core watches attached elements
+  with one intersection and one resize observer per document, made in that
+  document's window (an element in the Picture-in-Picture window is seen
+  against that window), and follows elements moved between documents (the
+  removal watcher too). A video shown nowhere pauses after 3 s (a P2P
+  mesh renegotiates on each pause) and resumes at once; `maxQuality`
+  follows the tallest element showing it, in device pixels. LiveKit's
+  adaptive stream is off: it only sees elements LiveKit attached. UIs must
+  keep attached videos laid out (`visibility: hidden`, never
+  `display: none`).
+- **Meters**: the local level comes from the voice gate's reports (on only
+  while someone listens), others' from an analyser in a meter context of
+  its own, sampled in the element's window (the opener's timers slow
+  down in a hidden tab while a Picture-in-Picture window shows). A meter
+  runs only while its element is on screen in a visible document.
+- **Document Picture-in-Picture** works in headless Chromium from a click
+  (Playwright's `evaluate` counts as a gesture, so a refusal can't be
+  tested that way). The core mirrors the page's style sheets into the
+  window and keeps them in step (sheets added or removed, `<html>` and
+  `<body>` classes), shows native tooltips there from Foundry's
+  attributes (parsed as text) and forwards the push to talk key. Moving
+  the dock into the window keeps its videos playing.
+- **Moving a playing `<video>` pauses it** unless the browser has
+  `moveBefore` (Chrome 133+): kit's `placeInOrder` moves only what is out
+  of place and resumes what was playing otherwise.
+- **Popovers** are kit's, on the native Popover API (`popover="manual"`,
+  the top layer) with their own closing rules: an `auto` popover closes on
+  the press of its own anchor and reopens on its click. One is open per
+  document; one opened from inside another doesn't close it.
+- **LiveKit's receiver stats leave the audio's packet counts out**: the
+  service reads each receiver's `getStats()` itself, counting loss since
+  its last reading.
+- **Test tooling**: the browser harness runs the other players as cores in
+  the same page on the same mock service (`?players=`), loads every
+  module's language file, registers a sample plugin (`?sample=1`) and a
+  failing test effect, and refuses the voice gate to a page opened with
+  `?gate=broken` (open mic). happy-dom tests never load what pages link
+  to. A fake `ModularAV` (`createFakeApi`) tests UI modules without the
+  core. Players need the Trusted role to send audio and video.
+- **Bundles**: the core's entry is 101.3 of 110 KB (the budget was raised
+  from 72 KB in this milestone); the dock's is about 52 of 80 KB, its CSS
+  about 14 of 40 KB (now checked too, `styleBudgetBytes`).
+- **Reviews** (code and security, no CRITICAL or HIGH left in the code):
+  fixed a Picture-in-Picture document kept alive by its observers, a
+  meter timer left in a closed window, the grid and countdown staying
+  with the main window while the dock was in Picture-in-Picture, the
+  push to talk key forwarded while typing there, secrets of other types
+  shown, `crypto.randomUUID()` failing on plain HTTP, and more (see the
+  `fix(core)` and `fix(dock)` commits). `happy-dom` (tests only) moved to
+  21.0.4 for an advisory.
+- **API changes**: `api.surfaces`, `api.contributions` (control,
+  participant action, indicator, status row, settings section with
+  `secrets`), `api.meters`, `api.windows.pip`, `api.stats` with the
+  optional `ServiceConnection.getParticipantStats` and `ConnectionStats`
+  `jitterMs`/`relayed`; commands `setVoiceMode`, `setReceiveVideo`,
+  `setHiddenByMe`; `AVState.worldMode`, `LocalState.receiveVideo` and
+  `chosenDevices`, `ParticipantState.hiddenByMe`. All additive for
+  services.
+
+## 14. Open items
+
+Left open after milestone 5. None of them is part of a milestone unless
 it is picked up explicitly.
 
 - **Browser-tier flake**: "two players who join at the same moment link
@@ -1357,3 +1447,29 @@ it is picked up explicitly.
   refresh the state; they could be merged into one.
 - **Firefox 48 kHz capture**: see §11.
 - **From milestone 4**: see "Not done yet" in §12.
+- **The Foundry suite is load-sensitive**: with the machine busy, tests
+  fail at random between runs, mostly a session that stays "connecting"
+  after LiveKit's signal connected, or a third page that doesn't link in
+  time. At the end of milestone 5, with a load average around 20 on 16
+  cores (other projects running), the first test of `av`, `media` and
+  `p2p` failed in every run, alone too, and main (2fb6dda) failed the
+  same tests the same way under the same load; with less load they had
+  passed alone. The dock's own Foundry tests passed in every run. Rerun
+  the whole suite on a quiet machine before relying on it.
+- **From milestone 5**:
+  - The dock's screenshot baselines have no icons: the harness loads no
+    Font Awesome (Foundry ships it). Loading it (e.g.
+    `@fortawesome/fontawesome-free`, dev only) would make them more
+    telling.
+  - Firefox, Safari and Foundry's desktop app aren't tested: Document
+    Picture-in-Picture is feature-detected (the dock says why "own
+    window" isn't offered) and element Picture-in-Picture per tile isn't
+    built.
+  - The compact tile layout, `dock.themes.register` and
+    `dock.layouts.register` wait for milestone 9 (the scattered layout and
+    the first theme).
+  - A UI shows "blocked" by working it out from `worldMode` and
+    `canBroadcast`; a core field (blocked by a GM) would save each UI that.
+  - Visibility pauses renegotiate a P2P link each time (after the 3 s
+    grace): measure with a real table before tuning.
+  - `MountedSurface.unmount` isn't called by the core.
