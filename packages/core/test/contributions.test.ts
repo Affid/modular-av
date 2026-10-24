@@ -74,7 +74,8 @@ const VALID: readonly Contribution[] = [
     kind: "settings-section",
     id: "lk.settings",
     label: "LiveKit",
-    settings: ["modular-av-livekit.url"],
+    settings: ["modular-av-livekit.url", "modular-av-livekit.apiSecret"],
+    secrets: ["modular-av-livekit.apiSecret"],
   },
 ];
 

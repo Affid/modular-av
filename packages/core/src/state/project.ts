@@ -106,6 +106,7 @@ export function project(
   );
   const next: AVState = {
     session: keep(previous?.session, input.session),
+    worldMode: keep(previous?.worldMode, input.facts.modeAllows()),
     participants: keep(previous?.participants, participants),
     local: keep(previous?.local, input.local),
     devices: keep(previous?.devices, input.devices),

@@ -47,6 +47,19 @@ function effectStates(
   );
 }
 
+/** Foundry saves "" until a device was picked: the system default. */
+const orDefault = (id: string | undefined): string =>
+  id === undefined || id === "" ? "default" : id;
+
+function chosenDevices(facts: AVFacts): LocalState["chosenDevices"] {
+  const client = facts.settings()?.client;
+  return {
+    audioInput: orDefault(client?.audioSrc),
+    videoInput: orDefault(client?.videoSrc),
+    audioOutput: orDefault(client?.audioSink),
+  };
+}
+
 function localState(deps: StateSyncDeps): LocalState {
   const { facts, local } = deps;
   const own = facts.entry(facts.selfId);
@@ -73,6 +86,7 @@ function localState(deps: StateSyncDeps): LocalState {
     effects: effectStates(deps),
     inputSensitivity: readSensitivity(deps.game),
     cameraHold: local.cameraHold,
+    chosenDevices: chosenDevices(facts),
   };
 }
 

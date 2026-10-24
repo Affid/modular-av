@@ -136,6 +136,14 @@ function checkSection(c: Fields): void {
       c.settings.every((k) => typeof k === "string" && SETTING_KEY.test(k)),
     'settings must be setting keys ("<module-id>.<key>")',
   );
+  if (c.secrets !== undefined)
+    check(
+      Array.isArray(c.secrets) &&
+        c.secrets.every(
+          (k) => Array.isArray(c.settings) && c.settings.includes(k),
+        ),
+      "secrets must be some of the section's settings",
+    );
   if (c.controls !== undefined) checkControls(c.controls, false);
 }
 

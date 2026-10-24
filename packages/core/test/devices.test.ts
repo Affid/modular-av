@@ -55,6 +55,11 @@ describe("devices", () => {
     expect([client.audioSrc, client.videoSrc]).toEqual(["usb", "hd"]);
     expect(p1.env.captures).toContain("audio:usb");
     expect(p1.env.captures).toContain("video:hd");
+    expect(p1.api.state.get().local.chosenDevices).toEqual({
+      audioInput: "usb",
+      videoInput: "hd",
+      audioOutput: "default",
+    });
   });
 
   it("plays everyone through the chosen speakers", async () => {

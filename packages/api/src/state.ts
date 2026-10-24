@@ -138,6 +138,8 @@ export interface LocalState {
   readonly inputSensitivity: InputSensitivity;
   /** Why the camera is kept off, if a video effect isn't sending. */
   readonly cameraHold: CameraHold | null;
+  /** The device chosen for each kind ("default": the system's), as saved in Foundry. */
+  readonly chosenDevices: Readonly<Record<DeviceKind, string>>;
 }
 
 export interface DeviceInfo {
@@ -158,6 +160,12 @@ export interface ServiceState {
 
 export interface AVState {
   readonly session: SessionState;
+  /**
+   * What the world's A/V mode allows at all. `canBroadcast` combines it
+   * with the GM's permissions, so a player is blocked by a GM where the
+   * mode allows a kind and `canBroadcast` doesn't.
+   */
+  readonly worldMode: MediaPermissions;
   readonly participants: Readonly<Record<ParticipantId, ParticipantState>>;
   readonly local: LocalState;
   readonly devices: DeviceList;

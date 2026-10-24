@@ -118,6 +118,8 @@ export interface SettingsSectionContribution
   extends ItemBase, ContributionBase {
   readonly kind: "settings-section";
   readonly settings: readonly string[];
+  /** Of `settings`, those holding a secret: their fields never show the value. */
+  readonly secrets?: readonly string[];
   readonly controls?: readonly Control[];
 }
 
