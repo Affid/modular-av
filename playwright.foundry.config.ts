@@ -1,4 +1,12 @@
+import { existsSync } from "node:fs";
 import { defineConfig, devices } from "@playwright/test";
+import {
+  FAKE_SPEECH_WAV,
+  writeFakeSpeech,
+} from "./scripts/foundry/fake-speech.ts";
+
+// Written once: workers load this config too, while Chrome reads the file.
+if (!existsSync(FAKE_SPEECH_WAV)) writeFakeSpeech();
 
 /**
  * End to end in the local Foundry world (`pnpm test:foundry`): Foundry must
@@ -28,6 +36,8 @@ export default defineConfig({
         "--use-fake-ui-for-media-stream",
         "--use-fake-device-for-media-stream",
         "--autoplay-policy=no-user-gesture-required",
+        // 1.5 s of tone, 1.5 s of silence: speech, for the voice gate.
+        `--use-file-for-fake-audio-capture=${FAKE_SPEECH_WAV}`,
       ],
     },
   },
