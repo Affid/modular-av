@@ -1,3 +1,8 @@
+export { FakeApplicationV2, FakeAVConfig } from "./foundry/application.ts";
+export type {
+  ApplicationOptions,
+  RenderOptions,
+} from "./foundry/application.ts";
 export {
   FakeAVClient,
   FakeCameraViews,
@@ -36,6 +41,7 @@ export type {
 } from "./foundry/client.ts";
 export type {
   FakeSettingConfig,
+  FakeSettingMenu,
   FakeSettings,
   SettingScope,
 } from "./foundry/settings.ts";

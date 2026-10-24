@@ -45,13 +45,25 @@ export interface CamerasSurfaceDefinition extends SurfaceBase {
   mount(host: CamerasHost): MountedSurface;
 }
 
+export interface SettingsHost {
+  /** The window's content region; the surface owns what goes in it. */
+  readonly content: HTMLElement;
+  close(): Promise<void>;
+  /**
+   * Opens Foundry's own A/V settings (the world's mode, the relay server),
+   * which the surface replaces as the window players open.
+   */
+  openFoundrySettings(): void;
+}
+
 export interface SettingsSurfaceDefinition extends SurfaceBase {
   readonly kind: "settings";
   /**
-   * Fills the core's "Voice & Video Settings" window each time it opens;
-   * the returned function runs when it closes.
+   * Fills the core's "Voice & Video Settings" window each time it opens,
+   * from Foundry's settings menu or `game.webrtc.config`; the returned
+   * function runs when it closes.
    */
-  render(content: HTMLElement): () => void;
+  render(host: SettingsHost): () => void;
 }
 
 export interface PlayersSurfaceDefinition extends SurfaceBase {

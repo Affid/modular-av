@@ -1,3 +1,5 @@
+import { FakeAVConfig } from "./application.ts";
+
 export type SettingScope = "world" | "user" | "client";
 
 const SCOPES: readonly SettingScope[] = ["world", "user", "client"];
@@ -30,7 +32,18 @@ export interface SharedSettingsStore {
   canWriteWorld(): boolean;
 }
 
+/** A `game.settings.registerMenu` entry: Foundry opens `new type()`. */
+export interface FakeSettingMenu {
+  readonly name: string;
+  readonly label: string;
+  readonly icon?: string;
+  readonly type: new () => { render(options?: object): unknown };
+  readonly restricted: boolean;
+}
+
 export interface FakeSettings {
+  /** Foundry registers "core.webrtc" (its A/V settings) before `init`. */
+  readonly menus: Map<string, FakeSettingMenu>;
   register(namespace: string, key: string, config: FakeSettingConfig): void;
   get(namespace: string, key: string): unknown;
   set(namespace: string, key: string, value: unknown): Promise<unknown>;
@@ -90,6 +103,18 @@ export function createSettings(
   };
 
   const settings: FakeSettings = {
+    menus: new Map([
+      [
+        "core.webrtc",
+        {
+          name: "WEBRTC.MenuLabel",
+          label: "WEBRTC.MenuLabel",
+          icon: "fa-solid fa-headset",
+          type: FakeAVConfig,
+          restricted: false,
+        },
+      ],
+    ]),
     register(namespace, key, config) {
       if (!SCOPES.includes(config.scope)) {
         throw new Error(`Invalid setting scope "${config.scope}"`);

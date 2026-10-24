@@ -51,7 +51,14 @@ export interface FoundrySettingConfig {
   readonly onChange?: (value: unknown) => void;
 }
 
+/** A `game.settings.registerMenu` entry: Foundry opens `new type()`. */
+export interface FoundrySettingMenu {
+  readonly type: new () => { render(options?: object): unknown };
+}
+
 export interface FoundrySettings {
+  /** Foundry's own "core.webrtc" is its A/V settings window. */
+  readonly menus: Map<string, FoundrySettingMenu>;
   register(namespace: string, key: string, config: FoundrySettingConfig): void;
   get(namespace: string, key: string): unknown;
   set(namespace: string, key: string, value: unknown): Promise<unknown>;
@@ -99,6 +106,8 @@ export interface AVSettingsLike {
 export interface AVMasterLike {
   readonly settings: AVSettingsLike;
   readonly client: object;
+  /** Foundry's A/V settings window, which its camera dock's gear opens. */
+  config: { render(options?: object): unknown };
   /**
    * Sets the local player's broadcast intent: Foundry's speaking flag, the
    * activity it tells the others and the dock's indicator.
@@ -153,6 +162,9 @@ export interface FoundryConfig {
 export interface FoundryNamespace {
   readonly av: { readonly AVClient: abstract new (...args: never[]) => object };
   readonly applications: {
+    readonly api: {
+      readonly ApplicationV2: abstract new (...args: never[]) => object;
+    };
     readonly apps: {
       readonly av: {
         readonly CameraViews: abstract new (...args: never[]) => object;

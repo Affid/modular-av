@@ -1,3 +1,4 @@
+import { FakeAVConfig } from "./application.ts";
 import type { FakeAVClient } from "./av-classes.ts";
 import {
   AV_MODES,
@@ -33,6 +34,8 @@ export class FakeAVMaster {
   readonly selfId: string;
   readonly settings: FakeAVSettings;
   readonly client: FakeAVClient;
+  /** Foundry's A/V settings window; the dock's gear opens it. */
+  config: { render(options?: object): unknown } = new FakeAVConfig();
   broadcasting = false;
   /** The stream voice detection runs on, or null when it doesn't run. */
   detectionStream: MediaStream | null = null;

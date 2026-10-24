@@ -1,3 +1,9 @@
+import {
+  type ApplicationOptions,
+  FakeApplicationV2,
+  pageDocument,
+  type RenderOptions,
+} from "./application.ts";
 import type { FakeAVSettings } from "./av-settings.ts";
 
 /**
@@ -118,58 +124,30 @@ export class FakeAVClient {
   }
 }
 
-export interface CameraRender {
-  readonly force?: boolean;
-  readonly parts?: readonly string[];
-}
-
-/** The page's document, if the test runs with one (happy-dom, a browser). */
-const pageDocument = (): Document | undefined =>
-  (globalThis as { document?: Document }).document;
+export type CameraRender = RenderOptions;
 
 /**
  * v14 applications/apps/av/cameras.mjs, as far as AVMaster and a subclass
- * use it, with the ApplicationV2 render steps (api/application.mjs) a
- * subclass overrides. Without a document it only records renders. Its own
- * parts stand in for Foundry's templates; the dock sits on the left.
+ * use it: a frameless ApplicationV2 whose own parts stand in for Foundry's
+ * templates. The dock sits on the left.
  */
-export class FakeCameraViews {
-  renders: readonly CameraRender[] = [];
+export class FakeCameraViews extends FakeApplicationV2 {
+  static override DEFAULT_OPTIONS: ApplicationOptions = {
+    id: "camera-views",
+    tag: "aside",
+    window: { frame: false },
+  };
+
   speaking: Readonly<Record<string, boolean>> = {};
-  element: HTMLElement | null = null;
-  rendered = false;
 
-  async render(options: CameraRender = {}): Promise<this> {
-    this.renders = [...this.renders, options];
-    const doc = pageDocument();
-    if (!doc) return this;
-    const renderOptions = { ...options };
-    this._configureRenderOptions(renderOptions);
-    const parts = this._configureRenderParts(renderOptions);
-    const result = await this._renderHTML({ parts }, renderOptions);
-    const first = this.element === null;
-    const element = this.element ?? doc.createElement("aside");
-    element.id = "camera-views";
-    this.element = element;
-    this._replaceHTML(result, element, renderOptions);
-    if (first) await this._onFirstRender({}, renderOptions);
-    await this._onRender({}, renderOptions);
-    this.rendered = true;
-    return this;
-  }
-
-  _configureRenderOptions(_options: { parts?: readonly string[] }): void {
-    // Foundry's default fills in which parts to render.
-  }
-
-  _configureRenderParts(_options: object): Record<string, object> {
+  override _configureRenderParts(_options: object): Record<string, object> {
     return { cameras: {}, controls: {} };
   }
 
-  _renderHTML(
+  override _renderHTML(
     context: { readonly parts?: Record<string, object> },
     _options: object,
-  ): Promise<Record<string, HTMLElement>> {
+  ): Promise<unknown> {
     const doc = pageDocument();
     if (!doc) return Promise.resolve({});
     const parts = Object.keys(context.parts ?? {}).map((id) => {
@@ -180,20 +158,23 @@ export class FakeCameraViews {
     return Promise.resolve(Object.fromEntries(parts));
   }
 
-  _replaceHTML(
-    result: Readonly<Record<string, HTMLElement>>,
+  override _replaceHTML(
+    result: unknown,
     content: HTMLElement,
     _options: object,
   ): void {
-    content.replaceChildren(...Object.values(result));
+    content.replaceChildren(
+      ...Object.values(result as Readonly<Record<string, HTMLElement>>),
+    );
   }
 
-  _onFirstRender(_context: object, _options: object): Promise<void> {
-    return Promise.resolve();
+  /** Placed by `_onRender`, as Foundry's dock is. */
+  override _insertElement(_element: HTMLElement): void {
+    // Nothing until rendered.
   }
 
   /** Foundry moves the dock next to #interface and hides it if needed. */
-  _onRender(_context: object, _options: object): Promise<void> {
+  override _onRender(_context: object, _options: object): Promise<void> {
     const element = this.element;
     const doc = pageDocument();
     if (!element || !doc) return Promise.resolve();

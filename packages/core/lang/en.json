@@ -46,6 +46,9 @@
         "noService": "No voice and video service module is enabled in this world."
       },
       "clientReplaced": "Another module replaced Modular A/V's voice and video client. Enable only one voice and video module."
+    },
+    "settingsWindow": {
+      "title": "Voice & Video Settings"
     }
   }
 }

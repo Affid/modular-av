@@ -43,9 +43,12 @@ import {
   registerSurfaceSettings,
 } from "./surfaces/choice.ts";
 import { createPlacement } from "./surfaces/placement.ts";
+import { createSettingsWindow, menuTypeFor } from "./foundry/settings-host.ts";
 
 export const REGISTER_HOOK = "modularAV.register";
 export const SERVICE_SETTING = "service";
+/** Foundry's menu for its A/V settings window. */
+const FOUNDRY_AV_MENU = "core.webrtc";
 
 /** Foundry's globals and the browser, injected so tests can fake them. */
 export interface CoreDeps {
@@ -178,6 +181,7 @@ export function installCore(deps: CoreDeps): InstalledCore {
   });
 
   hooks.once("ready", () => {
+    installSettingsWindow(deps, surfaces.api.list());
     controller().ready();
     onReady(
       deps,
@@ -208,6 +212,37 @@ function registerServiceSetting(
     default: services[0]?.id ?? "",
     requiresReload: true,
   });
+}
+
+/**
+ * A settings surface replaces Foundry's A/V settings window wherever
+ * Foundry opens it: its settings menu and its camera dock's gear
+ * (`game.webrtc.config`, made after `setup`).
+ */
+function installSettingsWindow(
+  deps: CoreDeps,
+  surfaces: readonly SurfaceDefinition[],
+): void {
+  const { game } = deps;
+  const surface = chosenSurface(game, surfaces, "settings");
+  const webrtc = game.webrtc;
+  if (!surface || !webrtc) return;
+  const window = createSettingsWindow(
+    deps.foundry.applications.api.ApplicationV2,
+    {
+      surface,
+      title: game.i18n.localize(`${MODULE_ID}.settingsWindow.title`),
+      foundrySettings: webrtc.config,
+      onError: deps.onError,
+    },
+  );
+  webrtc.config = window;
+  const menu = game.settings.menus.get(FOUNDRY_AV_MENU);
+  if (menu)
+    game.settings.menus.set(FOUNDRY_AV_MENU, {
+      ...menu,
+      type: menuTypeFor(window),
+    });
 }
 
 /** Foundry events that change what the core sends, plays or shows. */

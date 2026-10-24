@@ -57,6 +57,7 @@ export type {
   CamerasSurfaceDefinition,
   MountedSurface,
   PlayersSurfaceDefinition,
+  SettingsHost,
   SettingsSurfaceDefinition,
   SurfaceDefinition,
   SurfaceKind,

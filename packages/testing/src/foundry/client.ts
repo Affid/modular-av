@@ -1,3 +1,4 @@
+import { FakeApplicationV2, FakeAVConfig } from "./application.ts";
 import {
   FakeAVClient,
   FakeCameraViews,
@@ -73,6 +74,10 @@ export const FOUNDRY_NAMESPACE = Object.freeze({
     AVSettings: Object.freeze({ AV_MODES }),
   }),
   applications: Object.freeze({
+    api: Object.freeze({ ApplicationV2: FakeApplicationV2 }),
+    settings: Object.freeze({
+      menus: Object.freeze({ AVConfig: FakeAVConfig }),
+    }),
     apps: Object.freeze({
       av: Object.freeze({ CameraViews: FakeCameraViews }),
     }),
