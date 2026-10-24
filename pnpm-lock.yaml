@@ -227,6 +227,21 @@ importers:
         specifier: workspace:*
         version: link:../testing
 
+  packages/dock:
+    dependencies:
+      '@modular-av/api':
+        specifier: workspace:*
+        version: link:../api
+      '@modular-av/kit':
+        specifier: workspace:*
+        version: link:../kit
+    devDependencies:
+      '@modular-av/testing':
+        specifier: workspace:*
+        version: link:../testing
+
+  packages/kit: {}
+
   packages/livekit:
     dependencies:
       '@modular-av/api':

@@ -1,0 +1,15 @@
+{
+  "name": "@modular-av/kit",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Pure UI helpers that Modular A/V UI modules bundle: no shared state, any document.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  }
+}
