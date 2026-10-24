@@ -19,7 +19,7 @@ export interface EffectContext {
    * The core takes the effect out: audio goes on without it, the camera is
    * kept off.
    */
-  fail(error: unknown): void;
+  readonly fail: (error: unknown) => void;
 }
 
 export interface AudioEffectContext extends EffectContext {

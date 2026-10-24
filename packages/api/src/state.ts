@@ -74,6 +74,16 @@ export interface ParticipantState {
 
 export type VoiceMode = "always" | "activity" | "ptt";
 
+/** Where an effect stands on this client. */
+export type EffectStatus =
+  "off" | "starting" | "running" | "failed" | "unsupported";
+
+export interface EffectState {
+  readonly status: EffectStatus;
+  /** Why it failed: the error's name, e.g. "NotSupportedError". */
+  readonly error: string | null;
+}
+
 export interface LocalState {
   readonly muted: boolean;
   readonly videoEnabled: boolean;

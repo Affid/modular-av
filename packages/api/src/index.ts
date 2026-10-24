@@ -36,6 +36,8 @@ export type {
 export type { Channel } from "./socket.ts";
 export type {
   AVState,
+  EffectState,
+  EffectStatus,
   LocalState,
   MediaPermissions,
   ParticipantState,

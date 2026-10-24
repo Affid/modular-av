@@ -17,3 +17,9 @@ export class AVCommandError extends Error implements CommandError {
     this.params = params;
   }
 }
+
+/** What the state reports about a failure: the error's name ("NotAllowedError"). */
+export const errorName = (error: unknown): string =>
+  error instanceof DOMException || error instanceof Error
+    ? error.name
+    : "Error";

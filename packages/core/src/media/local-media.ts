@@ -1,4 +1,5 @@
 import type { MediaPermissions } from "@modular-av/api";
+import { errorName } from "../errors.ts";
 import type { MediaEnv } from "./env.ts";
 
 /** A device id, or null to capture nothing of that kind. */
@@ -34,11 +35,6 @@ interface Captured {
   readonly raw: MediaStreamTrack;
   readonly sent: MediaStreamTrack;
 }
-
-const errorName = (error: unknown): string =>
-  error instanceof DOMException || error instanceof Error
-    ? error.name
-    : "Error";
 
 const stop = (captured: Captured | null): void => {
   if (!captured) return;
