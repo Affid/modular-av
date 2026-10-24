@@ -14,6 +14,9 @@
         "name": "Send everything through the relay server",
         "hint": "Only with a relay (TURN) server in Foundry's A/V settings: players then never see each other's IP addresses, at the cost of the relay's bandwidth."
       }
+    },
+    "status": {
+      "relayWithoutTurn": "P2P voice and video: \"Send everything through the relay server\" is on, but Foundry's A/V settings name no relay (TURN) server, so players connect directly. Add a relay server or turn the setting off."
     }
   }
 }
