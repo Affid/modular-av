@@ -15,6 +15,18 @@ declare global {
   };
 }
 
+/** As modular-av-livekit's log: Krisp works with the room's join token. */
+const redact = (text: string): string =>
+  text
+    .replace(/eyJ[\w-]+\.[\w-]+\.[\w-]*/g, "[token]")
+    .replace(/((?:access_)?token=)[^&\s"']+/gi, "$1[token]");
+
+const reportError = (error: unknown): void => {
+  const text = redact(error instanceof Error ? error.message : String(error));
+  // eslint-disable-next-line no-console -- the console is Foundry's log
+  console.error(`Modular A/V: Krisp | ${text}`);
+};
+
 /** modular-av-livekit's own API, set in its `init` hook. */
 function liveKitRoom(): Observable<object | null> | null {
   const api = game.modules.get("modular-av-livekit")?.api as
@@ -35,6 +47,7 @@ Hooks.once("modularAV.register", (api: ModularAV) => {
       load: createKrispLoader(),
       room,
       quality: () => readQuality(game.settings),
+      onError: reportError,
     }),
   );
   api.contributions.register(krispSection);

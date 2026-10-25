@@ -12,7 +12,8 @@ This module contains none of LiveKit's code. When a player turns Krisp
 on, their browser downloads `@livekit/krisp-noise-filter` 0.4.5 from npm
 through jsDelivr, accepts it only if it matches a fixed SHA-384 hash, and
 runs it unchanged. Krisp then downloads its models from LiveKit
-(`integrations.livekit.io`). Both downloads happen once and are cached by
+(`integrations.livekit.io`); those are LiveKit's files, not checked
+against a hash here, and trusted as LiveKit's package is. Both downloads happen once and are cached by
 the browser; a network that blocks either makes Krisp fail, and the player
 is heard without it.
 

@@ -17,7 +17,13 @@ export interface KrispDeps {
   readonly room: Observable<object | null>;
   readonly quality: () => KrispQuality;
   readonly createBridge: (context: AudioContext) => Bridge;
+  readonly now: () => number;
+  /** What went wrong that the player needn't hear of (a failed teardown). */
+  readonly onError: (error: unknown) => void;
 }
+
+/** Krisp turned off again this soon after being turned back on: it stays off. */
+export const RETRY_WINDOW_MS = 60_000;
 
 const notAllowed = (): DOMException =>
   new DOMException(
@@ -51,16 +57,21 @@ function roomOf(
   });
 }
 
-/** Krisp runs once it checked the project through the room and turned on. */
+/**
+ * Krisp runs once it checked the project through the room and turned on.
+ * Returns the room it was told of.
+ */
 async function enable(
   processor: KrispProcessor,
   room: Observable<object | null>,
   signal: AbortSignal,
-): Promise<void> {
-  await processor.onPublish(await roomOf(room, signal));
+): Promise<object> {
+  const joined = await roomOf(room, signal);
+  await processor.onPublish(joined);
   await processor.setEnabled(true);
   signal.throwIfAborted();
   if (!processor.isEnabled()) throw notAllowed();
+  return joined;
 }
 
 /**
@@ -74,10 +85,18 @@ function keepOn(
   deps: KrispDeps,
   fail: (error: unknown) => void,
 ): () => void {
-  const offRoom = deps.room.subscribe((next) => {
+  const publish = (next: object | null): void => {
     if (next) processor.onPublish(next).catch(fail);
-  });
+  };
+  const offRoom = deps.room.subscribe(publish);
+  let retriedAt: number | null = null;
   const onDisabled = (): void => {
+    const now = deps.now();
+    if (retriedAt !== null && now - retriedAt < RETRY_WINDOW_MS) {
+      fail(notAllowed());
+      return;
+    }
+    retriedAt = now;
     processor.setEnabled(true).then(() => {
       if (!processor.isEnabled()) fail(notAllowed());
     }, fail);
@@ -104,15 +123,18 @@ export async function startKrisp(
   const processor = krisp.KrispNoiseFilter({ quality: deps.quality() });
   const stop = (): void => {
     bridge.dispose();
-    processor.destroy().catch(() => undefined);
+    processor.destroy().catch(deps.onError);
   };
   try {
     await processor.init({ kind: "audio", track: bridge.track, audioContext });
     const processed = processor.processedTrack;
     if (!processed) throw new Error("Krisp gave no output");
     bridge.attach(processed);
-    await enable(processor, deps.room, signal);
+    const joined = await enable(processor, deps.room, signal);
     const unwatch = keepOn(processor, processed, deps, fail);
+    // A reconnect while Krisp turned on: tell it of the newer room too.
+    const current = deps.room.get();
+    if (current && current !== joined) processor.onPublish(current).catch(fail);
     return {
       input: bridge.input,
       output: bridge.output,

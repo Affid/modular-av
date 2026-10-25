@@ -1,7 +1,7 @@
 {
   "id": "modular-av-livekit-krisp",
   "title": "Modular A/V: Krisp for LiveKit Cloud",
-  "description": "Adds LiveKit's Krisp noise filter to the noise cancellation choice when your table calls through LiveKit Cloud. The filter is downloaded from npm (jsDelivr) when a player turns it on; see the README for what it sends to LiveKit.",
+  "description": "Adds LiveKit's Krisp noise filter to the noise cancellation choice when your table calls through LiveKit Cloud. Players' browsers download it from npm (jsDelivr) when they turn it on, and Krisp reports the room's name and id, the player's user id and how long it ran to your LiveKit Cloud project; see the README.",
   "authors": [{ "name": "Andrei Fedorov", "url": "https://github.com/Affid" }],
   "url": "https://github.com/Affid/modular-av",
   "bugs": "https://github.com/Affid/modular-av/issues",

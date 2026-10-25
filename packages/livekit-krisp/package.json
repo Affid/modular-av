@@ -19,6 +19,6 @@
   },
   "modularAV": {
     "entryBudgetBytes": 10000,
-    "releaseHold": "Waiting for LiveKit to confirm a Foundry module may load @livekit/krisp-noise-filter for its users (handoff §15)."
+    "releaseHold": "Waiting for LiveKit to confirm a Foundry module may load @livekit/krisp-noise-filter for its users (handoff §14)."
   }
 }

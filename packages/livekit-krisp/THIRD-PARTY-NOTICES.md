@@ -9,4 +9,4 @@ checked against a fixed SHA-384 hash, and runs it unchanged. That package
 is not open source: it is LiveKit's, under LiveKit's terms of service
 (https://livekit.io/legal/terms-of-service), and this module does not
 redistribute it. Krisp then downloads its models from LiveKit
-(integrations.livekit.io).
+(integrations.livekit.io), which are not checked against a hash.

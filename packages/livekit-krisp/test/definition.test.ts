@@ -14,6 +14,7 @@ describe("Krisp as the core sees it", () => {
       load: () => Promise.resolve(fakeKrisp().module),
       room: fakeRoom(),
       quality: () => "medium",
+      onError: () => undefined,
     });
 
     expect(definition).toMatchObject({
@@ -23,6 +24,8 @@ describe("Krisp as the core sees it", () => {
       exclusiveGroup: "noise-suppression",
       requires: ["livekit-cloud"],
       label: "modular-av-livekit-krisp.label",
+      // It may gate noise to digital silence: not a stalled model.
+      silencesNoise: true,
     });
   });
 

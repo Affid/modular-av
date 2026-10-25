@@ -13,6 +13,7 @@ export interface KrispDefinitionDeps {
   readonly load: () => Promise<KrispModule>;
   readonly room: Observable<object | null>;
   readonly quality: () => KrispQuality;
+  readonly onError: (error: unknown) => void;
 }
 
 /** AudioWorklet (secure contexts only) and WebAssembly, before downloading. */
@@ -36,13 +37,18 @@ export function createKrispDefinition(
     exclusiveGroup: "noise-suppression",
     cost: "medium",
     requires: [CLOUD_FEATURE],
+    // It may gate noise to digital silence, which isn't a stalled model.
+    silencesNoise: true,
     isSupported: canRun,
     async create(context) {
       const [{ startKrisp }, { createBridge }] = await Promise.all([
         import("./effect.ts"),
         import("./bridge.ts"),
       ]);
-      return startKrisp({ ...deps, createBridge }, context);
+      return startKrisp(
+        { ...deps, createBridge, now: () => Date.now() },
+        context,
+      );
     },
   };
 }

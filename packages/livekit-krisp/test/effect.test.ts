@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { startKrisp, type KrispDeps } from "../src/effect.ts";
+import { RETRY_WINDOW_MS, startKrisp, type KrispDeps } from "../src/effect.ts";
 import {
   effectContext,
   fakeBridge,
   fakeKrisp,
   type FakeKrispOptions,
+  type FakeProcessor,
   fakeRoom,
   ticks,
 } from "./fakes.ts";
@@ -15,17 +16,21 @@ function setup(options: FakeKrispOptions & { room?: object | null } = {}) {
   const krisp = fakeKrisp(options);
   const room = fakeRoom(options.room === undefined ? ROOM : options.room);
   const bridges: ReturnType<typeof fakeBridge>[] = [];
+  const errors: unknown[] = [];
+  const clock = { now: 0 };
   const deps: KrispDeps = {
     load: () => Promise.resolve(krisp.module),
     room,
     quality: () => "high",
+    now: () => clock.now,
+    onError: (error) => errors.push(error),
     createBridge: () => {
       const bridge = fakeBridge();
       bridges.push(bridge);
       return bridge;
     },
   };
-  return { krisp, room, bridges, deps };
+  return { krisp, room, bridges, deps, errors, clock };
 }
 
 describe("Krisp in the microphone chain", () => {
@@ -125,6 +130,63 @@ describe("Krisp in the microphone chain", () => {
 
     expect(s.krisp.processors[0]?.isEnabled()).toBe(true);
     expect(fail).not.toHaveBeenCalled();
+  });
+
+  it("gives up when Krisp turns itself off again within a minute", async () => {
+    const s = setup();
+    const { context, fail } = effectContext();
+    await startKrisp(s.deps, context);
+    s.krisp.processors[0]?.turnOff();
+    await ticks();
+
+    s.clock.now = RETRY_WINDOW_MS - 1;
+    s.krisp.processors[0]?.turnOff();
+    await ticks();
+
+    expect(fail).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "NotAllowedError" }),
+    );
+  });
+
+  it("turns it back on again a minute later", async () => {
+    const s = setup();
+    const { context, fail } = effectContext();
+    await startKrisp(s.deps, context);
+    s.krisp.processors[0]?.turnOff();
+    await ticks();
+
+    s.clock.now = RETRY_WINDOW_MS;
+    s.krisp.processors[0]?.turnOff();
+    await ticks();
+
+    expect(s.krisp.processors[0]?.isEnabled()).toBe(true);
+    expect(fail).not.toHaveBeenCalled();
+  });
+
+  it("tells Krisp of a room that came while it turned on", async () => {
+    const s = setup();
+    const next = { name: "reconnected meanwhile" };
+    const processor = (): FakeProcessor | undefined => s.krisp.processors[0];
+    const starting = startKrisp(s.deps, effectContext().context);
+    await ticks(2);
+    s.room.set(next);
+
+    await starting;
+
+    expect(processor()?.published.at(-1)).toBe(next);
+  });
+
+  it("reports a teardown that failed", async () => {
+    const s = setup();
+    const effect = await startKrisp(s.deps, effectContext().context);
+    const broken = new Error("Krisp couldn't stop");
+    const processor = s.krisp.processors[0];
+    if (processor) processor.destroy = () => Promise.reject(broken);
+
+    effect.dispose();
+    await ticks();
+
+    expect(s.errors).toContain(broken);
   });
 
   it("gives up when Krisp won't come back on", async () => {
