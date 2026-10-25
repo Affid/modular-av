@@ -94,9 +94,13 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
     const chain = createAudioChain(capture);
     // Created before the runner, whose effects it watches.
     let runner: EffectRunner<AudioEffectDefinition> | null = null;
-    const watchdog = createStallWatchdog(capture, (id, error) => {
-      runner?.fail(id, error);
-    });
+    const watchdog = createStallWatchdog(
+      capture,
+      (id, error) => {
+        runner?.fail(id, error);
+      },
+      deps.onError,
+    );
     runner = createEffectRunner<AudioEffectDefinition, AudioEffect>({
       group: (d) => d.exclusiveGroup ?? null,
       start: (d, context) =>
@@ -111,7 +115,13 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
           }),
         );
         chain.setEffects(effects);
-        watchdog.setEffects(effects.filter((e) => e.stage === "denoise"));
+        watchdog.setEffects(
+          effects.filter(
+            (e) =>
+              e.stage === "denoise" &&
+              definitions.find((d) => d.id === e.id)?.silencesNoise !== true,
+          ),
+        );
       },
       onStatus: deps.onChange,
       onReplaced: deps.onReplaced,

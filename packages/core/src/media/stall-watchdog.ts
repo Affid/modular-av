@@ -53,21 +53,32 @@ const tap = (
   return { node, probe };
 };
 
-/** Its node may be cut off already: the chain disconnects a replaced source. */
-const untap = ({ node, probe }: Tap): void => {
+/**
+ * Its node may be cut off already (the chain disconnects a replaced
+ * source). Never throws: it runs while the chain switches effects.
+ */
+const untap = (
+  { node, probe }: Tap,
+  onError: (error: unknown) => void,
+): void => {
   try {
     node.disconnect(probe.node);
   } catch (error: unknown) {
     const gone =
       error instanceof DOMException && error.name === "InvalidAccessError";
-    if (!gone) throw error;
+    if (!gone) onError(error);
   }
-  probe.dispose();
+  try {
+    probe.dispose();
+  } catch (error: unknown) {
+    onError(error);
+  }
 };
 
 export function createStallWatchdog(
   capture: Pick<CaptureContext, "createProbe" | "running">,
   onStalled: (id: string, error: StalledError) => void,
+  onError: (error: unknown) => void,
 ): StallWatchdog {
   let sourceNode: AudioNode | null = null;
   /** Tapped only while some effect is watched. */
@@ -97,7 +108,7 @@ export function createStallWatchdog(
   const sync = (): void => {
     const needed = sourceNode !== null && watched.size > 0;
     if (source && (!needed || source.node !== sourceNode)) {
-      untap(source);
+      untap(source, onError);
       source = null;
     }
     if (needed && !source && sourceNode) source = tap(capture, sourceNode);
@@ -119,7 +130,7 @@ export function createStallWatchdog(
         keep(id, output) ?? { ...tap(capture, output), silentMs: 0 },
       ]),
     );
-    for (const [id, w] of watched) if (next.get(id) !== w) untap(w);
+    for (const [id, w] of watched) if (next.get(id) !== w) untap(w, onError);
     watched = next;
     sync();
   };

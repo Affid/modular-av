@@ -51,6 +51,12 @@ interface EffectDefinitionBase {
 export interface AudioEffectDefinition extends EffectDefinitionBase {
   readonly kind: "audio";
   readonly stage: AudioStage;
+  /**
+   * It may send digital silence while the microphone hears noise (it
+   * gates, as Krisp may). The core otherwise takes a denoise effect that
+   * sends digital silence for 1.5 s of sound out as stalled.
+   */
+  readonly silencesNoise?: boolean;
   /** Lazy: import heavy code here, not at module load. */
   create(context: AudioEffectContext): Promise<AudioEffect>;
 }

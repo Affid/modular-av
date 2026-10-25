@@ -27,8 +27,10 @@ function definition(
   id: string,
   stage: AudioEffectDefinition["stage"],
   made: (AudioEffect & { disposed: boolean })[],
+  extra: Partial<AudioEffectDefinition> = {},
 ): AudioEffectDefinition {
   return {
+    ...extra,
     id,
     kind: "audio",
     label: id,
@@ -57,6 +59,7 @@ const flush = async (): Promise<void> => {
 
 async function running(
   stage: AudioEffectDefinition["stage"] = "denoise",
+  extra: Partial<AudioEffectDefinition> = {},
 ): Promise<Running> {
   const env = createFakeMediaEnv();
   const errors: unknown[] = [];
@@ -69,7 +72,10 @@ async function running(
   });
   const made: (AudioEffect & { disposed: boolean })[] = [];
   await mic.setInput(createFakeTrack("audio", "mic"));
-  mic.setEffects([definition("rnnoise", stage, made)], new Set(["rnnoise"]));
+  mic.setEffects(
+    [definition("rnnoise", stage, made, extra)],
+    new Set(["rnnoise"]),
+  );
   await flush();
   const capture = env.captureContexts[0];
   const effect = made[0];
@@ -189,6 +195,31 @@ describe("the stall watchdog", () => {
     await flush();
 
     expect(r.mic.effectStatus("rnnoise").status).toBe("running");
+  });
+
+  it("leaves alone an effect that says it silences noise", async () => {
+    const r = await running("denoise", { silencesNoise: true });
+    r.input.setPeak(SPEECH);
+
+    await vi.advanceTimersByTimeAsync(STALL_MS * 3);
+    await flush();
+
+    expect(r.mic.effectStatus("rnnoise").status).toBe("running");
+    expect(r.capture.probeFedBy(r.effect.output)).toBeUndefined();
+  });
+
+  it("reports a tap it can't remove, and goes on", async () => {
+    const r = await running();
+    const broken = new Error("probe broke");
+    r.output.dispose = () => {
+      throw broken;
+    };
+
+    r.mic.setEffects([], new Set());
+    await flush();
+
+    expect(r.errors).toContain(broken);
+    expect(r.mic.effectStatus("rnnoise").status).toBe("off");
   });
 
   it("removes its taps once the effect stops", async () => {
