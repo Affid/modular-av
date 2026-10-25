@@ -1522,7 +1522,11 @@ and Windows Chrome 155 with a GPU, livekit-server 1.13.8, LiveKit Cloud,
   from the suite itself, headless Chrome drawing three Foundry canvases
   in software (its GPU process at about 800% CPU), and LiveKit's server
   saw the page miss ICE consent checks. The failing specs are the ones
-  using Foundry's own camera dock.
+  using Foundry's own camera dock. **Fixed after the milestone**: the
+  test pages turn Foundry's canvas off (its "noCanvas" client setting,
+  `core.noCanvas` in `localStorage`, set before the page loads). The
+  whole suite then passed, 24 of 24 in 6.5 minutes instead of 16, each
+  test in about 10 s instead of one to two minutes.
 - **API changes** (all additive for services): `ServiceCapabilities.features`,
   `EffectDefinition.requires`, `AudioEffectDefinition.silencesNoise`,
   `EffectStatus` "unavailable" (UIs hide such effects). The core keeps
@@ -1556,14 +1560,6 @@ it is picked up explicitly.
   refresh the state; they could be merged into one.
 - **Firefox 48 kHz capture**: see §11.
 - **From milestone 4**: see "Not done yet" in §12.
-- **The Foundry suite fails on Foundry's own camera dock**: on a quiet
-  machine main failed the first test of `av`, `media` and `p2p` twice in
-  a row (and the rest of each file didn't run, serial mode), while every
-  test with the dock passed (§14). The pages starve: headless Chrome
-  draws three Foundry canvases in software. Worth trying: turn the canvas
-  off in the test world (Foundry's "noCanvas" client setting), or look
-  for a render or re-attach loop in Foundry-dock mode. Until then
-  `pnpm test:foundry` can't be fully green.
 - **From milestone 5**:
   - The dock's screenshot baselines have no icons: the harness loads no
     Font Awesome (Foundry ships it). Loading it (e.g.

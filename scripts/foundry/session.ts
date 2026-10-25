@@ -20,6 +20,11 @@ export async function joinAs(
     viewport: { width: 1600, height: 1000 },
     ...contextOptions,
   });
+  // Foundry's "no canvas" client setting: headless Chrome draws the canvas
+  // in software, and three pages of it starved the A/V tests (handoff §14).
+  await context.addInitScript(() => {
+    localStorage.setItem("core.noCanvas", "true");
+  });
   const page = await context.newPage();
   await page.goto(`${url}/join`);
   await page
