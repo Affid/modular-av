@@ -1,0 +1,24 @@
+{
+  "name": "@modular-av/livekit-krisp",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Modular A/V effect module: LiveKit's Krisp noise filter on LiveKit Cloud, loaded from npm at run time.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p test/browser"
+  },
+  "dependencies": {
+    "@modular-av/api": "workspace:*"
+  },
+  "devDependencies": {
+    "@modular-av/livekit": "workspace:*",
+    "@modular-av/testing": "workspace:*"
+  },
+  "modularAV": {
+    "entryBudgetBytes": 10000,
+    "releaseHold": "Waiting for LiveKit to confirm a Foundry module may load @livekit/krisp-noise-filter for its users (handoff §15)."
+  }
+}

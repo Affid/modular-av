@@ -1,0 +1,17 @@
+{
+  "modular-av-livekit-krisp": {
+    "label": "Krisp (LiveKit Cloud)",
+    "section": "Krisp noise filter",
+    "settings": {
+      "quality": {
+        "name": "Krisp model quality",
+        "hint": "Higher quality removes more noise and takes more of your computer. Applies the next time Krisp starts.",
+        "choices": {
+          "low": "Low: for slower computers",
+          "medium": "Medium",
+          "high": "High"
+        }
+      }
+    }
+  }
+}

@@ -258,6 +258,19 @@ importers:
         specifier: workspace:*
         version: link:../testing
 
+  packages/livekit-krisp:
+    dependencies:
+      '@modular-av/api':
+        specifier: workspace:*
+        version: link:../api
+    devDependencies:
+      '@modular-av/livekit':
+        specifier: workspace:*
+        version: link:../livekit
+      '@modular-av/testing':
+        specifier: workspace:*
+        version: link:../testing
+
   packages/mic-denoise:
     dependencies:
       '@modular-av/api':
