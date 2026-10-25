@@ -13,6 +13,10 @@ whichever module released last.)
 
 Until 1.0 every package shares one version (Changesets "fixed" group).
 
+A module whose package.json has `modularAV.releaseHold` (the reason, e.g.
+waiting for a third party's permission) is skipped by `pack` and refused
+by `publish` until the hold is removed.
+
 ## Steps
 
 1. Record changes as you go: `pnpm changeset`.

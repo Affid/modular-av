@@ -7,6 +7,7 @@ import { copyFile, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { listModulePackages, type ModulePackage, ROOT } from "../workspace.ts";
+import { releaseHold } from "./hold.ts";
 import { MANIFESTS_BRANCH, tagFor } from "./manifest.ts";
 import { packModule } from "./pack.ts";
 
@@ -186,9 +187,17 @@ async function publish(mod: ModulePackage, confirmed: boolean): Promise<void> {
 
 const [command, id] = process.argv.slice(2);
 const modules = await listModulePackages();
-const selected = id ? modules.filter((m) => m.id === id) : modules;
-if (id && selected.length === 0)
-  throw new Error(`No module "${id}" in packages/`);
+const named = id ? modules.filter((m) => m.id === id) : modules;
+if (id && named.length === 0) throw new Error(`No module "${id}" in packages/`);
+const held = new Map(
+  await Promise.all(
+    named.map(async (m) => [m.id, await releaseHold(m.dir)] as const),
+  ),
+);
+for (const [heldId, reason] of held)
+  if (reason) console.log(`${heldId}: held back, ${reason}`);
+if (id && held.get(id)) throw new Error(`${id} is held back from releases`);
+const selected = named.filter((m) => !held.get(m.id));
 
 if (command === "pack") {
   for (const mod of selected) await pack(mod);
