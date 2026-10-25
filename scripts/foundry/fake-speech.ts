@@ -3,22 +3,32 @@ import { dirname, join } from "node:path";
 
 /**
  * A WAV for Chrome's fake microphone (--use-file-for-fake-audio-capture):
- * 1.5 s of tone, 1.5 s of silence, looped by Chrome. Unlike its default
- * short beeps, this is speech long enough for "speaking while muted".
+ * 1.5 s of a voice-like sound, 1.5 s of silence, looped by Chrome. Unlike
+ * its default short beeps, this is speech long enough for "speaking while
+ * muted"; unlike a steady tone, noise models keep it (GTCRN removes a
+ * 440 Hz tone by about 49 dB, as noise).
  */
 export const FAKE_SPEECH_WAV = join(
   import.meta.dirname,
   "..",
   "..",
   "test-results",
-  "fake-speech.wav",
+  "fake-speech-voiced.wav",
 );
 
 const SAMPLE_RATE = 48_000;
-const TONE_S = 1.5;
+const SPEECH_S = 1.5;
 const SILENCE_S = 1.5;
-const AMPLITUDE = 0.3;
-const FREQUENCY = 440;
+const SPEECH_LEVEL = 0.3;
+
+/** Harmonics of 140 Hz swelling four times a second, peaking near 1. */
+function voiced(t: number): number {
+  const swell = 0.5 + 0.5 * Math.sin(2 * Math.PI * 4 * t);
+  let voice = 0;
+  for (let h = 1; h <= 12; h += 1)
+    voice += Math.sin(2 * Math.PI * 140 * h * t) / h;
+  return swell * voice;
+}
 
 /** Writes 16-bit mono PCM at 48 kHz. */
 function writeWav(
@@ -50,14 +60,11 @@ function writeWav(
 }
 
 export function writeFakeSpeech(path = FAKE_SPEECH_WAV): string {
-  const tone = Math.round(TONE_S * SAMPLE_RATE);
+  const speech = Math.round(SPEECH_S * SAMPLE_RATE);
   return writeWav(
     path,
-    (i) =>
-      i < tone
-        ? AMPLITUDE * Math.sin((2 * Math.PI * FREQUENCY * i) / SAMPLE_RATE)
-        : 0,
-    Math.round((TONE_S + SILENCE_S) * SAMPLE_RATE),
+    (i) => (i < speech ? SPEECH_LEVEL * voiced(i / SAMPLE_RATE) : 0),
+    Math.round((SPEECH_S + SILENCE_S) * SAMPLE_RATE),
   );
 }
 
@@ -82,12 +89,8 @@ export function writeFakeVoice(path = FAKE_VOICE_WAV): string {
     path,
     (i) => {
       const t = i / SAMPLE_RATE;
-      const swell = 0.5 + 0.5 * Math.sin(2 * Math.PI * 4 * t);
       const loud = t % VOICE_S < 2 ? 0.06 : 0.01;
-      let voice = 0;
-      for (let h = 1; h <= 12; h += 1)
-        voice += Math.sin(2 * Math.PI * 140 * h * t) / h;
-      return NOISE * noise() + loud * swell * voice;
+      return NOISE * noise() + loud * voiced(t);
     },
     VOICE_S * SAMPLE_RATE,
   );

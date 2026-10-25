@@ -49,7 +49,7 @@ function fileOf(files: ModuleFiles | undefined, path: string): string | null {
 
 /** Whether the page asked for this module file to fail. */
 function isBroken(referer: string | undefined, path: string): boolean {
-  if (!referer) return false;
+  if (!referer || !URL.canParse(referer)) return false;
   const params = new URL(referer).searchParams;
   if (params.get("gate") === "broken" && path.endsWith("voice-gate.js"))
     return true;

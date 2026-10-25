@@ -38,7 +38,8 @@ export default defineConfig({
         "--autoplay-policy=no-user-gesture-required",
         // P2P relays through a TURN server on loopback (see the services config).
         "--allow-loopback-in-peer-connection",
-        // 1.5 s of tone, 1.5 s of silence: speech, for the voice gate.
+        // 1.5 s of voice-like sound, 1.5 s of silence: speech, for the
+        // voice gate and the noise models.
         `--use-file-for-fake-audio-capture=${FAKE_SPEECH_WAV}`,
       ],
     },
