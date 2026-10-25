@@ -19,7 +19,7 @@ export interface EffectContractOptions {
 /**
  * Most of one core's time an effect may take, by the cost it declares,
  * rendered offline. About twice what the noise models took on a fast
- * desktop (handoff §15), so a label that lies fails, not a busy machine.
+ * desktop (handoff §14), so a label that lies fails, not a busy machine.
  */
 export const COST_BUDGETS: Readonly<Record<EffectCost, number>> = {
   light: 0.05,

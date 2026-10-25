@@ -1423,9 +1423,118 @@ coturn 4.7.0):
   `chosenDevices`, `ParticipantState.hiddenByMe`. All additive for
   services.
 
-## 14. Open items
+## 14. Findings from milestone 6
 
-Left open after milestone 5. None of them is part of a milestone unless
+Verified while building `modular-av-mic-denoise` and
+`modular-av-livekit-krisp` (Foundry 14.369, Chromium from Playwright 1.64
+and Windows Chrome 155 with a GPU, livekit-server 1.13.8, LiveKit Cloud,
+`@sapphi-red/web-noise-suppressor` 0.4.1, `@livekit/krisp-noise-filter`
+0.4.5):
+
+- **The noise models as built**: three effects of the "noise-suppression"
+  group in the denoise stage (RNNoise first and recommended, Speex,
+  GTCRN), each one worklet node in the capture context. The library's
+  worklets and WASM are copied from the npm package at build time
+  (`modularAV.assets` in package.json, also served by the test harness)
+  and fetched through `api.assetUrl` only for the model turned on. The
+  entry is 1.6 KB, the lazy chunk with the library 4.8 KB, the files
+  about 650 KB. No setting of its own: the core's effect choice is the
+  model choice, which the dock's effects section shows (a settings
+  section of the module's would have shown the same choice twice).
+- **The library's worklets compile their model after the node is made,
+  send silence until then, and never say when they are ready**; a model
+  that fails to load is an unhandled rejection inside the worklet, not a
+  `processorerror`, and its loaders don't check the HTTP status. The
+  module loads a small worklet of its own first (`worklets/ready.js`) that
+  wraps the library's processors and posts once its model runs;
+  `create()` resolves only then, or fails with `TimeoutError` after 10 s.
+  Model files are checked to be WebAssembly (`CompileError` otherwise).
+  Without this, a swap was silent for a moment and offline rendering
+  measured nothing.
+- **Costs** (rendered offline, 10 s at 48 kHz, best of three, share of
+  one core): RNNoise 1.8%, Speex 0.6%, GTCRN 4.8% in Windows Chrome with a
+  GPU on a Ryzen 7 5800X3D; 1.6%, 0.5% and 4.3% in headless Chromium on
+  the same machine. Labelled light, light, medium. GTCRN runs its whole
+  model once per 768-sample hop (16 ms), about 0.8 ms of work there: with
+  Windows' 10 ms audio callbacks it crackles only on a CPU about 10 times
+  slower, with 128-frame callbacks (some macOS setups) from about 3.5
+  times slower. The dock warns that a medium or heavy model may crackle.
+  Chrome's AudioWorkletGlobalScope has no `performance.now`, so per
+  quantum timings inside a worklet are only good to 1 ms.
+- **Steady tones are noise to the models**: GTCRN removes a 440 Hz tone
+  by about 49 dB, Krisp removes it too; RNNoise and Speex keep it. A
+  voice-like sound (harmonics of 140 Hz, swelling) passes all of them
+  within 0.5 dB. The Foundry suite's fake microphone is now that sound
+  (1.5 s on, 1.5 s silence, as before).
+- **Stalled models**: the core takes a denoise effect out (`StalledError`)
+  when it sends exact digital silence for 1.5 s while the raw microphone
+  hears sound (peak at or above about -60 dBFS); quiet pauses don't count
+  and any sound from the effect starts over. The taps (analysers) exist
+  only while such an effect runs. An effect that may gate noise to
+  digital silence says so (`silencesNoise`, Krisp) and isn't watched.
+  RNNoise, Speex and GTCRN send quiet, never zero, over noise.
+- **Browsers throw `InvalidAccessError` when told to disconnect a node
+  from one it isn't connected to**: a recapture (turning the browser's
+  noise suppression off) cut the old source off everything, and removing
+  the watchdog's tap then stopped the new microphone. The fake audio graph
+  now throws the same way.
+- **Krisp** is a 6.4 MB obfuscated file (2.0 MB gzipped; 5.3 MB of it the
+  engine as an inline string) that bundles its own parts of
+  livekit-client and imports nothing. It needs a real LiveKit `Room`:
+  `onPublish(room)` checks the project through the room's server and
+  token and reports usage there (room name and id, participant identity,
+  durations); without a published room it refuses to turn on. Its models
+  come from `integrations.livekit.io`. `init` calls `applyConstraints` on
+  the track it gets (noise suppression off, the context's rate), which a
+  generated track refuses with `OverconstrainedError`; the bridge's track
+  accepts them, since the core already turns the browser's noise
+  suppression off. `onPublish` doesn't wait for its own `setEnabled`.
+  Krisp only takes and gives tracks: the bridge turns the chain's node
+  into a track and Krisp's output back into a node in the capture
+  context. Checked on LiveKit Cloud: the server reports the Cloud
+  edition, Krisp turns on and the others hear the player.
+- **Krisp is not redistributed**: LiveKit's terms (§3.1) allow passing on
+  only plugins LiveKit names as redistributable, and none names Krisp. The
+  browser downloads the pinned file from jsDelivr (the same bytes as the
+  npm tarball, CORS `*`, cached a year) with a SHA-384 integrity check and
+  imports that copy from a blob URL; Krisp's own later downloads aren't
+  pinned. This is the one exception to "no runtime CDN loads" (§7). The
+  module is held back from releases (`modularAV.releaseHold`) until
+  LiveKit answers a note about it. LiveKit's pricing lists enhanced noise
+  cancellation on every Cloud plan; background voice cancellation may
+  count as voice isolation minutes, so it stays off.
+- **Test tooling**: a second browser project, "effects"
+  (`*.effects.spec.ts`), plays a voice over steady noise that never goes
+  quiet, so a gap shows as a run of exact zeros (a swap between models
+  leaves at most about 650 samples, the new model's own delay). The
+  pipeline harness records what the service was given, has a denoise test
+  effect that sends silence, and fails module files under
+  `?broken=<path>`; the harness loads several modules
+  (`?module=dock,mic-denoise`). `effectContract()` in
+  `@modular-av/testing` checks an audio effect module: it runs and the
+  player is heard, it renders within the budget of its cost and outputs
+  sound, it leaves the chain when off, its group swaps without a gap, and
+  it fails closed without its files. The service contract checks the
+  features a server reports.
+- **The Foundry suite on a quiet machine** (load under 1 before the run):
+  main failed the first test of `av`, `media` and `p2p` twice in a row,
+  the same three, and passed every dock test; the load (10 to 12) came
+  from the suite itself, headless Chrome drawing three Foundry canvases
+  in software (its GPU process at about 800% CPU), and LiveKit's server
+  saw the page miss ICE consent checks. The failing specs are the ones
+  using Foundry's own camera dock.
+- **API changes** (all additive for services): `ServiceCapabilities.features`,
+  `EffectDefinition.requires`, `AudioEffectDefinition.silencesNoise`,
+  `EffectStatus` "unavailable" (UIs hide such effects). The core keeps
+  the features a connection last reported while the call reconnects, so
+  Krisp doesn't restart each time, and forgets them once the session is
+  left. `modular-av-livekit` has its own module API with the joined room.
+- **Bundles**: mic-denoise's entry 1.6 of 8 KB, livekit-krisp's 3.6 of
+  10 KB.
+
+## 15. Open items
+
+Left open after milestone 6. None of them is part of a milestone unless
 it is picked up explicitly.
 
 - **Browser-tier flake**: "two players who join at the same moment link
@@ -1447,15 +1556,14 @@ it is picked up explicitly.
   refresh the state; they could be merged into one.
 - **Firefox 48 kHz capture**: see §11.
 - **From milestone 4**: see "Not done yet" in §12.
-- **The Foundry suite is load-sensitive**: with the machine busy, tests
-  fail at random between runs, mostly a session that stays "connecting"
-  after LiveKit's signal connected, or a third page that doesn't link in
-  time. At the end of milestone 5, with a load average around 20 on 16
-  cores (other projects running), the first test of `av`, `media` and
-  `p2p` failed in every run, alone too, and main (2fb6dda) failed the
-  same tests the same way under the same load; with less load they had
-  passed alone. The dock's own Foundry tests passed in every run. Rerun
-  the whole suite on a quiet machine before relying on it.
+- **The Foundry suite fails on Foundry's own camera dock**: on a quiet
+  machine main failed the first test of `av`, `media` and `p2p` twice in
+  a row (and the rest of each file didn't run, serial mode), while every
+  test with the dock passed (§14). The pages starve: headless Chrome
+  draws three Foundry canvases in software. Worth trying: turn the canvas
+  off in the test world (Foundry's "noCanvas" client setting), or look
+  for a render or re-attach loop in Foundry-dock mode. Until then
+  `pnpm test:foundry` can't be fully green.
 - **From milestone 5**:
   - The dock's screenshot baselines have no icons: the harness loads no
     Font Awesome (Foundry ships it). Loading it (e.g.
@@ -1473,3 +1581,17 @@ it is picked up explicitly.
   - Visibility pauses renegotiate a P2P link each time (after the 3 s
     grace): measure with a real table before tuning.
   - `MountedSurface.unmount` isn't called by the core.
+- **From milestone 6**:
+  - Krisp: send LiveKit the note (does a Foundry module that loads
+    `@livekit/krisp-noise-filter` from npm for each table's own Cloud
+    project fit their terms?) before the first release, then drop
+    `modularAV.releaseHold`.
+  - Krisp gets no LiveKit `LocalAudioTrack`, so it can't pause its usage
+    reports while the player is muted, and LiveKit isn't told the track
+    has enhanced noise cancellation (its `AudioTrackFeature`). Its quality
+    setting applies the next time it starts.
+  - GTCRN on a slow machine isn't measured (the crackle estimate in §14
+    is from a fast one), and nothing switches to a lighter model by
+    itself when one can't keep up.
+  - The noise models and Krisp aren't tried in Firefox, Safari or
+    Foundry's desktop app (the 48 kHz capture context, §11).

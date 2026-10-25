@@ -9,7 +9,7 @@ export interface ModelSpec {
   readonly id: ModelId;
   readonly label: string;
   /**
-   * Measured in GPU Chrome on a fast desktop (handoff §15): RNNoise about
+   * Measured in GPU Chrome on a fast desktop (handoff §14): RNNoise about
    * 2% of one core, Speex under 1%, GTCRN about 5%, and GTCRN runs in
    * bursts (one 768-sample hop every 16 ms), so slow machines may crackle.
    */
