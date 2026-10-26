@@ -1676,10 +1676,11 @@ it is picked up explicitly.
     grace): measure with a real table before tuning.
   - `MountedSurface.unmount` isn't called by the core.
 - **From milestone 6**:
-  - Krisp: send LiveKit the note (does a Foundry module that loads
+  - Krisp: the note to LiveKit (does a Foundry module that loads
     `@livekit/krisp-noise-filter` from npm for each table's own Cloud
-    project fit their terms?) before the first release, then drop
-    `modularAV.releaseHold`.
+    project fit their terms?) was sent to support@livekit.io on
+    2026-10-26. `modular-av-livekit-krisp` stays held
+    (`modularAV.releaseHold`) until they answer in writing.
   - Krisp gets no LiveKit `LocalAudioTrack`, so it can't pause its usage
     reports while the player is muted, and LiveKit isn't told the track
     has enhanced noise cancellation (its `AudioTrackFeature`). Its quality
