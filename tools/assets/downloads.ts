@@ -1,6 +1,6 @@
-import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { createHash, randomUUID } from "node:crypto";
+import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ROOT } from "../workspace.ts";
 import { isSafePath } from "./assets.ts";
@@ -24,6 +24,9 @@ export const DOWNLOAD_CACHE = join(
   ".cache",
   "modular-av-downloads",
 );
+
+/** A download that takes longer fails the build rather than hanging it. */
+const DOWNLOAD_TIMEOUT_MS = 120_000;
 
 const isDownload = (value: unknown): value is Download =>
   typeof value === "object" &&
@@ -80,7 +83,9 @@ async function download(
   file: string,
   fetcher: typeof fetch,
 ): Promise<void> {
-  const response = await fetcher(item.url);
+  const response = await fetcher(item.url, {
+    signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS),
+  });
   if (!response.ok)
     throw new Error(
       `${path}: download failed with HTTP ${String(response.status)} (${item.url})`,
@@ -91,10 +96,15 @@ async function download(
     throw new Error(
       `${path}: sha256 ${got} doesn't match the pinned ${item.sha256} (${item.url})`,
     );
-  // Written aside, then moved: a cut-off download never looks cached.
-  const partial = `${file}.${String(process.pid)}.partial`;
-  await writeFile(partial, bytes);
-  await rename(partial, file);
+  // Written aside, then moved: a cut-off download never looks cached. The
+  // name is unique: two paths may pin the same file.
+  const partial = `${file}.${randomUUID()}.partial`;
+  try {
+    await writeFile(partial, bytes);
+    await rename(partial, file);
+  } finally {
+    await rm(partial, { force: true });
+  }
 }
 
 /** Published path → the checked file in the cache, downloading what's missing. */
