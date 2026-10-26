@@ -12,7 +12,8 @@
     "./harness/relay": "./src/harness/relay-channel.ts",
     "./contract": "./src/contract/service-contract.ts",
     "./contract/ui": "./src/contract/ui-contract.ts",
-    "./contract/effects": "./src/contract/effect-contract.ts"
+    "./contract/effects": "./src/contract/effect-contract.ts",
+    "./contract/video-effects": "./src/contract/video-effect-contract.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

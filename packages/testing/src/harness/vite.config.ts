@@ -64,8 +64,25 @@ function fileOf(files: ModuleFiles | undefined, path: string): string | null {
   return file.startsWith(files.pub + sep) && existsSync(file) ? file : null;
 }
 
-/** Whether the page asked for this module file to fail. */
-function isBroken(referer: string | undefined, path: string): boolean {
+/** The cookie that fails module files for a worker's requests too. */
+const BROKEN_COOKIE = "mav-broken";
+
+/**
+ * Whether the page asked for this module file to fail: `?broken=<prefix>`
+ * in its address, or the `mav-broken` cookie, which a worker's requests
+ * carry too (their referer is the worker, not the page).
+ */
+function isBroken(
+  referer: string | undefined,
+  cookie: string | undefined,
+  path: string,
+): boolean {
+  const fromCookie = (cookie ?? "")
+    .split(";")
+    .map((c) => c.trim().split("="))
+    .find(([name]) => name === BROKEN_COOKIE)?.[1];
+  if (fromCookie && path.startsWith(decodeURIComponent(fromCookie)))
+    return true;
   if (!referer || !URL.canParse(referer)) return false;
   const params = new URL(referer).searchParams;
   if (params.get("gate") === "broken" && path.endsWith("voice-gate.js"))
@@ -90,7 +107,10 @@ function moduleFiles(dirs: ReadonlyMap<string, ModuleFiles>): Plugin {
         // A page opened with ?gate=broken can't load the voice gate (the
         // core shows "open mic" in voice activity mode); with
         // ?broken=<path> none of the files under that path loads.
-        if (match?.[2] && isBroken(req.headers.referer, match[2])) {
+        if (
+          match?.[2] &&
+          isBroken(req.headers.referer, req.headers.cookie, match[2])
+        ) {
           res.statusCode = 404;
           res.end();
           return;
