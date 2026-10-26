@@ -66,7 +66,7 @@ function definition(mode: Mode, deps: DefinitionDeps): VideoEffectDefinition {
     kind: "video",
     label: `${MODULE_ID}.effects.${mode}`,
     exclusiveGroup: "camera-background",
-    // Measured with a GPU (handoff §16): a few ms of GPU per frame and
+    // Measured with a GPU (handoff §15): a few ms of GPU per frame and
     // none of the page's main thread; without a GPU, about 12 fps.
     cost: "medium",
     isSupported: deps.canRun ?? (() => canRunBackground()),

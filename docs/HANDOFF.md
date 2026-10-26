@@ -1536,9 +1536,103 @@ and Windows Chrome 155 with a GPU, livekit-server 1.13.8, LiveKit Cloud,
 - **Bundles**: mic-denoise's entry 1.6 of 8 KB, livekit-krisp's 3.6 of
   10 KB.
 
-## 15. Open items
+## 15. Findings from milestone 7
 
-Left open after milestone 6. None of them is part of a milestone unless
+Verified while building `modular-av-cam-background` and preparing the
+first release (Foundry 14.369, Chromium from Playwright 1.64 and Windows
+Chrome 155 with an AMD RX 6950 XT, `@mediapipe/tasks-vision` 1.1.1,
+livekit-server 1.13.8):
+
+- **The effect as built**: two video effects of one exclusive group,
+  `background-blur` and `background-replace` (the dock shows them as one
+  choice, "Camera background"), on MediaPipe's selfie segmenter, the
+  multiclass model as "High". The page creates a
+  `MediaStreamTrackProcessor` on the camera and a
+  `MediaStreamTrackGenerator`, and transfers their streams to a module
+  worker (`worker.js`, built as a second entry from `modularAV.workers`,
+  started through `api.assetUrl`): the page does nothing per frame. The
+  worker segments at up to 15 per second, less when frames are slow (a
+  segmentation's GPU work shows when its frame is read back, so the whole
+  frame's time counts), steadies the confidence mask over time (100 ms
+  time constant), blurs only the background (weighted by it, so the
+  person doesn't halo) or replaces it with an image scaled once per frame
+  size, and never sends a frame without a mask (or image). MediaPipe
+  shares the worker's OffscreenCanvas, so its masks are textures of the
+  compositor's context; every pass restores the bindings it touches.
+- **Measured** (blur, 640×480 at 30 fps, `pnpm bench:camera`): in GPU
+  Chrome the worker takes no measurable main thread (0.3% baseline), no
+  long tasks, 30 fps, 1.9 ms per segmentation (High 2.5), 0.35 ms per
+  frame drawn. The same pipeline on the page's thread took 3 to 5% and a
+  226 to 439 ms long task while starting. In headless Chromium (WebGL in
+  software) the worker takes 0.4% and sends about 12 fps; the page's
+  thread variant took 99.7%. What limits software WebGL is reading frames
+  back (about 70 ms a frame, `new VideoFrame(canvas)`,
+  `transferToImageBitmap` and `readPixels` alike), not the drawing (about
+  5 ms); High runs there at 0.5 fps, so the worker uses Standard where the
+  renderer is SwiftShader, llvmpipe or similar. On a GPU High costs
+  barely more than Standard and is much cleaner around hair.
+- **MediaPipe in a worker**: its loader uses `importScripts` in classic
+  workers and `import()` otherwise; the module-worker build
+  (`vision_wasm_module_internal.*`, SIMD only) sets
+  `globalThis.ModuleFactory`, so a module worker works in the harness
+  (served from source) and in Foundry alike, and Foundry's global `Module`
+  is no concern there. On the page's thread the module build loads with
+  `import()` and an empty `wasmLoaderPath`. The models aren't on npm: they
+  are downloaded at build time from Google's versioned URLs and checked
+  against pinned SHA-256 hashes (`modularAV.downloads`). The WebAssembly
+  statically links TensorFlow Lite, Abseil, Protocol Buffers, XNNPACK,
+  FP16 and **Eigen (MPL-2.0)**; the module's notices list them.
+- **Fail closed, by the core's watchdog**: starting, stalled (a worker
+  busy for 3 s), failed (its files, a lost GPU context, a crash) or
+  unsupported, the camera is held. A worker that closes itself or hangs
+  sends nothing, so the page pings it every 2 s and fails the effect after
+  three pings in a row go unanswered (counted in pings, so throttled
+  timers in a hidden tab don't fail a live worker). In software WebGL a
+  swap between blur and replace holds the camera about 2.5 s: the new
+  worker starting starves the old one on the one GPU thread.
+- **The generated fake camera** (`scripts/foundry/fake-camera.ts`, a
+  drawn person before a bookshelf, swaying, with noise) is what the camera
+  browser project and the Foundry suite use. The selfie model finds the
+  person (confidence 1.0 on him, 0.0 around); the multiclass model doesn't
+  take a drawing (it does on photos), so High is only checked for running,
+  cost and failing closed. Tests compare fine detail (luma gradients) on
+  the shelf and the face: blur takes the shelf from 12.6 to 1.1 in the
+  harness and from 6.5 to 2.7 in the video the GM receives over LiveKit,
+  and keeps the face.
+- **Memory**: the soak (`camera-soak.bench.ts`) samples the PSS of the
+  browser's whole process tree (only the browser process names the
+  profile) and the page's heap; in software WebGL the GPU's memory is
+  process memory. 10 minutes: about 840 MB, flat (0.01 MB a minute).
+- **Foundry v14 hands world setting values over parsed**
+  (`storage.get("world").getItem` returns the object, not the JSON string
+  its documentation describes); client settings are JSON strings in
+  `localStorage` under `<module>.<key>`. A world can hold several Setting
+  documents with one key.
+- **The first release**: every package at 0.1.0 (Changesets "fixed"
+  group); `modular-av-livekit-krisp` stays held back. The core recommends
+  the dock and LiveKit. Players of LiveKit AVClient get their choices once
+  (each module brings its own: sensitivity, noise model, dock layout,
+  camera background); a GM is offered the old server once, and the
+  removal of the old world setting with the readable secret. See
+  `docs/MIGRATING.md`.
+- **Test tooling**: Windows Chrome can't reach WSL's `[::1]`, so the
+  bench has a harness of its own on 127.0.0.1:5175. A worker's requests
+  carry the worker's URL as referer, so the harness also fails files named
+  in a cookie (`mav-broken`). The size check counts an entry with the
+  chunks it imports when it loads (it counted the entry file alone) and
+  checks workers (`modularAV.workerBudgetBytes`). `videoEffectContract()`
+  in `@modular-av/testing` checks a video effect module.
+- **API changes** (additive): `ChoiceOption.image`, a picture of the
+  option; the dock shows such a choice as thumbnails and reads its
+  options again when its value is one not shown.
+- **Bundles**: cam-background's entry 10.6 of 11 KB (the contribution
+  declarations and settings; everything that runs is lazy), its worker
+  229 of 240 KB (58 KB gzipped; unminified, as every module), MediaPipe's
+  runtime 13.8 MB and the models 0.25 and 16.4 MB.
+
+## 16. Open items
+
+Left open after milestone 7. None of them is part of a milestone unless
 it is picked up explicitly.
 
 - **Browser-tier flake**: "two players who join at the same moment link
@@ -1591,3 +1685,22 @@ it is picked up explicitly.
     itself when one can't keep up.
   - The noise models and Krisp aren't tried in Firefox, Safari or
     Foundry's desktop app (the 48 kHz capture context, §11).
+- **From milestone 7**:
+  - Swapping blur and replace starts a second worker beside the first;
+    in software WebGL that holds the camera about 2.5 s. One worker shared
+    by both (one segmenter) would make it seamless. Not measured in GPU
+    Chrome.
+  - High quality is checked only for running and cost: the drawn camera
+    has no person the multiclass model recognises.
+  - Video effects need `MediaStreamTrackProcessor`: Firefox and Safari
+    get no camera background.
+  - Where WebGL runs in software, High silently runs as Standard; only
+    the setting's hint says so.
+  - Closing Foundry's file browser without picking leaves "Choose an
+    image…" waiting until the next pick.
+  - LiveKit AVClient settings older than its own world setting (kept in
+    Foundry's `rtcWorldSettings`) aren't imported.
+  - MediaPipe's WebAssembly includes Eigen under the MPL-2.0 (weak
+    copyleft, file-level): redistributable with the notice and a pointer
+    to its source, which the notices give.
+
