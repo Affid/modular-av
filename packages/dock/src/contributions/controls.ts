@@ -1,5 +1,6 @@
 import type {
   ChoiceControl,
+  ChoiceOption,
   Control,
   ControlContribution,
   Observable,
@@ -149,9 +150,84 @@ const STEPS: Readonly<Record<string, number>> = {
   ArrowUp: -1,
 };
 
+/** One option of a picture choice: a thumbnail named by its label. */
+function pictureRadio(
+  ctx: DockContext,
+  doc: Document,
+  option: ChoiceOption,
+  pick: (value: string) => void,
+): HTMLButtonElement {
+  const label = ctx.text(option.label);
+  const radio = el("button", {
+    doc,
+    className: "mav-control-picture",
+    attrs: {
+      type: "button",
+      role: "radio",
+      "aria-checked": "false",
+      "aria-label": label,
+      title: label,
+      "data-value": option.value,
+    },
+    children: [
+      option.image
+        ? el("img", {
+            doc,
+            attrs: {
+              src: option.image,
+              alt: "",
+              loading: "lazy",
+              draggable: "false",
+              // A plugin's picture may be on another server.
+              referrerpolicy: "no-referrer",
+            },
+          })
+        : el("span", { doc, text: label }),
+    ],
+  });
+  radio.addEventListener("click", () => {
+    pick(option.value);
+  });
+  return radio;
+}
+
+/** Arrow keys move to the next option and pick it (one tab stop). */
+function rovingKeys(
+  group: HTMLElement,
+  radios: () => readonly HTMLButtonElement[],
+  pick: (value: string) => void,
+): void {
+  group.addEventListener("keydown", (event) => {
+    const all = radios();
+    const step = STEPS[event.key];
+    const at = all.findIndex((r) => r === event.target);
+    if (step === undefined || at < 0) return;
+    event.preventDefault();
+    const next = all[(at + step + all.length) % all.length];
+    next?.focus();
+    const value = next?.dataset.value;
+    if (value !== undefined) pick(value);
+  });
+}
+
+/** Marks the picked one; the tab stop is it, or the first if none is. */
+function markPicked(radios: readonly HTMLButtonElement[], value: string): void {
+  const current = radios.some((r) => r.dataset.value === value);
+  radios.forEach((r, i) => {
+    const checked = r.dataset.value === value;
+    r.setAttribute("aria-checked", String(checked));
+    r.tabIndex = checked || (!current && i === 0) ? 0 : -1;
+  });
+}
+
+/** Whether `value` isn't among what is shown: the options grew. */
+const missing = (shown: readonly string[], value: string): boolean =>
+  !shown.includes(value);
+
 /**
  * A choice whose options have pictures: a radio group of thumbnails, named
- * by their labels; arrow keys move to the next and pick it (one tab stop).
+ * by their labels. Its options are read again when its value is one not
+ * shown (a plugin may add one, e.g. the player's own image).
  */
 function pictureChoice(
   ctx: DockContext,
@@ -162,64 +238,29 @@ function pictureChoice(
   const pick = (value: string): void => {
     run(ctx, alerts, () => control.set(value));
   };
-  const radios = control.options.map((o) => {
-    const label = ctx.text(o.label);
-    const radio = el("button", {
-      doc,
-      className: "mav-control-picture",
-      attrs: {
-        type: "button",
-        role: "radio",
-        "aria-checked": "false",
-        "aria-label": label,
-        title: label,
-        "data-value": o.value,
-      },
-      children: [
-        o.image
-          ? el("img", {
-              doc,
-              attrs: {
-                src: o.image,
-                alt: "",
-                loading: "lazy",
-                draggable: "false",
-              },
-            })
-          : el("span", { doc, text: label }),
-      ],
-    });
-    radio.addEventListener("click", () => {
-      pick(o.value);
-    });
-    return radio;
-  });
+  let radios: readonly HTMLButtonElement[] = [];
   const group = el("div", {
     doc,
     className: "mav-control-pictures",
     attrs: { role: "radiogroup", "aria-label": ctx.text(control.label) },
-    children: radios,
   });
-  group.addEventListener("keydown", (event) => {
-    const step = STEPS[event.key];
-    const at = radios.findIndex((r) => r === event.target);
-    if (step === undefined || at < 0) return;
-    event.preventDefault();
-    const next = radios[(at + step + radios.length) % radios.length];
-    next?.focus();
-    const value = next?.dataset.value;
-    if (value !== undefined) pick(value);
-  });
+  const draw = (): void => {
+    radios = control.options.map((o) => pictureRadio(ctx, doc, o, pick));
+    group.replaceChildren(...radios);
+  };
+  draw();
+  rovingKeys(group, () => radios, pick);
   const off = follow(
     control.state,
     (value) => {
-      const current = radios.some((r) => r.dataset.value === value);
-      radios.forEach((r, i) => {
-        const checked = r.dataset.value === value;
-        r.setAttribute("aria-checked", String(checked));
-        // One tab stop: the picked one, or the first if none is.
-        r.tabIndex = checked || (!current && i === 0) ? 0 : -1;
-      });
+      if (
+        missing(
+          radios.map((r) => r.dataset.value ?? ""),
+          value,
+        )
+      )
+        draw();
+      markPicked(radios, value);
     },
     ctx.onError,
   );
@@ -241,19 +282,27 @@ function choice(
   if (control.options.some((o) => o.image))
     return pictureChoice(ctx, doc, control, alerts);
   const id = uniqueId(doc, "mav-control");
-  const select = el("select", {
-    doc,
-    attrs: { id },
-    children: control.options.map((o) =>
-      el("option", { doc, text: ctx.text(o.label), attrs: { value: o.value } }),
-    ),
-  });
+  const select = el("select", { doc, attrs: { id } });
+  const draw = (): void => {
+    select.replaceChildren(
+      ...control.options.map((o) =>
+        el("option", {
+          doc,
+          text: ctx.text(o.label),
+          attrs: { value: o.value },
+        }),
+      ),
+    );
+  };
+  draw();
   select.addEventListener("change", () => {
     run(ctx, alerts, () => control.set(select.value));
   });
   const off = follow(
     control.state,
     (value) => {
+      const shown = [...select.options].map((o) => o.value);
+      if (missing(shown, value)) draw();
       select.value = value;
     },
     ctx.onError,

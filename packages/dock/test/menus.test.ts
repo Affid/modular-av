@@ -279,6 +279,45 @@ describe("quick controls", () => {
     expect(radios.map((r) => r.tabIndex)).toEqual([-1, 0, -1]);
   });
 
+  it("show a choice's options anew when its value is one it didn't have", async () => {
+    // Arrange: options read when drawn, as a plugin may grow them.
+    const { ctx, api } = testDock({ state });
+    const picked = cell("a");
+    let values = ["a", "b"];
+    api.contributions.register({
+      kind: "control",
+      place: "quick",
+      type: "choice",
+      id: "x.image",
+      label: "Background image",
+      get options() {
+        return values.map((v) => ({ value: v, label: v, image: `/${v}.png` }));
+      },
+      state: picked,
+      set: () => Promise.resolve(),
+    });
+    const popover = openQuickControls(ctx, anchor());
+
+    // Act: the player picked their own image.
+    values = [...values, "mine"];
+    picked.set("mine");
+    await settle();
+
+    // Assert
+    const radios = [
+      ...popover.element.querySelectorAll<HTMLButtonElement>('[role="radio"]'),
+    ];
+    expect(radios.map((r) => r.getAttribute("aria-label"))).toEqual([
+      "a",
+      "b",
+      "mine",
+    ]);
+    expect(radios.at(-1)?.getAttribute("aria-checked")).toBe("true");
+    expect(
+      radios[0]?.querySelector("img")?.getAttribute("referrerpolicy"),
+    ).toBe("no-referrer");
+  });
+
   it("render a plugin's toggle with what it shows while on", () => {
     const { ctx, api } = testDock({ state });
     const on = cell({ on: false });
