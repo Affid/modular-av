@@ -31,6 +31,18 @@
         "type": "module",
         "reason": "Both replace Foundry's A/V client; enable only one."
       }
+    ],
+    "recommends": [
+      {
+        "id": "modular-av-dock",
+        "type": "module",
+        "reason": "Gives Modular A/V its camera dock, voice panel and settings window."
+      },
+      {
+        "id": "modular-av-livekit",
+        "type": "module",
+        "reason": "Carries calls over a LiveKit server or LiveKit Cloud. Or use modular-av-p2p, without a server."
+      }
     ]
   }
 }
