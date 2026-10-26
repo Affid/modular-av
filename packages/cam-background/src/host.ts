@@ -25,6 +25,13 @@ export interface Insertable {
 export const START_TIMEOUT_MS = 30_000;
 /** How long a stopping worker may take to let go before it is ended. */
 const STOP_GRACE_MS = 2_000;
+/**
+ * A running worker is asked this often whether it is alive; one that
+ * closed itself or hangs sends no error, only silence.
+ */
+export const PING_EVERY_MS = 2_000;
+/** Silent this long: it is taken as dead (a slow frame takes seconds at most). */
+export const DEAD_AFTER_MS = 6_000;
 
 export interface HostOptions {
   readonly connect: () => Port;
@@ -80,6 +87,9 @@ export function createHost(options: HostOptions): BackgroundEffect {
   let started = false;
   let disposed = false;
   let nextStats = 0;
+  let nextPing = 0;
+  let lastAnswer = 0;
+  let pinging: ReturnType<typeof setInterval> | undefined;
   const statsWaiting = new Map<number, (stats: PipelineStats) => void>();
   let onStartMessage: (message: FromWorker | Error) => void = () => undefined;
 
@@ -94,6 +104,7 @@ export function createHost(options: HostOptions): BackgroundEffect {
 
   const listen = (p: Port): void => {
     p.onMessage((message) => {
+      lastAnswer = Date.now();
       if (message.type === "stats") {
         statsWaiting.get(message.id)?.(message.stats);
         statsWaiting.delete(message.id);
@@ -129,9 +140,27 @@ export function createHost(options: HostOptions): BackgroundEffect {
       };
     });
 
+  const watchAlive = (): void => {
+    lastAnswer = Date.now();
+    pinging = setInterval(() => {
+      if (Date.now() - lastAnswer <= DEAD_AFTER_MS) {
+        post({ type: "ping", id: (nextPing += 1) });
+        return;
+      }
+      clearInterval(pinging);
+      failed(
+        new WorkerError({
+          name: "WorkerError",
+          message: "The camera background's worker stopped answering",
+        }),
+      );
+    }, PING_EVERY_MS);
+  };
+
   const dispose = (): void => {
     if (disposed) return;
     disposed = true;
+    clearInterval(pinging);
     const current = port;
     port = null;
     if (current) {
@@ -185,6 +214,7 @@ export function createHost(options: HostOptions): BackgroundEffect {
         throw error;
       }
       started = true;
+      watchAlive();
       return output;
     },
     replaceInput(input) {

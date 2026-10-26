@@ -197,6 +197,10 @@ export function createRuntime(
 
   return {
     handle(message) {
+      if (message.type === "ping") {
+        post({ type: "pong", id: message.id });
+        return;
+      }
       if (stopped) return;
       switch (message.type) {
         case "start":

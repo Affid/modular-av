@@ -32,6 +32,8 @@ export type ToWorker =
   | { readonly type: "image"; readonly image: ImageBitmap | null }
   | { readonly type: "quality"; readonly quality: Quality }
   | { readonly type: "stats"; readonly id: number }
+  /** Answered with a pong: a worker that died quietly answers nothing. */
+  | { readonly type: "ping"; readonly id: number }
   | { readonly type: "stop" };
 
 /** An error, as plain data: what a UI shows is its name. */
@@ -58,6 +60,7 @@ export type FromWorker =
       readonly id: number;
       readonly stats: PipelineStats;
     }
+  | { readonly type: "pong"; readonly id: number }
   | { readonly type: "stopped" };
 
 export function errorData(error: unknown): ErrorData {
