@@ -24,7 +24,7 @@
       "image": "Background image",
       "pick": "Choose an image…",
       "address": "Image address",
-      "addressHint": "The address of an image on the web (https://…). Its server must allow other sites to use it.",
+      "addressHint": "The address of an image on the web (https://…). Your browser loads it from that server directly, which sees your address; the server must allow other sites to use its images.",
       "use": "Use this image"
     },
     "images": {

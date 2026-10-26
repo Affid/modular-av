@@ -156,6 +156,29 @@ describe("the camera background effects", () => {
     ]);
   });
 
+  it("apply what changed while they started, once they run", async () => {
+    // Arrange: start holds until released.
+    const { definitions, settings, host } = setup();
+    let release: () => void = () => undefined;
+    host.start = () =>
+      new Promise((resolve) => {
+        release = () => {
+          resolve({ id: "out" } as MediaStreamTrack);
+        };
+      });
+    const effect = await definitions[1]?.create(context());
+    const started = effect?.start({} as MediaStreamTrack);
+
+    // Act
+    await settings.set(MODULE_ID, "blurStrength", 0.7);
+    await settings.set(MODULE_ID, "image", "worlds/w/late.png");
+    release();
+    await started;
+
+    // Assert
+    expect(host.calls).toEqual(["strength 0.7", "image /worlds/w/late.png"]);
+  });
+
   it("keep the old image and report it when a new one can't load", async () => {
     const { definitions, settings, errors } = setup();
     const effect = await definitions[1]?.create(context());

@@ -1,8 +1,9 @@
 import {
-  type FullScreen,
   createProgram,
   createTarget,
   drawPass,
+  type FullScreen,
+  type Program,
   type Target,
 } from "./gl.ts";
 import { smoothingWeight } from "./math.ts";
@@ -48,6 +49,34 @@ export interface MaskSmoother {
   dispose(): void;
 }
 
+/** Blends `mask` with `previous` into `next`, by `weight`. */
+function blend(
+  gl: WebGL2RenderingContext,
+  screen: FullScreen,
+  program: Program,
+  step: {
+    readonly mask: WebGLTexture;
+    readonly previous: Target;
+    readonly next: Target;
+    readonly weight: number;
+    readonly invert: boolean;
+  },
+): void {
+  drawPass(gl, screen, {
+    program,
+    target: step.next,
+    width: step.next.width,
+    height: step.next.height,
+    textures: [step.mask, step.previous.texture],
+    setUniforms(p) {
+      gl.uniform1i(p.uniform("u_mask"), 0);
+      gl.uniform1i(p.uniform("u_previous"), 1);
+      gl.uniform1f(p.uniform("u_weight"), step.weight);
+      gl.uniform1i(p.uniform("u_invert"), step.invert ? 1 : 0);
+    },
+  });
+}
+
 export function createMaskSmoother(
   gl: WebGL2RenderingContext,
   screen: FullScreen,
@@ -79,19 +108,7 @@ export function createMaskSmoother(
       const previous = targets[current];
       const next = targets[1 - current];
       if (!previous || !next) throw new Error("unreachable");
-      drawPass(gl, screen, {
-        program,
-        target: next,
-        width,
-        height,
-        textures: [mask, previous.texture],
-        setUniforms(p) {
-          gl.uniform1i(p.uniform("u_mask"), 0);
-          gl.uniform1i(p.uniform("u_previous"), 1);
-          gl.uniform1f(p.uniform("u_weight"), weight);
-          gl.uniform1i(p.uniform("u_invert"), invert ? 1 : 0);
-        },
-      });
+      blend(gl, screen, program, { mask, previous, next, weight, invert });
       current = 1 - current;
       hasResult = true;
       return next.texture;

@@ -123,31 +123,44 @@ const readStrength = (value: unknown): number =>
 const readText = (value: unknown, fallback: string): string =>
   typeof value === "string" ? value : fallback;
 
+/** Observables of settings, told by key when one changes. */
+function keyedListeners(): {
+  readonly observable: <T>(
+    keys: readonly string[],
+    read: () => T,
+  ) => Observable<T>;
+  readonly changed: (key: string) => void;
+} {
+  const listeners = new Map<string, Set<() => void>>();
+  return {
+    observable: (keys, read) => ({
+      get: read,
+      subscribe(listener) {
+        const call = (): void => {
+          listener(read());
+        };
+        for (const key of keys) {
+          const set = listeners.get(key) ?? new Set();
+          set.add(call);
+          listeners.set(key, set);
+        }
+        return () => {
+          for (const key of keys) listeners.get(key)?.delete(call);
+        };
+      },
+    }),
+    changed: (key) => {
+      for (const listener of [...(listeners.get(key) ?? [])]) listener();
+    },
+  };
+}
+
 /** The settings as observables; `changed` tells the key's listeners. */
 function settingsOf(settings: SettingsApi): CameraBackgroundSettings & {
   changed(key: string): void;
 } {
-  const listeners = new Map<string, Set<() => void>>();
   const get = (key: string): unknown => settings.get(MODULE_ID, key);
-  const observable = <T>(
-    keys: readonly string[],
-    read: () => T,
-  ): Observable<T> => ({
-    get: read,
-    subscribe(listener) {
-      const call = (): void => {
-        listener(read());
-      };
-      for (const key of keys) {
-        const set = listeners.get(key) ?? new Set();
-        set.add(call);
-        listeners.set(key, set);
-      }
-      return () => {
-        for (const key of keys) listeners.get(key)?.delete(call);
-      };
-    },
-  });
+  const { observable, changed } = keyedListeners();
   const custom = (): string => readText(get(SETTINGS.customImage), "");
   return {
     quality: observable([SETTINGS.quality], () =>
@@ -170,21 +183,52 @@ function settingsOf(settings: SettingsApi): CameraBackgroundSettings & {
     async set(key, value) {
       await settings.set(MODULE_ID, SETTINGS[key], value);
     },
-    changed(key) {
-      for (const listener of [...(listeners.get(key) ?? [])]) listener();
-    },
+    changed,
   };
 }
 
+/** Where the page is served from, to keep image addresses on it. */
+export interface PageOrigin {
+  readonly origin: string;
+  /** Served over https: no plain http image is loaded. */
+  readonly secure: boolean;
+}
+
+/** The page this runs in (outside a browser, as if on http://localhost). */
+const currentPage = (): PageOrigin =>
+  typeof location === "undefined"
+    ? { origin: "http://localhost", secure: false }
+    : { origin: location.origin, secure: location.protocol === "https:" };
+
+/** Longest image path or address kept. */
+export const MAX_IMAGE_LENGTH = 2048;
+
+/** Control characters or a backslash, which URL parsers read in odd ways. */
+function hasUnsafeCharacters(text: string): boolean {
+  for (let i = 0; i < text.length; i += 1) {
+    const code = text.charCodeAt(i);
+    if (code < 32 || code === 0x5c) return true;
+  }
+  return false;
+}
+
 /**
- * The address to load an image from: a full http(s) address as it is, a
- * path through Foundry's route (its prefix), anything else refused.
+ * The address to load an image from: a full https address as it is (plain
+ * http only on a Foundry served over http), a path through Foundry's route
+ * and on its server; anything else (other schemes, control characters,
+ * backslashes, addresses that leave the server) refused.
  */
 export function imageUrl(
   path: string,
   route: (path: string) => string,
+  page: PageOrigin = currentPage(),
 ): string | null {
-  if (/^https?:\/\//i.test(path)) return path;
+  if (path.length > MAX_IMAGE_LENGTH || hasUnsafeCharacters(path)) return null;
+  if (/^https?:\/\//i.test(path)) {
+    if (page.secure && /^http:/i.test(path)) return null;
+    return URL.canParse(path) ? path : null;
+  }
   if (path.startsWith("//") || /^[a-z][\w+.-]*:/i.test(path)) return null;
-  return route(path.replace(/^\/+/, ""));
+  const routed = route(path.replace(/^\/+/, ""));
+  return URL.parse(routed, page.origin)?.origin === page.origin ? routed : null;
 }

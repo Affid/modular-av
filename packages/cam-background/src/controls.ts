@@ -103,7 +103,7 @@ function imageControls(
     label: `${MODULE_ID}.controls.pick`,
     icon: "fa-solid fa-folder-open",
     async run() {
-      const path = await deps.pickImage(settings.image.get());
+      const path = (await deps.pickImage(settings.image.get()))?.trim();
       if (!path) return;
       if (!imageUrl(path, deps.route))
         throw new ImageLoadError(`Not an image address: ${path}`);

@@ -1,6 +1,12 @@
+import {
+  type BackgroundImage,
+  createBackgroundImage,
+} from "./background-image.ts";
 import type { Compositor } from "./compositor.ts";
+import { startFrameLoop } from "./frame-loop.ts";
 import type { MaskSmoother } from "./mask-smoother.ts";
-import { blurRadius, coverCrop, createRateCap } from "./math.ts";
+import { blurRadius, type Crop } from "./math.ts";
+import { createSegmentation, type Segmentation } from "./segmentation.ts";
 import type { Segmenter } from "./segmenter.ts";
 
 export type Mode = "blur" | "replace";
@@ -41,11 +47,13 @@ export interface PipelineDeps<F extends FrameLike, I> {
   /** Crops and scales the background image to the frame, once per size. */
   readonly scaleImage: (
     image: I,
-    crop: ReturnType<typeof coverCrop>,
+    crop: Crop,
     width: number,
     height: number,
   ) => Promise<TexImageSource>;
   readonly imageSize: (image: I) => { width: number; height: number };
+  /** Frees an image (a decoded bitmap) no longer needed. */
+  readonly releaseImage?: (image: I | TexImageSource) => void;
   /** After the first frame was sent. */
   readonly onFirstFrame: () => void;
   /** It stopped working; no more frames will come. */
@@ -61,10 +69,135 @@ export interface Pipeline<F, I> {
   /** Another quality: the old segmenter is closed. */
   setSegmenter(segmenter: Segmenter): void;
   stats(): PipelineStats;
+  /** Stops reading and closes the segmenter in use. */
   stop(): Promise<void>;
 }
 
-type Counters = { -readonly [K in keyof PipelineStats]: PipelineStats[K] };
+export interface PipelineStart<F, I> {
+  readonly mode: Mode;
+  readonly strength: number;
+  readonly image: I | null;
+  readonly segmenter: Segmenter;
+  readonly input: ReadableStream<F>;
+  readonly output: WritableStream<F>;
+}
+
+interface Timings {
+  frames: number;
+  drawMs: number;
+  captureMs: number;
+  sendMs: number;
+  dropped: number;
+}
+
+interface Drawing<F extends FrameLike> {
+  readonly deps: PipelineDeps<F, unknown>;
+  readonly mode: Mode;
+  readonly strength: () => number;
+  readonly writer: WritableStreamDefaultWriter<F>;
+  readonly timings: Timings;
+}
+
+/** Draws `frame` with `mask` into the canvas and sends the result. */
+async function drawAndSend<F extends FrameLike>(
+  frame: F,
+  mask: WebGLTexture,
+  drawing: Drawing<F>,
+): Promise<void> {
+  const { deps, timings } = drawing;
+  const width = frame.displayWidth;
+  const height = frame.displayHeight;
+  const started = deps.now();
+  // MediaPipe may size the shared canvas for itself.
+  if (deps.canvas.width !== width) deps.canvas.width = width;
+  if (deps.canvas.height !== height) deps.canvas.height = height;
+  deps.compositor.uploadFrame(
+    frame as unknown as TexImageSource,
+    width,
+    height,
+  );
+  deps.compositor.draw(
+    drawing.mode === "blur"
+      ? { mode: "blur", radius: blurRadius(drawing.strength()) }
+      : { mode: "replace" },
+    mask,
+  );
+  const drawn = deps.now();
+  const out = deps.capture(frame.timestamp);
+  const captured = deps.now();
+  try {
+    await drawing.writer.write(out);
+  } finally {
+    out.close();
+  }
+  timings.drawMs += drawn - started;
+  timings.captureMs += captured - drawn;
+  timings.sendMs += deps.now() - captured;
+  timings.frames += 1;
+}
+
+/** What happens to each frame: segment, fit the image, draw and send. */
+function frameProcessor<F extends FrameLike, I>(
+  deps: PipelineDeps<F, I>,
+  mode: Mode,
+  parts: {
+    readonly segmentation: Segmentation<F>;
+    readonly image: BackgroundImage<I>;
+    readonly drawing: Drawing<F>;
+    readonly timings: Timings;
+  },
+): (frame: F) => Promise<void> {
+  const { segmentation, image, drawing, timings } = parts;
+  return async (frame) => {
+    const segmented = segmentation.segment(frame, deps.now());
+    const mask = deps.smoother.texture;
+    image.fit(frame.displayWidth, frame.displayHeight);
+    if (!mask || (mode === "replace" && !deps.compositor.hasImage)) {
+      timings.dropped += 1;
+      return;
+    }
+    await drawAndSend(frame, mask, drawing);
+    if (segmented !== null) segmentation.sent(segmented, deps.now());
+    if (timings.frames === 1) deps.onFirstFrame();
+  };
+}
+
+const statsOf = (
+  timings: Timings,
+  segmentation: Segmentation<unknown>,
+): PipelineStats => ({
+  ...timings,
+  segmentations: segmentation.segmentations,
+  segmentMs: segmentation.segmentMs,
+});
+
+/** The pipeline's parts that hold state: timings, segmentation, image. */
+function pipelineParts<F extends FrameLike, I>(
+  deps: PipelineDeps<F, I>,
+  start: PipelineStart<F, I>,
+  fail: (error: unknown) => void,
+): {
+  readonly timings: Timings;
+  readonly segmentation: Segmentation<F>;
+  readonly image: BackgroundImage<I>;
+} {
+  return {
+    timings: { frames: 0, drawMs: 0, captureMs: 0, sendMs: 0, dropped: 0 },
+    segmentation: createSegmentation(
+      start.segmenter,
+      deps.smoother,
+      deps.now,
+      deps.segmentRate ?? SEGMENT_RATE,
+    ),
+    image: createBackgroundImage(start.image, {
+      compositor: deps.compositor,
+      scale: deps.scaleImage,
+      size: deps.imageSize,
+      ...(deps.releaseImage ? { release: deps.releaseImage } : {}),
+      onError: fail,
+    }),
+  };
+}
 
 /**
  * Reads the camera's frames, segments them at a capped rate and sends each
@@ -73,185 +206,51 @@ type Counters = { -readonly [K in keyof PipelineStats]: PipelineStats[K] };
  */
 export function startPipeline<F extends FrameLike, I>(
   deps: PipelineDeps<F, I>,
-  start: {
-    readonly mode: Mode;
-    readonly strength: number;
-    readonly image: I | null;
-    readonly segmenter: Segmenter;
-    readonly input: ReadableStream<F>;
-    readonly output: WritableStream<F>;
-  },
+  start: PipelineStart<F, I>,
 ): Pipeline<F, I> {
-  const cap = createRateCap(deps.segmentRate ?? SEGMENT_RATE);
-  const counters: Counters = {
-    frames: 0,
-    segmentations: 0,
-    segmentMs: 0,
-    drawMs: 0,
-    captureMs: 0,
-    sendMs: 0,
-    dropped: 0,
-  };
-  let segmenter = start.segmenter;
   let strength = start.strength;
-  let image = start.image;
-  /** The size the image was scaled for, so it is scaled once per size. */
-  let imageFor = "";
-  let reader = start.input.getReader();
-  const writer = start.output.getWriter();
-  let stopped = false;
-  let first = true;
-  let inputChanged: () => void = () => undefined;
-
-  const scaleFor = (width: number, height: number): void => {
-    const key = `${String(width)}x${String(height)}`;
-    if (!image || imageFor === key) return;
-    imageFor = key;
-    const source = image;
-    const size = deps.imageSize(source);
-    const crop = coverCrop(size.width, size.height, width, height);
-    deps.scaleImage(source, crop, width, height).then(
-      (scaled) => {
-        if (image === source && !stopped) deps.compositor.setImage(scaled);
-      },
-      (error: unknown) => {
-        fail(error);
-      },
-    );
-  };
-
-  /** Segments if it is time; returns when it started, or null. */
-  const segment = (frame: F, now: number): number | null => {
-    if (!cap.due(now) && deps.smoother.texture) return null;
-    const started = deps.now();
-    segmenter.segment(frame as unknown as TexImageSource, (mask, w, h) => {
-      deps.smoother.update(
-        mask,
-        { width: w, height: h },
-        now,
-        segmenter.invert,
-      );
-    });
-    const took = deps.now() - started;
-    cap.mark(started, took);
-    counters.segmentations += 1;
-    counters.segmentMs += took;
-    return started;
-  };
-
-  const process = async (frame: F): Promise<void> => {
-    const width = frame.displayWidth;
-    const height = frame.displayHeight;
-    const segmented = segment(frame, deps.now());
-    const mask = deps.smoother.texture;
-    scaleFor(width, height);
-    const ready = start.mode === "blur" || deps.compositor.hasImage;
-    if (!mask || !ready) {
-      counters.dropped += 1;
-      return;
-    }
-    const started = deps.now();
-    // MediaPipe may size the shared canvas for itself.
-    if (deps.canvas.width !== width) deps.canvas.width = width;
-    if (deps.canvas.height !== height) deps.canvas.height = height;
-    deps.compositor.uploadFrame(
-      frame as unknown as TexImageSource,
-      width,
-      height,
-    );
-    deps.compositor.draw(
-      start.mode === "blur"
-        ? { mode: "blur", radius: blurRadius(strength) }
-        : { mode: "replace" },
-      mask,
-    );
-    const drawn = deps.now();
-    const out = deps.capture(frame.timestamp);
-    const captured = deps.now();
-    try {
-      await writer.write(out);
-    } finally {
-      out.close();
-    }
-    // The GPU's share of the segmentation shows once the frame is out: a
-    // slow machine segments less often and keeps sending frames.
-    if (segmented !== null) cap.mark(segmented, deps.now() - segmented);
-    counters.drawMs += drawn - started;
-    counters.captureMs += captured - drawn;
-    counters.sendMs += deps.now() - captured;
-    counters.frames += 1;
-    if (first) {
-      first = false;
-      deps.onFirstFrame();
-    }
-  };
-
-  /** The camera's stream ended: wait for the next one. */
-  const nextInput = (): Promise<void> =>
-    new Promise((resolve) => {
-      inputChanged = resolve;
-    });
-
-  // Read through a call: `stopped` changes while a read is pending.
-  const running = (): boolean => !stopped;
-
-  const loop = async (): Promise<void> => {
-    while (running()) {
-      const current = reader;
-      const result = await current.read().catch((error: unknown) => {
-        if (current !== reader || !running()) return { done: true } as const;
-        throw error;
-      });
-      if (result.done) {
-        if (current === reader && running()) await nextInput();
-        continue;
-      }
-      try {
-        if (running()) await process(result.value);
-      } finally {
-        result.value.close();
-      }
-    }
-  };
-
   let failed = false;
   const fail = (error: unknown): void => {
-    if (failed || stopped) return;
+    if (failed) return;
     failed = true;
-    stopped = true;
+    void loop.stop();
     deps.onError(error);
   };
+  const { timings, segmentation, image } = pipelineParts(deps, start, fail);
+  const writer = start.output.getWriter();
+  const drawing: Drawing<F> = {
+    ...{ deps: deps as PipelineDeps<F, unknown>, mode: start.mode },
+    ...{ strength: () => strength, writer, timings },
+  };
 
-  const done = loop().catch(fail);
+  const process = frameProcessor(deps, start.mode, {
+    segmentation,
+    image,
+    drawing,
+    timings,
+  });
+
+  const loop = startFrameLoop(start.input, process, fail);
 
   return {
-    setInput(input) {
-      const old = reader;
-      reader = input.getReader();
-      old.cancel().catch(() => undefined);
-      inputChanged();
+    setInput: (input) => {
+      loop.setInput(input);
     },
     setStrength(next) {
       strength = next;
     },
-    setImage(next) {
-      image = next;
-      imageFor = "";
-      if (!next) deps.compositor.setImage(null);
+    setImage: (next) => {
+      image.set(next);
     },
-    setSegmenter(next) {
-      const old = segmenter;
-      segmenter = next;
-      deps.smoother.reset();
-      old.close();
+    setSegmenter: (next) => {
+      segmentation.setSegmenter(next);
     },
-    stats: () => ({ ...counters }),
+    stats: () => statsOf(timings, segmentation),
     async stop() {
-      stopped = true;
-      inputChanged();
-      await reader.cancel().catch(() => undefined);
-      await done;
+      await loop.stop();
       writer.releaseLock();
+      segmentation.close();
+      image.close();
     },
   };
 }

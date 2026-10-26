@@ -49,12 +49,6 @@ export type FromWorker =
   | { readonly type: "error"; readonly error: ErrorData }
   /** Another quality couldn't start: the old one goes on. */
   | { readonly type: "model-error"; readonly error: ErrorData }
-  /** The quality running, and whether software WebGL forced standard. */
-  | {
-      readonly type: "quality";
-      readonly quality: Quality;
-      readonly software: boolean;
-    }
   | {
       readonly type: "stats";
       readonly id: number;

@@ -1,21 +1,11 @@
-import { createCompositor } from "../pipeline/compositor.ts";
-import { createFullScreen } from "../pipeline/gl.ts";
-import { createMaskSmoother } from "../pipeline/mask-smoother.ts";
-import { type Pipeline, startPipeline } from "../pipeline/pipeline.ts";
-import {
-  createSegmenter,
-  loadModel,
-  type Segmenter,
-  type Vision,
-} from "../pipeline/segmenter.ts";
-import {
-  errorData,
-  type FromWorker,
-  type ModelUrls,
-  type RuntimeFiles,
-  type ToWorker,
-} from "../protocol.ts";
+import type { Vision } from "../pipeline/segmenter.ts";
+import { errorData, type FromWorker, type ToWorker } from "../protocol.ts";
 import type { Quality } from "../settings.ts";
+import { createQualitySwitch, type QualitySwitch } from "./quality.ts";
+import { createSegmenters, type Segmenters } from "./segmenters.ts";
+import { type Session, type Start, startSession } from "./session.ts";
+
+export { ContextLostError, WebGLUnavailableError } from "./session.ts";
 
 /** WebGL drawn by the CPU: the high quality model runs at under 1 fps there. */
 const SOFTWARE_RENDERER = /swiftshader|llvmpipe|softpipe|basic render/i;
@@ -32,24 +22,109 @@ export function softwareWebGL(): boolean {
   return SOFTWARE_RENDERER.test(renderer);
 }
 
-/** WebGL2 isn't available on this canvas (no GPU process, blocked). */
-export class WebGLUnavailableError extends Error {
-  override readonly name = "WebGLUnavailableError";
-}
-
-/** The GPU dropped the context (a driver reset, too much memory). */
-export class ContextLostError extends Error {
-  override readonly name = "ContextLostError";
-}
-
-type Start = Extract<ToWorker, { type: "start" }>;
+/** The canvas's first size; MediaPipe and each frame size it as needed. */
+const CANVAS = { width: 640, height: 480 } as const;
 
 interface Running {
-  readonly pipeline: Pipeline<VideoFrame, ImageBitmap>;
-  readonly files: RuntimeFiles;
-  readonly models: ModelUrls;
-  readonly canvas: OffscreenCanvas;
-  dispose(): Promise<void>;
+  readonly session: Session;
+  readonly quality: QualitySwitch;
+}
+
+type Handler = (message: ToWorker) => void;
+
+type Handlers = {
+  [K in ToWorker["type"]]: (message: Extract<ToWorker, { type: K }>) => void;
+};
+
+/** What each message does: most reach the running pipeline once it runs. */
+function messageHandlers(on: {
+  readonly start: (message: Start) => void;
+  readonly whenStarted: (apply: (current: Running) => void) => void;
+  readonly stop: () => void;
+  readonly post: (message: FromWorker) => void;
+}): Handlers {
+  const { whenStarted, post } = on;
+  return {
+    start: on.start,
+    input: (m) => {
+      whenStarted((r) => {
+        r.session.pipeline.setInput(m.input);
+      });
+    },
+    strength: (m) => {
+      whenStarted((r) => {
+        r.session.pipeline.setStrength(m.value);
+      });
+    },
+    image: (m) => {
+      whenStarted((r) => {
+        r.session.pipeline.setImage(m.image);
+      });
+    },
+    quality: (m) => {
+      whenStarted((r) => {
+        r.quality.request(m.quality);
+      });
+    },
+    stats: (m) => {
+      whenStarted((r) => {
+        post({ type: "stats", id: m.id, stats: r.session.pipeline.stats() });
+      });
+    },
+    ping: (m) => {
+      post({ type: "pong", id: m.id });
+    },
+    stop: on.stop,
+  };
+}
+
+/** Standard where WebGL runs in software (the quality setting says so). */
+function usableQuality(isSoftware: () => boolean): (q: Quality) => Quality {
+  let software: boolean | null = null;
+  return (quality) => {
+    software ??= isSoftware();
+    return software ? "standard" : quality;
+  };
+}
+
+/** Starts one effect's session and its quality switch; null if turned off meanwhile. */
+async function startRunning(
+  message: Start,
+  deps: {
+    readonly segmenters: Segmenters;
+    readonly usable: (quality: Quality) => Quality;
+    readonly isOver: () => boolean;
+    readonly post: (message: FromWorker) => void;
+    readonly fail: (error: unknown) => void;
+  },
+): Promise<Running | null> {
+  const canvas = new OffscreenCanvas(CANVAS.width, CANVAS.height);
+  const quality = deps.usable(message.quality);
+  const segmenter = await deps.segmenters.create(
+    message.files,
+    message.models[quality],
+    canvas,
+  );
+  if (deps.isOver()) {
+    segmenter.close();
+    return null;
+  }
+  const session = startSession(message, canvas, segmenter, {
+    onFirstFrame: () => {
+      deps.post({ type: "first-frame" });
+    },
+    onError: deps.fail,
+  });
+  return {
+    session,
+    quality: createQualitySwitch(session, deps.segmenters, quality, {
+      usable: deps.usable,
+      isOver: deps.isOver,
+      onError: (error) => {
+        deps.post({ type: "model-error", error: errorData(error) });
+      },
+    }),
+  };
 }
 
 /**
@@ -61,190 +136,49 @@ export function createRuntime(
   vision: Vision,
   post: (message: FromWorker) => void,
   isSoftware: () => boolean = softwareWebGL,
-): { handle(message: ToWorker): void } {
+): { handle: Handler } {
+  const segmenters = createSegmenters(vision, () => performance.now());
   let running: Running | null = null;
-  let starting: Promise<void> | null = null;
+  let starting: Promise<void> = Promise.resolve();
   let stopped = false;
-  const models = new Map<string, Promise<Uint8Array>>();
-
-  const model = (url: string): Promise<Uint8Array> => {
-    const known = models.get(url);
-    if (known) return known;
-    const loading = loadModel(url);
-    models.set(url, loading);
-    loading.catch(() => models.delete(url));
-    return loading;
-  };
-
-  const segmenterFor = async (
-    files: RuntimeFiles,
-    url: string,
-    canvas: OffscreenCanvas,
-  ): Promise<Segmenter> =>
-    createSegmenter({
-      vision,
-      files: { wasmLoaderPath: files.loader, wasmBinaryPath: files.wasm },
-      model: await model(url),
-      canvas,
-      now: () => performance.now(),
-    });
-
-  let software: boolean | null = null;
-  /** The quality to run: standard where WebGL runs in software. */
-  const usable = (quality: Quality): Quality => {
-    software ??= isSoftware();
-    const used = software ? "standard" : quality;
-    post({ type: "quality", quality: used, software: used !== quality });
-    return used;
-  };
-
+  const usable = usableQuality(isSoftware);
   const fail = (error: unknown): void => {
     post({ type: "error", error: errorData(error) });
   };
-
+  const startDeps = { segmenters, usable, isOver: () => stopped, post, fail };
   const start = async (message: Start): Promise<void> => {
-    const canvas = new OffscreenCanvas(message.image?.width ?? 640, 480);
-    const segmenter = await segmenterFor(
-      message.files,
-      message.models[usable(message.quality)],
-      canvas,
-    );
-    // MediaPipe made the context; this is the same one.
-    const gl = canvas.getContext("webgl2");
-    if (!gl) {
-      segmenter.close();
-      throw new WebGLUnavailableError("WebGL2 is unavailable");
-    }
-    canvas.addEventListener("webglcontextlost", () => {
-      fail(new ContextLostError("The GPU lost the drawing context"));
-    });
-    const compositor = createCompositor(gl);
-    const screen = createFullScreen(gl);
-    const smoother = createMaskSmoother(gl, screen);
-    const pipeline = startPipeline<VideoFrame, ImageBitmap>(
-      {
-        canvas,
-        compositor,
-        smoother,
-        now: () => performance.now(),
-        capture: (timestamp) => new VideoFrame(canvas, { timestamp }),
-        scaleImage: (image, crop, width, height) =>
-          createImageBitmap(image, crop.x, crop.y, crop.width, crop.height, {
-            resizeWidth: width,
-            resizeHeight: height,
-            resizeQuality: "high",
-          }),
-        imageSize: (image) => ({ width: image.width, height: image.height }),
-        onFirstFrame: () => {
-          post({ type: "first-frame" });
-        },
-        onError: fail,
-      },
-      {
-        mode: message.mode,
-        strength: message.strength,
-        image: message.image,
-        segmenter,
-        input: message.input,
-        output: message.output,
-      },
-    );
-    running = {
-      pipeline,
-      files: message.files,
-      models: message.models,
-      canvas,
-      async dispose() {
-        await pipeline.stop();
-        segmenter.close();
-        smoother.dispose();
-        screen.dispose();
-        compositor.dispose();
-      },
-    };
+    running = await startRunning(message, startDeps);
   };
-
-  const swapModel = async (quality: Quality): Promise<void> => {
-    const current = running;
-    if (!current) return;
-    try {
-      const next = await segmenterFor(
-        current.files,
-        current.models[usable(quality)],
-        current.canvas,
-      );
-      if (running === current) current.pipeline.setSegmenter(next);
-      else next.close();
-    } catch (error: unknown) {
-      post({ type: "model-error", error: errorData(error) });
-    }
-  };
-
-  const stop = async (): Promise<void> => {
-    stopped = true;
-    await starting?.catch(() => undefined);
-    await running?.dispose();
-    running = null;
-    post({ type: "stopped" });
-  };
-
   /** Messages that came while it starts apply once it runs. */
   const whenStarted = (apply: (current: Running) => void): void => {
-    void (starting ?? Promise.resolve()).then(() => {
+    void starting.then(() => {
       if (running && !stopped) apply(running);
     });
   };
 
+  const stop = async (): Promise<void> => {
+    stopped = true;
+    await starting;
+    await running?.session.dispose();
+    running = null;
+    post({ type: "stopped" });
+  };
+
+  const handlers = messageHandlers({
+    start: (m) => {
+      starting = start(m).catch(fail);
+    },
+    whenStarted,
+    stop: () => {
+      stop().catch(fail);
+    },
+    post,
+  });
+
   return {
     handle(message) {
-      if (message.type === "ping") {
-        post({ type: "pong", id: message.id });
-        return;
-      }
-      if (stopped) return;
-      switch (message.type) {
-        case "start":
-          starting = start(message).catch(fail);
-          return;
-        case "input":
-          whenStarted((r) => {
-            r.pipeline.setInput(message.input);
-          });
-          return;
-        case "strength":
-          whenStarted((r) => {
-            r.pipeline.setStrength(message.value);
-          });
-          return;
-        case "image":
-          whenStarted((r) => {
-            r.pipeline.setImage(message.image);
-          });
-          return;
-        case "quality":
-          whenStarted(() => {
-            void swapModel(message.quality);
-          });
-          return;
-        case "stats":
-          post({
-            type: "stats",
-            id: message.id,
-            stats: running?.pipeline.stats() ?? {
-              frames: 0,
-              segmentations: 0,
-              segmentMs: 0,
-              drawMs: 0,
-              captureMs: 0,
-              sendMs: 0,
-              dropped: 0,
-            },
-          });
-          return;
-        case "stop":
-          stop().catch(fail);
-          return;
-      }
+      if (stopped && message.type !== "ping") return;
+      (handlers[message.type] as Handler)(message);
     },
   };
 }

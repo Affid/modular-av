@@ -80,24 +80,39 @@ describe("the camera background's settings", () => {
 
 describe("an image's address", () => {
   const route = (path: string): string => `/prefix/${path}`;
+  const page = { origin: "https://table.example", secure: true };
 
   it("goes through Foundry's route for a path on its server", () => {
-    expect(imageUrl("ui/backgrounds/setup.webp", route)).toBe(
+    expect(imageUrl("ui/backgrounds/setup.webp", route, page)).toBe(
       "/prefix/ui/backgrounds/setup.webp",
     );
-    expect(imageUrl("/worlds/w/a.png", route)).toBe("/prefix/worlds/w/a.png");
+    expect(imageUrl("/worlds/w/a.png", route, page)).toBe(
+      "/prefix/worlds/w/a.png",
+    );
   });
 
-  it("is kept as it is for a full address", () => {
-    expect(imageUrl("https://example.com/a.png", route)).toBe(
+  it("is kept as it is for a full https address", () => {
+    expect(imageUrl("https://example.com/a.png", route, page)).toBe(
       "https://example.com/a.png",
     );
   });
 
-  it.each(["javascript:alert(1)", "file:///etc/passwd", "data:text/html,x"])(
-    "is refused for %s",
-    (path) => {
-      expect(imageUrl(path, route)).toBeNull();
-    },
-  );
+  it("may be plain http only on a Foundry served over http", () => {
+    expect(imageUrl("http://lan.local/a.png", route, page)).toBeNull();
+    expect(
+      imageUrl("http://lan.local/a.png", route, { ...page, secure: false }),
+    ).toBe("http://lan.local/a.png");
+  });
+
+  it.each([
+    "javascript:alert(1)",
+    "file:///etc/passwd",
+    "data:text/html,x",
+    "//evil.example/x.png",
+    "/\\evil.example/x.png",
+    "/\t/evil.example/x.png",
+    "a".repeat(2049),
+  ])("is refused for %j", (path) => {
+    expect(imageUrl(path, route, page)).toBeNull();
+  });
 });

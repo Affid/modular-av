@@ -386,7 +386,7 @@ describe("the background pipeline", () => {
     expect(r.smoother.inverts).toEqual([false, true]);
   });
 
-  it("reports a failure once and sends nothing after it", async () => {
+  it("reports a failure once, sends nothing after it and lets the camera go", async () => {
     const r = rig();
     r.compositor.draw = () => {
       throw new Error("context lost");
@@ -394,11 +394,59 @@ describe("the background pipeline", () => {
 
     r.cam.push(frame(1));
     await settle();
-    r.cam.push(frame(2));
-    await settle();
 
     expect(r.errors).toHaveLength(1);
     expect(r.out.sent).toEqual([]);
+    expect(() => {
+      r.cam.push(frame(2));
+    }).toThrow();
+  });
+
+  it("closes the segmenter in use when stopped, after a quality swap too", async () => {
+    const r = rig();
+    const high = fakeSegmenter(true);
+    r.pipeline.setSegmenter(high);
+
+    await r.pipeline.stop();
+
+    expect(r.segmenter.closed).toBe(true);
+    expect(high.closed).toBe(true);
+  });
+
+  it("frees replaced and scaled images", async () => {
+    const released: unknown[] = [];
+    const cam = camera();
+    const compositor = fakeCompositor();
+    const pipeline = startPipeline<Frame, string>(
+      {
+        canvas: { width: 1, height: 1 },
+        compositor,
+        smoother: fakeSmoother(),
+        now: () => 0,
+        capture: (timestamp) => frame(timestamp),
+        scaleImage: (image) =>
+          Promise.resolve(`${image}@scaled` as unknown as TexImageSource),
+        imageSize: () => ({ width: 1, height: 1 }),
+        releaseImage: (image) => released.push(image),
+        onFirstFrame: () => undefined,
+        onError: () => undefined,
+      },
+      {
+        mode: "replace",
+        strength: 0.5,
+        image: "tavern",
+        segmenter: fakeSegmenter(),
+        input: cam.stream,
+        output: sink().stream,
+      },
+    );
+    cam.push(frame(1));
+    await settle();
+
+    pipeline.setImage("forest");
+    await pipeline.stop();
+
+    expect(released).toEqual(["tavern@scaled", "tavern", "forest"]);
   });
 
   it("lets go of the camera when stopped", async () => {

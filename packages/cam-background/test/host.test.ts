@@ -240,4 +240,86 @@ describe("the effect on the page", () => {
     expect(output.stopped).toBe(true);
     expect(port.terminated).toBe(true);
   });
+
+  it("applies image changes in the order asked, dropping one decoded late", async () => {
+    // Arrange: A decodes after B.
+    const decoded: Record<string, () => void> = {};
+    const closed: string[] = [];
+    const bitmap = (name: string): ImageBitmap =>
+      ({ name, close: () => closed.push(name) }) as unknown as ImageBitmap;
+    const { host, port } = setup({
+      loadImage: (url) =>
+        new Promise((resolve) => {
+          decoded[url] = () => {
+            resolve(bitmap(url));
+          };
+        }),
+    });
+    const started = host.start(camera);
+    await flush();
+    port.reply({ type: "first-frame" });
+    await started;
+
+    // Act
+    const a = host.setImage("A");
+    const b = host.setImage("B");
+    decoded.B?.();
+    await b;
+    decoded.A?.();
+    await a;
+
+    // Assert
+    const images = port.sent.filter((m) => m.type === "image");
+    expect(
+      images.map((m) => (m.image as unknown as { name: string }).name),
+    ).toEqual(["B"]);
+    expect(closed).toEqual(["A"]);
+  });
+
+  it("reports another quality that couldn't start, and goes on", async () => {
+    const errors: unknown[] = [];
+    const { host, port, failures } = setup({ onError: (e) => errors.push(e) });
+    const started = host.start(camera);
+    await flush();
+    port.reply({ type: "first-frame" });
+    await started;
+
+    port.reply({
+      type: "model-error",
+      error: { name: "ModelFileError", message: "404" },
+    });
+
+    expect((errors[0] as Error).name).toBe("ModelFileError");
+    expect(failures).toEqual([]);
+  });
+
+  it("settles stats asked for once disposed", async () => {
+    const { host, port } = setup();
+    const started = host.start(camera);
+    await flush();
+    port.reply({ type: "first-frame" });
+    await started;
+
+    const pending = host.stats();
+    host.dispose();
+
+    await expect(pending).rejects.toMatchObject({ name: "AbortError" });
+    await expect(host.stats()).rejects.toMatchObject({ name: "AbortError" });
+  });
+
+  it("keeps a worker that answers each ping, however late the pings come", async () => {
+    const { host, port, failures } = setup();
+    const started = host.start(camera);
+    await flush();
+    port.reply({ type: "first-frame" });
+    await started;
+
+    for (let i = 0; i < 10; i += 1) {
+      await vi.advanceTimersByTimeAsync(PING_EVERY_MS);
+      const ping = port.sent.at(-1);
+      if (ping?.type === "ping") port.reply({ type: "pong", id: ping.id });
+    }
+
+    expect(failures).toEqual([]);
+  });
 });

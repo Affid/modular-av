@@ -6,6 +6,8 @@ import {
   drawPass,
   type FullScreen,
   type Program,
+  restoreState,
+  saveState,
   type Target,
 } from "./gl.ts";
 import { gaussianTaps } from "./math.ts";
@@ -138,139 +140,215 @@ function createPasses(gl: WebGL2RenderingContext): Passes {
   }
 }
 
-export function createCompositor(gl: WebGL2RenderingContext): Compositor {
-  const screen: FullScreen = createFullScreen(gl);
-  const passes = createPasses(gl);
-  const frameTexture = createTexture(gl);
-  let imageTexture: WebGLTexture | null = null;
-  let quarter: readonly [Target, Target] | null = null;
-  let width = 0;
-  let height = 0;
+/** Uploads `source` into `texture`, leaving the bindings as they were. */
+function upload(
+  gl: WebGL2RenderingContext,
+  texture: WebGLTexture,
+  source: TexImageSource,
+): void {
+  const saved = saveState(gl);
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
+  restoreState(gl, saved);
+}
+
+/** A new linear texture, leaving the bindings as they were. */
+function newTexture(gl: WebGL2RenderingContext): WebGLTexture {
+  const saved = saveState(gl);
+  const texture = createTexture(gl);
+  restoreState(gl, saved);
+  return texture;
+}
+
+/** Two targets at a quarter of the frame's size, made again when it changes. */
+function quarterTargets(gl: WebGL2RenderingContext): {
+  readonly for: (width: number, height: number) => readonly [Target, Target];
+  readonly dispose: () => void;
+} {
+  let pair: readonly [Target, Target] | null = null;
+  const dispose = (): void => {
+    pair?.[0].dispose();
+    pair?.[1].dispose();
+    pair = null;
+  };
+  return {
+    for(width, height) {
+      const w = Math.max(1, Math.round(width / 4));
+      const h = Math.max(1, Math.round(height / 4));
+      if (pair?.[0].width === w && pair[0].height === h) return pair;
+      dispose();
+      pair = [createTarget(gl, w, h), createTarget(gl, w, h)];
+      return pair;
+    },
+    dispose,
+  };
+}
+
+/** Lets go of every program. */
+function disposePasses(passes: Passes): void {
+  for (const program of [
+    passes.prepare,
+    passes.blur,
+    passes.blurCompose,
+    passes.replace,
+  ])
+    program.dispose();
+}
+
+interface Blur {
+  /** The frame's background, blurred, at a quarter of its size. */
+  run(
+    frame: WebGLTexture,
+    mask: WebGLTexture,
+    size: { readonly width: number; readonly height: number },
+    radius: number,
+  ): WebGLTexture;
+  dispose(): void;
+}
+
+/** A separable Gaussian at a quarter of the frame's size, of the background only. */
+function createBlur(
+  gl: WebGL2RenderingContext,
+  screen: FullScreen,
+  passes: Passes,
+): Blur {
+  const quarter = quarterTargets(gl);
   let taps = gaussianTaps(0);
   let tapsRadius = 0;
-
-  const upload = (texture: WebGLTexture, source: TexImageSource): void => {
-    gl.activeTexture(gl.TEXTURE0);
-    const before = gl.getParameter(
-      gl.TEXTURE_BINDING_2D,
-    ) as WebGLTexture | null;
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
-    gl.bindTexture(gl.TEXTURE_2D, before);
-  };
-
-  const quarterTargets = (): readonly [Target, Target] => {
-    const w = Math.max(1, Math.round(width / 4));
-    const h = Math.max(1, Math.round(height / 4));
-    if (quarter?.[0].width === w && quarter[0].height === h) return quarter;
-    quarter?.[0].dispose();
-    quarter?.[1].dispose();
-    quarter = [createTarget(gl, w, h), createTarget(gl, w, h)];
-    return quarter;
-  };
-
-  const blur = (radius: number, mask: WebGLTexture): WebGLTexture => {
-    const [a, b] = quarterTargets();
-    if (radius !== tapsRadius) {
-      taps = gaussianTaps(radius);
-      tapsRadius = radius;
-    }
+  const pass = (from: Target, to: Target, dx: number, dy: number): void => {
     drawPass(gl, screen, {
-      program: passes.prepare,
-      target: a,
-      width: a.width,
-      height: a.height,
-      textures: [frameTexture, mask],
+      program: passes.blur,
+      target: to,
+      width: to.width,
+      height: to.height,
+      textures: [from.texture],
       setUniforms(p) {
-        gl.uniform1i(p.uniform("u_frame"), 0);
-        gl.uniform1i(p.uniform("u_mask"), 1);
-        gl.uniform2f(p.uniform("u_texel"), 1 / width, 1 / height);
+        gl.uniform1i(p.uniform("u_source"), 0);
+        gl.uniform2f(p.uniform("u_direction"), dx / to.width, dy / to.height);
+        gl.uniform1fv(p.uniform("u_offsets"), padded(taps.offsets));
+        gl.uniform1fv(p.uniform("u_weights"), padded(taps.weights));
+        gl.uniform1i(p.uniform("u_taps"), taps.offsets.length);
       },
     });
-    const pass = (from: Target, to: Target, dx: number, dy: number): void => {
-      drawPass(gl, screen, {
-        program: passes.blur,
-        target: to,
-        width: to.width,
-        height: to.height,
-        textures: [from.texture],
-        setUniforms(p) {
-          gl.uniform1i(p.uniform("u_source"), 0);
-          gl.uniform2f(p.uniform("u_direction"), dx / to.width, dy / to.height);
-          gl.uniform1fv(p.uniform("u_offsets"), padded(taps.offsets));
-          gl.uniform1fv(p.uniform("u_weights"), padded(taps.weights));
-          gl.uniform1i(p.uniform("u_taps"), taps.offsets.length);
-        },
-      });
-    };
-    pass(a, b, 1, 0);
-    pass(b, a, 0, 1);
-    return a.texture;
   };
-
   return {
-    uploadFrame(frame, w, h) {
-      width = w;
-      height = h;
-      upload(frameTexture, frame);
-    },
-    setImage(image) {
-      if (!image) {
-        if (imageTexture) gl.deleteTexture(imageTexture);
-        imageTexture = null;
-        return;
+    run(frame, mask, { width, height }, radius) {
+      const [a, b] = quarter.for(width, height);
+      if (radius !== tapsRadius) {
+        taps = gaussianTaps(radius);
+        tapsRadius = radius;
       }
-      imageTexture ??= createTexture(gl);
-      upload(imageTexture, image);
-    },
-    get hasImage() {
-      return imageTexture !== null;
-    },
-    draw(background, mask) {
-      if (background.mode === "replace") {
-        if (!imageTexture) throw new Error("No background image yet");
-        drawPass(gl, screen, {
-          program: passes.replace,
-          target: null,
-          width,
-          height,
-          textures: [frameTexture, mask, imageTexture],
-          setUniforms(p) {
-            gl.uniform1i(p.uniform("u_frame"), 0);
-            gl.uniform1i(p.uniform("u_mask"), 1);
-            gl.uniform1i(p.uniform("u_image"), 2);
-          },
-        });
-        return;
-      }
-      const blurred = blur(background.radius, mask);
       drawPass(gl, screen, {
-        program: passes.blurCompose,
-        target: null,
-        width,
-        height,
-        textures: [frameTexture, mask, blurred],
+        program: passes.prepare,
+        target: a,
+        width: a.width,
+        height: a.height,
+        textures: [frame, mask],
         setUniforms(p) {
           gl.uniform1i(p.uniform("u_frame"), 0);
           gl.uniform1i(p.uniform("u_mask"), 1);
-          gl.uniform1i(p.uniform("u_blurred"), 2);
+          gl.uniform2f(p.uniform("u_texel"), 1 / width, 1 / height);
         },
       });
+      pass(a, b, 1, 0);
+      pass(b, a, 0, 1);
+      return a.texture;
+    },
+    dispose: quarter.dispose,
+  };
+}
+
+/** The last pass, into the canvas: the frame over its new background. */
+function compose(
+  gl: WebGL2RenderingContext,
+  screen: FullScreen,
+  program: Program,
+  textures: readonly [WebGLTexture, WebGLTexture, WebGLTexture],
+  size: { readonly width: number; readonly height: number },
+  third: "u_blurred" | "u_image",
+): void {
+  drawPass(gl, screen, {
+    program,
+    target: null,
+    width: size.width,
+    height: size.height,
+    textures,
+    setUniforms(p) {
+      gl.uniform1i(p.uniform("u_frame"), 0);
+      gl.uniform1i(p.uniform("u_mask"), 1);
+      gl.uniform1i(p.uniform(third), 2);
+    },
+  });
+}
+
+/** The replacing image's texture: made on the first image, deleted on none. */
+function imageSlot(gl: WebGL2RenderingContext): {
+  readonly set: (image: TexImageSource | null) => void;
+  readonly texture: WebGLTexture | null;
+} {
+  let texture: WebGLTexture | null = null;
+  return {
+    set: (image) => {
+      if (!image) {
+        if (texture) gl.deleteTexture(texture);
+        texture = null;
+        return;
+      }
+      texture ??= newTexture(gl);
+      upload(gl, texture, image);
+    },
+    get texture() {
+      return texture;
+    },
+  };
+}
+
+export function createCompositor(gl: WebGL2RenderingContext): Compositor {
+  const screen: FullScreen = createFullScreen(gl);
+  const passes = createPasses(gl);
+  const blur = createBlur(gl, screen, passes);
+  const frameTexture = newTexture(gl);
+  const image = imageSlot(gl);
+  let size = { width: 0, height: 0 };
+  return {
+    uploadFrame(frame, width, height) {
+      size = { width, height };
+      upload(gl, frameTexture, frame);
+    },
+    setImage: image.set,
+    get hasImage() {
+      return image.texture !== null;
+    },
+    draw(background, mask) {
+      if (background.mode === "blur") {
+        const blurred = blur.run(frameTexture, mask, size, background.radius);
+        compose(
+          gl,
+          screen,
+          passes.blurCompose,
+          [frameTexture, mask, blurred],
+          size,
+          "u_blurred",
+        );
+        return;
+      }
+      const imageTexture = image.texture;
+      if (!imageTexture) throw new Error("No background image yet");
+      compose(
+        gl,
+        screen,
+        passes.replace,
+        [frameTexture, mask, imageTexture],
+        size,
+        "u_image",
+      );
     },
     dispose() {
-      quarter?.[0].dispose();
-      quarter?.[1].dispose();
-      quarter = null;
+      blur.dispose();
       gl.deleteTexture(frameTexture);
-      if (imageTexture) gl.deleteTexture(imageTexture);
-      imageTexture = null;
-      for (const program of [
-        passes.prepare,
-        passes.blur,
-        passes.blurCompose,
-        passes.replace,
-      ])
-        program.dispose();
+      image.set(null);
+      disposePasses(passes);
       screen.dispose();
     },
   };

@@ -170,7 +170,8 @@ export const UNITS = 3;
 
 export interface SavedState {
   readonly program: WebGLProgram | null;
-  readonly framebuffer: WebGLFramebuffer | null;
+  readonly drawFramebuffer: WebGLFramebuffer | null;
+  readonly readFramebuffer: WebGLFramebuffer | null;
   readonly vertexArray: WebGLVertexArrayObject | null;
   readonly arrayBuffer: WebGLBuffer | null;
   readonly viewport: Int32Array;
@@ -191,8 +192,11 @@ export function saveState(gl: WebGL2RenderingContext): SavedState {
   gl.activeTexture(activeTexture);
   return {
     program: gl.getParameter(gl.CURRENT_PROGRAM) as WebGLProgram | null,
-    framebuffer: gl.getParameter(
-      gl.FRAMEBUFFER_BINDING,
+    drawFramebuffer: gl.getParameter(
+      gl.DRAW_FRAMEBUFFER_BINDING,
+    ) as WebGLFramebuffer | null,
+    readFramebuffer: gl.getParameter(
+      gl.READ_FRAMEBUFFER_BINDING,
     ) as WebGLFramebuffer | null,
     vertexArray: gl.getParameter(
       gl.VERTEX_ARRAY_BINDING,
@@ -222,7 +226,8 @@ export function restoreState(
   });
   gl.activeTexture(saved.activeTexture);
   gl.useProgram(saved.program);
-  gl.bindFramebuffer(gl.FRAMEBUFFER, saved.framebuffer);
+  gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, saved.drawFramebuffer);
+  gl.bindFramebuffer(gl.READ_FRAMEBUFFER, saved.readFramebuffer);
   gl.bindVertexArray(saved.vertexArray);
   gl.bindBuffer(gl.ARRAY_BUFFER, saved.arrayBuffer);
   const [x = 0, y = 0, width = 0, height = 0] = saved.viewport;

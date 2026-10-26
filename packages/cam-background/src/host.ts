@@ -1,7 +1,7 @@
 import type { EffectContext, VideoEffect } from "@modular-av/api";
 import { ImageLoadError } from "./errors.ts";
+import { type Liveness, watchLiveness } from "./liveness.ts";
 import type { Mode, PipelineStats } from "./pipeline/pipeline.ts";
-import type { Quality } from "./settings.ts";
 import {
   type FromWorker,
   type ModelUrls,
@@ -10,6 +10,9 @@ import {
   type ToWorker,
   WorkerError,
 } from "./protocol.ts";
+import type { Quality } from "./settings.ts";
+
+export { DEAD_AFTER_MS, PING_EVERY_MS } from "./liveness.ts";
 
 /** The parts of the insertable streams API (Chromium) the host uses. */
 export interface Insertable {
@@ -25,13 +28,6 @@ export interface Insertable {
 export const START_TIMEOUT_MS = 30_000;
 /** How long a stopping worker may take to let go before it is ended. */
 const STOP_GRACE_MS = 2_000;
-/**
- * A running worker is asked this often whether it is alive; one that
- * closed itself or hangs sends no error, only silence.
- */
-export const PING_EVERY_MS = 2_000;
-/** Silent this long: it is taken as dead (a slow frame takes seconds at most). */
-export const DEAD_AFTER_MS = 6_000;
 
 export interface HostOptions {
   readonly connect: () => Port;
@@ -45,6 +41,8 @@ export interface HostOptions {
   readonly image: string | null;
   readonly loadImage: (url: string) => Promise<ImageBitmap>;
   readonly context: EffectContext;
+  /** What it survives: another quality that couldn't start. */
+  readonly onError?: (error: unknown) => void;
   readonly startTimeoutMs?: number;
 }
 
@@ -62,6 +60,7 @@ export async function decodeImage(url: string): Promise<ImageBitmap> {
   try {
     const image = new Image();
     image.crossOrigin = "anonymous";
+    image.referrerPolicy = "no-referrer";
     image.src = url;
     await image.decode();
     return await createImageBitmap(image);
@@ -75,175 +74,239 @@ export async function decodeImage(url: string): Promise<ImageBitmap> {
 const abortError = (): DOMException =>
   new DOMException("The camera background was turned off", "AbortError");
 
+/** Resolves once the first frame is out; rejects on an error, abort or timeout. */
+function firstFrame(
+  options: HostOptions,
+  listen: (settle: (message: FromWorker | Error) => void) => void,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const { signal } = options.context;
+    const settle = (message: FromWorker | Error): void => {
+      if (!(message instanceof Error) && message.type !== "first-frame") return;
+      clearTimeout(timer);
+      signal.removeEventListener("abort", onAbort);
+      listen(() => undefined);
+      if (message instanceof Error) reject(message);
+      else resolve();
+    };
+    const onAbort = (): void => {
+      settle(abortError());
+    };
+    const timer = setTimeout(() => {
+      settle(
+        new DOMException("The camera background didn't start", "TimeoutError"),
+      );
+    }, options.startTimeoutMs ?? START_TIMEOUT_MS);
+    signal.addEventListener("abort", onAbort);
+    listen(settle);
+  });
+}
+
+/** Stops the worker, ending it if it doesn't answer in time. */
+function stopWorker(port: Port): void {
+  const end = setTimeout(() => {
+    port.terminate();
+  }, STOP_GRACE_MS);
+  port.onMessage((message) => {
+    if (message.type !== "stopped") return;
+    clearTimeout(end);
+    port.terminate();
+  });
+  port.post({ type: "stop" });
+}
+
+/** Latest-wins image changes: one decoded late, after a newer pick, is dropped. */
+function imageChanges(
+  options: HostOptions,
+  post: (image: ImageBitmap) => boolean,
+): (url: string) => Promise<void> {
+  let latest = 0;
+  return async (url) => {
+    const asked = (latest += 1);
+    const image = await options.loadImage(url);
+    if (asked !== latest || !post(image)) image.close();
+  };
+}
+
+interface HostState {
+  port: Port | null;
+  generator: InstanceType<Insertable["Generator"]> | null;
+  liveness: Liveness | null;
+  onStart: (message: FromWorker | Error) => void;
+  disposed: boolean;
+  nextStats: number;
+  readonly statsWaiting: Map<
+    number,
+    { resolve: (stats: PipelineStats) => void; reject: (error: Error) => void }
+  >;
+}
+
+const postTo = (
+  state: HostState,
+  message: ToWorker,
+  transfer: Transferable[] = [],
+): boolean => {
+  if (!state.port || state.disposed) return false;
+  state.port.post(message, transfer);
+  return true;
+};
+
+/** Before it runs, a failure fails the start; after, the effect. */
+const failWith =
+  (state: HostState, context: EffectContext) =>
+  (error: Error): void => {
+    if (!state.liveness) state.onStart(error);
+    else if (!state.disposed) context.fail(error);
+  };
+
+function onWorkerMessage(
+  state: HostState,
+  options: HostOptions,
+  message: FromWorker,
+): void {
+  state.liveness?.heard();
+  if (message.type === "stats") {
+    state.statsWaiting.get(message.id)?.resolve(message.stats);
+    state.statsWaiting.delete(message.id);
+  } else if (message.type === "error")
+    failWith(state, options.context)(new WorkerError(message.error));
+  else if (message.type === "model-error")
+    options.onError?.(new WorkerError(message.error));
+  state.onStart(message);
+}
+
+function disposeHost(state: HostState): void {
+  if (state.disposed) return;
+  state.disposed = true;
+  state.liveness?.stop();
+  for (const waiting of state.statsWaiting.values())
+    waiting.reject(abortError());
+  state.statsWaiting.clear();
+  if (state.port) stopWorker(state.port);
+  state.port = null;
+  state.generator?.stop();
+  state.generator = null;
+}
+
+/** Sends the worker what it starts with; the streams and image are transferred. */
+function postStart(
+  state: HostState,
+  options: HostOptions,
+  parts: {
+    readonly input: MediaStreamTrack;
+    readonly output: InstanceType<Insertable["Generator"]>;
+    readonly image: ImageBitmap | null;
+  },
+): void {
+  const processor = new options.insertable.Processor({ track: parts.input });
+  const { image, output } = parts;
+  postTo(
+    state,
+    {
+      type: "start",
+      files: options.files,
+      models: options.models,
+      quality: options.quality,
+      mode: options.mode,
+      strength: options.strength,
+      image,
+      input: processor.readable,
+      output: output.writable,
+    },
+    [processor.readable, output.writable, ...(image ? [image] : [])],
+  );
+}
+
+/** Hands the worker the camera; resolves with its output once a frame is out. */
+async function startHost(
+  state: HostState,
+  options: HostOptions,
+  input: MediaStreamTrack,
+): Promise<MediaStreamTrack> {
+  const { context } = options;
+  context.signal.throwIfAborted();
+  const image =
+    options.mode === "replace" && options.image
+      ? await options.loadImage(options.image)
+      : null;
+  if (context.signal.aborted) {
+    image?.close();
+    throw abortError();
+  }
+  const port = options.connect();
+  state.port = port;
+  port.onMessage((message) => {
+    onWorkerMessage(state, options, message);
+  });
+  port.onCrash(failWith(state, context));
+  const output = new options.insertable.Generator({ kind: "video" });
+  state.generator = output;
+  const running = firstFrame(options, (settle) => {
+    state.onStart = settle;
+  });
+  postStart(state, options, { input, output, image });
+  try {
+    await running;
+  } catch (error: unknown) {
+    disposeHost(state);
+    throw error;
+  }
+  state.liveness = watchLiveness(
+    (id) => postTo(state, { type: "ping", id }),
+    failWith(state, context),
+  );
+  return output;
+}
+
+function statsOf(state: HostState): Promise<PipelineStats> {
+  const id = (state.nextStats += 1);
+  return new Promise((resolve, reject) => {
+    state.statsWaiting.set(id, { resolve, reject });
+    if (!postTo(state, { type: "stats", id })) {
+      state.statsWaiting.delete(id);
+      reject(abortError());
+    }
+  });
+}
+
 /**
  * The effect on the page: hands the camera's frames to the worker as a
  * stream and gives the core the worker's output track. The page does no
  * work per frame.
  */
 export function createHost(options: HostOptions): BackgroundEffect {
-  const { context } = options;
-  let port: Port | null = null;
-  let generator: InstanceType<Insertable["Generator"]> | null = null;
-  let started = false;
-  let disposed = false;
-  let nextStats = 0;
-  let nextPing = 0;
-  let lastAnswer = 0;
-  let pinging: ReturnType<typeof setInterval> | undefined;
-  const statsWaiting = new Map<number, (stats: PipelineStats) => void>();
-  let onStartMessage: (message: FromWorker | Error) => void = () => undefined;
-
-  const post = (message: ToWorker, transfer: Transferable[] = []): void => {
-    port?.post(message, transfer);
+  const state: HostState = {
+    port: null,
+    generator: null,
+    liveness: null,
+    onStart: () => undefined,
+    disposed: false,
+    nextStats: 0,
+    statsWaiting: new Map(),
   };
-
-  const failed = (error: Error): void => {
-    if (!started) onStartMessage(error);
-    else if (!disposed) context.fail(error);
-  };
-
-  const listen = (p: Port): void => {
-    p.onMessage((message) => {
-      lastAnswer = Date.now();
-      if (message.type === "stats") {
-        statsWaiting.get(message.id)?.(message.stats);
-        statsWaiting.delete(message.id);
-      } else if (message.type === "error") {
-        failed(new WorkerError(message.error));
-      } else if (message.type === "first-frame") {
-        onStartMessage(message);
-      }
-    });
-    p.onCrash(failed);
-  };
-
-  const firstFrame = (): Promise<void> =>
-    new Promise((resolve, reject) => {
-      const timer = setTimeout(() => {
-        onStartMessage(
-          new DOMException(
-            "The camera background didn't start",
-            "TimeoutError",
-          ),
-        );
-      }, options.startTimeoutMs ?? START_TIMEOUT_MS);
-      const onAbort = (): void => {
-        onStartMessage(abortError());
-      };
-      context.signal.addEventListener("abort", onAbort);
-      onStartMessage = (message) => {
-        clearTimeout(timer);
-        context.signal.removeEventListener("abort", onAbort);
-        onStartMessage = () => undefined;
-        if (message instanceof Error) reject(message);
-        else resolve();
-      };
-    });
-
-  const watchAlive = (): void => {
-    lastAnswer = Date.now();
-    pinging = setInterval(() => {
-      if (Date.now() - lastAnswer <= DEAD_AFTER_MS) {
-        post({ type: "ping", id: (nextPing += 1) });
-        return;
-      }
-      clearInterval(pinging);
-      failed(
-        new WorkerError({
-          name: "WorkerError",
-          message: "The camera background's worker stopped answering",
-        }),
-      );
-    }, PING_EVERY_MS);
-  };
-
-  const dispose = (): void => {
-    if (disposed) return;
-    disposed = true;
-    clearInterval(pinging);
-    const current = port;
-    port = null;
-    if (current) {
-      const end = setTimeout(() => {
-        current.terminate();
-      }, STOP_GRACE_MS);
-      current.onMessage((message) => {
-        if (message.type !== "stopped") return;
-        clearTimeout(end);
-        current.terminate();
-      });
-      current.post({ type: "stop" });
-    }
-    generator?.stop();
-    generator = null;
-  };
-
   return {
-    async start(input) {
-      context.signal.throwIfAborted();
-      const image =
-        options.mode === "replace" && options.image
-          ? await options.loadImage(options.image)
-          : null;
-      context.signal.throwIfAborted();
-      const p = options.connect();
-      port = p;
-      listen(p);
-      const output = new options.insertable.Generator({ kind: "video" });
-      generator = output;
-      const processor = new options.insertable.Processor({ track: input });
-      const running = firstFrame();
-      post(
-        {
-          type: "start",
-          files: options.files,
-          models: options.models,
-          quality: options.quality,
-          mode: options.mode,
-          strength: options.strength,
-          image,
-          input: processor.readable,
-          output: output.writable,
-        },
-        [processor.readable, output.writable, ...(image ? [image] : [])],
-      );
-      try {
-        await running;
-      } catch (error: unknown) {
-        dispose();
-        throw error;
-      }
-      started = true;
-      watchAlive();
-      return output;
-    },
+    start: (input) => startHost(state, options, input),
     replaceInput(input) {
+      if (state.disposed) return Promise.resolve();
       const processor = new options.insertable.Processor({ track: input });
-      post({ type: "input", input: processor.readable }, [processor.readable]);
+      postTo(state, { type: "input", input: processor.readable }, [
+        processor.readable,
+      ]);
       return Promise.resolve();
     },
     setStrength(strength) {
-      post({ type: "strength", value: strength });
+      postTo(state, { type: "strength", value: strength });
     },
-    async setImage(url) {
-      const image = await options.loadImage(url);
-      if (disposed) {
-        image.close();
-        return;
-      }
-      post({ type: "image", image }, [image]);
-    },
+    setImage: imageChanges(options, (image) =>
+      postTo(state, { type: "image", image }, [image]),
+    ),
     setQuality(quality) {
-      post({ type: "quality", quality });
+      postTo(state, { type: "quality", quality });
     },
-    stats() {
-      const id = (nextStats += 1);
-      return new Promise((resolve) => {
-        statsWaiting.set(id, resolve);
-        post({ type: "stats", id });
-      });
+    stats: () => statsOf(state),
+    dispose: () => {
+      disposeHost(state);
     },
-    dispose,
   };
 }
 
