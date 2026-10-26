@@ -27,6 +27,8 @@ export interface AudioRecording {
 
 export interface PipelineControls {
   published(): PublishedTracks;
+  /** The track the service was given for `source`, for page code to read. */
+  track(source: TrackSource): MediaStreamTrack | null;
   /** Reads what the service was given for `source` for `ms` (Chromium). */
   record(source: TrackSource, ms: number): Promise<AudioRecording>;
   /** The pass-through camera effect stops (or resumes) sending frames. */
@@ -264,6 +266,7 @@ export function installPipeline(
           { id: t.id, label: t.label },
         ]),
       ),
+    track: (source) => published.get(source) ?? null,
     record(source, ms) {
       const track = published.get(source);
       if (!track)

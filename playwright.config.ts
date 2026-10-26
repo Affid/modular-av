@@ -1,12 +1,17 @@
 import { existsSync } from "node:fs";
 import { defineConfig, devices } from "@playwright/test";
 import {
+  FAKE_CAMERA_Y4M,
+  writeFakeCamera,
+} from "./scripts/foundry/fake-camera.ts";
+import {
   FAKE_VOICE_WAV,
   writeFakeVoice,
 } from "./scripts/foundry/fake-speech.ts";
 
-// Written once: workers load this config too, while Chrome reads the file.
+// Written once: workers load this config too, while Chrome reads the files.
 if (!existsSync(FAKE_VOICE_WAV)) writeFakeVoice();
+if (!existsSync(FAKE_CAMERA_Y4M)) writeFakeCamera();
 
 const FAKE_MEDIA = [
   "--use-fake-ui-for-media-stream",
@@ -33,7 +38,10 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      testIgnore: "*/test/browser/**/*.effects.spec.ts",
+      testIgnore: [
+        "*/test/browser/**/*.effects.spec.ts",
+        "*/test/browser/**/*.camera.spec.ts",
+      ],
       use: {
         ...devices["Desktop Chrome"],
         launchOptions: { args: FAKE_MEDIA },
@@ -50,6 +58,21 @@ export default defineConfig({
           args: [
             ...FAKE_MEDIA,
             `--use-file-for-fake-audio-capture=${FAKE_VOICE_WAV}`,
+          ],
+        },
+      },
+    },
+    {
+      // Camera backgrounds need a person in front of the camera (see
+      // writeFakeCamera); Chrome's default one shows a moving pattern.
+      name: "camera",
+      testMatch: "*/test/browser/**/*.camera.spec.ts",
+      use: {
+        ...devices["Desktop Chrome"],
+        launchOptions: {
+          args: [
+            ...FAKE_MEDIA,
+            `--use-file-for-fake-video-capture=${FAKE_CAMERA_Y4M}`,
           ],
         },
       },
