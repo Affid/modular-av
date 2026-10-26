@@ -1,0 +1,53 @@
+{
+  "id": "modular-av",
+  "title": "Modular A/V — voice & video",
+  "description": "Voice and video for Foundry VTT, built from modules: pick a service, a look and the effects you want.",
+  "authors": [
+    {
+      "name": "Andrei Fedorov",
+      "url": "https://github.com/Affid"
+    }
+  ],
+  "url": "https://github.com/Affid/modular-av",
+  "bugs": "https://github.com/Affid/modular-av/issues",
+  "license": "LICENSE",
+  "compatibility": {
+    "minimum": "14",
+    "verified": "14.369"
+  },
+  "esmodules": [
+    "modular-av.js"
+  ],
+  "socket": true,
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    }
+  ],
+  "relationships": {
+    "conflicts": [
+      {
+        "id": "avclient-livekit",
+        "type": "module",
+        "reason": "Both replace Foundry's A/V client; enable only one."
+      }
+    ],
+    "recommends": [
+      {
+        "id": "modular-av-dock",
+        "type": "module",
+        "reason": "Gives Modular A/V its camera dock, voice panel and settings window."
+      },
+      {
+        "id": "modular-av-livekit",
+        "type": "module",
+        "reason": "Carries calls over a LiveKit server or LiveKit Cloud. Or use modular-av-p2p, without a server."
+      }
+    ]
+  },
+  "version": "0.1.0",
+  "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av/module.json",
+  "download": "https://github.com/Affid/modular-av/releases/download/modular-av-v0.1.0/modular-av.zip"
+}
