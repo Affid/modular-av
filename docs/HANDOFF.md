@@ -1602,7 +1602,11 @@ livekit-server 1.13.8):
 - **Memory**: the soak (`camera-soak.bench.ts`) samples the PSS of the
   browser's whole process tree (only the browser process names the
   profile) and the page's heap; in software WebGL the GPU's memory is
-  process memory. 10 minutes: about 840 MB, flat (0.01 MB a minute).
+  process memory. Two hours of blur: the page's heap flat, the processes
+  at 840 ± 5 MB from the 30th minute on (the second hour's slope -0.009 MB
+  a minute); the first half hour dipped twice to about 716 MB as the
+  browser released memory, which a straight line over the whole run reads
+  as 0.28 MB a minute.
 - **Foundry v14 hands world setting values over parsed**
   (`storage.get("world").getItem` returns the object, not the JSON string
   its documentation describes); client settings are JSON strings in
