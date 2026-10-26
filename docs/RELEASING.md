@@ -21,7 +21,10 @@ by `publish` until the hold is removed.
 
 1. Record changes as you go: `pnpm changeset`.
 2. Bump versions and write changelogs: `pnpm version:packages`, then commit.
-3. Check everything: `pnpm verify` and `pnpm foundry:check`.
+3. Check everything: `pnpm verify`, `pnpm test:services`,
+   `pnpm test:foundry` and `pnpm foundry:check`; for a release that
+   changes the camera background, its two-hour memory soak too
+   (`MAV_SOAK_MINUTES=120 pnpm bench:camera camera-soak`).
 4. For each module:
    - `pnpm release:pack <module-id>` builds `release/<module-id>/`;
    - `pnpm release:publish <module-id>` checks the tree and shows the
