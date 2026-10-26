@@ -3,6 +3,7 @@ import { join } from "node:path";
 import type { Plugin, UserConfig } from "vite";
 import { readAssets } from "../assets/assets.ts";
 import { fetchDownloads } from "../assets/downloads.ts";
+import { readWorkers } from "../assets/workers.ts";
 import {
   disallowed,
   packageDirs,
@@ -109,9 +110,16 @@ export function foundryModuleConfig(packageDir: string): UserConfig {
         output: { comments: { legal: true, annotation: true, jsdoc: false } },
       },
       lib: {
-        entry: join(packageDir, "src/index.ts"),
+        // The module's entry, and its workers (`modularAV.workers`) as
+        // entries of their own, fetched by the browser only when started.
+        entry: {
+          [id]: join(packageDir, "src/index.ts"),
+          ...Object.fromEntries(
+            readWorkers(packageDir).map((w) => [w.name, w.source]),
+          ),
+        },
         formats: ["es"],
-        fileName: () => `${id}.js`,
+        fileName: (_format, entryName) => `${entryName}.js`,
         // A UI module's styles, listed in its module.json.
         cssFileName: id,
       },

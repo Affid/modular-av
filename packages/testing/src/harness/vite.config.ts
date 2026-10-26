@@ -3,6 +3,7 @@ import { join, normalize, sep } from "node:path";
 import { defineConfig, type Plugin } from "vite";
 import { readAssets } from "../../../../tools/assets/assets.ts";
 import { fetchDownloads } from "../../../../tools/assets/downloads.ts";
+import { readWorkers } from "../../../../tools/assets/workers.ts";
 import { signalRelay } from "./signal-relay.ts";
 
 export const HARNESS_PORT = 5174;
@@ -23,6 +24,8 @@ interface ModuleFiles {
   readonly pub: string | null;
   /** Files copied at build time (`modularAV.assets` and `.downloads`). */
   readonly assets: ReadonlyMap<string, string>;
+  /** Worker scripts (`modularAV.workers`): published path → source. */
+  readonly workers: ReadonlyMap<string, string>;
 }
 
 /** Module id → what Foundry would serve from its directory. */
@@ -41,6 +44,9 @@ async function moduleDirs(): Promise<ReadonlyMap<string, ModuleFiles>> {
       const files: ModuleFiles = {
         pub: existsSync(pub) ? pub : null,
         assets: new Map([...readAssets(join(PACKAGES, dir)), ...downloads]),
+        workers: new Map(
+          readWorkers(join(PACKAGES, dir)).map((w) => [w.path, w.source]),
+        ),
       };
       return [id, files] as const;
     }),
@@ -87,6 +93,13 @@ function moduleFiles(dirs: ReadonlyMap<string, ModuleFiles>): Plugin {
         if (match?.[2] && isBroken(req.headers.referer, match[2])) {
           res.statusCode = 404;
           res.end();
+          return;
+        }
+        // A worker runs from source: a module that imports it through Vite.
+        const worker = match?.[2] ? files?.workers.get(match[2]) : undefined;
+        if (worker) {
+          res.setHeader("Content-Type", "text/javascript");
+          res.end(`import ${JSON.stringify(`/@fs${worker}`)};\n`);
           return;
         }
         const file = match?.[2] ? fileOf(files, match[2]) : null;
