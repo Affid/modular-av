@@ -23,6 +23,8 @@ export const SETTINGS = {
   strength: "blurStrength",
   image: "image",
   customImage: "customImage",
+  /** LiveKit AVClient's choices were brought over (see legacy.ts). */
+  imported: "legacyImported",
 } as const;
 
 export interface ImageChoice {
@@ -95,6 +97,7 @@ export function registerSettings(
   });
   client(SETTINGS.image, { type: String, default: DEFAULT_IMAGE });
   client(SETTINGS.customImage, { type: String, default: "" });
+  client(SETTINGS.imported, { type: Boolean, default: false });
   return observed;
 }
 

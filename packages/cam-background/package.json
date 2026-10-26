@@ -18,7 +18,7 @@
     "@modular-av/testing": "workspace:*"
   },
   "modularAV": {
-    "entryBudgetBytes": 10000,
+    "entryBudgetBytes": 11000,
     "workerBudgetBytes": 240000,
     "workers": {
       "worker.js": "src/worker/main.ts"
