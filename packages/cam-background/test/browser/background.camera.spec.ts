@@ -147,7 +147,10 @@ test("blur sends the camera with the shelf behind the person blurred and the fac
       },
     )
     .toBe("running");
-  expect((await state(page)).local.cameraHold).toBeNull();
+  // Running, then sent once the core's watchdog saw its frames.
+  await expect
+    .poll(async () => (await state(page)).local.cameraHold)
+    .toBeNull();
   const sent = await detail(page, "sent");
   test.info().annotations.push({
     type: "detail",
