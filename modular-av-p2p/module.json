@@ -1,0 +1,47 @@
+{
+  "id": "modular-av-p2p",
+  "title": "Modular A/V: P2P",
+  "description": "Carries Modular A/V calls directly between players' browsers, with no media server. Best for small tables.",
+  "authors": [
+    {
+      "name": "Andrei Fedorov",
+      "url": "https://github.com/Affid"
+    }
+  ],
+  "url": "https://github.com/Affid/modular-av",
+  "bugs": "https://github.com/Affid/modular-av/issues",
+  "license": "LICENSE",
+  "compatibility": {
+    "minimum": "14",
+    "verified": "14.369"
+  },
+  "esmodules": [
+    "modular-av-p2p.js"
+  ],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    }
+  ],
+  "relationships": {
+    "requires": [
+      {
+        "id": "modular-av",
+        "type": "module",
+        "compatibility": {
+          "minimum": "0.1.0"
+        }
+      }
+    ]
+  },
+  "flags": {
+    "modular-av": {
+      "kind": "service"
+    }
+  },
+  "version": "0.1.0",
+  "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-p2p/module.json",
+  "download": "https://github.com/Affid/modular-av/releases/download/modular-av-p2p-v0.1.0/modular-av-p2p.zip"
+}
