@@ -220,6 +220,19 @@ importers:
 
   packages/api: {}
 
+  packages/cam-background:
+    dependencies:
+      '@mediapipe/tasks-vision':
+        specifier: 1.1.1
+        version: 1.1.1
+      '@modular-av/api':
+        specifier: workspace:*
+        version: link:../api
+    devDependencies:
+      '@modular-av/testing':
+        specifier: workspace:*
+        version: link:../testing
+
   packages/core:
     dependencies:
       '@modular-av/api':
@@ -502,6 +515,9 @@ packages:
   '@manypkg/tools@2.1.2':
     resolution: {integrity: sha512-6QEf6yqFbETdwGITKq57aYoPfX/3K8XFNwsAlx0C1M7o8cb79sv1M3w+tWuWvIcSbNqrLF7OD7YpZMVVz335hQ==}
     engines: {node: '>=20.0.0'}
+
+  '@mediapipe/tasks-vision@1.1.1':
+    resolution: {integrity: sha512-jwntgT5tzDrKOkqg6xNDNpRcTUnGvmylZE5DFnzPXossiWOIDdZX+C81LI75hlXhsG58YZW+lGzcmjH1qrQE/Q==}
 
   '@oxc-project/types@0.155.0':
     resolution: {integrity: sha512-SeE8JPwW1xs1tHeNycjUtUBdhorRa8o4jlvjwk49R7/Z291i+4DQa7JJIgOm/TaYQZx+QrPQbVJ/9c8dMIZN8Q==}
@@ -1634,6 +1650,8 @@ snapshots:
       jju: 1.4.0
       tinyglobby: 0.2.17
       yaml: 2.9.1
+
+  '@mediapipe/tasks-vision@1.1.1': {}
 
   '@oxc-project/types@0.155.0': {}
 

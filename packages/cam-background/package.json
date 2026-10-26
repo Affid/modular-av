@@ -1,0 +1,41 @@
+{
+  "name": "@modular-av/cam-background",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Modular A/V effect module: camera background blur and replacement with MediaPipe selfie segmentation.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p test/browser"
+  },
+  "dependencies": {
+    "@modular-av/api": "workspace:*",
+    "@mediapipe/tasks-vision": "1.1.1"
+  },
+  "devDependencies": {
+    "@modular-av/testing": "workspace:*"
+  },
+  "modularAV": {
+    "entryBudgetBytes": 8000,
+    "workerBudgetBytes": 240000,
+    "workers": {
+      "worker.js": "src/worker/main.ts"
+    },
+    "assets": {
+      "mediapipe/vision_wasm_module_internal.js": "@mediapipe/tasks-vision/vision_wasm_module_internal.js",
+      "mediapipe/vision_wasm_module_internal.wasm": "@mediapipe/tasks-vision/vision_wasm_module_internal.wasm"
+    },
+    "downloads": {
+      "models/selfie_segmenter.tflite": {
+        "url": "https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/1/selfie_segmenter.tflite",
+        "sha256": "191ac9529ae506ee0beefa6b2c945a172dab9d07d1e802a290a4e4038226658b"
+      },
+      "models/selfie_multiclass_256x256.tflite": {
+        "url": "https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_multiclass_256x256/float32/1/selfie_multiclass_256x256.tflite",
+        "sha256": "c6748b1253a99067ef71f7e26ca71096cd449baefa8f101900ea23016507e0e0"
+      }
+    }
+  }
+}

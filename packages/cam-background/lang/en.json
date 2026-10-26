@@ -1,0 +1,39 @@
+{
+  "modular-av-cam-background": {
+    "effects": {
+      "blur": "Blur background",
+      "replace": "Replace background"
+    },
+    "section": "Camera background",
+    "settings": {
+      "quality": {
+        "name": "Background quality",
+        "hint": "High is cleaner around your hair and takes a little more of your graphics card. It needs graphics acceleration in your browser; without it, Standard is used.",
+        "choices": {
+          "standard": "Standard",
+          "high": "High"
+        }
+      },
+      "blurStrength": {
+        "name": "Blur strength",
+        "hint": "How strongly the background is blurred."
+      }
+    },
+    "controls": {
+      "strength": "Strength",
+      "image": "Background image",
+      "pick": "Choose an image…",
+      "address": "Image address",
+      "addressHint": "The address of an image on the web (https://…). Its server must allow other sites to use it.",
+      "use": "Use this image"
+    },
+    "images": {
+      "study": "Study",
+      "night": "Night sky",
+      "forest": "Forest",
+      "foundryFantasy": "Foundry (fantasy)",
+      "foundryScifi": "Foundry (science fiction)",
+      "custom": "Your image"
+    }
+  }
+}

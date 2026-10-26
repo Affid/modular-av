@@ -1,0 +1,16 @@
+{
+  "id": "modular-av-cam-background",
+  "title": "Modular A/V: Camera background",
+  "description": "Blurs or replaces the background of your camera, in your browser, with MediaPipe's selfie segmentation. Pick it in the voice and video settings.",
+  "authors": [{ "name": "Andrei Fedorov", "url": "https://github.com/Affid" }],
+  "url": "https://github.com/Affid/modular-av",
+  "bugs": "https://github.com/Affid/modular-av/issues",
+  "license": "LICENSE",
+  "compatibility": { "minimum": "14", "verified": "14.369" },
+  "esmodules": ["modular-av-cam-background.js"],
+  "languages": [{ "lang": "en", "name": "English", "path": "lang/en.json" }],
+  "relationships": {
+    "requires": [{ "id": "modular-av", "type": "module" }]
+  },
+  "flags": { "modular-av": { "kind": "effect" } }
+}

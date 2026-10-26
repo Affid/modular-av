@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1200" viewBox="0 0 1600 1200">
+<title>Forest</title>
+<defs>
+<linearGradient id="air" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cfe3d6"/><stop offset="1" stop-color="#7fa38a"/></linearGradient>
+<linearGradient id="mist" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e8f2ea" stop-opacity="0"/><stop offset="1" stop-color="#e8f2ea" stop-opacity="0.55"/></linearGradient>
+<filter id="soft" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="14"/></filter>
+</defs>
+<rect width="1600" height="1200" fill="url(#air)"/>
+<g filter="url(#soft)">
+<path d="M886 417 L971 820 L801 820 Z" fill="#8fb39a"/>
+<path d="M1559 441 L1639 820 L1479 820 Z" fill="#8fb39a"/>
+<path d="M885 430 L967 820 L803 820 Z" fill="#8fb39a"/>
+<path d="M1162 512 L1227 820 L1097 820 Z" fill="#8fb39a"/>
+<path d="M338 429 L420 820 L256 820 Z" fill="#8fb39a"/>
+<path d="M934 403 L1022 820 L846 820 Z" fill="#8fb39a"/>
+<path d="M1584 513 L1648 820 L1520 820 Z" fill="#8fb39a"/>
+<path d="M152 446 L231 820 L73 820 Z" fill="#8fb39a"/>
+<path d="M581 524 L643 820 L519 820 Z" fill="#8fb39a"/>
+<path d="M145 423 L228 820 L62 820 Z" fill="#8fb39a"/>
+<path d="M1618 550 L1675 820 L1561 820 Z" fill="#8fb39a"/>
+<path d="M1179 459 L1255 820 L1103 820 Z" fill="#8fb39a"/>
+<path d="M887 403 L975 820 L799 820 Z" fill="#8fb39a"/>
+<path d="M1291 520 L1354 820 L1228 820 Z" fill="#8fb39a"/>
+<path d="M1236 557 L1291 820 L1181 820 Z" fill="#8fb39a"/>
+<path d="M1042 544 L1100 820 L984 820 Z" fill="#8fb39a"/>
+<path d="M81 551 L137 820 L25 820 Z" fill="#8fb39a"/>
+<path d="M349 499 L416 820 L282 820 Z" fill="#8fb39a"/>
+<path d="M1188 553 L1244 820 L1132 820 Z" fill="#8fb39a"/>
+<path d="M1553 442 L1632 820 L1474 820 Z" fill="#8fb39a"/>
+<path d="M628 448 L706 820 L550 820 Z" fill="#8fb39a"/>
+<path d="M1170 510 L1235 820 L1105 820 Z" fill="#8fb39a"/>
+<path d="M1023 501 L1090 820 L956 820 Z" fill="#8fb39a"/>
+<path d="M1271 485 L1341 820 L1201 820 Z" fill="#8fb39a"/>
+<path d="M983 559 L1038 820 L928 820 Z" fill="#8fb39a"/>
+<path d="M1316 539 L1375 820 L1257 820 Z" fill="#8fb39a"/>
+<rect y="700" width="1600" height="300" fill="url(#mist)"/>
+<path d="M896 453 L1011 1000 L781 1000 Z" fill="#55806a"/>
+<path d="M529 516 L631 1000 L427 1000 Z" fill="#55806a"/>
+<path d="M1088 382 L1218 1000 L958 1000 Z" fill="#55806a"/>
+<path d="M130 439 L248 1000 L12 1000 Z" fill="#55806a"/>
+<path d="M480 540 L577 1000 L383 1000 Z" fill="#55806a"/>
+<path d="M1512 562 L1604 1000 L1420 1000 Z" fill="#55806a"/>
+<path d="M1010 547 L1105 1000 L915 1000 Z" fill="#55806a"/>
+<path d="M20 603 L103 1000 L-63 1000 Z" fill="#55806a"/>
+<path d="M1113 424 L1234 1000 L992 1000 Z" fill="#55806a"/>
+<path d="M181 518 L282 1000 L80 1000 Z" fill="#55806a"/>
+<path d="M180 404 L305 1000 L55 1000 Z" fill="#55806a"/>
+<path d="M555 522 L655 1000 L455 1000 Z" fill="#55806a"/>
+<path d="M96 616 L177 1000 L15 1000 Z" fill="#55806a"/>
+<path d="M1362 620 L1442 1000 L1282 1000 Z" fill="#55806a"/>
+<path d="M397 567 L488 1000 L306 1000 Z" fill="#55806a"/>
+<path d="M67 500 L172 1000 L-38 1000 Z" fill="#55806a"/>
+<path d="M728 439 L846 1000 L610 1000 Z" fill="#55806a"/>
+<path d="M773 513 L875 1000 L671 1000 Z" fill="#55806a"/>
+<path d="M109 476 L219 1000 L-1 1000 Z" fill="#55806a"/>
+<path d="M1249 570 L1339 1000 L1159 1000 Z" fill="#55806a"/>
+<path d="M1554 448 L1670 1000 L1438 1000 Z" fill="#55806a"/>
+<path d="M512 534 L610 1000 L414 1000 Z" fill="#55806a"/>
+<path d="M138 521 L289 1240 L-13 1240 Z" fill="#2f5442"/>
+<path d="M641 673 L760 1240 L522 1240 Z" fill="#2f5442"/>
+<path d="M799 620 L929 1240 L669 1240 Z" fill="#2f5442"/>
+<path d="M235 554 L379 1240 L91 1240 Z" fill="#2f5442"/>
+<path d="M1407 629 L1535 1240 L1279 1240 Z" fill="#2f5442"/>
+<path d="M-18 650 L106 1240 L-142 1240 Z" fill="#2f5442"/>
+<path d="M912 431 L1082 1240 L742 1240 Z" fill="#2f5442"/>
+<path d="M323 394 L501 1240 L145 1240 Z" fill="#2f5442"/>
+<path d="M345 451 L511 1240 L179 1240 Z" fill="#2f5442"/>
+<path d="M1002 583 L1140 1240 L864 1240 Z" fill="#2f5442"/>
+<path d="M1458 613 L1590 1240 L1326 1240 Z" fill="#2f5442"/>
+<path d="M818 484 L977 1240 L659 1240 Z" fill="#2f5442"/>
+<path d="M198 478 L358 1240 L38 1240 Z" fill="#2f5442"/>
+<path d="M821 572 L961 1240 L681 1240 Z" fill="#2f5442"/>
+<path d="M-40 542 L107 1240 L-187 1240 Z" fill="#2f5442"/>
+<path d="M1605 525 L1755 1240 L1455 1240 Z" fill="#2f5442"/>
+</g>
+</svg>
