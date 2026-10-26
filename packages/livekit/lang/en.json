@@ -14,6 +14,18 @@
         "name": "LiveKit API secret",
         "hint": "Stored only in this browser and never sent to players. Enter it on each browser a GM uses to run the game."
       }
+    },
+    "legacy": {
+      "title": "Settings from LiveKit AVClient",
+      "question": "This world has LiveKit server settings from LiveKit AVClient, the module Modular A/V replaces. Use them here? The address goes to the world's settings; the API key and secret are kept only in this browser.",
+      "import": "Use them",
+      "later": "Not now",
+      "never": "Don't ask again",
+      "remove": "Remove LiveKit AVClient's server settings from this world? Every player's browser could read them, the secret included.",
+      "imported": "Modular A/V: LiveKit now uses the server from LiveKit AVClient.",
+      "rotate": "LiveKit AVClient kept the API secret where every player could read it. Create a new key and secret in your LiveKit project, enter them in Modular A/V: LiveKit's settings, and delete the old key.",
+      "tavern": "LiveKit AVClient used Tavern's Patreon server here, which Modular A/V doesn't support. Set up a LiveKit server or LiveKit Cloud, or use P2P.",
+      "badAddress": "LiveKit AVClient's server address couldn't be used. Enter it in Modular A/V: LiveKit's settings."
     }
   }
 }

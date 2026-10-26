@@ -55,6 +55,16 @@ export function registerSecretSettings(
     });
 }
 
+/** Per device: a GM who declined to bring LiveKit AVClient's server over. */
+export function registerLegacySetting(settings: SettingsApi): void {
+  settings.register(MODULE_ID, "legacyDeclined", {
+    scope: "client",
+    config: false,
+    type: Boolean,
+    default: false,
+  });
+}
+
 /** Loopback, private ranges and .local names: ws:// is acceptable there. */
 const LOCAL_HOST =
   /^(localhost|127\.\d+\.\d+\.\d+|\[::1\]|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+|[\w-]+\.local)$/i;
