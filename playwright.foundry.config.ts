@@ -1,12 +1,17 @@
 import { existsSync } from "node:fs";
 import { defineConfig, devices } from "@playwright/test";
 import {
+  FAKE_CAMERA_Y4M,
+  writeFakeCamera,
+} from "./scripts/foundry/fake-camera.ts";
+import {
   FAKE_SPEECH_WAV,
   writeFakeSpeech,
 } from "./scripts/foundry/fake-speech.ts";
 
-// Written once: workers load this config too, while Chrome reads the file.
+// Written once: workers load this config too, while Chrome reads the files.
 if (!existsSync(FAKE_SPEECH_WAV)) writeFakeSpeech();
+if (!existsSync(FAKE_CAMERA_Y4M)) writeFakeCamera();
 
 /**
  * End to end in the local Foundry world (`pnpm test:foundry`): Foundry must
@@ -41,6 +46,8 @@ export default defineConfig({
         // 1.5 s of voice-like sound, 1.5 s of silence: speech, for the
         // voice gate and the noise models.
         `--use-file-for-fake-audio-capture=${FAKE_SPEECH_WAV}`,
+        // A person before a bookshelf, for the camera background.
+        `--use-file-for-fake-video-capture=${FAKE_CAMERA_Y4M}`,
       ],
     },
   },
