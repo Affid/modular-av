@@ -4,6 +4,7 @@ import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ROOT } from "../workspace.ts";
 import { isSafePath } from "./assets.ts";
+import { extractFromTarGz } from "./tar.ts";
 
 /**
  * Files a module serves that no npm package carries (MediaPipe's models
@@ -11,11 +12,14 @@ import { isSafePath } from "./assets.ts";
  * `modularAV.downloads`, published path → `{ url, sha256 }`, a versioned
  * URL and the file's hash. The build and the test harness fetch each once
  * into a cache outside the repository and check it, so nothing is
- * vendored (handoff §2) and a changed file can't slip in.
+ * vendored (handoff §2) and a changed file can't slip in. `extract`
+ * takes one file out of a `.tgz` (a release asset that is no npm
+ * package, e.g. lib-jitsi-meet); the hash is then the archive's.
  */
 export interface Download {
   readonly url: string;
   readonly sha256: string;
+  readonly extract?: string;
 }
 
 export const DOWNLOAD_CACHE = join(
@@ -45,7 +49,11 @@ function check(packageDir: string, path: string, value: unknown): Download {
     throw new Error(`${packageDir}: ${path} must download over https`);
   if (!/^[0-9a-f]{64}$/.test(value.sha256))
     throw new Error(`${packageDir}: ${path} needs a sha256 of 64 hex digits`);
-  return { url: value.url, sha256: value.sha256 };
+  const extract: unknown = (value as { extract?: unknown }).extract;
+  if (extract === undefined) return { url: value.url, sha256: value.sha256 };
+  if (typeof extract !== "string" || !isSafePath(extract))
+    throw new Error(`${packageDir}: ${path} has an unsafe extract path`);
+  return { url: value.url, sha256: value.sha256, extract };
 }
 
 export function readDownloads(
@@ -96,8 +104,12 @@ async function download(
     throw new Error(
       `${path}: sha256 ${got} doesn't match the pinned ${item.sha256} (${item.url})`,
     );
-  // Written aside, then moved: a cut-off download never looks cached. The
-  // name is unique: two paths may pin the same file.
+  // A unique partial name: two paths may pin the same file.
+  await writeWhole(file, bytes);
+}
+
+/** Writes aside, then moves: a cut-off write never looks complete. */
+async function writeWhole(file: string, bytes: Uint8Array): Promise<void> {
   const partial = `${file}.${randomUUID()}.partial`;
   try {
     await writeFile(partial, bytes);
@@ -105,6 +117,14 @@ async function download(
   } finally {
     await rm(partial, { force: true });
   }
+}
+
+/** The file out of a checked archive, written next to it in the cache. */
+async function extracted(archive: string, inside: string): Promise<string> {
+  const name = createHash("sha256").update(inside).digest("hex").slice(0, 16);
+  const file = `${archive}.${name}`;
+  await writeWhole(file, extractFromTarGz(await readFile(archive), inside));
+  return file;
 }
 
 /** Published path → the checked file in the cache, downloading what's missing. */
@@ -121,7 +141,11 @@ export async function fetchDownloads(
       const file = join(cacheDir, item.sha256);
       if (!(await cached(file, item.sha256)))
         await download(path, item, file, fetcher);
-      return [path, file] as const;
+      // Taken out again each time, from the archive just checked.
+      return [
+        path,
+        item.extract ? await extracted(file, item.extract) : file,
+      ] as const;
     }),
   );
   return new Map(entries);
