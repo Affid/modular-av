@@ -1,5 +1,7 @@
 import type { ModularAV } from "@modular-av/api";
+import { backgroundContributions } from "./controls.ts";
 import { createBackgroundDefinitions } from "./definition.ts";
+import type { FoundryUi } from "./picker.ts";
 import { type CameraBackgroundSettings, MODULE_ID } from "./settings.ts";
 
 const reportError = (error: unknown): void => {
@@ -9,20 +11,44 @@ const reportError = (error: unknown): void => {
   console.error(`Modular A/V: Camera background | ${text}`);
 };
 
-/** Registers blur and replace; their code loads once one is turned on. */
+export interface RegisterDeps {
+  readonly settings: CameraBackgroundSettings;
+  /** Foundry's route for a path on its server. */
+  readonly route: (path: string) => string;
+  /** Foundry's file browser and dialogs, for "Choose an image…". */
+  readonly ui: () => FoundryUi;
+  readonly onError?: (error: unknown) => void;
+}
+
+/**
+ * Registers blur and replace and their controls; their code (and the
+ * image picker's) loads once used.
+ */
 export function registerBackground(
-  api: Pick<ModularAV, "effects" | "assetUrl">,
-  settings: CameraBackgroundSettings,
-  route: (path: string) => string,
-  onError: (error: unknown) => void = reportError,
+  api: Pick<
+    ModularAV,
+    "effects" | "contributions" | "assetUrl" | "state" | "commands"
+  >,
+  deps: RegisterDeps,
 ): void {
   const definitions = createBackgroundDefinitions({
     assetUrl: (path) => api.assetUrl(MODULE_ID, path),
-    route,
-    settings,
+    route: deps.route,
+    settings: deps.settings,
     loadHost: () => import("./host.ts"),
     loadEffect: () => import("./effect.ts"),
-    onError,
+    onError: deps.onError ?? reportError,
   });
   for (const definition of definitions) api.effects.register(definition);
+  const contributions = backgroundContributions({
+    api,
+    settings: deps.settings,
+    route: deps.route,
+    pickImage: async (current) => {
+      const { pickImage } = await import("./picker.ts");
+      return pickImage(current, deps.ui());
+    },
+  });
+  for (const contribution of contributions)
+    api.contributions.register(contribution);
 }

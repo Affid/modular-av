@@ -1,4 +1,5 @@
 import type { ModularAV } from "@modular-av/api";
+import type { FoundryUi } from "./picker.ts";
 import { registerBackground } from "./register.ts";
 import {
   type CameraBackgroundSettings,
@@ -8,8 +9,18 @@ import {
 
 /** The slice of Foundry's globals this module uses. */
 declare global {
-  var game: { settings: SettingsApi };
-  var foundry: { utils: { getRoute(path: string): string } };
+  var game: {
+    settings: SettingsApi;
+    user: { can(permission: string): boolean } | null;
+    i18n: { localize(key: string): string };
+  };
+  var foundry: {
+    utils: { getRoute(path: string): string };
+    applications: {
+      apps: { FilePicker: { implementation: FoundryUi["FilePicker"] } };
+      api: { DialogV2: FoundryUi["DialogV2"] };
+    };
+  };
   var Hooks: {
     once(hook: string, fn: (...args: never[]) => void): number;
   };
@@ -23,5 +34,14 @@ Hooks.once("init", () => {
 
 Hooks.once("modularAV.register", (api: ModularAV) => {
   if (!settings) return;
-  registerBackground(api, settings, (path) => foundry.utils.getRoute(path));
+  registerBackground(api, {
+    settings,
+    route: (path) => foundry.utils.getRoute(path),
+    ui: () => ({
+      canBrowseFiles: () => game.user?.can("FILES_BROWSE") ?? false,
+      localize: (key) => game.i18n.localize(key),
+      FilePicker: foundry.applications.apps.FilePicker.implementation,
+      DialogV2: foundry.applications.api.DialogV2,
+    }),
+  });
 });
