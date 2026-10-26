@@ -121,8 +121,9 @@ function groupRow(
       select.value = chosen;
       const definition = group.find((d) => d.id === chosen);
       state.textContent = definition ? stateText(ctx, definition, effects) : "";
+      // About sound breaking up: audio effects only.
       hint.hidden =
-        !definition ||
+        definition?.kind !== "audio" ||
         definition.cost === "light" ||
         !isOn(effects[definition.id]);
       for (const option of select.options) {

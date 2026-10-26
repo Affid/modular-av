@@ -121,6 +121,7 @@
       "cost-medium": "Medium",
       "cost-heavy": "Heavy",
       "group-noise-suppression": "Noise cancellation",
+      "group-camera-background": "Camera background",
       "unavailable": "Not offered by this call's server",
       "failedBecause": "Failed: {reason}",
       "heavyHint": "This model takes more of your computer and may crackle on a slower computer. If your voice breaks up, choose a lighter one.",
@@ -131,7 +132,12 @@
         "ProcessorError": "it stopped working",
         "NotAllowedError": "the server doesn't allow it",
         "NotSupportedError": "this browser can't run it",
-        "NetworkError": "its files couldn't be downloaded"
+        "NetworkError": "its files couldn't be downloaded",
+        "ImageLoadError": "its image couldn't load",
+        "ModelFileError": "its files couldn't load",
+        "WorkerError": "it stopped working",
+        "ContextLostError": "the graphics card stopped it",
+        "WebGLUnavailableError": "this browser can't draw it"
       }
     },
     "settings": {

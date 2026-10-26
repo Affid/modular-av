@@ -3,6 +3,7 @@ import type {
   AudioEffectDefinition,
   EffectCost,
   EffectState,
+  VideoEffectDefinition,
 } from "@modular-av/api";
 import { avState, participantState } from "@modular-av/testing";
 import { afterEach, describe, expect, it } from "vitest";
@@ -154,5 +155,62 @@ describe("the noise cancellation choice", () => {
     );
 
     expect(view.hint()?.hidden).toBe(true);
+  });
+});
+
+describe("the camera background choice", () => {
+  const background = (id: string): VideoEffectDefinition => ({
+    id,
+    kind: "video",
+    label: id,
+    exclusiveGroup: "camera-background",
+    cost: "medium",
+    isSupported: () => true,
+    create: () => Promise.reject(new Error("unused")),
+  });
+
+  function openBackground(effects: Readonly<Record<string, EffectState>>) {
+    const dock = testDock({
+      state: avState({ participants: [me], local: { effects } }),
+    });
+    dock.api.effects.register(background("background-blur"));
+    dock.api.effects.register(background("background-replace"));
+    const anchor = document.createElement("button");
+    document.body.append(anchor);
+    const popover = openQuickControls(dock.ctx, anchor);
+    const select = popover.element.querySelector<HTMLSelectElement>(
+      '[data-effect-group="camera-background"]',
+    );
+    const control = select?.closest(".mav-control");
+    return { select, control, text: () => popover.element.textContent };
+  }
+
+  it("is named, and doesn't warn about crackling sound", () => {
+    const view = openBackground({
+      "background-blur": { status: "running", error: null },
+      "background-replace": off,
+    });
+
+    expect(view.control?.querySelector("label")?.textContent).toBe(
+      "Camera background",
+    );
+    expect(
+      view.control?.querySelector<HTMLElement>(".mav-settings-hint")?.hidden,
+    ).toBe(true);
+  });
+
+  it.each([
+    ["ImageLoadError", "its image couldn't load"],
+    ["ModelFileError", "its files couldn't load"],
+    ["WorkerError", "it stopped working"],
+    ["ContextLostError", "the graphics card stopped it"],
+    ["WebGLUnavailableError", "this browser can't draw it"],
+  ])("says why it failed: %s", (error, words) => {
+    const view = openBackground({
+      "background-blur": off,
+      "background-replace": { status: "failed", error },
+    });
+
+    expect(view.text()).toContain(`Failed: ${words}`);
   });
 });
