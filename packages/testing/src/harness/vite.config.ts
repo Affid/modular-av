@@ -2,6 +2,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, normalize, sep } from "node:path";
 import { defineConfig, type Plugin } from "vite";
 import { readAssets } from "../../../../tools/assets/assets.ts";
+import { fetchDownloads } from "../../../../tools/assets/downloads.ts";
 import { signalRelay } from "./signal-relay.ts";
 
 export const HARNESS_PORT = 5174;
@@ -12,28 +13,38 @@ const CONTENT_TYPES: Readonly<Record<string, string>> = {
   js: "text/javascript",
   wasm: "application/wasm",
   json: "application/json",
+  svg: "image/svg+xml",
+  webp: "image/webp",
+  png: "image/png",
 };
 
 interface ModuleFiles {
   /** The package's `public/` directory, if it has one. */
   readonly pub: string | null;
-  /** Files copied from npm packages at build time (`modularAV.assets`). */
+  /** Files copied at build time (`modularAV.assets` and `.downloads`). */
   readonly assets: ReadonlyMap<string, string>;
 }
 
 /** Module id → what Foundry would serve from its directory. */
-function moduleDirs(): ReadonlyMap<string, ModuleFiles> {
-  const entries = readdirSync(PACKAGES).flatMap((dir) => {
-    const manifest = join(PACKAGES, dir, "module.json");
-    if (!existsSync(manifest)) return [];
-    const pub = join(PACKAGES, dir, "public");
-    const { id } = JSON.parse(readFileSync(manifest, "utf8")) as { id: string };
-    const files: ModuleFiles = {
-      pub: existsSync(pub) ? pub : null,
-      assets: readAssets(join(PACKAGES, dir)),
-    };
-    return [[id, files] as const];
-  });
+async function moduleDirs(): Promise<ReadonlyMap<string, ModuleFiles>> {
+  const dirs = readdirSync(PACKAGES).filter((dir) =>
+    existsSync(join(PACKAGES, dir, "module.json")),
+  );
+  const entries = await Promise.all(
+    dirs.map(async (dir) => {
+      const manifest = join(PACKAGES, dir, "module.json");
+      const pub = join(PACKAGES, dir, "public");
+      const { id } = JSON.parse(readFileSync(manifest, "utf8")) as {
+        id: string;
+      };
+      const downloads = await fetchDownloads(join(PACKAGES, dir));
+      const files: ModuleFiles = {
+        pub: existsSync(pub) ? pub : null,
+        assets: new Map([...readAssets(join(PACKAGES, dir)), ...downloads]),
+      };
+      return [id, files] as const;
+    }),
+  );
   return new Map(entries);
 }
 
@@ -61,8 +72,7 @@ function isBroken(referer: string | undefined, path: string): boolean {
  * Serves `/modules/<id>/<path>` as Foundry would from the built module: the
  * package's copied assets and its `public/`.
  */
-function moduleFiles(): Plugin {
-  const dirs = moduleDirs();
+function moduleFiles(dirs: ReadonlyMap<string, ModuleFiles>): Plugin {
   return {
     name: "modular-av:module-files",
     configureServer(server) {
@@ -84,7 +94,8 @@ function moduleFiles(): Plugin {
           next();
           return;
         }
-        const extension = file.split(".").pop() ?? "";
+        // Downloads are cached by hash, without an extension.
+        const extension = match?.[2]?.split(".").pop() ?? "";
         res.setHeader(
           "Content-Type",
           CONTENT_TYPES[extension] ?? "application/octet-stream",
@@ -105,5 +116,5 @@ export default defineConfig({
     fs: { allow: [join(import.meta.dirname, "..", "..", "..", "..")] },
   },
   build: { target: "es2023" },
-  plugins: [moduleFiles(), signalRelay()],
+  plugins: [moduleFiles(await moduleDirs()), signalRelay()],
 });

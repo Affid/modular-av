@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Plugin, UserConfig } from "vite";
 import { readAssets } from "../assets/assets.ts";
+import { fetchDownloads } from "../assets/downloads.ts";
 import {
   disallowed,
   packageDirs,
@@ -61,12 +62,19 @@ function foundryFiles(packageDir: string, version: string): Plugin {
   };
 }
 
-/** Copies the files listed in `modularAV.assets` from their packages. */
+/**
+ * Copies the files listed in `modularAV.assets` from their packages, and
+ * those in `modularAV.downloads` from the download cache (fetched first).
+ */
 function packageAssets(packageDir: string): Plugin {
+  let downloads: ReadonlyMap<string, string> = new Map();
   return {
     name: "modular-av:package-assets",
+    async buildStart() {
+      downloads = await fetchDownloads(packageDir);
+    },
     generateBundle() {
-      for (const [fileName, file] of readAssets(packageDir))
+      for (const [fileName, file] of [...readAssets(packageDir), ...downloads])
         this.emitFile({ type: "asset", fileName, source: readFileSync(file) });
     },
   };

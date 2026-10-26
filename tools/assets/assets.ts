@@ -13,7 +13,7 @@ import { join } from "node:path";
 export type AssetMap = ReadonlyMap<string, string>;
 
 /** Segments of letters, digits, `_`, `-` and `.`, never `.` or `..`. */
-const isSafePath = (path: string): boolean =>
+export const isSafePath = (path: string): boolean =>
   path.length > 0 &&
   path.split("/").every((s) => /^[\w.-]+$/.test(s) && s !== "." && s !== "..");
 
