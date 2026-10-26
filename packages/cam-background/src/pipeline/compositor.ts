@@ -20,7 +20,7 @@ import { gaussianTaps } from "./math.ts";
 /** Taps of the blur, past the centre: radius 14 at most (see gaussianTaps). */
 const MAX_TAPS = 8;
 /** The mask's edge: below, background; above, person; blended between. */
-const EDGE = "smoothstep(0.35, 0.65, texture(u_mask, flipped).r)";
+const EDGE = "smoothstep(0.5, 0.85, texture(u_mask, flipped).r)";
 
 /** The frame at a quarter of its size, weighted by how much is background. */
 const PREPARE_SHADER = `#version 300 es
