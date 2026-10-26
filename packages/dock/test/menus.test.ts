@@ -223,6 +223,62 @@ describe("quick controls", () => {
     ],
   });
 
+  it("show a choice with pictures as pictures to pick, by mouse and keys", async () => {
+    // Arrange
+    const { ctx, api } = testDock({ state });
+    const picked = cell("b");
+    const set: string[] = [];
+    api.contributions.register({
+      kind: "control",
+      place: "quick",
+      type: "choice",
+      id: "x.image",
+      label: "Background image",
+      options: ["a", "b", "c"].map((v) => ({
+        value: v,
+        label: `Image ${v}`,
+        image: `/images/${v}.svg`,
+      })),
+      state: picked,
+      set: (v) => {
+        set.push(v);
+        picked.set(v);
+        return Promise.resolve();
+      },
+    });
+
+    // Act
+    const popover = openQuickControls(ctx, anchor());
+    const group = popover.element.querySelector('[role="radiogroup"]');
+    const radios = [
+      ...popover.element.querySelectorAll<HTMLButtonElement>('[role="radio"]'),
+    ];
+    radios[0]?.click();
+    await settle();
+    radios[0]?.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }),
+    );
+    await settle();
+
+    // Assert
+    expect(group?.getAttribute("aria-label")).toBe("Background image");
+    expect(radios.map((r) => r.getAttribute("aria-label"))).toEqual([
+      "Image a",
+      "Image b",
+      "Image c",
+    ]);
+    expect(
+      radios.map((r) => r.querySelector("img")?.getAttribute("src")),
+    ).toEqual(["/images/a.svg", "/images/b.svg", "/images/c.svg"]);
+    expect(set).toEqual(["a", "b"]);
+    expect(radios.map((r) => r.getAttribute("aria-checked"))).toEqual([
+      "false",
+      "true",
+      "false",
+    ]);
+    expect(radios.map((r) => r.tabIndex)).toEqual([-1, 0, -1]);
+  });
+
   it("render a plugin's toggle with what it shows while on", () => {
     const { ctx, api } = testDock({ state });
     const on = cell({ on: false });

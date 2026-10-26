@@ -48,6 +48,11 @@ export interface RangeControl extends ItemBase {
 export interface ChoiceOption {
   readonly value: string;
   readonly label: Label;
+  /**
+   * A picture of the option (its URL), e.g. a background's thumbnail. UIs
+   * may show the options as pictures to pick, named by their labels.
+   */
+  readonly image?: string;
 }
 
 export interface ChoiceControl extends ItemBase {

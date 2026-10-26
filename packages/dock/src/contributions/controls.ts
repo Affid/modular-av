@@ -142,12 +142,104 @@ function range(
   return { element, dispose: off };
 }
 
+const STEPS: Readonly<Record<string, number>> = {
+  ArrowRight: 1,
+  ArrowDown: 1,
+  ArrowLeft: -1,
+  ArrowUp: -1,
+};
+
+/**
+ * A choice whose options have pictures: a radio group of thumbnails, named
+ * by their labels; arrow keys move to the next and pick it (one tab stop).
+ */
+function pictureChoice(
+  ctx: DockContext,
+  doc: Document,
+  control: ChoiceControl,
+  alerts: HTMLElement | null,
+): Rendered {
+  const pick = (value: string): void => {
+    run(ctx, alerts, () => control.set(value));
+  };
+  const radios = control.options.map((o) => {
+    const label = ctx.text(o.label);
+    const radio = el("button", {
+      doc,
+      className: "mav-control-picture",
+      attrs: {
+        type: "button",
+        role: "radio",
+        "aria-checked": "false",
+        "aria-label": label,
+        title: label,
+        "data-value": o.value,
+      },
+      children: [
+        o.image
+          ? el("img", {
+              doc,
+              attrs: {
+                src: o.image,
+                alt: "",
+                loading: "lazy",
+                draggable: "false",
+              },
+            })
+          : el("span", { doc, text: label }),
+      ],
+    });
+    radio.addEventListener("click", () => {
+      pick(o.value);
+    });
+    return radio;
+  });
+  const group = el("div", {
+    doc,
+    className: "mav-control-pictures",
+    attrs: { role: "radiogroup", "aria-label": ctx.text(control.label) },
+    children: radios,
+  });
+  group.addEventListener("keydown", (event) => {
+    const step = STEPS[event.key];
+    const at = radios.findIndex((r) => r === event.target);
+    if (step === undefined || at < 0) return;
+    event.preventDefault();
+    const next = radios[(at + step + radios.length) % radios.length];
+    next?.focus();
+    const value = next?.dataset.value;
+    if (value !== undefined) pick(value);
+  });
+  const off = follow(
+    control.state,
+    (value) => {
+      const current = radios.some((r) => r.dataset.value === value);
+      radios.forEach((r, i) => {
+        const checked = r.dataset.value === value;
+        r.setAttribute("aria-checked", String(checked));
+        // One tab stop: the picked one, or the first if none is.
+        r.tabIndex = checked || (!current && i === 0) ? 0 : -1;
+      });
+    },
+    ctx.onError,
+  );
+  const element = el("div", {
+    doc,
+    className: "mav-control",
+    attrs: { "data-control": "choice" },
+    children: [labelOf(ctx, doc, control), group],
+  });
+  return { element, dispose: off };
+}
+
 function choice(
   ctx: DockContext,
   doc: Document,
   control: ChoiceControl,
   alerts: HTMLElement | null,
 ): Rendered {
+  if (control.options.some((o) => o.image))
+    return pictureChoice(ctx, doc, control, alerts);
   const id = uniqueId(doc, "mav-control");
   const select = el("select", {
     doc,
