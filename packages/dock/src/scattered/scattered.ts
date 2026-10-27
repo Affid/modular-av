@@ -115,6 +115,10 @@ const tilesIn = (list: HTMLElement): HTMLElement[] =>
 
 const idOf = (tile: HTMLElement): string => tile.dataset.participantId ?? "";
 
+/** A tile's saved spot: own entries only, whatever the id. */
+const spotFor = (arrangement: Arrangement, id: string): Spot | undefined =>
+  Object.hasOwn(arrangement.tiles, id) ? arrangement.tiles[id] : undefined;
+
 /**
  * Every tile at its saved spot, or the next free one, and the panel at
  * its own; all of them out of Foundry's controls, frames included.
@@ -128,14 +132,14 @@ function placeAll(
   const shown = tilesIn(parts.tiles);
   const used = new Set(
     shown.flatMap((t) => {
-      const spot = arrangement.tiles[idOf(t)];
+      const spot = spotFor(arrangement, idOf(t));
       return spot ? [spot.anchor] : [];
     }),
   );
   let free = 0;
   const spots = new Map<string, Spot>();
   for (const tile of shown) {
-    const spot = arrangement.tiles[idOf(tile)] ?? freeSpot(free++, used);
+    const spot = spotFor(arrangement, idOf(tile)) ?? freeSpot(free++, used);
     placeAt(tile, spot, obstacles, reach);
     spots.set(idOf(tile), spot);
   }
@@ -167,10 +171,16 @@ function draggable(tile: HTMLElement, onEnd: (rect: Rect) => void): () => void {
 }
 
 /**
- * Places everything again, once per frame at most, while the window or Foundry's
- * controls change size (the sidebar collapsing, the players list growing).
+ * Places everything again, once per frame at most, while the window, the
+ * panel or Foundry's controls change: their size, what they hold (a
+ * re-render, a chat message), their classes (the sidebar collapsing),
+ * and where they are once a transition ends (the sidebar sliding away).
  */
-function watchControls(doc: Document, place: () => void): () => void {
+function watchControls(
+  doc: Document,
+  panel: HTMLElement,
+  place: () => void,
+): () => void {
   const view = doc.defaultView;
   if (!view) return () => undefined;
   let frame: number | null = null;
@@ -180,12 +190,24 @@ function watchControls(doc: Document, place: () => void): () => void {
       place();
     });
   };
-  const observer = new view.ResizeObserver(later);
-  for (const element of controlElements(doc)) observer.observe(element);
+  const resized = new view.ResizeObserver(later);
+  const changed = new view.MutationObserver(later);
+  resized.observe(panel);
+  for (const element of controlElements(doc)) {
+    resized.observe(element);
+    changed.observe(element, {
+      childList: true,
+      subtree: true,
+      attributeFilter: ["class", "style", "hidden"],
+    });
+  }
   view.addEventListener("resize", later);
+  doc.addEventListener("transitionend", later, true);
   return () => {
-    observer.disconnect();
+    resized.disconnect();
+    changed.disconnect();
     view.removeEventListener("resize", later);
+    doc.removeEventListener("transitionend", later, true);
     if (frame !== null) view.cancelAnimationFrame(frame);
   };
 }
@@ -251,8 +273,19 @@ interface Shown {
   spots: ReadonlyMap<string, Spot>;
 }
 
-const layoutOf = (scene: SceneRef | null): SceneLayout | null =>
-  scene ? { id: scene.id, layout: parseSceneLayout(scene.layout()) } : null;
+/** The last scene layout read, parsed once for as long as its text holds. */
+let lastLayout: {
+  readonly text: unknown;
+  readonly parsed: Arrangement | null;
+} = { text: undefined, parsed: null };
+
+function layoutOf(scene: SceneRef | null): SceneLayout | null {
+  if (!scene) return null;
+  const text = scene.layout();
+  if (text !== lastLayout.text)
+    lastLayout = { text, parsed: parseSceneLayout(text) };
+  return { id: scene.id, layout: lastLayout.parsed };
+}
 
 function sceneControls(
   shown: Shown,
@@ -323,7 +356,7 @@ export function createScattered(
     panelDrags(parts, (rect) => {
       store(withPanel(shown.saved, { ...spotOf(rect, parts.panel), width: 0 }));
     }),
-    watchControls(parts.root.ownerDocument, place),
+    watchControls(parts.root.ownerDocument, parts.panel, place),
     ctx.scenes.onChange(() => {
       shown.scene = ctx.scenes.current();
       place();

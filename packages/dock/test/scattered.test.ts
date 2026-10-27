@@ -298,3 +298,126 @@ describe("a scene's layout", () => {
     expect(tile("p1").dataset.anchor).toBe("top-right");
   });
 });
+
+describe("loading the scattered layout", () => {
+  /** A loader the test lets through when it wants. */
+  function gated() {
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let loads = 0;
+    const load = async () => {
+      loads += 1;
+      await gate;
+      return import("../src/scattered/scattered.ts");
+    };
+    return {
+      load,
+      release: () => {
+        release();
+      },
+      loads: () => loads,
+    };
+  }
+
+  function mountWith(load: ReturnType<typeof gated>["load"]) {
+    const test = testDock({ state: avState({ participants: [me, p1] }) });
+    const host = fakeHost("left");
+    const mounted = camerasSurface(test.ctx, load).mount(host);
+    const root = host.element.querySelector<HTMLElement>(".mav-dock");
+    if (!root) throw new Error("not mounted");
+    const choose = async (name: string): Promise<void> => {
+      root.querySelector<HTMLButtonElement>(".mav-dock-placement")?.click();
+      document
+        .querySelector<HTMLButtonElement>(
+          `[data-placement="${name}"][role="menuitemradio"]`,
+        )
+        ?.click();
+      await settle();
+    };
+    const anchored = () =>
+      [...root.querySelectorAll<HTMLElement>(".mav-dock-tile")].filter(
+        (t) => t.dataset.anchor !== undefined,
+      ).length;
+    return { root, mounted, choose, anchored };
+  }
+
+  it("doesn't scatter a dock moved elsewhere while the code loaded", async () => {
+    const gate = gated();
+    const { root, choose, anchored } = mountWith(gate.load);
+
+    await choose("scattered");
+    await choose("top");
+    gate.release();
+    await settle();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(root.dataset.placement).toBe("top");
+    expect(anchored()).toBe(0);
+    expect(root.firstElementChild?.classList).toContain("mav-dock-header");
+  });
+
+  it("drops a layout that loads after the dock was unmounted", async () => {
+    const gate = gated();
+    const { root, mounted, choose } = mountWith(gate.load);
+
+    await choose("scattered");
+    mounted.unmount();
+    gate.release();
+    await settle();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    // Nothing was set up: the header stayed where the dock left it.
+    expect(root.querySelector(".mav-dock-panel > .mav-dock-header")).toBeNull();
+  });
+
+  it("scatters once when asked twice while loading", async () => {
+    const gate = gated();
+    const { root, choose } = mountWith(gate.load);
+
+    await choose("scattered");
+    await choose("scattered");
+    gate.release();
+    await vi.waitFor(() => {
+      if (!root.querySelector(".mav-dock-panel > .mav-dock-header"))
+        throw new Error("not scattered yet");
+    });
+
+    expect(root.querySelectorAll(".mav-dock-header")).toHaveLength(1);
+    expect(root.querySelectorAll(".mav-dock-tile[data-anchor]").length).toBe(2);
+  });
+});
+
+describe("when Foundry can't make room", () => {
+  it("scatters all the same, and reports it", async () => {
+    const test = testDock({
+      state: avState({ participants: [me, p1] }),
+      foundrySettings: [
+        {
+          namespace: "modular-av-dock",
+          key: "mode",
+          scope: "user",
+          value: "scattered",
+        },
+      ],
+    });
+    const host = fakeHost("left");
+    const failing = {
+      ...host,
+      get placement() {
+        return host.placement;
+      },
+      setPlacement: () => Promise.reject(new Error("hotbar not rendered")),
+    };
+
+    camerasSurface(test.ctx).mount(failing);
+    const root = host.element.querySelector<HTMLElement>(".mav-dock");
+
+    await vi.waitFor(() => {
+      if (!root?.querySelector(".mav-dock-panel > .mav-dock-header"))
+        throw new Error("not scattered yet");
+    });
+    expect(test.errors).toHaveLength(1);
+  });
+});

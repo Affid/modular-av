@@ -28,6 +28,8 @@ interface Dock {
   collapsed: boolean;
   placement: Placement | null;
   scattered: Scattered | null;
+  /** Unmounted: a layout that finishes loading afterwards is dropped. */
+  gone: boolean;
 }
 
 /** The header shows where the dock is, its layout and how many are in. */
@@ -101,6 +103,7 @@ function build(ctx: DockContext, host: CamerasHost): Dock {
     collapsed: isCollapsed(ctx),
     placement: null,
     scattered: null,
+    gone: false,
   };
   dock.root.append(dock.header.element, tiles.element, panel.element);
   return dock;
@@ -131,8 +134,16 @@ function showFrames(ctx: DockContext, dock: Dock): void {
 /** The scattered layout's code, loaded only when a player picks it. */
 const loadScattered = () => import("../scattered/scattered.ts");
 
-/** Read again after an await: another call may have scattered the dock. */
-const isScattered = (dock: Dock): boolean => dock.scattered !== null;
+export type ScatteredLoader = typeof loadScattered;
+
+/**
+ * Read again after an await: the dock may have been scattered by another
+ * call, moved elsewhere, or unmounted while the code loaded.
+ */
+const stillWanted = (dock: Dock): boolean =>
+  !dock.gone &&
+  dock.scattered === null &&
+  dock.placement?.where === "scattered";
 
 function leaveScattered(dock: Dock): void {
   dock.scattered?.dispose();
@@ -149,28 +160,34 @@ async function scatter(
   ctx: DockContext,
   dock: Dock,
   where: Where,
+  load: ScatteredLoader,
 ): Promise<void> {
   if (where !== "scattered") {
     if (dock.scattered) leaveScattered(dock);
     return;
   }
   if (dock.scattered) return;
-  const { createScattered } = await loadScattered();
-  // Moved elsewhere, or scattered already, while the code loaded.
-  if (dock.placement?.where !== "scattered" || isScattered(dock)) return;
+  const { createScattered } = await load();
+  if (!stillWanted(dock)) return;
   dock.panel.element.prepend(dock.header.element);
   dock.tiles.setScattered(true);
-  dock.scattered = createScattered(
-    ctx,
-    {
-      root: dock.root,
-      tiles: dock.tiles.element,
-      panel: dock.panel.element,
-      panelHandle: dock.header.element,
-      panelMove: dock.header.move,
-    },
-    { reach: () => reachOf(ctx) },
-  );
+  try {
+    dock.scattered = createScattered(
+      ctx,
+      {
+        root: dock.root,
+        tiles: dock.tiles.element,
+        panel: dock.panel.element,
+        panelHandle: dock.header.element,
+        panelMove: dock.header.move,
+      },
+      { reach: () => reachOf(ctx) },
+    );
+  } catch (error: unknown) {
+    // Back to a whole dock rather than half scattered.
+    leaveScattered(dock);
+    throw error;
+  }
   show(dock);
 }
 
@@ -179,7 +196,10 @@ async function scatter(
  * a side, floating or in its own window, with the voice panel. Mounted
  * once per page; every state it shows comes from the core.
  */
-export function camerasSurface(ctx: DockContext): CamerasSurfaceDefinition {
+export function camerasSurface(
+  ctx: DockContext,
+  load: ScatteredLoader = loadScattered,
+): CamerasSurfaceDefinition {
   return {
     kind: "cameras",
     id: `${MODULE_ID}.cameras`,
@@ -197,7 +217,7 @@ export function camerasSurface(ctx: DockContext): CamerasSurfaceDefinition {
       });
       dock.placement = placement;
       placement.onChange((where) => {
-        scatter(ctx, dock, where).catch(ctx.onError);
+        scatter(ctx, dock, where, load).catch(ctx.onError);
         // In or out of the Picture-in-Picture window: timers and observers follow.
         dock.tiles.rehome();
         dock.status.rehome();
@@ -215,6 +235,7 @@ export function camerasSurface(ctx: DockContext): CamerasSurfaceDefinition {
       show(dock);
       return {
         unmount() {
+          dock.gone = true;
           offThemes();
           dock.scattered?.dispose();
           placement.dispose();

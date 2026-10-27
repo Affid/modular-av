@@ -61,13 +61,18 @@ export function parseSpot(value: unknown): Spot | null {
   };
 }
 
-/** Entries of a saved record whose keys are ids, at most `limit`. */
+/**
+ * Entries of a saved record whose keys are ids, the newest `limit` (the
+ * last written); a record far bigger than that is broken and gives none.
+ */
 function entries(value: unknown, limit: number): [string, unknown][] {
-  return isRecord(value)
-    ? Object.entries(value)
-        .filter(([key]) => ID.test(key))
-        .slice(0, limit)
-    : [];
+  if (!isRecord(value)) return [];
+  const keys = Object.keys(value);
+  if (keys.length > limit * 10) return [];
+  return keys
+    .filter((key) => ID.test(key))
+    .slice(-limit)
+    .map((key) => [key, value[key]]);
 }
 
 /** A saved arrangement; what is broken in it is left out. */

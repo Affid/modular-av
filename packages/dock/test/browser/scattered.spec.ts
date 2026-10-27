@@ -16,15 +16,21 @@ interface Box {
 const SIDEBAR = { x: 980, y: 0, width: 300, height: 720 };
 const HOTBAR = { x: 400, y: 660, width: 480, height: 60 };
 
-/** Foundry's sidebar and hotbar, as fixed boxes with their ids. */
+/**
+ * Foundry's sidebar content and hotbar, as fixed boxes with their ids,
+ * inside a `#sidebar` as in Foundry.
+ */
 async function addControls(page: Page): Promise<void> {
   await page.evaluate(
     ([sidebar, hotbar]) => {
-      for (const [id, box] of [
-        ["sidebar", sidebar],
-        ["hotbar", hotbar],
+      const container = document.createElement("aside");
+      container.id = "sidebar";
+      document.body.append(container);
+      for (const [id, box, parent] of [
+        ["sidebar-content", sidebar, container],
+        ["hotbar", hotbar, document.body],
       ] as const) {
-        const el = document.createElement("aside");
+        const el = document.createElement("div");
         el.id = id;
         Object.assign(el.style, {
           position: "fixed",
@@ -34,7 +40,7 @@ async function addControls(page: Page): Promise<void> {
           height: `${String(box.height)}px`,
           background: "#333",
         });
-        document.body.append(el);
+        parent.append(el);
       }
     },
     [SIDEBAR, HOTBAR] as const,
@@ -113,7 +119,7 @@ test("follows the sidebar when it collapses and opens", async ({ page }) => {
   expect(pushed.x + pushed.width).toBeLessThanOrEqual(SIDEBAR.x);
 
   await page.evaluate(() => {
-    const sidebar = document.getElementById("sidebar");
+    const sidebar = document.getElementById("sidebar-content");
     if (sidebar) sidebar.style.width = "40px";
     if (sidebar) sidebar.style.left = "1240px";
   });

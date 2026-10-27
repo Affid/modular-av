@@ -79,8 +79,12 @@ export function createPlacement(
     root.dataset.placement = where;
     if (where === "floating") placeFloating(root, floatingRect(ctx));
     else clearFloating(root);
-    await host.setPlacement(FREE.has(where) ? "free" : (where as Side));
-    for (const listener of listeners) listener(where);
+    try {
+      await host.setPlacement(FREE.has(where) ? "free" : (where as Side));
+    } finally {
+      // The dock follows where it is even if Foundry couldn't make room.
+      for (const listener of listeners) listener(where);
+    }
   };
 
   const saveRect = (rect: Rect): void => {
