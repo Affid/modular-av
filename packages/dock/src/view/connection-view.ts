@@ -21,9 +21,13 @@ export const qualityText = (
   quality: ConnectionQuality,
 ): string => ctx.t(`connection.quality-${quality}`);
 
-/** Above these a link is no longer "excellent", then no longer "good". */
-const EXCELLENT = { roundTripMs: 100, packetLoss: 0.01 } as const;
-const GOOD = { roundTripMs: 250, packetLoss: 0.03 } as const;
+/**
+ * Above these a link is no longer "excellent", then no longer "good": the
+ * limits P2P rates each link by, so this client's rating and the players'
+ * read alike.
+ */
+const EXCELLENT = { roundTripMs: 150, packetLoss: 0.01 } as const;
+const GOOD = { roundTripMs: 300, packetLoss: 0.05 } as const;
 
 /**
  * How a link feels, from what the service measured: the player's own
@@ -33,10 +37,9 @@ const GOOD = { roundTripMs: 250, packetLoss: 0.03 } as const;
 export function qualityOf(stats: ConnectionStats): ConnectionQuality | null {
   const { roundTripMs, packetLoss } = stats;
   if (roundTripMs === undefined && packetLoss === undefined) return null;
-  const rtt = roundTripMs ?? 0;
-  const loss = packetLoss ?? 0;
-  if (rtt < EXCELLENT.roundTripMs && loss < EXCELLENT.packetLoss)
-    return "excellent";
-  if (rtt <= GOOD.roundTripMs && loss <= GOOD.packetLoss) return "good";
-  return "poor";
+  const within = (limit: typeof GOOD | typeof EXCELLENT): boolean =>
+    (roundTripMs ?? 0) <= limit.roundTripMs &&
+    (packetLoss ?? 0) <= limit.packetLoss;
+  if (within(EXCELLENT)) return "excellent";
+  return within(GOOD) ? "good" : "poor";
 }

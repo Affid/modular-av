@@ -1,4 +1,4 @@
-import type { ConnectionStats } from "@modular-av/api";
+import type { ConnectionStats, SessionStatus } from "@modular-av/api";
 import { el } from "@modular-av/kit";
 import type { DockContext } from "../context.ts";
 import { setSignal, signalBars } from "../ui/signal.ts";
@@ -11,6 +11,13 @@ import {
 
 /** Round trips kept for the details' chart: a minute at one every 2 s. */
 const HISTORY = 30;
+
+/** Shown while in a call: measured when connected, "Reconnecting" between. */
+const SHOWN: ReadonlySet<SessionStatus> = new Set([
+  "connected",
+  "resuming",
+  "retrying",
+]);
 
 export interface ConnectionLine {
   readonly element: HTMLButtonElement;
@@ -28,17 +35,15 @@ export function serviceLabel(ctx: DockContext): string {
   return label ? ctx.text(label) : "";
 }
 
-/**
- * The player's own connection at the top of the voice panel, as in
- * Discord: signal bars, the round trip, the service and the path. It
- * measures every two seconds while in the call and on screen; a click
- * opens the connection details.
- */
-export function createConnectionLine(
-  ctx: DockContext,
-  doc: Document,
-  open: (anchor: HTMLElement) => void,
-): ConnectionLine {
+interface LineParts {
+  readonly element: HTMLButtonElement;
+  readonly bars: HTMLElement;
+  readonly lead: HTMLElement;
+  readonly ms: HTMLElement;
+  readonly where: HTMLElement;
+}
+
+function lineParts(ctx: DockContext, doc: Document): LineParts {
   const bars = signalBars(doc, null);
   // Words for screen readers around the visible ones: the name keeps
   // what is seen (WCAG 2.5.3), so speech users can say it.
@@ -56,72 +61,123 @@ export function createConnectionLine(
     attrs: { type: "button", "aria-haspopup": "dialog" },
     children: [bars, lead, ms, where, tail],
   });
-  element.addEventListener("click", () => {
-    open(element);
-  });
-  let latest: ConnectionStats | null = null;
-  let history: readonly number[] = [];
-  let stop: (() => void) | null = null;
-  const inCall = (): boolean =>
-    ctx.api.state.get().session.status === "connected";
+  return { element, bars, lead, ms, where };
+}
 
-  const render = (): void => {
-    element.hidden = !inCall();
-    const quality = latest ? qualityOf(latest) : null;
-    setSignal(bars, quality);
-    if (quality) element.dataset.quality = quality;
-    else delete element.dataset.quality;
-    const rtt = latest?.roundTripMs;
-    ms.textContent =
-      rtt === undefined
+/** The visible words: the round trip (or why there is none) and the path. */
+function render(
+  ctx: DockContext,
+  parts: LineParts,
+  latest: ConnectionStats | null,
+): void {
+  const status = ctx.api.state.get().session.status;
+  parts.element.hidden = !SHOWN.has(status);
+  const quality =
+    status === "connected" ? (latest ? qualityOf(latest) : null) : "lost";
+  setSignal(parts.bars, quality);
+  if (quality) parts.element.dataset.quality = quality;
+  else delete parts.element.dataset.quality;
+  const rtt = latest?.roundTripMs;
+  parts.ms.textContent =
+    quality === "lost"
+      ? qualityText(ctx, quality)
+      : rtt === undefined
         ? ctx.t("connection.measuring")
         : ctx.t("connection.ms", { value: String(rtt) });
-    const path =
-      latest?.relayed === undefined
-        ? ""
-        : ctx.t(
-            latest.relayed ? "connection.throughRelay" : "connection.direct",
-          );
-    where.textContent = [serviceLabel(ctx), path].filter(Boolean).join(" · ");
-    lead.textContent = quality
-      ? ctx.t("connection.lineLead", { quality: qualityText(ctx, quality) })
-      : ctx.t("connection.lineLeadMeasuring");
-  };
+  const path =
+    latest?.relayed === undefined
+      ? ""
+      : ctx.t(latest.relayed ? "connection.throughRelay" : "connection.direct");
+  parts.where.textContent = [serviceLabel(ctx), path]
+    .filter(Boolean)
+    .join(" · ");
+  parts.lead.textContent = quality
+    ? ctx.t("connection.lineLead", { quality: qualityText(ctx, quality) })
+    : ctx.t("connection.lineLeadMeasuring");
+}
 
+interface Measure {
+  readonly running: boolean;
+  /** Reads now and every two seconds, with that document's timers. */
+  start(owner: Document): void;
+  /** Stops reading; an answer still on its way is dropped. */
+  halt(): void;
+}
+
+/** This client's numbers, read on a timer, each answer to `shown`. */
+function measure(
+  ctx: DockContext,
+  shown: (stats: ConnectionStats) => void,
+): Measure {
+  let stop: (() => void) | null = null;
+  let round = 0;
   const read = (): void => {
+    const asked = round;
     ctx.api.stats
       .get(null)
       .then((stats) => {
-        latest = stats;
-        if (stats.roundTripMs !== undefined)
-          history = [...history, stats.roundTripMs].slice(-HISTORY);
-        render();
+        if (asked === round) shown(stats);
       })
       .catch((error: unknown) => {
         if (!isExpected(error)) ctx.onError(error);
       });
   };
-
-  const sync = (): void => {
-    const owner = element.ownerDocument;
-    const wanted = inCall() && owner.visibilityState === "visible";
-    if (wanted && !stop) {
+  return {
+    get running() {
+      return stop !== null;
+    },
+    start(owner) {
       const view = owner.defaultView ?? window;
       const timer = view.setInterval(read, DETAILS_EVERY_MS);
       stop = () => {
         view.clearInterval(timer);
       };
       read();
-    }
-    if (!wanted && stop) {
-      stop();
+    },
+    halt() {
+      stop?.();
       stop = null;
-    }
-    if (!inCall()) {
+      round += 1;
+    },
+  };
+}
+
+/**
+ * The player's own connection at the top of the voice panel, as in
+ * Discord: signal bars, the round trip, the service and the path. It
+ * measures every two seconds while connected and on screen, and says
+ * "Reconnecting" while the call resumes; a click opens the details.
+ */
+export function createConnectionLine(
+  ctx: DockContext,
+  doc: Document,
+  open: (anchor: HTMLElement) => void,
+): ConnectionLine {
+  const parts = lineParts(ctx, doc);
+  const { element } = parts;
+  element.addEventListener("click", () => {
+    open(element);
+  });
+  let latest: ConnectionStats | null = null;
+  let history: readonly number[] = [];
+  const reading = measure(ctx, (stats) => {
+    latest = stats;
+    if (stats.roundTripMs !== undefined)
+      history = [...history, stats.roundTripMs].slice(-HISTORY);
+    render(ctx, parts, latest);
+  });
+
+  const sync = (): void => {
+    const owner = element.ownerDocument;
+    const connected = ctx.api.state.get().session.status === "connected";
+    const wanted = connected && owner.visibilityState === "visible";
+    if (wanted && !reading.running) reading.start(owner);
+    if (!wanted && reading.running) reading.halt();
+    if (!connected) {
       latest = null;
       history = [];
     }
-    render();
+    render(ctx, parts, latest);
   };
 
   let watched = doc;
@@ -137,13 +193,12 @@ export function createConnectionLine(
       watched.removeEventListener("visibilitychange", sync);
       watched = element.ownerDocument;
       watched.addEventListener("visibilitychange", sync);
-      stop?.();
-      stop = null;
+      reading.halt();
       sync();
     },
     dispose() {
       off();
-      stop?.();
+      reading.halt();
       watched.removeEventListener("visibilitychange", sync);
     },
   };

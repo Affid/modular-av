@@ -1,4 +1,5 @@
 import type {
+  ConnectionQuality,
   ConnectionStats,
   ParticipantId,
   ParticipantState,
@@ -7,7 +8,7 @@ import type {
 import { el, openPopover, type Popover } from "@modular-av/kit";
 import { byOrder, follow } from "../contributions/controls.ts";
 import type { DockContext } from "../context.ts";
-import { signalBars } from "../ui/signal.ts";
+import { setSignal, signalBars } from "../ui/signal.ts";
 import {
   DETAILS_EVERY_MS,
   isExpected,
@@ -152,6 +153,49 @@ function sampler(
   };
 }
 
+interface LinkRow {
+  readonly id: ParticipantId;
+  readonly item: HTMLElement;
+  readonly button: HTMLButtonElement;
+  readonly more: HTMLElement;
+  /** Shows the link's rating as the service updates it. */
+  rate(quality: ConnectionQuality | null): void;
+}
+
+/** One player's row: bars, name and rating; its numbers fold out below. */
+function linkRow(
+  ctx: DockContext,
+  doc: Document,
+  p: ParticipantState,
+): LinkRow {
+  const bars = signalBars(doc, null);
+  const word = el("span", { doc, className: "mav-dock-link-quality" });
+  const button = el("button", {
+    doc,
+    className: "mav-dock-link",
+    attrs: { type: "button", "aria-expanded": "false" },
+    children: [
+      bars,
+      el("span", { doc, className: "mav-dock-link-name", text: p.name }),
+      word,
+    ],
+  });
+  const more = el("div", {
+    doc,
+    className: "mav-dock-link-more",
+    attrs: { hidden: "" },
+  });
+  const rate = (quality: ConnectionQuality | null): void => {
+    setSignal(bars, quality);
+    word.textContent = quality
+      ? qualityText(ctx, quality)
+      : ctx.t("connection.measuring");
+  };
+  rate(p.quality);
+  const item = el("li", { doc, children: [button, more] });
+  return { id: p.id, item, button, more, rate };
+}
+
 /** Each other player in the call, a click shows how their link measures. */
 function playerLinks(
   ctx: DockContext,
@@ -161,95 +205,67 @@ function playerLinks(
   const others = Object.values(ctx.api.state.get().participants).filter(
     (p: ParticipantState) => !p.isLocal && p.connected,
   );
+  const rows = others.map((p) => linkRow(ctx, doc, p));
   let stopOpen: (() => void) | null = null;
-  const list = el("ul", { doc, className: "mav-dock-links" });
-  const rows = others.map((p) => {
-    const quality = p.quality;
-    const button = el("button", {
-      doc,
-      className: "mav-dock-link",
-      attrs: { type: "button", "aria-expanded": "false" },
-      children: [
-        signalBars(doc, quality),
-        el("span", { doc, className: "mav-dock-link-name", text: p.name }),
-        el("span", {
+  const expand = (open: LinkRow | null): void => {
+    stopOpen?.();
+    stopOpen = null;
+    for (const row of rows) {
+      row.button.setAttribute("aria-expanded", String(row === open));
+      row.more.hidden = row !== open;
+    }
+    if (!open) return;
+    stopOpen = sampler(ctx, doc, open.id, (stats) => {
+      open.more.replaceChildren(
+        table(
           doc,
-          className: "mav-dock-link-quality",
-          text: quality
-            ? qualityText(ctx, quality)
-            : ctx.t("connection.measuring"),
-        }),
-      ],
+          stats ? statsRows(ctx, stats) : [],
+          ctx.t("connection.notPerPlayer"),
+        ),
+      );
     });
-    const more = el("div", {
-      doc,
-      className: "mav-dock-link-more",
-      attrs: { hidden: "" },
+  };
+  for (const row of rows)
+    row.button.addEventListener("click", () => {
+      expand(row.button.getAttribute("aria-expanded") === "true" ? null : row);
     });
-    const item = el("li", { doc, children: [button, more] });
-    const expand = (on: boolean): void => {
-      stopOpen?.();
-      stopOpen = null;
-      for (const other of list.querySelectorAll<HTMLElement>(".mav-dock-link"))
-        other.setAttribute("aria-expanded", "false");
-      for (const other of list.querySelectorAll<HTMLElement>(
-        ".mav-dock-link-more",
-      ))
-        other.hidden = true;
-      if (!on) return;
-      button.setAttribute("aria-expanded", "true");
-      more.hidden = false;
-      stopOpen = sampler(ctx, doc, p.id, (stats) => {
-        more.replaceChildren(
-          table(
-            doc,
-            stats ? statsRows(ctx, stats) : [],
-            ctx.t("connection.notPerPlayer"),
-          ),
-        );
-      });
-    };
-    button.addEventListener("click", () => {
-      expand(button.getAttribute("aria-expanded") !== "true");
-    });
-    return { id: p.id, item, expand };
-  });
-  list.append(...rows.map((r) => r.item));
-  rows.find((r) => r.id === focus)?.expand(true);
-  const element = el("div", {
+  expand(rows.find((row) => row.id === focus) ?? null);
+  const off = ctx.api.state.subscribe(
+    (s) => s.participants,
+    (participants) => {
+      for (const row of rows) row.rate(participants[row.id]?.quality ?? null);
+    },
+  );
+  const list = el("ul", {
     doc,
-    children: [
-      el("h3", { doc, text: ctx.t("connection.players") }),
-      others.length ? list : el("p", { doc, text: ctx.t("connection.alone") }),
-    ],
+    className: "mav-dock-links",
+    children: rows.map((row) => row.item),
   });
   return {
-    element,
+    element: el("div", {
+      doc,
+      children: [
+        el("h3", { doc, text: ctx.t("connection.players") }),
+        rows.length ? list : el("p", { doc, text: ctx.t("connection.alone") }),
+      ],
+    }),
     dispose() {
+      off();
       stopOpen?.();
     },
   };
 }
 
-/**
- * The connection details, opened from the voice panel's connection line
- * (or a player's menu, on that player): the round trip and its last
- * minute, this client's numbers, other modules' rows, and every player's
- * link. Read every two seconds while open and visible only.
- */
-export function openConnectionDetails(
+/** This client's part: the round trip in large, its last minute, its numbers. */
+function ownConnection(
   ctx: DockContext,
-  anchor: HTMLElement,
-  focus: ParticipantId | null,
-  history: () => readonly number[] = () => [],
-): Popover {
-  const doc = anchor.ownerDocument;
+  doc: Document,
+  history: () => readonly number[],
+): { elements: readonly Element[]; dispose(): void } {
   const big = el("p", { doc, className: "mav-dock-connection-big" });
   const graph = el("div", { doc });
   const measured = el("div", { doc });
-  const extra = contributedRows(ctx, doc);
-  const players = playerLinks(ctx, doc, focus);
-  const stopOwn = sampler(ctx, doc, null, (stats) => {
+  const stop = sampler(ctx, doc, null, (stats) => {
     const quality = stats ? qualityOf(stats) : null;
     const rtt = stats?.roundTripMs;
     big.replaceChildren(
@@ -274,15 +290,32 @@ export function openConnectionDetails(
       table(doc, stats ? statsRows(ctx, stats) : [], ctx.t("connection.none")),
     );
   });
+  const heading = el("h3", { doc, text: ctx.t("connection.yours") });
+  return { elements: [big, graph, heading, measured], dispose: stop };
+}
+
+/**
+ * The connection details, opened from the voice panel's connection line
+ * (or a player's menu, on that player): the round trip and its last
+ * minute, this client's numbers, other modules' rows, and every player's
+ * link. Read every two seconds while open and visible only.
+ */
+export function openConnectionDetails(
+  ctx: DockContext,
+  anchor: HTMLElement,
+  focus: ParticipantId | null,
+  history: () => readonly number[] = () => [],
+): Popover {
+  const doc = anchor.ownerDocument;
+  const own = ownConnection(ctx, doc, history);
+  const extra = contributedRows(ctx, doc);
+  const players = playerLinks(ctx, doc, focus);
   const content = el("div", {
     doc,
     className: "mav-dock-connection",
     children: [
       el("h2", { doc, text: ctx.t("connection.title") }),
-      big,
-      graph,
-      el("h3", { doc, text: ctx.t("connection.yours") }),
-      measured,
+      ...own.elements,
       extra.element,
       players.element,
     ],
@@ -292,7 +325,7 @@ export function openConnectionDetails(
     content,
     label: ctx.t("connection.title"),
     onClose() {
-      stopOwn();
+      own.dispose();
       players.dispose();
       extra.dispose();
     },

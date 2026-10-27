@@ -1,11 +1,8 @@
-import type {
-  CamerasHost,
-  CamerasSurfaceDefinition,
-  ParticipantId,
-} from "@modular-av/api";
+import type { CamerasHost, CamerasSurfaceDefinition } from "@modular-av/api";
 import { el, icon, type Insets, NO_INSETS, setLabel } from "@modular-av/kit";
 import { type DockContext, MODULE_ID } from "../context.ts";
 import { openParticipantMenu } from "../menus/participant-menu.ts";
+import { type DetailsOpener, detailsOpener } from "../panel/details.ts";
 import { openQuickControls } from "../panel/quick-controls.ts";
 import { createStatus, type Status } from "../panel/status.ts";
 import { createVoicePanel, type VoicePanel } from "../panel/voice-panel.ts";
@@ -28,6 +25,7 @@ interface Dock {
   readonly tiles: TileList;
   readonly status: Status;
   readonly panel: VoicePanel;
+  readonly details: DetailsOpener;
   layout: TileLayout;
   collapsed: boolean;
   placement: Placement | null;
@@ -63,19 +61,11 @@ function resizeHandle(ctx: DockContext, doc: Document): HTMLButtonElement {
 function build(ctx: DockContext, host: CamerasHost): Dock {
   const doc = host.element.ownerDocument;
   const status = createStatus(ctx, doc);
-  /** The details open by the panel's connection line, on a player or not. */
-  const details = (focus: ParticipantId | null): void => {
-    const line = panel.connection;
-    // The details' code loads on first use.
-    import("../menus/connection.ts")
-      .then(({ openConnectionDetails }) => {
-        openConnectionDetails(ctx, line.element, focus, () => line.history());
-      })
-      .catch(ctx.onError);
-  };
   const tiles = createTileList(ctx, doc, {
     menu: (id, anchor) => {
-      openParticipantMenu(ctx, id, anchor, details);
+      openParticipantMenu(ctx, id, anchor, (focus) => {
+        details.show(focus, anchor);
+      });
     },
   });
   const panel = createVoicePanel(ctx, doc, status, {
@@ -83,9 +73,10 @@ function build(ctx: DockContext, host: CamerasHost): Dock {
       openQuickControls(ctx, anchor);
     },
     connection: () => {
-      details(null);
+      details.show(null);
     },
   });
+  const details = detailsOpener(ctx, panel.connection, () => dock.gone);
   const dock: Dock = {
     root: el("section", {
       doc,
@@ -116,6 +107,7 @@ function build(ctx: DockContext, host: CamerasHost): Dock {
     tiles,
     status,
     panel,
+    details,
     layout: tileLayout(ctx),
     collapsed: isCollapsed(ctx),
     placement: null,
@@ -239,6 +231,7 @@ export function camerasSurface(
         dock.tiles.rehome();
         dock.status.rehome();
         dock.panel.connection.rehome();
+        dock.details.close();
         dock.tiles.setHorizontal(where === "top" || where === "bottom");
         show(dock);
       });
@@ -254,6 +247,7 @@ export function camerasSurface(
       return {
         unmount() {
           dock.gone = true;
+          dock.details.close();
           offThemes();
           dock.scattered?.dispose();
           placement.dispose();

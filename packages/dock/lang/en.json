@@ -95,8 +95,7 @@
       "hide": "Hide this player",
       "unhide": "Show this player",
       "blockAudio": "Don't let them speak",
-      "blockVideo": "Don't let them show video",
-      "connection": "Connection details"
+      "blockVideo": "Don't let them show video"
     },
     "connection": {
       "title": "Connection details",
@@ -124,6 +123,8 @@
       "notPerPlayer": "Not measured per player on this service.",
       "linkLine": "Link: {quality} · {ms}",
       "linkLineMeasuring": "Link: measuring…",
+      "linkLineQuality": "Link: {quality}",
+      "linkLineNone": "Link: not measured",
       "details": "Details",
       "detailsFor": "Connection details for {name}",
       "lineLead": "Your connection, {quality}: ",

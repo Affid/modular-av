@@ -33,18 +33,28 @@ function mount(
   test.api.services.register({ id: "mock", label: "LiveKit" } as never);
   for (const [id, value] of stats) test.api.setStats(id, value);
   const host = fakeHost("left");
-  camerasSurface(test.ctx).mount(host);
+  const mounted = camerasSurface(test.ctx).mount(host);
   const line = (): HTMLButtonElement | null =>
     host.element.querySelector(".mav-dock-connection-status");
   const details = (): HTMLElement | null =>
     document.querySelector(".mav-dock-connection");
-  return { ...test, host, line, details };
+  const tileMenu = (id: string): HTMLButtonElement => {
+    const button = host.element.querySelector<HTMLButtonElement>(
+      `[data-participant-id="${id}"] .mav-dock-tile-menu`,
+    );
+    if (!button) throw new Error(`no tile menu for ${id}`);
+    return button;
+  };
+  return { ...test, host, line, details, mounted, tileMenu };
 }
 
 describe("judging a connection from its numbers", () => {
   it.each([
     [{ roundTripMs: 40, packetLoss: 0 }, "excellent"],
+    // The limits P2P rates each player's link by: the two read alike.
+    [{ roundTripMs: 150, packetLoss: 0.01 }, "excellent"],
     [{ roundTripMs: 180, packetLoss: 0.01 }, "good"],
+    [{ roundTripMs: 300, packetLoss: 0.05 }, "good"],
     [{ roundTripMs: 320 }, "poor"],
     [{ roundTripMs: 60, packetLoss: 0.06 }, "poor"],
     [{}, null],
@@ -82,6 +92,17 @@ describe("the voice panel's connection line", () => {
     );
     await settle();
     expect(out.line()?.hidden).toBe(true);
+  });
+
+  it("says it's reconnecting while the call resumes", async () => {
+    const { line } = mount(
+      avState({ participants: [me, aria], session: { status: "resuming" } }),
+    );
+    await settle();
+
+    expect(line()?.hidden).toBe(false);
+    expect(line()?.dataset.quality).toBe("lost");
+    expect(line()?.textContent).toContain("Reconnecting");
   });
 });
 
@@ -143,5 +164,79 @@ describe("the connection details", () => {
       '.mav-dock-link[aria-expanded="true"]',
     );
     expect(expanded?.textContent).toContain("Borin");
+  });
+
+  it("follow each player's rating while open", async () => {
+    const { api, line, details } = mount();
+    await settle();
+    line()?.click();
+    const panel = await vi.waitFor(() => opened(details()));
+
+    api.setState((s) => ({
+      ...s,
+      participants: { ...s.participants, p1: { ...aria, quality: "poor" } },
+    }));
+    await settle();
+
+    const first = panel.querySelector(".mav-dock-link");
+    expect(first?.textContent).toBe("AriaPoor");
+  });
+
+  it("open by the player's tile while the line is hidden", async () => {
+    const { details, line, tileMenu } = mount(
+      avState({
+        participants: [me, aria, borin],
+        session: { status: "connecting" },
+      }),
+    );
+    await settle();
+    // The dock's own menu: its Details open where the dock opens them.
+    tileMenu("p1").click();
+    document
+      .querySelector<HTMLButtonElement>(
+        '.mav-dock-menu [data-action="connection"]',
+      )
+      ?.click();
+
+    await vi.waitFor(() => opened(details()));
+    // Anchored to the tile, not to the hidden line at the screen's corner.
+    expect(line()?.getAttribute("aria-expanded")).not.toBe("true");
+    expect(tileMenu("p1").getAttribute("aria-expanded")).toBe("true");
+  });
+
+  it("don't open once the dock is gone", async () => {
+    // Loaded already: the click still waits on it, the unmount does not.
+    await import("../src/menus/connection.ts");
+    const { line, details, mounted } = mount();
+    await settle();
+
+    line()?.click();
+    mounted.unmount();
+    await new Promise((done) => setTimeout(done, 20));
+
+    expect(details()).toBeNull();
+  });
+});
+
+describe("a player's menu", () => {
+  it.each([
+    ["p1", "Link: Good"],
+    ["p3", "Link: not measured"],
+  ])("says what was measured of %s's link", async (id, text) => {
+    const cara = participantState({ id: "p3", name: "Cara", quality: null });
+    const { ctx, tileMenu } = mount(
+      avState({
+        participants: [me, aria, cara],
+        session: { status: "connected" },
+      }),
+    );
+    await settle();
+
+    const menu = openParticipantMenu(ctx, id, tileMenu(id));
+    await settle();
+
+    expect(
+      menu?.element.querySelector(".mav-dock-link-line")?.textContent,
+    ).toContain(text);
   });
 });

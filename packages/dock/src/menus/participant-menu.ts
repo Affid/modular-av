@@ -1,4 +1,5 @@
 import type {
+  ConnectionQuality,
   ParticipantActionContribution,
   ParticipantId,
   ParticipantState,
@@ -204,6 +205,23 @@ function contributedActions(
     });
 }
 
+/** "Link: Good · 42 ms", or as much of it as was measured. */
+function linkText(
+  ctx: DockContext,
+  quality: ConnectionQuality | null,
+  roundTripMs: number | undefined,
+): string {
+  if (!quality) return ctx.t("connection.linkLineNone");
+  if (roundTripMs === undefined)
+    return ctx.t("connection.linkLineQuality", {
+      quality: qualityText(ctx, quality),
+    });
+  return ctx.t("connection.linkLine", {
+    quality: qualityText(ctx, quality),
+    ms: ctx.t("connection.ms", { value: String(roundTripMs) }),
+  });
+}
+
 /**
  * One line for the link to a participant (or this client's connection):
  * its quality and round trip, read once as the menu opens, and "Details".
@@ -233,14 +251,12 @@ function linkLine(
     .then((stats) => {
       const quality = (p.isLocal ? null : p.quality) ?? qualityOf(stats);
       setSignal(bars, quality);
-      if (quality && stats.roundTripMs !== undefined)
-        text.textContent = ctx.t("connection.linkLine", {
-          quality: qualityText(ctx, quality),
-          ms: ctx.t("connection.ms", { value: String(stats.roundTripMs) }),
-        });
+      text.textContent = linkText(ctx, quality, stats.roundTripMs);
     })
     .catch((error: unknown) => {
       if (!isExpected(error)) ctx.onError(error);
+      const quality = p.isLocal ? null : p.quality;
+      text.textContent = linkText(ctx, quality, undefined);
     });
   return el("div", {
     doc,
@@ -255,10 +271,10 @@ export function openParticipantMenu(
   participant: ParticipantId,
   anchor: HTMLElement,
   showDetails: (participant: ParticipantId | null) => void = (focus) => {
-    // The details' code loads on first use.
+    // The details' code loads on first use; the tile may be gone by then.
     import("./connection.ts")
       .then(({ openConnectionDetails }) => {
-        openConnectionDetails(ctx, anchor, focus);
+        if (anchor.isConnected) openConnectionDetails(ctx, anchor, focus);
       })
       .catch(ctx.onError);
   },
