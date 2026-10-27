@@ -86,7 +86,11 @@ export function createHeader(
     element,
     move: b.move.element,
     show(state) {
-      b.move.element.hidden = state.where !== "floating";
+      // Floating, it moves the dock; scattered, the voice panel.
+      b.move.element.hidden =
+        state.where !== "floating" && state.where !== "scattered";
+      // Scattered tiles have no grid to fit.
+      b.layout.element.hidden = state.where === "scattered";
       const focus = state.layout === "focus";
       b.layout.set({
         label: ctx.t(focus ? "dock.layoutGrid" : "dock.layoutFocus"),

@@ -29,6 +29,10 @@ export interface UIDriver {
   readonly module: string;
   /** The module id that asks for the Picture-in-Picture window. */
   readonly moduleId: string;
+  /** A layout or mode the contract runs in, named in the test titles. */
+  readonly variant?: string;
+  /** Puts the UI in that layout once the call is up. */
+  prepare?(page: Page): Promise<void>;
   /** The local player's control. */
   control(page: Page, control: Control): Locator;
   /** Where the local player's warnings show. */
@@ -60,6 +64,7 @@ async function open(page: Page, driver: UIDriver, extra = ""): Promise<void> {
   );
   for (const id of PLAYERS)
     await expect(participant(page, id)).toBeVisible({ timeout: 20_000 });
+  await driver.prepare?.(page);
 }
 
 const participant = (page: Page, id: string): Locator =>
@@ -351,7 +356,8 @@ function windowTests(driver: UIDriver): void {
 
 /** Every check of the UI contract, against one UI module. */
 export function uiContract(driver: UIDriver): void {
-  test.describe(`UI contract: ${driver.module}`, () => {
+  const variant = driver.variant ? ` (${driver.variant})` : "";
+  test.describe(`UI contract: ${driver.module}${variant}`, () => {
     test.describe.configure({ mode: "parallel" });
     stateTests(driver);
     commandTests(driver);

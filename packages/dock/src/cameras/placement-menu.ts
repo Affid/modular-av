@@ -9,6 +9,7 @@ const CHOICES: readonly Where[] = [
   "top",
   "bottom",
   "floating",
+  "scattered",
   "window",
 ];
 

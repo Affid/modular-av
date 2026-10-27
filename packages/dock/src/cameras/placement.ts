@@ -10,7 +10,10 @@ import { MODULE_ID, type DockContext } from "../context.ts";
 import { dockMode, floatingRect, save, SETTINGS } from "../settings.ts";
 
 export type Side = Exclude<CamerasPlacement, "free">;
-export type Where = Side | "floating" | "window";
+export type Where = Side | "floating" | "scattered" | "window";
+
+/** Placements outside Foundry's dock: the host leaves no room for them. */
+const FREE: ReadonlySet<Where> = new Set(["floating", "scattered", "window"]);
 
 const MIN_FLOATING = { width: 220, height: 160 } as const;
 
@@ -53,8 +56,8 @@ function clearFloating(root: HTMLElement): void {
 /**
  * Where the dock is: docked on Foundry's dock side (the host saves it as
  * Foundry's dock position), floating (moved and resized, kept on screen,
- * saved per player) or in the page's Picture-in-Picture window, which
- * lasts until it closes.
+ * saved per player), scattered over the screen (each tile on its own) or
+ * in the page's Picture-in-Picture window, which lasts until it closes.
  */
 export function createPlacement(
   ctx: DockContext,
@@ -64,7 +67,10 @@ export function createPlacement(
   const { root } = parts;
   /** The side docked on last: Foundry's dock position, until moved. */
   let side: Side = host.placement === "free" ? "left" : host.placement;
-  const rest = (): Where => (dockMode(ctx) === "floating" ? "floating" : side);
+  const rest = (): Where => {
+    const mode = dockMode(ctx);
+    return mode === "docked" ? side : mode;
+  };
   let where: Where = rest();
   let pip: PipWindow | null = null;
   let listeners: readonly ((w: Where) => void)[] = [];
@@ -73,9 +79,7 @@ export function createPlacement(
     root.dataset.placement = where;
     if (where === "floating") placeFloating(root, floatingRect(ctx));
     else clearFloating(root);
-    await host.setPlacement(
-      where === "floating" || where === "window" ? "free" : where,
-    );
+    await host.setPlacement(FREE.has(where) ? "free" : (where as Side));
     for (const listener of listeners) listener(where);
   };
 
@@ -113,9 +117,9 @@ export function createPlacement(
     },
     async set(next) {
       pip?.close();
-      if (next !== "floating") side = next;
+      if (!FREE.has(next)) side = next as Side;
       where = next;
-      save(ctx, SETTINGS.mode, next === "floating" ? "floating" : "docked");
+      save(ctx, SETTINGS.mode, FREE.has(next) ? next : "docked");
       await apply();
     },
     async openWindow() {

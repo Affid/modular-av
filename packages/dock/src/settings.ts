@@ -1,8 +1,11 @@
 import { type DockContext, MODULE_ID } from "./context.ts";
 import type { Rect } from "@modular-av/kit";
 
-/** Docked on Foundry's dock side, or floating; a window of its own lasts a page. */
-export type DockMode = "docked" | "floating";
+/**
+ * Docked on Foundry's dock side, floating, or scattered over the screen;
+ * a window of its own lasts a page.
+ */
+export type DockMode = "docked" | "floating" | "scattered";
 export type TileLayout = "grid" | "focus";
 
 export const SETTINGS = {
@@ -10,6 +13,7 @@ export const SETTINGS = {
   floatingRect: "floatingRect",
   tileLayout: "tileLayout",
   collapsed: "collapsed",
+  scattered: "scatteredLayouts",
 } as const;
 
 const DEFAULT_RECT: Rect = { left: 80, top: 80, width: 360, height: 420 };
@@ -28,13 +32,20 @@ export function registerSettings(settings: DockContext["settings"]): void {
   user(SETTINGS.floatingRect, Object, DEFAULT_RECT);
   user(SETTINGS.tileLayout, String, "grid");
   user(SETTINGS.collapsed, Boolean, false);
+  // The scattered layout's arrangements (scattered/arrangement.ts).
+  user(SETTINGS.scattered, Object, {
+    own: { tiles: {}, panel: null },
+    scenes: {},
+  });
 }
 
-const read = (ctx: DockContext, key: string): unknown =>
+export const read = (ctx: DockContext, key: string): unknown =>
   ctx.settings.get(MODULE_ID, key);
 
+const MODES: readonly DockMode[] = ["docked", "floating", "scattered"];
+
 export const dockMode = (ctx: DockContext): DockMode =>
-  read(ctx, SETTINGS.mode) === "floating" ? "floating" : "docked";
+  MODES.find((m) => m === read(ctx, SETTINGS.mode)) ?? "docked";
 
 export const tileLayout = (ctx: DockContext): TileLayout =>
   read(ctx, SETTINGS.tileLayout) === "focus" ? "focus" : "grid";

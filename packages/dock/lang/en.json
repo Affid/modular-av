@@ -18,6 +18,7 @@
       "top": "Docked at the top",
       "bottom": "Docked at the bottom",
       "floating": "Floating",
+      "scattered": "Scattered over the screen",
       "window": "In a window of its own",
       "windowUnsupported": "A window of its own needs Chrome or Edge.",
       "windowTitle": "Voice and video",
@@ -30,7 +31,9 @@
     "tile": {
       "options": "Options for {name}",
       "you": "{name} (you)",
-      "focus": "Show {name} large"
+      "focus": "Show {name} large",
+      "move": "Move {name}'s tile (arrow keys)",
+      "resize": "Resize {name}'s tile (left and right arrow keys)"
     },
     "indicator": {
       "muted": "Muted",

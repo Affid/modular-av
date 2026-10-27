@@ -28,6 +28,8 @@ export interface Badge {
 export interface Tile {
   readonly element: HTMLElement;
   update(view: TileView): void;
+  /** In the scattered layout a tile has its own move and resize handles. */
+  setScattered(scattered: boolean): void;
   /** Other modules' badges active for this participant. */
   setBadges(badges: readonly Badge[]): void;
   dispose(): void;
@@ -71,7 +73,22 @@ interface Parts {
   readonly badges: HTMLElement;
   readonly menu: HTMLButtonElement;
   readonly media: HTMLElement;
+  readonly move: HTMLButtonElement;
+  readonly resize: HTMLButtonElement;
 }
+
+/** A scattered tile's handle: hidden until the layout is scattered. */
+const handle = (
+  doc: Document,
+  className: string,
+  glyph: string,
+): HTMLButtonElement =>
+  el("button", {
+    doc,
+    className,
+    attrs: { type: "button", hidden: "" },
+    children: [icon(glyph, doc)],
+  });
 
 function build(
   doc: Document,
@@ -106,6 +123,12 @@ function build(
     className: "mav-dock-tile-media",
     children: [video],
   });
+  const move = handle(doc, "mav-dock-tile-move", "fa-up-down-left-right");
+  const resize = handle(
+    doc,
+    "mav-dock-tile-resize",
+    "fa-up-right-and-down-left-from-center",
+  );
   const element = el("li", {
     doc,
     className: "mav-dock-tile",
@@ -123,6 +146,8 @@ function build(
         children: [name, indicators, badges],
       }),
       menu,
+      move,
+      resize,
     ],
   });
   menu.addEventListener("click", () => {
@@ -131,7 +156,11 @@ function build(
   media.addEventListener("dblclick", () => {
     handlers.focus(id);
   });
-  return { element, video, parts: { name, indicators, badges, menu, media } };
+  return {
+    element,
+    video,
+    parts: { name, indicators, badges, menu, media, move, resize },
+  };
 }
 
 /**
@@ -156,9 +185,12 @@ export function createTile(
       : view.name;
     parts.name.textContent = name;
     setLabel(parts.name, view.name, { trusted: false });
-    setLabel(parts.menu, ctx.t("tile.options", { name: view.name }), {
-      trusted: false,
-    });
+    for (const [button, key] of [
+      [parts.menu, "tile.options"],
+      [parts.move, "tile.move"],
+      [parts.resize, "tile.resize"],
+    ] as const)
+      setLabel(button, ctx.t(key, { name: view.name }), { trusted: false });
     parts.media.querySelector(".mav-dock-tile-avatar")?.remove();
     parts.media.append(avatarOf(doc, view));
     if (view.color && HEX.test(view.color))
@@ -191,6 +223,10 @@ export function createTile(
       else delete element.dataset.quality;
       syncIndicators(ctx, parts.indicators, view.indicators);
       last = view;
+    },
+    setScattered(scattered) {
+      parts.move.hidden = !scattered;
+      parts.resize.hidden = !scattered;
     },
     setBadges(badges) {
       const ids = badges.map((b) => b.id).join(" ");

@@ -54,8 +54,9 @@
   height: var(--mav-dock-height);
 }
 
-/* Floating, or in its own window: nothing left in the page's layout. */
+/* Floating, scattered or in its own window: nothing left in the page's layout. */
 #camera-views:has(> .mav-dock[data-placement="floating"]),
+#camera-views:has(> .mav-dock[data-placement="scattered"]),
 #camera-views:not(:has(> .mav-dock)) {
   width: 0;
   min-width: 0;
@@ -192,6 +193,8 @@
 
 .mav-dock-button,
 .mav-dock-tile-menu,
+.mav-dock-tile-move,
+.mav-dock-tile-resize,
 .mav-dock-resize {
   display: inline-grid;
   place-items: center;
@@ -462,6 +465,80 @@
 
 .mav-dock:not([data-placement="floating"]) .mav-dock-resize {
   display: none;
+}
+
+/* ---- Scattered: a layer over the window; only tiles and the panel take clicks ---- */
+
+.mav-dock[data-placement="scattered"] {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--z-index-app, 100) + 1);
+  padding: 0;
+  background: none;
+  pointer-events: none;
+}
+
+.mav-dock[data-placement="scattered"] .mav-dock-tiles {
+  display: block;
+  flex: none;
+  overflow: visible;
+}
+
+.mav-dock[data-placement="scattered"] :is(.mav-dock-tile, .mav-dock-panel) {
+  position: fixed;
+  pointer-events: auto;
+  box-shadow: var(--mav-dock-shadow);
+}
+
+.mav-dock[data-placement="scattered"] .mav-dock-tile {
+  width: 240px;
+  cursor: grab;
+}
+
+.mav-dock[data-placement="scattered"] .mav-dock-panel {
+  width: max-content;
+  max-width: min(340px, calc(100vw - 16px));
+  border: 1px solid var(--mav-border);
+}
+
+.mav-dock[data-placement="scattered"] .mav-dock-header {
+  cursor: grab;
+}
+
+.mav-dock[data-placement="scattered"] [data-dragging],
+.mav-dock[data-placement="scattered"] [data-dragging] .mav-dock-header {
+  cursor: grabbing;
+}
+
+/* Room for the handles beside the name. */
+.mav-dock[data-placement="scattered"] .mav-dock-tile-bar {
+  max-width: calc(100% - 40px);
+}
+
+.mav-dock-tile-move,
+.mav-dock-tile-resize {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  background: rgb(0 0 0 / 70%);
+  opacity: 0;
+}
+
+.mav-dock-tile-move {
+  top: 4px;
+  left: 4px;
+  cursor: move;
+}
+
+.mav-dock-tile-resize {
+  right: 4px;
+  bottom: 4px;
+  cursor: ew-resize;
+}
+
+.mav-dock-tile:hover :is(.mav-dock-tile-move, .mav-dock-tile-resize),
+:is(.mav-dock-tile-move, .mav-dock-tile-resize):focus-visible {
+  opacity: 1;
 }
 
 /* ---- Meter ---- */

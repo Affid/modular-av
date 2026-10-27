@@ -1,9 +1,14 @@
-import { uiContract } from "@modular-av/testing/contract/ui";
+import { uiContract, type UIDriver } from "@modular-av/testing/contract/ui";
 import type { Page } from "@playwright/test";
 
 const panel = (page: Page) => page.locator(".mav-dock-panel");
 
-uiContract({
+const placement = async (page: Page, name: string): Promise<void> => {
+  await page.locator(".mav-dock-placement").click();
+  await page.getByRole("menuitemradio", { name }).click();
+};
+
+const dock: UIDriver = {
   module: "dock",
   moduleId: "modular-av-dock",
   control(page, control) {
@@ -34,9 +39,16 @@ uiContract({
     return page.getByRole("dialog", { name: "Connection details" });
   },
   async openWindow(page) {
-    await page.locator(".mav-dock-placement").click();
-    await page
-      .getByRole("menuitemradio", { name: "In a window of its own" })
-      .click();
+    await placement(page, "In a window of its own");
+  },
+};
+
+uiContract(dock);
+
+uiContract({
+  ...dock,
+  variant: "scattered",
+  async prepare(page) {
+    await placement(page, "Scattered over the screen");
   },
 });

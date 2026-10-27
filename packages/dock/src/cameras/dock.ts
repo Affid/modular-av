@@ -1,5 +1,5 @@
 import type { CamerasHost, CamerasSurfaceDefinition } from "@modular-av/api";
-import { el, icon, setLabel } from "@modular-av/kit";
+import { el, icon, NO_INSETS, setLabel } from "@modular-av/kit";
 import { type DockContext, MODULE_ID } from "../context.ts";
 import { openParticipantMenu } from "../menus/participant-menu.ts";
 import { openQuickControls } from "../panel/quick-controls.ts";
@@ -12,8 +12,9 @@ import {
   tileLayout,
   type TileLayout,
 } from "../settings.ts";
+import type { Scattered } from "../scattered/scattered.ts";
 import { createHeader, type Header } from "./header.ts";
-import { createPlacement, type Placement } from "./placement.ts";
+import { createPlacement, type Placement, type Where } from "./placement.ts";
 import { openPlacementMenu } from "./placement-menu.ts";
 import { createTileList, type TileList } from "./tiles.ts";
 
@@ -26,6 +27,7 @@ interface Dock {
   layout: TileLayout;
   collapsed: boolean;
   placement: Placement | null;
+  scattered: Scattered | null;
 }
 
 /** The header shows where the dock is, its layout and how many are in. */
@@ -92,9 +94,56 @@ function build(ctx: DockContext, host: CamerasHost): Dock {
     layout: tileLayout(ctx),
     collapsed: isCollapsed(ctx),
     placement: null,
+    scattered: null,
   };
   dock.root.append(dock.header.element, tiles.element, panel.element);
   return dock;
+}
+
+/** The scattered layout's code, loaded only when a player picks it. */
+const loadScattered = () => import("../scattered/scattered.ts");
+
+/** Read again after an await: another call may have scattered the dock. */
+const isScattered = (dock: Dock): boolean => dock.scattered !== null;
+
+function leaveScattered(dock: Dock): void {
+  dock.scattered?.dispose();
+  dock.scattered = null;
+  dock.root.prepend(dock.header.element);
+  dock.tiles.setScattered(false);
+}
+
+/**
+ * Scattered, the header (status, count, tools) joins the voice panel,
+ * which is placed like a tile; the tiles are placed one by one.
+ */
+async function scatter(
+  ctx: DockContext,
+  dock: Dock,
+  where: Where,
+): Promise<void> {
+  if (where !== "scattered") {
+    if (dock.scattered) leaveScattered(dock);
+    return;
+  }
+  if (dock.scattered) return;
+  const { createScattered } = await loadScattered();
+  // Moved elsewhere, or scattered already, while the code loaded.
+  if (dock.placement?.where !== "scattered" || isScattered(dock)) return;
+  dock.panel.element.prepend(dock.header.element);
+  dock.tiles.setScattered(true);
+  dock.scattered = createScattered(
+    ctx,
+    {
+      root: dock.root,
+      tiles: dock.tiles.element,
+      panel: dock.panel.element,
+      panelHandle: dock.header.element,
+      panelMove: dock.header.move,
+    },
+    { reach: () => NO_INSETS },
+  );
+  show(dock);
 }
 
 /**
@@ -120,6 +169,7 @@ export function camerasSurface(ctx: DockContext): CamerasSurfaceDefinition {
       });
       dock.placement = placement;
       placement.onChange((where) => {
+        scatter(ctx, dock, where).catch(ctx.onError);
         // In or out of the Picture-in-Picture window: timers and observers follow.
         dock.tiles.rehome();
         dock.status.rehome();
@@ -127,11 +177,13 @@ export function camerasSurface(ctx: DockContext): CamerasSurfaceDefinition {
         show(dock);
       });
       dock.tiles.onChange(() => {
+        dock.scattered?.refresh();
         show(dock);
       });
       show(dock);
       return {
         unmount() {
+          dock.scattered?.dispose();
           placement.dispose();
           dock.tiles.dispose();
           dock.header.dispose();

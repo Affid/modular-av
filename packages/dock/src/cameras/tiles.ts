@@ -22,6 +22,8 @@ export interface TileList {
   setLayout(layout: TileLayout): void;
   /** Horizontal docks scroll sideways. */
   setHorizontal(horizontal: boolean): void;
+  /** Scattered tiles are placed one by one, each with its handles. */
+  setScattered(scattered: boolean): void;
   /** The tile shown large in the focus layout. */
   focus(participant: ParticipantId): void;
   /** How many tiles there are now. */
@@ -63,9 +65,11 @@ export function createTileList(
   let tiles = new Map<ParticipantId, Tile>();
   let focused: ParticipantId | null = null;
   let horizontal = false;
+  let scattered = false;
   let listeners: readonly (() => void)[] = [];
   const keys = roving(element, {
-    items: ".mav-dock-tile-menu",
+    items:
+      ".mav-dock-tile-menu, .mav-dock-tile-move:not([hidden]), .mav-dock-tile-resize:not([hidden])",
     orientation: "both",
   });
 
@@ -93,6 +97,8 @@ export function createTileList(
   });
 
   const fit = (): void => {
+    // Scattered tiles have sizes of their own.
+    if (scattered) return;
     const view = element.ownerDocument.defaultView;
     const gap = view
       ? parseFloat(view.getComputedStyle(element).columnGap) || 0
@@ -119,19 +125,23 @@ export function createTileList(
       tile.element.toggleAttribute("data-focused", tileId === id);
   };
 
+  const newTile = (id: ParticipantId): Tile => {
+    const tile = createTile(ctx, doc, id, {
+      menu: handlers.menu,
+      focus: (picked) => {
+        focused = picked;
+        markFocus();
+      },
+    });
+    tile.setScattered(scattered);
+    return tile;
+  };
+
   const sync = (state: AVState): void => {
     const people = shown(state);
     const next = new Map<ParticipantId, Tile>();
     for (const p of people) {
-      const tile =
-        tiles.get(p.id) ??
-        createTile(ctx, doc, p.id, {
-          menu: handlers.menu,
-          focus: (id) => {
-            focused = id;
-            markFocus();
-          },
-        });
+      const tile = tiles.get(p.id) ?? newTile(p.id);
       tile.update(tileView(p, state.local));
       next.set(p.id, tile);
     }
@@ -181,6 +191,12 @@ export function createTileList(
     },
     setHorizontal(next) {
       horizontal = next;
+      fit();
+    },
+    setScattered(next) {
+      scattered = next;
+      for (const tile of tiles.values()) tile.setScattered(next);
+      keys.refresh();
       fit();
     },
     focus(participant) {
