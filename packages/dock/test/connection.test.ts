@@ -102,7 +102,10 @@ describe("the voice panel's connection line", () => {
 
     expect(line()?.hidden).toBe(false);
     expect(line()?.dataset.quality).toBe("lost");
-    expect(line()?.textContent).toContain("Reconnecting");
+    // Said once, the hidden lead words leaving it to the visible ones.
+    expect(line()?.textContent).toBe(
+      "Your connection: ReconnectingLiveKit. Connection details",
+    );
   });
 });
 

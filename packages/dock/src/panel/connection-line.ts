@@ -91,9 +91,10 @@ function render(
   parts.where.textContent = [serviceLabel(ctx), path]
     .filter(Boolean)
     .join(" · ");
-  parts.lead.textContent = quality
-    ? ctx.t("connection.lineLead", { quality: qualityText(ctx, quality) })
-    : ctx.t("connection.lineLeadMeasuring");
+  parts.lead.textContent =
+    quality === "lost" || !quality
+      ? ctx.t("connection.lineLeadMeasuring")
+      : ctx.t("connection.lineLead", { quality: qualityText(ctx, quality) });
 }
 
 interface Measure {

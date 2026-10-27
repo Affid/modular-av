@@ -76,7 +76,7 @@ function build(ctx: DockContext, host: CamerasHost): Dock {
       details.show(null);
     },
   });
-  const details = detailsOpener(ctx, panel.connection, () => dock.gone);
+  const details = detailsOpener(ctx, panel.connection);
   const dock: Dock = {
     root: el("section", {
       doc,

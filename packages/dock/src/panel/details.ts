@@ -18,7 +18,6 @@ export interface DetailsOpener {
 export function detailsOpener(
   ctx: DockContext,
   line: ConnectionLine,
-  gone: () => boolean,
 ): DetailsOpener {
   let open: Popover | null = null;
   const close = (): void => {
@@ -30,8 +29,8 @@ export function detailsOpener(
       import("../menus/connection.ts")
         .then(({ openConnectionDetails }) => {
           const anchor = line.element.hidden ? fallback : line.element;
-          // The dock, or the anchor, may be gone once the code has loaded.
-          if (gone() || !anchor?.isConnected) return;
+          // The dock (its line and tiles) may be gone once the code loaded.
+          if (!anchor?.isConnected) return;
           close();
           open = openConnectionDetails(ctx, anchor, focus, () =>
             line.history(),
