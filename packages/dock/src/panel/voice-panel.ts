@@ -3,6 +3,10 @@ import { el, roving } from "@modular-av/kit";
 import type { DockContext } from "../context.ts";
 import { type IconButton, iconButton } from "../ui/button.ts";
 import { syncIndicators } from "../ui/indicators.ts";
+import {
+  type ConnectionLine,
+  createConnectionLine,
+} from "./connection-line.ts";
 import { run } from "../ui/run.ts";
 import { panelView } from "../view/panel-view.ts";
 import type { StatusView } from "../view/session-view.ts";
@@ -10,12 +14,16 @@ import type { Status } from "./status.ts";
 
 export interface VoicePanel {
   readonly element: HTMLElement;
+  /** The player's own connection, at the top of the panel. */
+  readonly connection: ConnectionLine;
   dispose(): void;
 }
 
 export interface PanelHandlers {
   /** Opens the quick controls (effects, contributions) by `anchor`. */
   quick(anchor: HTMLElement): void;
+  /** Opens the connection details by `anchor`. */
+  connection(anchor: HTMLElement): void;
 }
 
 type Go = (command: () => Promise<unknown>) => void;
@@ -187,16 +195,21 @@ export function createVoicePanel(
     },
   );
   renderLocal(ctx, t, warnings);
+  const connection = createConnectionLine(ctx, doc, (anchor) => {
+    handlers.connection(anchor);
+  });
   return {
     element: el("section", {
       doc,
       className: "mav-dock-panel",
       attrs: { "aria-label": ctx.t("panel.label") },
-      children: [warnings, buttons, alerts],
+      children: [connection.element, warnings, buttons, alerts],
     }),
+    connection,
     dispose() {
       off();
       keys.dispose();
+      connection.dispose();
     },
   };
 }

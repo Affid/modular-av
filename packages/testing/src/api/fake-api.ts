@@ -243,7 +243,10 @@ export function createFakeApi(options: FakeApiOptions = {}): FakeApi {
         const found = stats.get(participant ?? "");
         return found
           ? Promise.resolve(found)
-          : Promise.reject(new Error("no stats"));
+          : // As the core: nothing measured (yet) is a "not-ready" command error.
+            Promise.reject(
+              Object.assign(new Error("no stats"), { code: "not-ready" }),
+            );
       },
     },
     services: openRegistry(),

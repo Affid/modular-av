@@ -13,7 +13,8 @@ import {
 import { byOrder, follow, type Rendered } from "../contributions/controls.ts";
 import type { DockContext } from "../context.ts";
 import { run } from "../ui/run.ts";
-import { openConnectionDetails } from "./connection.ts";
+import { setSignal, signalBars } from "../ui/signal.ts";
+import { isExpected, qualityOf, qualityText } from "../view/connection-view.ts";
 
 /** A switch the menu shows for one participant, kept in step with the state. */
 function stateSwitch(
@@ -203,11 +204,64 @@ function contributedActions(
     });
 }
 
+/**
+ * One line for the link to a participant (or this client's connection):
+ * its quality and round trip, read once as the menu opens, and "Details".
+ */
+function linkLine(
+  ctx: DockContext,
+  doc: Document,
+  p: ParticipantState,
+  details: () => void,
+): HTMLElement {
+  const bars = signalBars(doc, p.isLocal ? null : p.quality);
+  const text = el("span", { doc, text: ctx.t("connection.linkLineMeasuring") });
+  const open = el("button", {
+    doc,
+    className: "mav-control-button",
+    text: ctx.t("connection.details"),
+    attrs: {
+      type: "button",
+      "aria-haspopup": "dialog",
+      "data-action": "connection",
+      "aria-label": ctx.t("connection.detailsFor", { name: p.name }),
+    },
+  });
+  open.addEventListener("click", details);
+  ctx.api.stats
+    .get(p.isLocal ? null : p.id)
+    .then((stats) => {
+      const quality = (p.isLocal ? null : p.quality) ?? qualityOf(stats);
+      setSignal(bars, quality);
+      if (quality && stats.roundTripMs !== undefined)
+        text.textContent = ctx.t("connection.linkLine", {
+          quality: qualityText(ctx, quality),
+          ms: ctx.t("connection.ms", { value: String(stats.roundTripMs) }),
+        });
+    })
+    .catch((error: unknown) => {
+      if (!isExpected(error)) ctx.onError(error);
+    });
+  return el("div", {
+    doc,
+    className: "mav-dock-link-line",
+    children: [bars, text, open],
+  });
+}
+
 /** A participant's menu, by their tile. The local player has fewer items. */
 export function openParticipantMenu(
   ctx: DockContext,
   participant: ParticipantId,
   anchor: HTMLElement,
+  showDetails: (participant: ParticipantId | null) => void = (focus) => {
+    // The details' code loads on first use.
+    import("./connection.ts")
+      .then(({ openConnectionDetails }) => {
+        openConnectionDetails(ctx, anchor, focus);
+      })
+      .catch(ctx.onError);
+  },
 ): Popover | null {
   const p = ctx.api.state.get().participants[participant];
   if (!p) return null;
@@ -217,18 +271,9 @@ export function openParticipantMenu(
     className: "mav-dock-alert",
     attrs: { role: "alert" },
   });
-  const details = el("button", {
-    doc,
-    className: "mav-control-button",
-    text: ctx.t("menu.connection"),
-    attrs: {
-      type: "button",
-      "aria-haspopup": "dialog",
-      "data-action": "connection",
-    },
-  });
-  details.addEventListener("click", () => {
-    openConnectionDetails(ctx, details, participant);
+  // The details open from the voice panel, the menu closing as they do.
+  const details = linkLine(ctx, doc, p, () => {
+    showDetails(p.isLocal ? null : participant);
   });
   const parts = p.isLocal
     ? contributedActions(ctx, doc, p, alerts)

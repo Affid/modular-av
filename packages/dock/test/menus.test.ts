@@ -202,7 +202,7 @@ describe("connection details", () => {
     const text = details.element.textContent;
     expect(text).toContain("42 ms");
     expect(text).toContain("1.2%");
-    expect(text).toContain("RelayedYes");
+    expect(text).toContain("PathThrough a relay");
     expect(text).toContain("eu-west");
     details.close();
   });

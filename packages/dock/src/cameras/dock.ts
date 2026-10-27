@@ -1,4 +1,8 @@
-import type { CamerasHost, CamerasSurfaceDefinition } from "@modular-av/api";
+import type {
+  CamerasHost,
+  CamerasSurfaceDefinition,
+  ParticipantId,
+} from "@modular-av/api";
 import { el, icon, type Insets, NO_INSETS, setLabel } from "@modular-av/kit";
 import { type DockContext, MODULE_ID } from "../context.ts";
 import { openParticipantMenu } from "../menus/participant-menu.ts";
@@ -59,14 +63,27 @@ function resizeHandle(ctx: DockContext, doc: Document): HTMLButtonElement {
 function build(ctx: DockContext, host: CamerasHost): Dock {
   const doc = host.element.ownerDocument;
   const status = createStatus(ctx, doc);
+  /** The details open by the panel's connection line, on a player or not. */
+  const details = (focus: ParticipantId | null): void => {
+    const line = panel.connection;
+    // The details' code loads on first use.
+    import("../menus/connection.ts")
+      .then(({ openConnectionDetails }) => {
+        openConnectionDetails(ctx, line.element, focus, () => line.history());
+      })
+      .catch(ctx.onError);
+  };
   const tiles = createTileList(ctx, doc, {
     menu: (id, anchor) => {
-      openParticipantMenu(ctx, id, anchor);
+      openParticipantMenu(ctx, id, anchor, details);
     },
   });
   const panel = createVoicePanel(ctx, doc, status, {
     quick: (anchor) => {
       openQuickControls(ctx, anchor);
+    },
+    connection: () => {
+      details(null);
     },
   });
   const dock: Dock = {
@@ -221,6 +238,7 @@ export function camerasSurface(
         // In or out of the Picture-in-Picture window: timers and observers follow.
         dock.tiles.rehome();
         dock.status.rehome();
+        dock.panel.connection.rehome();
         dock.tiles.setHorizontal(where === "top" || where === "bottom");
         show(dock);
       });

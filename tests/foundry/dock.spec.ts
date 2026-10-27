@@ -62,6 +62,11 @@ test.describe("with LiveKit", () => {
       "connected",
     );
     await expect.poll(() => playing(p1.page, gmId)).toBe(true);
+    // The voice panel shows the player's own connection, as measured.
+    await expect(p1.page.locator(".mav-dock-connection-status")).toContainText(
+      /\d+ ms/,
+      { timeout: 30_000 },
+    );
     expect([...gm.notices, ...p1.notices]).toEqual([]);
   });
 
