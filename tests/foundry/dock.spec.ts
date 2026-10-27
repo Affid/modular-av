@@ -165,3 +165,37 @@ test.describe("with P2P", () => {
     await expect(tile(p2.page, p1Id)).toHaveAttribute("data-muted", "");
   });
 });
+
+test.describe("with Jitsi", () => {
+  test.beforeAll(async ({ browser }) => {
+    await configureWorld(browser, "jitsi", "dock");
+  });
+
+  test.afterAll(async ({ browser }) => {
+    await configureWorld(browser, "livekit", "dock");
+  });
+
+  test("players see each other in the dock with connection details, and see a mute", async ({
+    browser,
+  }) => {
+    track(await openGm(browser));
+    const p1 = track(await openPlayer(browser, "Player1"));
+    const p2 = track(await openPlayer(browser, "Player2"));
+    await setVoiceMode(p1, "always");
+    for (const player of [p1, p2]) await expectStatus(player, "connected");
+    const p1Id = await idOf(p2, "Player1");
+
+    await expect.poll(() => playing(p2.page, p1Id)).toBe(true);
+    await expect
+      .poll(
+        // Rejects until the first measurement arrives (every 5 s).
+        () =>
+          p2.run((api, _game, id) => api.stats.get(id).catch(() => null), p1Id),
+        { timeout: 30_000 },
+      )
+      .toMatchObject({ packetLoss: expect.any(Number) });
+    await p1.page.locator(".mav-dock-mute").click();
+
+    await expect(tile(p2.page, p1Id)).toHaveAttribute("data-muted", "");
+  });
+});

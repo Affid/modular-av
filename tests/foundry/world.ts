@@ -5,6 +5,7 @@ import type { AVState, ModularAV } from "@modular-av/api";
 import { type Browser, expect, type Page } from "@playwright/test";
 import { loadFoundryEnv } from "../../scripts/foundry/env.ts";
 import { joinAs } from "../../scripts/foundry/session.ts";
+import { JITSI_DOCKER } from "../../scripts/services/jitsi.ts";
 import { livekitTarget } from "../../scripts/services/livekit.ts";
 
 export const FOUNDRY_URL = loadFoundryEnv().url;
@@ -109,7 +110,7 @@ function wrap(page: Page, name: string): Player {
   };
 }
 
-/** Joins as a GM whose browser holds the LiveKit dev key and secret. */
+/** Joins as a GM whose browser holds the LiveKit and Jitsi test secrets. */
 export async function openGm(
   browser: Browser,
   name = "Gamemaster",
@@ -119,8 +120,15 @@ export async function openGm(
     async (_api, game, dev) => {
       await game.settings.set("modular-av-livekit", "apiKey", dev.apiKey);
       await game.settings.set("modular-av-livekit", "apiSecret", dev.apiSecret);
+      await game.settings.set("modular-av-jitsi", "appId", dev.appId);
+      await game.settings.set("modular-av-jitsi", "appSecret", dev.appSecret);
     },
-    { apiKey: livekitTarget().apiKey, apiSecret: livekitTarget().apiSecret },
+    {
+      apiKey: livekitTarget().apiKey,
+      apiSecret: livekitTarget().apiSecret,
+      appId: JITSI_DOCKER.appId,
+      appSecret: JITSI_DOCKER.appSecret,
+    },
   );
   return gm;
 }
@@ -157,7 +165,7 @@ const UIS = {
  */
 export async function configureWorld(
   browser: Browser,
-  service: "livekit" | "p2p" = "livekit",
+  service: "livekit" | "p2p" | "jitsi" = "livekit",
   ui: keyof typeof UIS = "foundry",
 ): Promise<void> {
   const gm = await openPlayer(browser, "Gamemaster");
@@ -170,6 +178,21 @@ export async function configureWorld(
         turn: config.turn,
       });
       await game.settings.set("modular-av-livekit", "serverUrl", config.url);
+      await game.settings.set(
+        "modular-av-jitsi",
+        "serverUrl",
+        config.jitsi.url,
+      );
+      await game.settings.set(
+        "modular-av-jitsi",
+        "xmppDomain",
+        config.jitsi.domain,
+      );
+      await game.settings.set(
+        "modular-av-jitsi",
+        "mucDomain",
+        config.jitsi.muc,
+      );
       await game.settings.set("modular-av", "service", config.service);
       await game.settings.set("modular-av", "cameras", config.ui.cameras);
       await game.settings.set(
@@ -181,6 +204,11 @@ export async function configureWorld(
     {
       mode: AUDIO_VIDEO,
       url: livekitTarget().url,
+      jitsi: {
+        url: JITSI_DOCKER.web,
+        domain: JITSI_DOCKER.domain,
+        muc: JITSI_DOCKER.muc,
+      },
       service,
       turn: NO_TURN,
       ui: UIS[ui],
