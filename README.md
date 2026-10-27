@@ -18,12 +18,14 @@ Paste a module's manifest URL into Foundry's "Install Module" dialog.
 | `modular-av-p2p`            | Calls directly between players' browsers, no server: for small tables. | `https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-p2p/module.json`            |
 | `modular-av-jitsi`          | Calls over your own Jitsi Meet server (with token authentication).     | `https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-jitsi/module.json`          |
 | `modular-av-dock`           | The camera dock, voice panel and settings window.                      | `https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-dock/module.json`           |
+| `modular-av-dock-vines`     | A theme for the dock: vine leaves around the cameras.                  | `https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-dock-vines/module.json`     |
 | `modular-av-mic-denoise`    | Noise cancellation in your browser: RNNoise, Speex or GTCRN.           | `https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-mic-denoise/module.json`    |
 | `modular-av-cam-background` | Blurs or replaces your camera's background, in your browser.           | `https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-cam-background/module.json` |
 
 Each module's own page: [core](packages/core/README.md),
 [LiveKit](packages/livekit/README.md), [P2P](packages/p2p/README.md),
 [Jitsi](packages/jitsi/README.md), [dock](packages/dock/README.md),
+[vines theme](packages/dock-vines/README.md),
 [noise cancellation](packages/mic-denoise/README.md),
 [camera background](packages/cam-background/README.md).
 `modular-av-livekit-krisp` (Krisp on LiveKit Cloud) is held back from
@@ -60,6 +62,7 @@ The design and the reasons behind it are in
 | `packages/core`           | `@modular-av/core`           | `modular-av`                |
 | `packages/kit`            | `@modular-av/kit`            | (library)                   |
 | `packages/dock`           | `@modular-av/dock`           | `modular-av-dock`           |
+| `packages/dock-vines`     | `@modular-av/dock-vines`     | `modular-av-dock-vines`     |
 | `packages/livekit`        | `@modular-av/livekit`        | `modular-av-livekit`        |
 | `packages/livekit-krisp`  | `@modular-av/livekit-krisp`  | `modular-av-livekit-krisp`  |
 | `packages/p2p`            | `@modular-av/p2p`            | `modular-av-p2p`            |

@@ -660,8 +660,9 @@ look in a plain dock, or the default look in free-floating frames):
   camera is its own element, anchored to a corner or edge of the screen (or
   dragged anywhere), with its position and size saved per player (`user`
   scope), and per scene when the GM wants (a portrait by each side of a
-  tavern table). More via `dock.layouts.register`; fitting, drag, resize and
-  keeping tiles on screen stay in the dock and `kit`.
+  tavern table). More via `dock.layouts.register` once a module needs it
+  (§17); fitting, drag, resize and keeping tiles on screen stay in the
+  dock and `kit`.
 - **Themes** decide how everything looks: the dock, tiles, voice panel and
   popovers, in any layout. Themes restyle; they don't change behaviour.
 
@@ -673,7 +674,7 @@ What a theme can use, all part of the dock's public API:
 - **Stable hooks for structure**: documented classes and attributes
   (`.mav-dock`, `.mav-dock-tile`, `.mav-dock-tile-video`,
   `.mav-dock-tile-frame`, `.mav-dock-panel`, `[data-speaking]`,
-  `[data-muted]`, `[data-layout="scattered"]`, `[data-anchor="top-left"]`,
+  `[data-muted]`, `[data-placement="scattered"]`, `[data-anchor="top-left"]`,
   …). Changing these is a breaking change (a major version of the dock).
 - **Tile frames**: a frame bigger than the video, e.g. vine leaves
   overflowing its edges, declared rather than scripted: artwork (SVG or a
@@ -1744,7 +1745,7 @@ docker-jitsi-meet `stable-11248-2`):
   of overlapping publishes released, lib-jitsi-meet's
   `disableThirdPartyRequests` and `analytics.disabled` set, the tar
   reader refusing corrupt sizes and capping decompression. Left as they
-  are: see "From milestone 8" in §17.
+  are: see "From milestone 8" in §18.
 - **API changes** (additive): `ServiceConnection.updateToken?()`; the
   core answers `tokenExpiring`, one request at a time, for the live
   connection only.
@@ -1753,9 +1754,99 @@ docker-jitsi-meet `stable-11248-2`):
   without tokens (an "insecure" mode like LiveKit's dev mode); versions
   other than stable 11248 aren't tested.
 
-## 17. Open items
+## 17. Findings from milestone 9
 
-Left open after milestone 8. None of them is part of a milestone unless
+Verified while building the scattered layout, themes and
+`modular-av-dock-vines` (Foundry 14.369, Chromium from Playwright 1.64):
+
+- **The scattered layout is a placement**, beside docked, floating and a
+  window of its own (`data-placement="scattered"`; the host is `free`):
+  grid and focus fit tiles in the dock's box, and scattered has none.
+  Each tile is placed on its own as an anchor (a corner or edge of the
+  window) and an offset (`kit`'s `placeAnchored`/`anchorOf`), so it stays
+  against its corner when the window is resized; `avoid()` then moves it
+  the shortest way out of Foundry's controls, its frame included. The
+  dock's header (status, count, tools) joins the voice panel, which is
+  placed like a tile, bottom-left by default. Tiles move by dragging (or
+  their move handle with the arrow keys) and resize by their handle
+  (width only: tiles stay 16:9). Arrangements are a `user` setting;
+  broken values give the defaults. The layout's code (11 KB) loads only
+  when a player picks it, and a dock unmounted or moved elsewhere while it
+  loads drops it.
+- **Foundry v14's controls, as the scattered layout sees them**: the
+  containers are tall and mostly empty, with `pointer-events: none`
+  (`#scene-navigation` and `#chat-notifications` run the whole height of
+  the window, `#scene-controls` most of it), so the visible parts are
+  measured: their list items, the chat log, input and controls, the
+  hotbar. The players list's names overflow `#players`' own 72 px box.
+  Collapsing the sidebar slides `#sidebar-content` off to the right with
+  a negative margin (250 ms) while `#sidebar` keeps its box, so neither
+  its size nor a resize observer notices: the dock watches the
+  containers for changes (a mutation observer) and places again when a
+  transition ends. The test world starts with the sidebar collapsed.
+- **Foundry's `Hotbar#_onResize` throws before the hotbar renders** (it
+  reads its element). The core called it from `setPlacement`, so a dock
+  that started floating or scattered after a reload failed to place
+  itself (since milestone 5, unseen until a saved scattered dock). The
+  core now asks only once the hotbar has rendered, and the dock follows
+  its placement even if the host fails.
+- **Scenes**: with `core.noCanvas` (the Foundry suite) no scene is viewed
+  and `game.scenes.current` is null; the dock uses `viewed ?? active`. A
+  GM's layout for a scene is a scene flag holding JSON text: an object
+  flag would be merged with the old one by Foundry's update, keeping
+  tiles that were removed. Players see it until they move a tile there;
+  then their own copy for that scene wins, with "Back to the scene's
+  layout". The voice panel is always the player's own.
+- **Themes** register through the dock's API (`api.themes.register`,
+  inside the `modularAVDock.register` hook during `setup`; also
+  `game.modules.get("modular-av-dock").api`). The chosen theme's
+  stylesheet is one `<link>` loaded from Foundry's root and `<html>` gets
+  `mav-theme-<id>`: a class rather than the plan's `data-mav-theme`,
+  since the core mirrors `<html>` classes and the page's stylesheets into
+  the Picture-in-Picture window (checked there). A theme's stylesheet must
+  not be in its `module.json` `styles`. Frames declare only their reach
+  (fractions of the tile's width); the frame layer is sized to it, the
+  grid fits tiles with room for it (`fitGrid({ reach })`) and tiles no
+  longer clip what reaches past them (the media clips the video). How
+  much of the face a frame covers is checked on screen, not declared.
+  `suggestedLayout` is offered in the placement menu, never applied.
+- **The theme contract** (`@modular-av/testing/contract/theme`) runs in
+  each layout a theme names. Faces: inside 15% of each side of the video
+  the frame draws nothing, compared by screenshots with and without the
+  frame (identical PNG bytes), retried until the tile holds still (the
+  docked grid refits as the status line changes). Indicators: their
+  background is translucent, so a frame may draw under them; the check is
+  that they aren't faded and the frame paints below them. Checked against
+  a deliberately bad theme (a frame over the face and above the
+  indicators fails both).
+- **Font Awesome**: Foundry 14.369 ships Font Awesome Pro 7.2.0; the
+  harness loads Free 7.2.0 (dev only). Every icon the dock uses is in
+  Free; the core's plain status uses `fa-headphones-slash` (Pro only).
+  With icons, the baselines showed that a button's `display` beat the
+  `hidden` attribute (the move button while docked, reconnect while
+  connected, an empty Effects section): fixed.
+- **Smaller fixes**: roving focus moved on after a move handle's arrow
+  key; the GM's block switch showed "blocked" for a kind the world's mode
+  leaves out (now `ParticipantState.blockedAudio`/`blockedVideo`);
+  settings selects kept an option's old text when only its label
+  changed; the harness served stylesheets without `text/css`.
+- **Bundles**: the dock's entry with what it imports at once is 83.1 KB
+  (unminified; the theme registry and scene and frame code load at
+  setup): its budget went from 80 to 90 KB. dock-vines: entry 0.6 of 2 KB,
+  stylesheet 2.3 of 8 KB (the size check now covers a theme's own
+  stylesheet).
+- **Reviews** (code and security): no critical or high findings. Fixed:
+  a scattered layout loading after the dock was unmounted, a dock left
+  half scattered if setting it up threw, own-property lookups of tile
+  ids, saved records capped before they're read (the newest kept), the
+  scene layout parsed once per text, the panel and re-rendered controls
+  watched. Left as they are: see "From milestone 9" in §18.
+- **API changes** (additive): `ParticipantState.blockedAudio` and
+  `blockedVideo`. The dock's own API: `themes.register`, `list`, `get`.
+
+## 18. Open items
+
+Left open after milestone 9. None of them is part of a milestone unless
 it is picked up explicitly.
 
 - **Browser-tier flake**: "two players who join at the same moment link
@@ -1778,19 +1869,12 @@ it is picked up explicitly.
 - **Firefox 48 kHz capture**: see §11.
 - **From milestone 4**: see "Not done yet" in §12.
 - **From milestone 5**:
-  - The dock's screenshot baselines have no icons: the harness loads no
-    Font Awesome (Foundry ships it). Loading it (e.g.
-    `@fortawesome/fontawesome-free`, dev only) would make them more
-    telling.
   - Firefox, Safari and Foundry's desktop app aren't tested: Document
     Picture-in-Picture is feature-detected (the dock says why "own
     window" isn't offered) and element Picture-in-Picture per tile isn't
     built.
-  - The compact tile layout, `dock.themes.register` and
-    `dock.layouts.register` wait for milestone 9 (the scattered layout and
-    the first theme).
-  - A UI shows "blocked" by working it out from `worldMode` and
-    `canBroadcast`; a core field (blocked by a GM) would save each UI that.
+  - The compact tile layout (avatars and names only) wasn't built in
+    milestone 9 either.
   - Visibility pauses renegotiate a P2P link each time (after the 3 s
     grace): measure with a real table before tuning.
   - `MountedSurface.unmount` isn't called by the core.
@@ -1846,10 +1930,21 @@ it is picked up explicitly.
   - Another tab of the same player that joins while this one is still
     joining counts as older: both stay (a small window).
   - Plain `ws://` is accepted for `*.local` names, as for LiveKit.
-  - The camera background's fail-closed contract test
-    (`video-effect-contract.ts`, "files can't load") can record the raw
-    camera in its first sample under heavy load: it starts sampling
-    before it turns the effect on, while the raw camera is rightly being
-    sent. Seen once inside `pnpm verify` (load 15); ten runs alone passed.
-    Starting the sampler with the command, in one evaluation, would fix
-    the test; the core held the camera as it should.
+- **From milestone 9**:
+  - `dock.layouts.register` isn't public: the layouts are the dock's own
+    behind an internal interface, until a module needs to add one.
+  - Scattered tiles keep clear of Foundry's controls, not of each other:
+    a tile dragged onto another stays there. Tiles that were never placed
+    take the free corners in the dock's order, so one can change corner
+    when someone joins (until the player moves it).
+  - A player's own arrangements for scenes are never pruned (deleted
+    scenes included); the newest 200 are kept.
+  - The chat log counts as one of Foundry's controls: tiles near the
+    bottom right move away while new messages show there, and back.
+  - A theme's `preview` is checked but not shown anywhere yet (the
+    settings window lists themes by name).
+  - Only Foundry v14's controls are measured, by their v14 ids and
+    structure.
+  - The scattered layout and themes are tested in Chromium only, and the
+    whole Foundry suite wasn't run for milestone 9 (the dock and
+    scattered specs were).
