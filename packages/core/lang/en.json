@@ -217,6 +217,7 @@
           "apply": "Apply: {parts}.",
           "carries": "Apply: {parts}; {name} carries the calls.",
           "keeps": "{names} stays on until {name} is installed, so calls keep working.",
+          "keepsNone": "{names} stays on: without a service, nobody can join a call.",
           "waiting": "Waiting to be installed (step 1): {names}.",
           "waitingNeeds": "{names} waits for what it needs.",
           "button": "Apply: {parts}…",

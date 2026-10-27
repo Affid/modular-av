@@ -34,8 +34,8 @@ export interface ModulesMenuDeps {
  * The modules menu, GMs only. Foundry opens `new type()` on each click:
  * this type only loads the real window (a chunk of its own) and opens it.
  */
-export function registerModulesMenu(deps: ModulesMenuDeps): void {
-  const { game } = deps;
+/** The board's settings: its plan, asking GitHub, and what was told. */
+function registerModulesSettings(game: FoundryGame): void {
   game.settings.register(MODULE_ID, PLAN_SETTING, {
     scope: "world",
     config: false,
@@ -68,6 +68,11 @@ export function registerModulesMenu(deps: ModulesMenuDeps): void {
     type: String,
     default: "",
   });
+}
+
+export function registerModulesMenu(deps: ModulesMenuDeps): void {
+  const { game } = deps;
+  registerModulesSettings(game);
   const Base = deps.base as unknown as new () => {
     render(options?: object): unknown;
   };

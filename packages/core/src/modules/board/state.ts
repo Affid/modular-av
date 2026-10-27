@@ -31,11 +31,15 @@ export function initialState(
   const world = host.world();
   const saved: SavedPlan | null = host.savedPlan();
   const knows = (id: string): boolean => pieces.some((p) => p.id === id);
+  // A running module the catalog doesn't list stays as it is.
+  const unknown = [...runningOf(world)].filter((id) => !knows(id));
   return {
     loaded,
     pieces,
     world,
-    plan: saved ? new Set(saved.plan.filter(knows)) : runningOf(world),
+    plan: saved
+      ? new Set([...saved.plan.filter(knows), ...unknown])
+      : runningOf(world),
     history: [],
     trip: saved?.trip?.filter(knows) ?? null,
     confirming: null,

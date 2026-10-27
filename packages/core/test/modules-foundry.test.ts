@@ -221,6 +221,30 @@ describe("the daily news", () => {
     ]);
     expect(settings.get("modular-av.lastGitHubCheck")).toBe(2000);
   });
+
+  it("tells of a new module's title as text, never as markup", async () => {
+    const hostile = JSON.parse(catalogOf("0.4.0")) as {
+      modules: Record<string, unknown>[];
+    };
+    hostile.modules.push({
+      ...hostile.modules[0],
+      id: "modular-av-evil",
+      title: '<img src="https://evil.example/x.png">',
+      manifest:
+        "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-evil/module.json",
+    });
+    const { deps } = foundry(new Map(), {
+      "/modules/modular-av/catalog.json": catalogOf("0.4.0"),
+      "https://raw.githubusercontent.com/Affid/modular-av/manifests/catalog.json":
+        JSON.stringify(hostile),
+    });
+    const told: string[] = [];
+
+    await checkForNews(deps, (m) => told.push(m), 1000);
+
+    expect(told[0]).toContain("&lt;img");
+    expect(told[0]).not.toContain("<img");
+  });
 });
 
 describe("the modules menu", () => {

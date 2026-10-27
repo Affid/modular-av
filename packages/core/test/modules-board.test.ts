@@ -66,7 +66,11 @@ afterEach(() => {
   document.body.replaceChildren();
 });
 
-async function open(world: World = RUNNING, saved: SavedPlan | null = null) {
+async function open(
+  world: World = RUNNING,
+  saved: SavedPlan | null = null,
+  applyFails = false,
+) {
   const calls = {
     saved: [] as (SavedPlan | null)[],
     applied: [] as ApplyChange[],
@@ -99,7 +103,9 @@ async function open(world: World = RUNNING, saved: SavedPlan | null = null) {
     },
     apply: (change) => {
       calls.applied.push(change);
-      return Promise.resolve();
+      return applyFails
+        ? Promise.reject(new Error("permission"))
+        : Promise.resolve();
     },
     returnToSetup: () => {
       calls.left += 1;
@@ -275,5 +281,54 @@ describe("the board's steps", () => {
     expect(text(".mav-board-steps")).toContain(
       "Update Dock: Add-on Modules, Update All.",
     );
+  });
+
+  it("keeps the only service on when the plan has none", async () => {
+    const { click, text, q } = await open();
+
+    click("remove-modular-av-livekit");
+
+    expect(text(".mav-board-steps")).toContain(
+      "LiveKit stays on: without a service, nobody can join a call.",
+    );
+    expect(q('[data-key="apply"]')?.disabled).toBe(true);
+  });
+
+  it("never plans to turn off a running module the catalog doesn't know", async () => {
+    const { text } = await open(
+      { ...RUNNING, "modular-av-tokens": { active: true } },
+      { plan: ["modular-av-livekit", "modular-av-dock"], trip: null },
+    );
+
+    expect(text(".mav-board-status")).toContain("This world runs");
+  });
+
+  it("keeps the plan when Apply fails, and applies once however often clicked", async () => {
+    const { calls, click, settle } = await open(
+      { ...RUNNING, "modular-av-mic-denoise": { active: false } },
+      null,
+      true,
+    );
+    click("add-modular-av-mic-denoise");
+    click("apply");
+
+    click("apply-ok");
+    click("apply-ok");
+    await settle();
+
+    expect(calls.applied).toHaveLength(1);
+    expect(calls.errors).toHaveLength(1);
+    expect(calls.saved.at(-1)?.plan).toContain("modular-av-mic-denoise");
+  });
+
+  it("keeps its announcements in one place across redraws", async () => {
+    const { content, click } = await open();
+    const toast = content.querySelector(".mav-board-toast");
+
+    click("add-modular-av-p2p");
+    click("undo");
+
+    expect(content.querySelector(".mav-board-toast")).toBe(toast);
+    expect(toast?.textContent).toContain("Undone.");
   });
 });

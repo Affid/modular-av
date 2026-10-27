@@ -75,7 +75,10 @@ export async function checkForNews(
       ? text.t("news.fresh", { names: text.names(news.fresh) })
       : "",
   ].filter(Boolean);
-  notify(text.t("news.message", { news: parts.join("; ") }));
+  // Foundry shows notices as HTML: catalog titles go in as text.
+  const message = foundry.doc.createElement("span");
+  message.textContent = text.t("news.message", { news: parts.join("; ") });
+  notify(message.innerHTML);
 }
 
 /** The check as the core runs it at `ready`: Foundry's notice, now. */

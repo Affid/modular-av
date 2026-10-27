@@ -44,10 +44,27 @@ export function planDiff(plan: Plan, world: WorldModules): PlanDiff {
   };
 }
 
+/** Installed, with what it needs installed and planned, and a core it can run on. */
+function readyIn(plan: Plan, world: WorldModules, pieces: readonly Piece[]) {
+  const core = world.get(MODULE_ID)?.version;
+  return (id: string): boolean => {
+    const piece = pieceOf(pieces, id);
+    const needs = (piece?.requires ?? []).filter((r) => r !== MODULE_ID);
+    const coreOk =
+      !piece?.needsCore ||
+      core === undefined ||
+      !isNewer(piece.needsCore, core);
+    return (
+      world.has(id) && coreOk && needs.every((r) => plan.has(r) && world.has(r))
+    );
+  };
+}
+
 /**
  * What Apply may change now, never leaving the world worse off: a piece
- * turns on only when it and what it needs are installed, and the running
- * service turns off only once the new one can take over.
+ * turns on only when it and what it needs are installed (and the core is
+ * new enough), and the running service turns off only once another one
+ * takes over: never for a plan without a service.
  */
 export function applicable(
   plan: Plan,
@@ -55,15 +72,11 @@ export function applicable(
   pieces: readonly Piece[],
 ): Applicable {
   const { turnOn, turnOff } = planDiff(plan, world);
-  const needs = (id: string) =>
-    (pieceOf(pieces, id)?.requires ?? []).filter((r) => r !== MODULE_ID);
-  const ready = (id: string) =>
-    world.has(id) && needs(id).every((r) => plan.has(r) && world.has(r));
-  const on = turnOn.filter(ready);
+  const on = turnOn.filter(readyIn(plan, world, pieces));
   const isService = (id: string) => pieceOf(pieces, id)?.kind === "service";
   const next = [...plan].find(isService);
   const canTakeOver =
-    next === undefined || on.includes(next) || runningOf(world).has(next);
+    next !== undefined && (on.includes(next) || runningOf(world).has(next));
   const keep = canTakeOver ? [] : turnOff.filter(isService);
   return {
     on,

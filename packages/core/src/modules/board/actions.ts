@@ -62,10 +62,15 @@ async function apply(board: Board): Promise<void> {
   const a = applicable(state.plan, state.world, state.pieces);
   const ui = a.on.find((id) => pieceOf(state.pieces, id)?.kind === "ui");
   const waits = a.waiting.length + a.keep.length > 0;
-  await board.host.savePlan(
-    waits ? { plan: [...state.plan], trip: state.trip } : null,
-  );
-  await board.host.apply({ on: a.on, off: a.off, ui: ui ?? null });
+  const kept = { plan: [...state.plan], trip: state.trip };
+  await board.host.savePlan(waits ? kept : null);
+  try {
+    await board.host.apply({ on: a.on, off: a.off, ui: ui ?? null });
+  } catch (error: unknown) {
+    // Nothing changed for good: the plan is still to be applied.
+    await board.host.savePlan(kept);
+    throw error;
+  }
 }
 
 function planActions(
@@ -118,6 +123,17 @@ function planActions(
 function tripActions(
   board: Board,
 ): Pick<Actions, "confirm" | "leave" | "apply"> {
+  // Leaving and applying run once, however often their button is pressed.
+  let working = false;
+  const once = (run: (board: Board) => Promise<void>): void => {
+    if (working) return;
+    working = true;
+    run(board)
+      .catch(failed(board))
+      .finally(() => {
+        working = false;
+      });
+  };
   return {
     confirm(which) {
       const state = board.state();
@@ -129,10 +145,10 @@ function tripActions(
         board.toast(board.texts().t("steps.world.kept"));
     },
     leave() {
-      leave(board).catch(failed(board));
+      once(leave);
     },
     apply() {
-      apply(board).catch(failed(board));
+      once(apply);
     },
   };
 }

@@ -21,7 +21,7 @@ function toaster(doc: Document, undo: () => void, text: () => Texts) {
   const element = el("div", {
     doc,
     className: "mav-board-toast",
-    attrs: { role: "status", "aria-live": "polite", hidden: "" },
+    attrs: { role: "status", "aria-live": "polite" },
   });
   let timer: ReturnType<typeof setTimeout> | undefined;
   const show = (message: string, withUndo = false): void => {
@@ -36,10 +36,11 @@ function toaster(doc: Document, undo: () => void, text: () => Texts) {
       el("span", { doc, text: message }),
       withUndo ? undoButton : "",
     );
-    element.hidden = false;
+    // Always in the page, emptied rather than hidden: a live region that
+    // appears with its text is often not read out.
     clearTimeout(timer);
     timer = setTimeout(() => {
-      element.hidden = true;
+      element.replaceChildren();
     }, TOAST_MS);
   };
   return {
@@ -51,8 +52,9 @@ function toaster(doc: Document, undo: () => void, text: () => Texts) {
   };
 }
 
-function render(content: HTMLElement, view: View, toast: HTMLElement): void {
-  content.replaceChildren(
+/** Redraws the board in `root`; the toast beside it stays put. */
+function render(root: HTMLElement, view: View): void {
+  root.replaceChildren(
     el("div", {
       doc: view.doc,
       className: "mav-board",
@@ -70,7 +72,6 @@ function render(content: HTMLElement, view: View, toast: HTMLElement): void {
         steps(view),
       ],
     }),
-    toast,
   );
 }
 
@@ -88,6 +89,11 @@ function markFits(
   for (const hole of content.querySelectorAll<HTMLElement>("[data-socket]"))
     hole.dataset.fits = String(hole.dataset.socket === key);
 }
+
+/** Puts focus on what an action leads to, by its data-key. */
+const focusOn = (root: HTMLElement, key: string): void => {
+  root.querySelector<HTMLElement>(`[data-key="${key}"]`)?.focus();
+};
 
 /** Ctrl+Z (Cmd+Z) undoes, except while typing in a field. */
 function undoKey(undo: () => void): (event: KeyboardEvent) => void {
@@ -113,17 +119,20 @@ export async function mountBoard(
   let state: BoardState = initialState(host, await host.loadCatalog());
   let texts = createTexts(host, state.pieces, state.loaded.catalog.soon);
   let actions: Actions | null = null;
+  // Closed: answers that arrive late (a whisper, a retry) change nothing.
+  let disposed = false;
   const undo = (): void => {
     actions?.undo();
   };
   const toast = toaster(doc, undo, () => texts);
+  const root = el("div", { doc });
+  content.replaceChildren(root, toast.element);
   const draw = (focus?: string): void => {
     texts = createTexts(host, state.pieces, state.loaded.catalog.soon);
-    if (!actions) return;
+    if (!actions || disposed) return;
     const view = { doc, host, state, text: texts, act: actions };
-    render(content, view, toast.element);
-    if (focus)
-      content.querySelector<HTMLElement>(`[data-key="${focus}"]`)?.focus();
+    render(root, view);
+    if (focus) focusOn(root, focus);
   };
   const board: Board = {
     host,
@@ -133,7 +142,9 @@ export async function mountBoard(
       state = next;
       draw(focus);
     },
-    toast: toast.show,
+    toast: (message, withUndo) => {
+      if (!disposed) toast.show(message, withUndo);
+    },
     markFits: (id) => {
       markFits(content, state, id);
     },
@@ -144,6 +155,7 @@ export async function mountBoard(
   draw();
   return {
     dispose() {
+      disposed = true;
       content.removeEventListener("keydown", onKey);
       toast.stop();
       delete doc.body.dataset.mavDragging;

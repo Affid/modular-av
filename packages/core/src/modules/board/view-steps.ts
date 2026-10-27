@@ -40,11 +40,13 @@ function todo(view: View): HTMLElement {
         ? t(view, "carries", { parts, name: text.name(service) })
         : t(view, "apply", { parts })
       : null,
-    a.keep.length && next
-      ? t(view, "keeps", {
-          names: text.names(a.keep),
-          name: text.name(next.id),
-        })
+    a.keep.length
+      ? next
+        ? t(view, "keeps", {
+            names: text.names(a.keep),
+            name: text.name(next.id),
+          })
+        : t(view, "keepsNone", { names: text.names(a.keep) })
       : null,
     notInstalled.length
       ? t(view, "waiting", { names: text.names(notInstalled) })

@@ -518,8 +518,9 @@
   gap: 12px;
   align-items: center;
 }
-.mav-board-toast[hidden] {
-  display: none;
+.mav-board-toast:empty {
+  padding: 0;
+  margin: 0;
 }
 
 @media (prefers-reduced-motion: no-preference) {

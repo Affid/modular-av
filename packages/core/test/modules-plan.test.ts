@@ -167,6 +167,36 @@ describe("the steps a plan needs", () => {
     });
   });
 
+  it("never turns off the running service when the plan has none", () => {
+    expect(applicable(plan("modular-av-dock"), now, pieces)).toEqual({
+      on: [],
+      off: [],
+      keep: ["modular-av-livekit"],
+      waiting: [],
+    });
+  });
+
+  it("turns a piece on only with the core version it needs", () => {
+    const newer = piecesOf({
+      ...catalog,
+      modules: [
+        ...catalog.modules,
+        {
+          ...mod("modular-av-mumble", "effect"),
+          requires: [{ id: "modular-av", minimum: "0.5.0" }],
+        },
+      ],
+    });
+    const installed = world({
+      "modular-av": { active: true, version: "0.4.0" },
+      "modular-av-mumble": { active: false },
+    });
+
+    expect(
+      applicable(plan("modular-av-mumble"), installed, newer).waiting,
+    ).toEqual(["modular-av-mumble"]);
+  });
+
   it("turns a theme on only with what it themes", () => {
     const installed = world({ "modular-av-dock-vines": { active: false } });
     const next = plan("modular-av-dock", "modular-av-dock-vines");
