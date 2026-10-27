@@ -4,6 +4,7 @@ import { IMPORTED_SETTING, importLegacy } from "./legacy.ts";
 import "./foundry/globals.ts";
 import { logError } from "./log.ts";
 import { createBrowserMediaEnv } from "./media/browser-env.ts";
+import { registerModulesMenu } from "./modules/menu.ts";
 import { assetUrl } from "./socket.ts";
 import { createBrowserWindows } from "./windows/browser-windows.ts";
 
@@ -21,6 +22,17 @@ Hooks.once("init", () => {
     now: () => Date.now(),
     randomId: () => crypto.randomUUID(),
     onError: logError,
+  });
+  registerModulesMenu({
+    game,
+    base: foundry.applications.api.ApplicationV2,
+    open: () => {
+      import("./modules/open.ts")
+        .then(({ openBoard }) => {
+          openBoard(logError);
+        })
+        .catch(logError);
+    },
   });
   // A player's choices from LiveKit AVClient, once (see legacy.ts).
   game.settings.register(MODULE_ID, IMPORTED_SETTING, {

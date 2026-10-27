@@ -238,6 +238,9 @@ importers:
       '@modular-av/api':
         specifier: workspace:*
         version: link:../api
+      '@modular-av/kit':
+        specifier: workspace:*
+        version: link:../kit
     devDependencies:
       '@modular-av/testing':
         specifier: workspace:*

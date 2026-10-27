@@ -49,6 +49,219 @@
     },
     "settingsWindow": {
       "title": "Voice & Video Settings"
+    },
+    "modules": {
+      "menu": {
+        "name": "Modules",
+        "label": "Plan your modules",
+        "hint": "See which Modular A/V modules exist, plan which ones this world runs, and get the links to install them."
+      },
+      "title": "Modular A/V: plan your voice and video setup",
+      "lead": "Put the pieces you want on the board. Nothing changes until you follow the steps below it.",
+      "failed": "The modules window couldn't open. The browser console says why.",
+      "source": {
+        "github": "Checked GitHub for updates and new modules just now.",
+        "bundled": "Showing the modules this version of Modular A/V knows.",
+        "offline": "Couldn't reach GitHub: updates and new modules may be missing here.",
+        "off": "Checking GitHub is off: showing the modules this version of Modular A/V knows.",
+        "retry": "Try again"
+      },
+      "updates": {
+        "label": "Updates available:",
+        "hint": "Update them on Setup (step 1), whenever you next go there."
+      },
+      "status": {
+        "runs": "This world runs {names}. Add or swap pieces below.",
+        "runsNothing": "This world runs no Modular A/V pieces yet. Add some below.",
+        "plan": "Your plan: {changes}. Nothing has changed yet; the steps below make it so.",
+        "install": "{count} to install",
+        "turnOn": "{count} to turn on",
+        "turnOff": "{count} to turn off",
+        "back": "Welcome back. Installed: {got}. Still missing: {missing} (its link is in step 1).",
+        "backNothing": "nothing yet",
+        "backAll": "Welcome back: {names} installed. Apply below.",
+        "undo": "Undo",
+        "undoAll": "Undo all",
+        "undone": "Undone.",
+        "backToWorld": "Back to what this world runs."
+      },
+      "board": {
+        "label": "Your plan",
+        "core": "Modular A/V",
+        "coreVersion": "core {version}",
+        "coreUpdate": "core {version} · update available",
+        "roomForMore": "Room for more."
+      },
+      "socket": {
+        "service": {
+          "label": "Service",
+          "need": "Required: pick one",
+          "empty": "Empty: nobody can join a call until a service is here."
+        },
+        "cameras": {
+          "label": "Cameras",
+          "need": "Optional: pick one",
+          "empty": "Empty: Foundry's own camera dock shows the cameras."
+        },
+        "effects": {
+          "label": "Effects",
+          "need": "Optional: any number",
+          "empty": "Empty: microphones and cameras go out as they are."
+        },
+        "theme": {
+          "label": "Theme for the {name}",
+          "need": "Optional: pick one",
+          "empty": "Empty: the {name}'s own look."
+        }
+      },
+      "badge": {
+        "running": "Running",
+        "off": "Installed, off",
+        "missing": "Not installed",
+        "willInstall": "Will install",
+        "willTurnOn": "Will turn on",
+        "willTurnOff": "Will turn off",
+        "willTurnOffNeeds": "Will turn off: needs the {name}",
+        "update": "Update available",
+        "new": "New",
+        "needsCore": "Needs Modular A/V {version}"
+      },
+      "piece": {
+        "remove": "Remove {name}",
+        "add": "Add to {socket}",
+        "instead": "Use instead of {name}",
+        "needs": "Needs {name} on the board",
+        "added": "{name} on the board.",
+        "swapped": "{name} on the board; {dropped} back in the tray.",
+        "removed": "{names} back in the tray."
+      },
+      "tray": {
+        "label": "Pieces you can add",
+        "title": "Pieces",
+        "hint": "Add a piece with its button, or drag it onto a socket. Drag a piece from the board back here to remove it.",
+        "onBoard": "{names} on the board.",
+        "none": "None yet.",
+        "soon": "Coming soon: {names}.",
+        "service": "Services",
+        "ui": "Cameras",
+        "effect": "Effects",
+        "theme": "Themes"
+      },
+      "helper": {
+        "open": "Help me choose",
+        "close": "Close",
+        "label": "Help me choose a service",
+        "question": "Where should calls go?",
+        "browsers": "Just the players' browsers, no server",
+        "browsersWhy": "Peer to peer: free and nothing to run. Best up to 6 players.",
+        "livekit": "LiveKit Cloud, or my own LiveKit server",
+        "livekitWhy": "LiveKit: handles larger tables; LiveKit Cloud has a free tier.",
+        "jitsi": "My own Jitsi Meet server",
+        "jitsiWhy": "Jitsi Meet: uses the server you run, with token sign-in.",
+        "use": "Use {name}",
+        "useInstead": "Use {name} instead of {current}",
+        "already": "{name} is on the board"
+      },
+      "steps": {
+        "title": "Steps",
+        "label": "Steps",
+        "serviceFirst": "Add a service first: without one, nobody can join a call.",
+        "setup": {
+          "title": "1. On Foundry's Setup screen",
+          "who": "Whoever runs your Foundry server does this. On a hosted server, use your host's install page with the same links.",
+          "done": "Nothing to install or update.",
+          "update": "Update {names}: Add-on Modules, Update All.",
+          "install": "Install: Add-on Modules, Install Module, paste each link into Manifest URL, Install. Accept the modules Foundry offers with it.",
+          "brings": "Brings {names} with it.",
+          "copyOne": "Copy {name} link",
+          "carryHint": "The links can't follow you to Setup: copy them or save the file first. This plan stays saved in the world.",
+          "copyAll": "Copy all links",
+          "saveFile": "Save as a file",
+          "chat": "Send to my chat, for whoever runs your server",
+          "chatSent": "In your chat",
+          "chatDone": "Whispered to you: copy it from there for your host. It isn't readable on Setup.",
+          "leave": "Return to Setup…",
+          "leaveLabel": "Leave for Setup?",
+          "leavePlayers": "{count} players are connected. Leaving disconnects them until you launch the world again.",
+          "leaveAlone": "Leaving shuts the world down until you launch it again.",
+          "leaveLinks": "Have the links? Copied, saved or with your host.",
+          "leaveOk": "Leave for Setup",
+          "notNow": "Not now",
+          "copied": "Copied.",
+          "copyFailed": "Copying isn't allowed here; select the text instead."
+        },
+        "world": {
+          "title": "2. In this world",
+          "who": "You, as GM. Everyone's page reloads once.",
+          "done": "This world already runs this plan.",
+          "turnOn": "turn on {names}",
+          "turnOff": "turn off {names}",
+          "apply": "Apply: {parts}.",
+          "carries": "Apply: {parts}; {name} carries the calls.",
+          "keeps": "{names} stays on until {name} is installed, so calls keep working.",
+          "waiting": "Waiting to be installed (step 1): {names}.",
+          "waitingNeeds": "{names} waits for what it needs.",
+          "button": "Apply: {parts}…",
+          "nothing": "Nothing to apply yet",
+          "confirmLabel": "Apply now?",
+          "reloadPlayers": "{count} players are connected: their pages reload now, mid-call.",
+          "reloadAlone": "Everyone's page reloads now.",
+          "ok": "Apply and reload everyone",
+          "later": "After the session",
+          "kept": "The plan stays saved: it's here when you open this window again."
+        },
+        "settings": {
+          "title": "3. Check these settings",
+          "livekit": "LiveKit's settings: your LiveKit Cloud or server address and key (the key stays in your browser).",
+          "jitsi": "Jitsi Meet's settings: your server's address and app secret.",
+          "theme": "Voice & Video Settings, Appearance: make {name} the world's theme, or let players choose.",
+          "effects": "Tell players: {names} are in their Voice & Video Settings."
+        }
+      },
+      "file": {
+        "title": "Modular A/V: modules to install",
+        "how": "On Foundry's Setup screen: Add-on Modules, Install Module, paste a link into Manifest URL, Install. Accept the modules Foundry offers with it.",
+        "update": "Update: {name} (Add-on Modules, Update All)",
+        "brings": "{name} (brings {names}): {url}",
+        "link": "{name}: {url}",
+        "then": "Then launch the world and open Modular A/V's modules window to switch them on."
+      },
+      "names": {
+        "modular-av": {
+          "title": "Modular A/V"
+        },
+        "modular-av-livekit": {
+          "title": "LiveKit",
+          "what": "Calls over LiveKit Cloud or your own LiveKit server. Most tables."
+        },
+        "modular-av-p2p": {
+          "title": "Peer to peer",
+          "what": "No server: players' browsers link to each other. Best up to 6 players."
+        },
+        "modular-av-jitsi": {
+          "title": "Jitsi Meet",
+          "what": "Your own Jitsi Meet server, with token sign-in."
+        },
+        "modular-av-dock": {
+          "title": "Dock",
+          "what": "Cameras docked, floating, scattered over the screen or in their own window, with a voice panel."
+        },
+        "modular-av-mic-denoise": {
+          "title": "Noise cancellation",
+          "what": "Removes background noise from microphones. Each player turns it on for themselves."
+        },
+        "modular-av-cam-background": {
+          "title": "Camera background",
+          "what": "Blurs or replaces what's behind each player. Chrome and Edge."
+        },
+        "modular-av-dock-vines": {
+          "title": "Vines theme",
+          "what": "Vine leaves around the cameras, glowing while someone speaks."
+        },
+        "modular-av-livekit-krisp": {
+          "title": "Krisp noise filter, for LiveKit Cloud"
+        }
+      }
     }
   }
 }

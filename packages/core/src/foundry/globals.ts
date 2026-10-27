@@ -6,6 +6,8 @@
 export interface FoundryModule {
   readonly id: string;
   readonly version: string;
+  /** Enabled in this world. */
+  readonly active?: boolean;
   api?: unknown;
 }
 
@@ -58,10 +60,21 @@ export interface FoundrySettingMenu {
   readonly type: new () => { render(options?: object): unknown };
 }
 
+/** What `registerMenu` takes: the type must be an ApplicationV2 subclass. */
+export interface FoundryMenuConfig extends FoundrySettingMenu {
+  readonly name: string;
+  readonly label: string;
+  readonly hint?: string;
+  readonly icon?: string;
+  /** GMs only. */
+  readonly restricted: boolean;
+}
+
 export interface FoundrySettings {
   /** Foundry's own "core.webrtc" is its A/V settings window. */
   readonly menus: Map<string, FoundrySettingMenu>;
   register(namespace: string, key: string, config: FoundrySettingConfig): void;
+  registerMenu(namespace: string, key: string, config: FoundryMenuConfig): void;
   get(namespace: string, key: string): unknown;
   set(namespace: string, key: string, value: unknown): Promise<unknown>;
 }

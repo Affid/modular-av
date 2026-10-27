@@ -13,6 +13,8 @@ export interface Piece {
   readonly manifest: string;
   /** Family modules it requires, the core included. */
   readonly requires: readonly string[];
+  /** The core version it needs, if it says. */
+  readonly needsCore: string | null;
 }
 
 /** Where a piece plugs in. */
@@ -25,7 +27,9 @@ export interface Socket {
   readonly parent: string | null;
 }
 
-const CORE_SOCKETS: Readonly<Record<Exclude<ModuleKind, "theme">, Socket>> = {
+export const CORE_SOCKETS: Readonly<
+  Record<Exclude<ModuleKind, "theme">, Socket>
+> = {
   service: { key: "core.service", single: true, parent: null },
   ui: { key: "core.cameras", single: true, parent: null },
   effect: { key: "core.effects", single: false, parent: null },
@@ -51,6 +55,8 @@ export function piecesOf(catalog: Catalog): readonly Piece[] {
             version: m.version,
             manifest: m.manifest,
             requires: m.requires.map((r) => r.id),
+            needsCore:
+              m.requires.find((r) => r.id === MODULE_ID)?.minimum ?? null,
           },
         ],
   );

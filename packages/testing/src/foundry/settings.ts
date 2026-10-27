@@ -53,6 +53,8 @@ export interface FakeSettings {
   /** Every registration, by "<namespace>.<key>". */
   readonly settings: ReadonlyMap<string, RegisteredSetting>;
   register(namespace: string, key: string, config: FakeSettingConfig): void;
+  /** Foundry refuses a menu type that isn't an ApplicationV2 (or FormApplication). */
+  registerMenu(namespace: string, key: string, menu: FakeSettingMenu): void;
   get(namespace: string, key: string): unknown;
   set(namespace: string, key: string, value: unknown): Promise<unknown>;
 }
@@ -143,6 +145,9 @@ export function createSettings(
         throw new Error(`Invalid setting scope "${config.scope}"`);
       }
       configs = new Map(configs).set(`${namespace}.${key}`, config);
+    },
+    registerMenu(namespace, key, menu) {
+      settings.menus.set(`${namespace}.${key}`, menu);
     },
 
     get(namespace, key) {

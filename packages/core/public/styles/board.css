@@ -1,0 +1,547 @@
+/*
+ * Modular A/V's modules window: the assembly board (the core in the
+ * middle, a socket for each kind), the tray below it, then the steps.
+ * Loaded when the window first opens. Colours follow Foundry's theme.
+ */
+.mav-board {
+  --mav-board-bg: #efe8dc;
+  --mav-board-dot: #ddd3c1;
+  --mav-board-piece: #fbf7f0;
+  --mav-board-line: #c4b79f;
+  --mav-board-button-line: #85775f;
+  --mav-board-button: #efe6d6;
+  --mav-board-ink: #241f19;
+  --mav-board-ink-soft: #62584a;
+  --mav-board-accent: #b5480f;
+  --mav-board-accent-ink: #ffffff;
+  --mav-board-core: #2a2520;
+  --mav-board-core-ink: #f0e6d6;
+  --mav-board-service: #2f6f9f;
+  --mav-board-ui: #9a5c08;
+  --mav-board-effect: #3d7f3a;
+  --mav-board-theme: #7b4aa0;
+  --mav-board-ok: #2f7a3a;
+  --mav-board-warn: #855c00;
+  --mav-board-new: #2d5fa8;
+  --mav-board-off: #6f6455;
+  --mav-board-danger: #b3261e;
+  --mav-board-plan: #1f5f8a;
+  --mav-board-plan-ink: #ffffff;
+  --mav-board-focus: #1f6fd1;
+
+  display: grid;
+  gap: 16px;
+  padding: 4px;
+  color: var(--mav-board-ink);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.theme-dark .mav-board {
+  --mav-board-bg: #1d1a1f;
+  --mav-board-dot: #2b262f;
+  --mav-board-piece: #2a252d;
+  --mav-board-line: #4a4250;
+  --mav-board-button-line: #8f8599;
+  --mav-board-button: #342e38;
+  --mav-board-ink: #ece4d6;
+  --mav-board-ink-soft: #b0a595;
+  --mav-board-accent: #ff7a2e;
+  --mav-board-accent-ink: #1a1208;
+  --mav-board-core: #0d0b0f;
+  --mav-board-core-ink: #f0e6d6;
+  --mav-board-service: #6aaee0;
+  --mav-board-ui: #e2a24a;
+  --mav-board-effect: #79c274;
+  --mav-board-theme: #b98be0;
+  --mav-board-ok: #6fc27c;
+  --mav-board-warn: #e3b24c;
+  --mav-board-new: #8fb4ee;
+  --mav-board-off: #a99f90;
+  --mav-board-danger: #ff8a80;
+  --mav-board-plan: #8cc4ee;
+  --mav-board-plan-ink: #0b1a26;
+  --mav-board-focus: #79b0ff;
+}
+
+.mav-board h2 {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+  border: 0;
+}
+.mav-board h3 {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0;
+}
+.mav-board p {
+  margin: 0;
+}
+.mav-board .lead {
+  font-size: 14.5px;
+}
+.mav-board .label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--mav-board-ink-soft);
+  font-weight: 600;
+}
+.mav-board .hint {
+  color: var(--mav-board-ink-soft);
+  font-size: 13px;
+}
+
+/* Buttons: Foundry's own button styles stop at the board. */
+.mav-board .mav-board-button {
+  width: auto;
+  height: auto;
+  min-height: 28px;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.3;
+  border: 1px solid var(--mav-board-button-line);
+  background: var(--mav-board-button);
+  color: var(--mav-board-ink);
+  border-radius: 5px;
+  padding: 4px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.mav-board .mav-board-button.primary {
+  background: var(--mav-board-accent);
+  border-color: var(--mav-board-accent);
+  color: var(--mav-board-accent-ink);
+  font-weight: 600;
+}
+.mav-board .mav-board-button.link {
+  background: none;
+  border: 0;
+  min-height: 0;
+  padding: 0;
+  color: var(--mav-board-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.mav-board .mav-board-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.mav-board :is(button, input, [tabindex="-1"]):focus-visible {
+  outline: 2px solid var(--mav-board-focus);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+/* What runs, what the plan changes; updates; where the list came from */
+.mav-board-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--mav-board-line);
+  background: var(--mav-board-piece);
+}
+.mav-board-status .grow {
+  flex: 1;
+  min-width: 200px;
+}
+.mav-board-notice {
+  font-size: 13.5px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px dashed var(--mav-board-warn);
+}
+.mav-board-source {
+  font-size: 13px;
+  color: var(--mav-board-ink-soft);
+}
+.mav-board-source[data-source="offline"] {
+  color: var(--mav-board-warn);
+}
+
+/* The board */
+.mav-board-plan {
+  background-color: var(--mav-board-bg);
+  background-image: radial-gradient(
+    var(--mav-board-dot) 1.2px,
+    transparent 1.2px
+  );
+  background-size: 18px 18px;
+  border: 1px solid var(--mav-board-line);
+  border-radius: 8px;
+  padding: 18px;
+  display: grid;
+  gap: 26px;
+  align-items: start;
+  grid-template-columns: minmax(0, 1fr) minmax(150px, 190px) minmax(0, 1fr);
+  grid-template-areas: "service core cameras" "effects effects effects";
+}
+.mav-board-arm {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.mav-board-arm.service {
+  grid-area: service;
+}
+.mav-board-arm.cameras {
+  grid-area: cameras;
+}
+.mav-board-arm.effects {
+  grid-area: effects;
+}
+.mav-board-arm-label {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+.mav-board-arm-label .need {
+  font-size: 12px;
+  color: var(--mav-board-ink-soft);
+}
+.mav-board-arm-label .need.required {
+  color: var(--mav-board-danger);
+  font-weight: 600;
+}
+.mav-board-core {
+  grid-area: core;
+  align-self: center;
+  text-align: center;
+  padding: 18px 12px;
+  border-radius: 10px;
+  background: var(--mav-board-core);
+  color: var(--mav-board-core-ink);
+  display: grid;
+  gap: 4px;
+  position: relative;
+}
+.mav-board-core strong {
+  font-size: 20px;
+  letter-spacing: 0.03em;
+}
+.mav-board-core::before,
+.mav-board-core::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  height: 3px;
+  width: 26px;
+  background: var(--mav-board-line);
+}
+.mav-board-core::before {
+  right: 100%;
+}
+.mav-board-core::after {
+  left: 100%;
+}
+
+.mav-board-piece,
+.mav-board-socket {
+  --mav-board-kind: var(--mav-board-ink-soft);
+  position: relative;
+  border-radius: 8px;
+  padding: 9px 12px;
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+.mav-board-piece {
+  background: var(--mav-board-piece);
+  border: 1.5px solid var(--mav-board-kind);
+  box-shadow: 0 2px 0 rgb(0 0 0 / 10%);
+}
+.mav-board-piece[draggable="true"] {
+  cursor: grab;
+}
+.mav-board-piece[data-planned="true"] {
+  border-style: dashed;
+}
+.mav-board-socket {
+  border: 2px dashed var(--mav-board-kind);
+  background: color-mix(in srgb, var(--mav-board-kind) 6%, transparent);
+  min-height: 54px;
+  align-content: center;
+}
+.mav-board-socket[data-fits="true"] {
+  border-style: solid;
+  background: color-mix(in srgb, var(--mav-board-kind) 18%, transparent);
+}
+:is(.mav-board-socket, .mav-board-slot, .mav-board-tray)[data-over="true"] {
+  outline: 3px solid var(--mav-board-accent);
+  outline-offset: 2px;
+}
+.mav-board-piece::before,
+.mav-board-socket::before {
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+}
+.mav-board-piece::before {
+  background: var(--mav-board-kind);
+  border: 2px solid var(--mav-board-bg);
+}
+.mav-board-socket::before {
+  border: 2px dashed var(--mav-board-kind);
+  background: var(--mav-board-bg);
+}
+.mav-board [data-knob="right"]::before {
+  right: -9px;
+  top: 50%;
+  margin-top: -7px;
+}
+.mav-board [data-knob="left"]::before {
+  left: -9px;
+  top: 50%;
+  margin-top: -7px;
+}
+.mav-board [data-knob="top"]::before {
+  top: -9px;
+  left: 24px;
+}
+.mav-board [data-kind="service"],
+.mav-board [data-socket="core.service"] {
+  --mav-board-kind: var(--mav-board-service);
+}
+.mav-board [data-kind="ui"],
+.mav-board [data-socket="core.cameras"] {
+  --mav-board-kind: var(--mav-board-ui);
+}
+.mav-board [data-kind="effect"],
+.mav-board [data-socket="core.effects"] {
+  --mav-board-kind: var(--mav-board-effect);
+}
+.mav-board [data-kind="theme"],
+.mav-board [data-socket$=".theme"] {
+  --mav-board-kind: var(--mav-board-theme);
+}
+.mav-board-socket .empty {
+  font-size: 13px;
+  color: var(--mav-board-ink-soft);
+}
+.mav-board-piece .name {
+  font-weight: 600;
+}
+.mav-board-piece .what {
+  font-size: 13px;
+  color: var(--mav-board-ink-soft);
+}
+.mav-board-piece .tools {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.mav-board-slot {
+  display: grid;
+  gap: 8px;
+}
+.mav-board-children {
+  display: grid;
+  gap: 8px;
+  margin-left: 18px;
+  padding-left: 14px;
+  border-left: 3px solid var(--mav-board-line);
+}
+.mav-board-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.mav-board-badge {
+  font-size: 12px;
+  border-radius: 999px;
+  padding: 1px 8px;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
+.mav-board-badge.running {
+  color: var(--mav-board-ok);
+}
+.mav-board-badge.off {
+  color: var(--mav-board-off);
+}
+.mav-board-badge.missing {
+  color: var(--mav-board-ink-soft);
+  border-style: dashed;
+}
+.mav-board-badge.update {
+  color: var(--mav-board-warn);
+}
+.mav-board-badge.new {
+  color: var(--mav-board-new);
+}
+.mav-board-badge.needs,
+.mav-board-badge.will-remove {
+  color: var(--mav-board-danger);
+}
+.mav-board-badge.will-remove {
+  border-style: dashed;
+}
+.mav-board-badge.will-add {
+  background: var(--mav-board-plan);
+  border-color: var(--mav-board-plan);
+  color: var(--mav-board-plan-ink);
+}
+.mav-board-helper {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--mav-board-line);
+  border-radius: 6px;
+  padding: 10px;
+  background: var(--mav-board-piece);
+}
+.mav-board-helper fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+.mav-board-helper legend {
+  font-weight: 600;
+  padding: 0;
+  margin-bottom: 4px;
+}
+.mav-board-choice {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* The tray */
+.mav-board-tray {
+  border: 1px dashed var(--mav-board-line);
+  border-radius: 8px;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+.mav-board-groups {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+.mav-board-group {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+.mav-board-tray .soon {
+  font-size: 13px;
+  color: var(--mav-board-ink-soft);
+  border-top: 1px dashed var(--mav-board-line);
+  padding-top: 8px;
+}
+
+/* The steps */
+.mav-board-steps {
+  display: grid;
+  gap: 14px;
+  border-top: 1px solid var(--mav-board-line);
+  padding-top: 14px;
+}
+.mav-board-warning {
+  color: var(--mav-board-danger);
+}
+.mav-board-step {
+  border: 1px solid var(--mav-board-line);
+  border-radius: 8px;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+  background: var(--mav-board-piece);
+}
+.mav-board-step > .mav-board-button {
+  justify-self: start;
+}
+.mav-board-step[data-done="true"] {
+  border-color: var(--mav-board-ok);
+}
+.mav-board-todo {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 8px;
+}
+.mav-board-link {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  align-items: center;
+  margin-top: 6px;
+}
+.mav-board-link code {
+  font-size: 11.5px;
+  background: var(--mav-board-bg);
+  border: 1px solid var(--mav-board-line);
+  border-radius: 4px;
+  padding: 3px 6px;
+  overflow-x: auto;
+  white-space: nowrap;
+  flex: 1 1 260px;
+  min-width: 0;
+}
+.mav-board-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.mav-board-confirm {
+  border: 1px solid var(--mav-board-accent);
+  border-radius: 6px;
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+  background: var(--mav-board-bg);
+}
+
+.mav-board-toast {
+  position: sticky;
+  bottom: 8px;
+  justify-self: center;
+  width: fit-content;
+  max-width: 100%;
+  margin: 8px auto 0;
+  background: var(--mav-board-core, #2a2520);
+  color: var(--mav-board-core-ink, #f0e6d6);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.mav-board-toast[hidden] {
+  display: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .mav-board-socket,
+  .mav-board-piece {
+    transition:
+      background-color 0.15s,
+      border-color 0.15s;
+  }
+}
+
+/* A narrow window: one column, the core on top */
+@container (max-width: 640px) {
+  .mav-board-plan {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "core" "service" "cameras" "effects";
+  }
+  .mav-board-core::before,
+  .mav-board-core::after {
+    display: none;
+  }
+}
+.modular-av-modules .window-content {
+  container-type: inline-size;
+}

@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit && tsc --noEmit -p test/browser"
   },
   "dependencies": {
-    "@modular-av/api": "workspace:*"
+    "@modular-av/api": "workspace:*",
+    "@modular-av/kit": "workspace:*"
   },
   "devDependencies": {
     "@modular-av/testing": "workspace:*"
