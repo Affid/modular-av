@@ -5,6 +5,9 @@
 // ?players=p1,p2 the other players run as cores in the same page; with
 // ?sample=1 a sample plugin contributes one item of each kind. Tests read
 // window.harness.
+// Foundry brings Font Awesome (Pro 7.2.0 in 14.369); the harness the Free
+// edition of the same version, so screenshots show the icons.
+import "@fortawesome/fontawesome-free/css/all.min.css";
 import type { Translations } from "../foundry/i18n.ts";
 import { createFakeWorld } from "../foundry/world.ts";
 import { createMockServiceHub } from "../service/hub.ts";

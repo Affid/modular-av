@@ -18,4 +18,6 @@ inside each zip, and fails if one is under a licence other than MIT, ISC,
 
 Development tools (TypeScript, Vite, Vitest, ESLint, Prettier, Playwright,
 Changesets and their dependencies) are used to build and test the modules
-and are not distributed with them.
+and are not distributed with them. The browser test harness loads Font
+Awesome Free (code MIT, fonts OFL-1.1, icons CC BY 4.0) so screenshots show
+icons; the modules use the Font Awesome that Foundry ships.
