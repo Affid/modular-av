@@ -311,19 +311,28 @@ describe("who is in the call", () => {
     expect(s.seen.left).toEqual(["bob"]);
   });
 
-  it("counts a player with two tabs once, and as gone when both are", async () => {
+  it("lets a player's newer tab replace the older one (a reload leaves the old in the room)", async () => {
+    // Arrange
     const s = setup();
     await join(s);
+    const oldMic = createFakeTrack("audio");
+    s.conference().userJoins("ep-bob-old", "bob");
 
-    s.conference().userJoins("ep-bob-1", "bob");
-    s.conference().userJoins("ep-bob-2", "bob");
-    s.conference().userLeaves("ep-bob-1");
-    const afterOne = [...s.seen.left];
-    s.conference().userLeaves("ep-bob-2");
+    // Act: the new tab comes; the old one's track and leave come later.
+    s.conference().userJoins("ep-bob-new", "bob");
+    s.conference().emit(
+      EVENTS.CONFERENCE.TRACK_ADDED,
+      remoteTrack({ endpoint: "ep-bob-old", kind: "audio", track: oldMic }),
+    );
+    s.conference().userLeaves("ep-bob-old");
+    const whileNew = [...s.seen.left];
+    s.conference().userLeaves("ep-bob-new");
 
-    expect(s.seen.joined).toEqual(["bob"]);
-    expect(afterOne).toEqual([]);
-    expect(s.seen.left).toEqual(["bob"]);
+    // Assert: left and joined again, so every UI redraws the player.
+    expect(s.seen.joined).toEqual(["bob", "bob"]);
+    expect(whileNew).toEqual(["bob"]);
+    expect(s.seen.left).toEqual(["bob", "bob"]);
+    expect(s.seen.added).toEqual([]);
   });
 
   it("ignores anyone the server doesn't vouch for, and says why once", async () => {

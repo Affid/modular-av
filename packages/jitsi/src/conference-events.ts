@@ -89,13 +89,20 @@ interface Wiring {
   readonly reports: ReturnType<typeof createReports>;
 }
 
+/** A newer endpoint of someone present: they left, and joined again. */
 function joinOf(w: Wiring) {
   return (endpoint: string, participant: JitsiParticipant): void => {
-    const id = w.roster.join(endpoint, participant);
-    if (id)
+    const joined = w.roster.join(endpoint, participant);
+    if (!joined) return;
+    const { id, replaced } = joined;
+    for (const old of replaced) w.hooks.onTrackGone({ endpoint: old });
+    if (replaced.length > 0)
       w.reports.later(() => {
-        w.hooks.emitter.emit("participantJoined", id);
+        w.hooks.emitter.emit("participantLeft", id);
       });
+    w.reports.later(() => {
+      w.hooks.emitter.emit("participantJoined", id);
+    });
   };
 }
 

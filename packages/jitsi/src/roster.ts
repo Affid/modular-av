@@ -2,15 +2,23 @@ import type { ParticipantId } from "@modular-av/api";
 import { identityOf } from "./remote.ts";
 import type { JitsiParticipant } from "./sdk-types.ts";
 
+/** Someone newly present, and the older endpoints of theirs they replace. */
+export interface Joined {
+  readonly id: ParticipantId;
+  readonly replaced: readonly string[];
+}
+
 /**
  * Who is in the room, by bridge endpoint: only participants whose
- * identity the server vouched for, one Foundry user per identity however
- * many endpoints (tabs) they have.
+ * identity the server vouched for, one endpoint per Foundry user. A
+ * newer endpoint replaces an older one, as the core's "newer tab wins":
+ * a player who reloads stays in the room a while (the server keeps the
+ * old session for resumption), and the older tab ends itself.
  */
 export interface Roster {
-  /** A newly present Foundry user, or null (known, ignored, or ours). */
-  join(endpoint: string, participant: JitsiParticipant): ParticipantId | null;
-  /** A Foundry user now gone entirely, or null. */
+  /** Who is newly present, or null (known, ignored, or ours). */
+  join(endpoint: string, participant: JitsiParticipant): Joined | null;
+  /** A Foundry user now gone, or null. */
   leave(endpoint: string): ParticipantId | null;
   idOf(endpoint: string): ParticipantId | undefined;
   endpointOf(participant: ParticipantId): string | undefined;
@@ -29,8 +37,8 @@ export interface RosterHooks {
 export function createRoster(hooks: RosterHooks): Roster {
   let endpoints = new Map<string, ParticipantId>();
   let unvouched: ReadonlySet<string> = new Set();
-  /** Older tabs of this same player, still in the room: never shown. */
-  let olderTabs: ReadonlySet<string> = new Set();
+  /** Older tabs, ours or replaced ones: never shown again. */
+  let ignored: ReadonlySet<string> = new Set();
   let started = false;
 
   /**
@@ -41,13 +49,13 @@ export function createRoster(hooks: RosterHooks): Roster {
    */
   const ours = (endpoint: string): null => {
     if (started) hooks.onDuplicate();
-    else olderTabs = new Set(olderTabs).add(endpoint);
+    else ignored = new Set(ignored).add(endpoint);
     return null;
   };
 
   return {
     join(endpoint, participant) {
-      if (endpoints.has(endpoint) || olderTabs.has(endpoint)) return null;
+      if (endpoints.has(endpoint) || ignored.has(endpoint)) return null;
       const id = identityOf(participant);
       if (!id) {
         if (!unvouched.has(endpoint)) hooks.onUnvouched(endpoint);
@@ -55,9 +63,14 @@ export function createRoster(hooks: RosterHooks): Roster {
         return null;
       }
       if (id === hooks.self) return ours(endpoint);
-      const known = [...endpoints.values()].includes(id);
-      endpoints = new Map(endpoints).set(endpoint, id);
-      return known ? null : id;
+      const replaced = [...endpoints]
+        .filter(([, known]) => known === id)
+        .map(([old]) => old);
+      ignored = new Set([...ignored, ...replaced]);
+      endpoints = new Map(
+        [...endpoints].filter(([old]) => !replaced.includes(old)),
+      ).set(endpoint, id);
+      return { id, replaced };
     },
     leave(endpoint) {
       const id = endpoints.get(endpoint);
@@ -65,7 +78,7 @@ export function createRoster(hooks: RosterHooks): Roster {
       const rest = new Map(endpoints);
       rest.delete(endpoint);
       endpoints = rest;
-      return [...rest.values()].includes(id) ? null : id;
+      return id;
     },
     idOf: (endpoint) => endpoints.get(endpoint),
     endpointOf: (participant) =>
