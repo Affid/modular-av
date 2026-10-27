@@ -8,8 +8,31 @@ import en from "../lang/en.json" with { type: "json" };
 import {
   createContext,
   type DockContext,
+  type FoundryScene,
   type FoundrySettingConfig,
 } from "../src/context.ts";
+
+/** A scene with flags, as Foundry keeps them; tests change it and announce it. */
+export interface FakeScene extends FoundryScene {
+  readonly flags: Map<string, unknown>;
+}
+
+export function fakeScene(id: string): FakeScene {
+  const flags = new Map<string, unknown>();
+  return {
+    id,
+    flags,
+    getFlag: (scope, key) => flags.get(`${scope}.${key}`),
+    setFlag: (scope, key, value) => {
+      flags.set(`${scope}.${key}`, value);
+      return Promise.resolve(value);
+    },
+    unsetFlag: (scope, key) => {
+      flags.delete(`${scope}.${key}`);
+      return Promise.resolve(undefined);
+    },
+  };
+}
 
 interface Tree {
   readonly [key: string]: string | Tree;
@@ -30,6 +53,8 @@ export interface TestDock {
   readonly errors: unknown[];
   readonly saved: Map<string, unknown>;
   opened: { settings: number; controls: number };
+  /** The viewed scene changed, or its layout did. */
+  readonly sceneChanged: () => void;
 }
 
 export interface TestDockOptions extends FakeApiOptions {
@@ -38,6 +63,8 @@ export interface TestDockOptions extends FakeApiOptions {
     value?: unknown;
   })[];
   readonly pushToTalk?: readonly string[];
+  /** The scene viewed; null: none (no canvas, no active scene). */
+  readonly scene?: FakeScene | null;
 }
 
 /** A dock context on the fake API, with the dock's real English texts. */
@@ -54,6 +81,7 @@ export function testDock(options: TestDockOptions = {}): TestDock {
     (options.foundrySettings ?? []).map((s) => [`${s.namespace}.${s.key}`, s]),
   );
   const opened = { settings: 0, controls: 0 };
+  let sceneListeners: readonly (() => void)[] = [];
   const ctx = createContext({
     api,
     game: {
@@ -76,6 +104,7 @@ export function testDock(options: TestDockOptions = {}): TestDock {
       },
       user: { isGM: options.isGM ?? false },
       userId: "me",
+      scenes: { viewed: options.scene ?? null, active: null },
       keybindings: {
         get: () =>
           (options.pushToTalk ?? ["Backquote"]).map((key) => ({ key })),
@@ -89,8 +118,17 @@ export function testDock(options: TestDockOptions = {}): TestDock {
     },
     now: () => 1_000_000,
     onError: (e) => errors.push(e),
+    onSceneChange: (listener) => {
+      sceneListeners = [...sceneListeners, listener];
+      return () => {
+        sceneListeners = sceneListeners.filter((l) => l !== listener);
+      };
+    },
   });
-  return { api, ctx, errors, saved, opened };
+  const sceneChanged = (): void => {
+    for (const listener of sceneListeners) listener();
+  };
+  return { api, ctx, errors, saved, opened, sceneChanged };
 }
 
 export interface FakeHost extends CamerasHost {

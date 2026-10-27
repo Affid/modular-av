@@ -9,17 +9,22 @@ import {
   type Rect,
   viewportOf,
 } from "@modular-av/kit";
-import type { DockContext } from "../context.ts";
+import type { DockContext, SceneRef } from "../context.ts";
 import { read, save, SETTINGS } from "../settings.ts";
 import {
   type Arrangement,
   arrangementFor,
   freeSpot,
+  type LayoutSource,
   PANEL_SPOT,
   parseLayouts,
+  parseSceneLayout,
   type SavedLayouts,
+  type SceneLayout,
+  sourceOf,
   type Spot,
   TILE_WIDTH,
+  withoutScene,
   withPanel,
   withTile,
 } from "./arrangement.ts";
@@ -42,11 +47,28 @@ export interface ScatteredOptions {
   readonly reach: () => Insets;
 }
 
+/** A scene's layout, as the placement menu offers it. */
+export interface SceneControls {
+  /** A scene is shown: a GM may save its layout. */
+  readonly shown: boolean;
+  /** A GM saved a layout for it. */
+  readonly hasLayout: boolean;
+  /** Whose arrangement shows: the player's, the scene's, or theirs for it. */
+  readonly source: LayoutSource;
+  /** A GM saves the tiles as they are as the scene's layout. */
+  save(): Promise<void>;
+  /** A GM removes the scene's layout. */
+  clear(): Promise<void>;
+  /** The player's own arrangement for the scene goes: the scene's shows. */
+  back(): void;
+}
+
 export interface Scattered {
   /** Tiles came or went: places the new ones. */
   refresh(): void;
   /** Places everything again (a theme's frames changed). */
   relayout(): void;
+  readonly scene: SceneControls;
   dispose(): void;
 }
 
@@ -101,7 +123,7 @@ function placeAll(
   parts: ScatteredParts,
   arrangement: Arrangement,
   reach: Insets,
-): void {
+): ReadonlyMap<string, Spot> {
   const obstacles = measureControls(parts.root.ownerDocument);
   const shown = tilesIn(parts.tiles);
   const used = new Set(
@@ -111,11 +133,14 @@ function placeAll(
     }),
   );
   let free = 0;
+  const spots = new Map<string, Spot>();
   for (const tile of shown) {
     const spot = arrangement.tiles[idOf(tile)] ?? freeSpot(free++, used);
     placeAt(tile, spot, obstacles, reach);
+    spots.set(idOf(tile), spot);
   }
   placeAt(parts.panel, arrangement.panel ?? PANEL_SPOT, obstacles, null);
+  return spots;
 }
 
 /** Drags a tile (anywhere but its buttons), its move handle and its resize handle. */
@@ -165,66 +190,155 @@ function watchControls(doc: Document, place: () => void): () => void {
   };
 }
 
+const spotOf = (rect: Rect, element: HTMLElement): Spot => ({
+  ...anchorOf(rect, viewportOf(element)),
+  width: widthOf(rect.width),
+});
+
+/** The panel moves by its header (pointer) and its move button (keys). */
+function panelDrags(
+  parts: ScatteredParts,
+  onEnd: (rect: Rect) => void,
+): () => void {
+  const undo = [
+    dragToMove(parts.panelHandle, parts.panel, { onEnd }),
+    dragToMove(parts.panelMove, parts.panel, { onEnd }),
+  ];
+  return () => {
+    for (const step of undo) step();
+  };
+}
+
+/** Drags on each tile shown, added and removed as tiles come and go. */
+function trackTiles(
+  parts: ScatteredParts,
+  onEnd: (tile: HTMLElement, rect: Rect) => void,
+  place: () => void,
+): { refresh(): void; dispose(): void } {
+  let shownIds: string | null = null;
+  let attached = new Map<HTMLElement, () => void>();
+  return {
+    refresh() {
+      const shown = tilesIn(parts.tiles);
+      const ids = shown.map(idOf).join(" ");
+      if (ids === shownIds) return;
+      shownIds = ids;
+      const next = new Map(
+        shown.map((tile) => {
+          const detach =
+            attached.get(tile) ??
+            draggable(tile, (rect) => {
+              onEnd(tile, rect);
+            });
+          return [tile, detach] as const;
+        }),
+      );
+      for (const [tile, detach] of attached) if (!next.has(tile)) detach();
+      attached = next;
+      place();
+    },
+    dispose() {
+      for (const detach of attached.values()) detach();
+      attached = new Map();
+    },
+  };
+}
+
+interface Shown {
+  saved: SavedLayouts;
+  scene: SceneRef | null;
+  /** Each tile's spot as last placed, for a GM saving the scene's layout. */
+  spots: ReadonlyMap<string, Spot>;
+}
+
+const layoutOf = (scene: SceneRef | null): SceneLayout | null =>
+  scene ? { id: scene.id, layout: parseSceneLayout(scene.layout()) } : null;
+
+function sceneControls(
+  shown: Shown,
+  store: (next: SavedLayouts) => void,
+  place: () => void,
+): SceneControls {
+  return {
+    get shown() {
+      return shown.scene !== null;
+    },
+    get hasLayout() {
+      return layoutOf(shown.scene)?.layout != null;
+    },
+    get source() {
+      return sourceOf(shown.saved, layoutOf(shown.scene));
+    },
+    async save() {
+      const scene = shown.scene;
+      if (!scene) return;
+      await scene.saveLayout({ tiles: Object.fromEntries(shown.spots) });
+      store(withoutScene(shown.saved, scene.id));
+    },
+    async clear() {
+      await shown.scene?.clearLayout();
+      place();
+    },
+    back() {
+      if (shown.scene) store(withoutScene(shown.saved, shown.scene.id));
+    },
+  };
+}
+
 /**
  * The scattered layout: every tile and the voice panel on their own,
  * anchored to a corner or edge of the window, moved and resized by the
  * pointer or the keyboard, saved per player, and kept clear of Foundry's
- * controls as they change.
+ * controls as they change. On a scene with a GM's layout, that shows
+ * until the player moves a tile there.
  */
 export function createScattered(
   ctx: DockContext,
   parts: ScatteredParts,
   options: ScatteredOptions,
 ): Scattered {
-  let saved: SavedLayouts = parseLayouts(read(ctx, SETTINGS.scattered));
-  let shownIds: string | null = null;
-  let attached = new Map<HTMLElement, () => void>();
-
+  const shown: Shown = {
+    saved: parseLayouts(read(ctx, SETTINGS.scattered)),
+    scene: ctx.scenes.current(),
+    spots: new Map(),
+  };
   const place = (): void => {
-    placeAll(parts, arrangementFor(saved, null), options.reach());
+    const arrangement = arrangementFor(shown.saved, layoutOf(shown.scene));
+    shown.spots = placeAll(parts, arrangement, options.reach());
   };
   const store = (next: SavedLayouts): void => {
-    saved = next;
+    shown.saved = next;
     save(ctx, SETTINGS.scattered, next);
     place();
   };
-  const spotOf = (rect: Rect, element: HTMLElement): Spot => ({
-    ...anchorOf(rect, viewportOf(element)),
-    width: widthOf(rect.width),
-  });
-  const attach = (tile: HTMLElement): (() => void) =>
-    draggable(tile, (rect) => {
-      store(withTile(saved, null, idOf(tile), spotOf(rect, tile)));
-    });
-  const onPanelEnd = (rect: Rect): void => {
-    store(withPanel(saved, { ...spotOf(rect, parts.panel), width: 0 }));
-  };
+  const tiles = trackTiles(
+    parts,
+    (tile, rect) => {
+      const spot = spotOf(rect, tile);
+      store(withTile(shown.saved, layoutOf(shown.scene), idOf(tile), spot));
+    },
+    place,
+  );
   const undo = [
-    dragToMove(parts.panelHandle, parts.panel, { onEnd: onPanelEnd }),
-    dragToMove(parts.panelMove, parts.panel, { onEnd: onPanelEnd }),
+    panelDrags(parts, (rect) => {
+      store(withPanel(shown.saved, { ...spotOf(rect, parts.panel), width: 0 }));
+    }),
     watchControls(parts.root.ownerDocument, place),
+    ctx.scenes.onChange(() => {
+      shown.scene = ctx.scenes.current();
+      place();
+    }),
   ];
-
-  const refresh = (): void => {
-    const shown = tilesIn(parts.tiles);
-    const ids = shown.map(idOf).join(" ");
-    if (ids === shownIds) return;
-    shownIds = ids;
-    const next = new Map(
-      shown.map((tile) => [tile, attached.get(tile) ?? attach(tile)] as const),
-    );
-    for (const [tile, detach] of attached) if (!next.has(tile)) detach();
-    attached = next;
-    place();
-  };
-
-  refresh();
+  tiles.refresh();
   return {
-    refresh,
+    refresh: () => {
+      tiles.refresh();
+    },
     relayout: place,
+    scene: sceneControls(shown, store, place),
     dispose() {
-      for (const step of [...undo, ...attached.values()]) step();
-      attached = new Map();
+      for (const step of undo) step();
+      tiles.dispose();
       for (const element of [...tilesIn(parts.tiles), parts.panel])
         clearPlace(element);
     },

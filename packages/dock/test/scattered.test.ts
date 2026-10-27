@@ -4,7 +4,13 @@
 import { avState, participantState } from "@modular-av/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { camerasSurface } from "../src/cameras/dock.ts";
-import { fakeHost, settle, testDock, type TestDockOptions } from "./context.ts";
+import {
+  fakeHost,
+  fakeScene,
+  settle,
+  testDock,
+  type TestDockOptions,
+} from "./context.ts";
 
 beforeEach(() => {
   window.innerWidth = 1200;
@@ -180,5 +186,115 @@ describe("the scattered layout", () => {
     expect(Object.keys(layouts.own.tiles)).toEqual(["p1"]);
     // The arrow moved the tile, not the focus.
     expect(document.activeElement).toBe(move);
+  });
+});
+
+describe("a scene's layout", () => {
+  const LAYOUT = "modular-av-dock.layout";
+
+  const tavern = () => {
+    const scene = fakeScene("tavern");
+    scene.flags.set(
+      LAYOUT,
+      JSON.stringify({ tiles: { p1: spot("left", 8, 0) } }),
+    );
+    return scene;
+  };
+
+  const menuItem = (root: HTMLElement, action: string) => {
+    root.querySelector<HTMLButtonElement>(".mav-dock-placement")?.click();
+    return document.querySelector<HTMLButtonElement>(
+      `[data-action="${action}"]`,
+    );
+  };
+
+  const moveDown = (tile: HTMLElement): void => {
+    tile.querySelector(".mav-dock-tile-move")?.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "ArrowDown",
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+  };
+
+  it("shows the layout a GM saved for the scene", async () => {
+    const { placement, tile } = dock({ scene: tavern() });
+
+    await placement("scattered");
+
+    expect(tile("p1").dataset.anchor).toBe("left");
+    expect(tile("me").dataset.anchor).toBe("top-left");
+  });
+
+  it("becomes the player's own on that scene once they move a tile, until they go back", async () => {
+    const { placement, saved, tile, root } = dock({ scene: tavern() });
+    await placement("scattered");
+
+    moveDown(tile("p1"));
+
+    const layouts = () =>
+      saved.get("modular-av-dock.scatteredLayouts") as {
+        own: { tiles: object };
+        scenes: Record<string, unknown>;
+      };
+    expect(Object.keys(layouts().scenes)).toEqual(["tavern"]);
+    expect(layouts().own.tiles).toEqual({});
+    const back = menuItem(root, "back-to-scene");
+    expect(back?.textContent).toBe("Back to the scene's layout");
+    back?.click();
+    await settle();
+    expect(layouts().scenes).toEqual({});
+    expect(tile("p1").dataset.anchor).toBe("left");
+  });
+
+  it("lets a GM save the tiles as the scene's layout, and remove it", async () => {
+    const scene = fakeScene("hall");
+    const { placement, root } = dock({ scene, isGM: true });
+    await placement("scattered");
+
+    menuItem(root, "save-scene-layout")?.click();
+    await settle();
+
+    const stored = JSON.parse(String(scene.flags.get(LAYOUT))) as {
+      tiles: Record<string, { anchor: string }>;
+    };
+    expect(stored.tiles.p1?.anchor).toBe("top-right");
+    expect(Object.keys(stored.tiles).sort()).toEqual(["me", "p1"]);
+    menuItem(root, "clear-scene-layout")?.click();
+    await settle();
+    expect(scene.flags.has(LAYOUT)).toBe(false);
+  });
+
+  it("offers scene layouts to GMs only, and only while scattered", async () => {
+    const player = dock({ scene: fakeScene("hall") });
+    await player.placement("scattered");
+    expect(menuItem(player.root, "save-scene-layout")).toBeNull();
+    document.body.replaceChildren();
+
+    const gm = dock({ scene: fakeScene("hall"), isGM: true });
+    expect(menuItem(gm.root, "save-scene-layout")).toBeNull();
+  });
+
+  it("follows the scene shown and its layout", async () => {
+    const scene = fakeScene("hall");
+    const { placement, tile, sceneChanged } = dock({ scene });
+    await placement("scattered");
+    expect(tile("p1").dataset.anchor).toBe("top-right");
+
+    scene.flags.set(LAYOUT, JSON.stringify({ tiles: { p1: spot("bottom") } }));
+    sceneChanged();
+
+    expect(tile("p1").dataset.anchor).toBe("bottom");
+  });
+
+  it("ignores a scene layout that is broken", async () => {
+    const scene = fakeScene("hall");
+    scene.flags.set(LAYOUT, "{not json");
+    const { placement, tile } = dock({ scene });
+
+    await placement("scattered");
+
+    expect(tile("p1").dataset.anchor).toBe("top-right");
   });
 });

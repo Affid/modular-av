@@ -1,5 +1,6 @@
 import { el, openPopover, type Popover, roving } from "@modular-av/kit";
 import type { DockContext } from "../context.ts";
+import type { SceneControls } from "../scattered/scattered.ts";
 import { run } from "../ui/run.ts";
 import type { Placement, Where } from "./placement.ts";
 
@@ -13,6 +14,49 @@ const CHOICES: readonly Where[] = [
   "window",
 ];
 
+interface SceneItem {
+  readonly action: string;
+  readonly label: string;
+  readonly run: () => Promise<void>;
+}
+
+/** What a scattered layout offers on the scene shown: GMs save it for everyone. */
+function sceneItems(ctx: DockContext, scene: SceneControls): SceneItem[] {
+  const gm = ctx.isGM && scene.shown;
+  return [
+    ...(gm
+      ? [
+          {
+            action: "save-scene-layout",
+            label: "dock.saveSceneLayout",
+            run: () => scene.save(),
+          },
+        ]
+      : []),
+    ...(gm && scene.hasLayout
+      ? [
+          {
+            action: "clear-scene-layout",
+            label: "dock.clearSceneLayout",
+            run: () => scene.clear(),
+          },
+        ]
+      : []),
+    ...(scene.source === "own-scene"
+      ? [
+          {
+            action: "back-to-scene",
+            label: "dock.backToScene",
+            run: () => {
+              scene.back();
+              return Promise.resolve();
+            },
+          },
+        ]
+      : []),
+  ];
+}
+
 /**
  * Where the cameras go. "In a window of its own" is offered only where the
  * browser can (Chrome, Edge), and says why otherwise.
@@ -21,6 +65,7 @@ export function openPlacementMenu(
   ctx: DockContext,
   anchor: HTMLElement,
   placement: Placement,
+  scene: SceneControls | null = null,
 ): Popover {
   const doc = anchor.ownerDocument;
   const alerts = el("p", {
@@ -54,12 +99,28 @@ export function openPlacementMenu(
     });
     return item;
   });
+  const extra = (scene ? sceneItems(ctx, scene) : []).map((entry) => {
+    const item = el("button", {
+      doc,
+      className: "mav-dock-menu-item",
+      text: ctx.t(entry.label),
+      attrs: { type: "button", role: "menuitem", "data-action": entry.action },
+    });
+    item.addEventListener("click", () => {
+      popover?.close();
+      run(ctx, alerts, entry.run);
+    });
+    return item;
+  });
   const menu = el("div", {
     doc,
     className: "mav-dock-menu",
     attrs: { role: "menu", "aria-label": ctx.t("dock.placement") },
     children: [
       ...items,
+      ...(extra.length > 0
+        ? [el("hr", { doc, attrs: { role: "separator" } }), ...extra]
+        : []),
       ...(supported
         ? []
         : [el("p", { doc, text: ctx.t("dock.windowUnsupported") })]),

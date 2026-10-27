@@ -17,6 +17,36 @@ declare global {
   };
   var Hooks: {
     once(hook: string, fn: (...args: never[]) => void): number;
+    on(hook: string, fn: (...args: never[]) => void): number;
+    off(hook: string, id: number): void;
+  };
+}
+
+/** A scene update that changes what the scattered layout shows. */
+const showsChange = (changes: {
+  readonly active?: unknown;
+  readonly flags?: Readonly<Record<string, unknown>>;
+}): boolean =>
+  changes.active !== undefined || changes.flags?.[MODULE_ID] !== undefined;
+
+/** The viewed scene changed (`canvasReady`), or a scene's layout or activity. */
+function onSceneChange(listener: () => void): () => void {
+  const hooks = [
+    [
+      "canvasReady",
+      Hooks.on("canvasReady", () => {
+        listener();
+      }),
+    ],
+    [
+      "updateScene",
+      Hooks.on("updateScene", (_scene: unknown, changes: object) => {
+        if (showsChange(changes)) listener();
+      }),
+    ],
+  ] as const;
+  return () => {
+    for (const [hook, id] of hooks) Hooks.off(hook, id);
   };
 }
 
@@ -55,6 +85,7 @@ Hooks.once("modularAV.register", (api: ModularAV) => {
       game.webrtc?.config.render({ force: true });
     },
     onError: reportError,
+    onSceneChange,
   });
   api.surfaces.register(camerasSurface(ctx));
   api.surfaces.register(settingsSurface(ctx));

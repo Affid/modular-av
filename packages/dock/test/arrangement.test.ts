@@ -4,6 +4,7 @@ import {
   freeSpot,
   NO_LAYOUTS,
   parseLayouts,
+  parseSceneLayout,
   parseSpot,
   type SavedLayouts,
   sourceOf,
@@ -158,5 +159,26 @@ describe("free spots", () => {
       dx: -8,
       dy: -8,
     });
+  });
+});
+
+describe("a scene's saved layout", () => {
+  it("reads the JSON text a GM saved", () => {
+    const text = JSON.stringify({ tiles: { p1: spot("left") } });
+
+    expect(parseSceneLayout(text)).toEqual({
+      tiles: { p1: spot("left") },
+      panel: null,
+    });
+  });
+
+  it.each([
+    ["nothing", undefined],
+    ["text that isn't JSON", "{nope"],
+    ["JSON that isn't a layout", "[1,2]"],
+    ["an object, not text", { tiles: {} }],
+    ["text too long to be one", `"${"x".repeat(100_001)}"`],
+  ])("gives no layout for %s", (_name, value) => {
+    expect(parseSceneLayout(value)).toBeNull();
   });
 });

@@ -80,6 +80,24 @@ export function parseArrangement(value: unknown): Arrangement {
   return { tiles: Object.fromEntries(tiles), panel: parseSpot(value.panel) };
 }
 
+/** A scene layout longer than this is no layout. */
+const MAX_SCENE_TEXT = 100_000;
+
+/**
+ * A scene's layout as a GM saved it (JSON text in a scene flag), or null
+ * where there is none or it can't be read.
+ */
+export function parseSceneLayout(value: unknown): Arrangement | null {
+  if (typeof value !== "string" || value.length > MAX_SCENE_TEXT) return null;
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return isRecord(parsed) ? parseArrangement(parsed) : null;
+  } catch {
+    // Not JSON: someone else's value, or a broken one.
+    return null;
+  }
+}
+
 /** A player's saved layouts; anything broken gives the defaults. */
 export function parseLayouts(value: unknown): SavedLayouts {
   if (!isRecord(value)) return NO_LAYOUTS;

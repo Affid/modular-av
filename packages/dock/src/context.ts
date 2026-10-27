@@ -18,6 +18,14 @@ export interface FoundrySettingConfig {
   };
 }
 
+/** A Foundry scene, as the dock uses it. */
+export interface FoundryScene {
+  readonly id: string;
+  getFlag(scope: string, key: string): unknown;
+  setFlag(scope: string, key: string, value: unknown): Promise<unknown>;
+  unsetFlag(scope: string, key: string): Promise<unknown>;
+}
+
 /** The parts of Foundry's `game` the dock uses. */
 export interface DockGame {
   readonly i18n: {
@@ -33,9 +41,30 @@ export interface DockGame {
   };
   readonly user: { readonly isGM: boolean };
   readonly userId: string;
+  readonly scenes?: {
+    readonly viewed?: FoundryScene | null;
+    readonly active?: FoundryScene | null;
+  };
   readonly keybindings?: {
     get(namespace: string, action: string): readonly { readonly key: string }[];
   };
+}
+
+/** The scene shown, and the scattered layout a GM saved for it. */
+export interface SceneRef {
+  readonly id: string;
+  /** The saved layout as stored (a scene flag), or undefined. */
+  layout(): unknown;
+  /** GMs only: Foundry refuses players. */
+  saveLayout(layout: unknown): Promise<void>;
+  clearLayout(): Promise<void>;
+}
+
+export interface Scenes {
+  /** The scene viewed, or the active one where there's no canvas. */
+  current(): SceneRef | null;
+  /** The scene shown changed, or its layout did. */
+  onChange(listener: () => void): () => void;
 }
 
 /** What every part of the dock is given. */
@@ -61,6 +90,7 @@ export interface DockContext {
   readonly openControls: () => void;
   readonly now: () => number;
   readonly onError: (error: unknown) => void;
+  readonly scenes: Scenes;
 }
 
 export interface ContextDeps {
@@ -70,6 +100,37 @@ export interface ContextDeps {
   readonly openControls?: () => void;
   readonly now?: () => number;
   readonly onError: (error: unknown) => void;
+  /** Foundry's hooks for the scene shown and its changes. */
+  readonly onSceneChange?: (listener: () => void) => () => void;
+}
+
+const LAYOUT_FLAG = "layout";
+
+/**
+ * A scene's layout is kept as JSON text: an object flag would be merged
+ * with the old one by Foundry's update, keeping tiles that were removed.
+ */
+const sceneRef = (scene: FoundryScene): SceneRef => ({
+  id: scene.id,
+  layout: () => scene.getFlag(MODULE_ID, LAYOUT_FLAG),
+  async saveLayout(layout) {
+    await scene.setFlag(MODULE_ID, LAYOUT_FLAG, JSON.stringify(layout));
+  },
+  async clearLayout() {
+    await scene.unsetFlag(MODULE_ID, LAYOUT_FLAG);
+  },
+});
+
+/** With `core.noCanvas` no scene is viewed: the active one stands in. */
+function createScenes(deps: ContextDeps): Scenes {
+  return {
+    current() {
+      const scenes = deps.game.scenes;
+      const scene = scenes?.viewed ?? scenes?.active ?? null;
+      return scene ? sceneRef(scene) : null;
+    },
+    onChange: deps.onSceneChange ?? (() => () => undefined),
+  };
 }
 
 export function createContext(deps: ContextDeps): DockContext {
@@ -91,5 +152,6 @@ export function createContext(deps: ContextDeps): DockContext {
     openControls: deps.openControls ?? (() => undefined),
     now: deps.now ?? (() => Date.now()),
     onError: deps.onError,
+    scenes: createScenes(deps),
   };
 }

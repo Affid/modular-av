@@ -80,7 +80,13 @@ function build(ctx: DockContext, host: CamerasHost): Dock {
         show(dock);
       },
       placement: (anchor) => {
-        if (dock.placement) openPlacementMenu(ctx, anchor, dock.placement);
+        if (dock.placement)
+          openPlacementMenu(
+            ctx,
+            anchor,
+            dock.placement,
+            dock.scattered?.scene ?? null,
+          );
       },
       collapse: () => {
         dock.collapsed = !dock.collapsed;
