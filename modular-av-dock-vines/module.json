@@ -31,7 +31,7 @@
         "id": "modular-av-dock",
         "type": "module",
         "compatibility": {
-          "minimum": "0.3.0"
+          "minimum": "0.3.1"
         }
       }
     ]
@@ -41,7 +41,7 @@
       "kind": "theme"
     }
   },
-  "version": "0.3.0",
+  "version": "0.3.1",
   "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-dock-vines/module.json",
-  "download": "https://github.com/Affid/modular-av/releases/download/modular-av-dock-vines-v0.3.0/modular-av-dock-vines.zip"
+  "download": "https://github.com/Affid/modular-av/releases/download/modular-av-dock-vines-v0.3.1/modular-av-dock-vines.zip"
 }
