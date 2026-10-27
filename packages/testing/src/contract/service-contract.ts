@@ -223,11 +223,16 @@ export function serviceContract(options: ServiceContractOptions): void {
 
       expect(await alice.run((h) => h.publishCoreTracks())).toEqual([]);
 
+      // A generated track starts later than a camera straight from the device.
       await expect
-        .poll(() => bob.run((h) => h.audioLevel("alice", 1500)))
+        .poll(() => bob.run((h) => h.audioLevel("alice", 1500)), {
+          timeout: 15_000,
+        })
         .toBeGreaterThan(AUDIBLE);
       await expect
-        .poll(() => bob.run((h) => h.videoBrightness("alice")))
+        .poll(() => bob.run((h) => h.videoBrightness("alice")), {
+          timeout: 15_000,
+        })
         .toBeGreaterThan(20);
     });
 
@@ -435,6 +440,11 @@ export function serviceContract(options: ServiceContractOptions): void {
       await alice.join();
       await bob.join();
       await alice.run((h) => h.publish(["microphone"]));
+      // An established call: Jitsi's media path to the bridge comes up
+      // after it joined the room, and only its loss reads as resuming.
+      await expect
+        .poll(() => bob.level("alice"), { timeout: 15_000 })
+        .toBeGreaterThan(AUDIBLE);
 
       await outage.start();
       try {

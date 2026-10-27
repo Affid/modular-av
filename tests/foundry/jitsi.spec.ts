@@ -65,14 +65,23 @@ test("players join with a GM-relayed token and see each other in Foundry's dock"
   await expect
     .poll(() => seen(p1, ["Gamemaster", "Player2"]))
     .toEqual(["Gamemaster:true:true:true", "Player2:true:true:true"]);
-  const dock = await p1.page.evaluate(() =>
-    [
-      ...document.querySelectorAll<HTMLVideoElement>(
-        "#camera-views video.user-camera",
+  // Foundry's dock draws its tiles after the state changes.
+  await expect
+    .poll(() =>
+      p1.page.evaluate(
+        () =>
+          [
+            ...document.querySelectorAll<HTMLVideoElement>(
+              "#camera-views video.user-camera",
+            ),
+          ].filter(
+            (v) =>
+              (v.srcObject as MediaStream | null)?.getVideoTracks().length ===
+              1,
+          ).length,
       ),
-    ].map((v) => (v.srcObject as MediaStream | null)?.getVideoTracks().length),
-  );
-  expect(dock.filter((videos) => videos === 1)).toHaveLength(3);
+    )
+    .toBe(3);
   expect([...gm.notices, ...p1.notices, ...p2.notices]).toEqual([]);
 });
 
@@ -159,9 +168,15 @@ test("reconnects after the server was gone for 20 s, telling the player once", a
   browser,
 }) => {
   test.setTimeout(180_000);
-  track(await openGm(browser));
+  const gm = track(await openGm(browser));
   const p1 = track(await openPlayer(browser, "Player1"));
   await expectStatus(p1, "connected");
+  // An established call: the media path to the bridge comes up after
+  // joining the room, and only its loss reads as resuming.
+  const p1Id = await idOf(gm, "Player1");
+  await expect
+    .poll(async () => (await gm.state()).participants[p1Id]?.hasAudio)
+    .toBe(true);
   const statuses: string[] = [];
   await p1.page.exposeFunction("reportStatus", (status: string) =>
     statuses.push(status),
@@ -178,9 +193,16 @@ test("reconnects after the server was gone for 20 s, telling the player once", a
 
   await jitsiOutage.start();
   try {
+    // Resuming while the media path recovers; or, when the XMPP link
+    // fails first, lost and one retry by the core.
     await expect
-      .poll(() => statuses, { timeout: 30_000 })
-      .toContain("resuming");
+      .poll(
+        () => statuses.some((st) => st === "resuming" || st === "retrying"),
+        {
+          timeout: 30_000,
+        },
+      )
+      .toBe(true);
     await p1.page.waitForTimeout(20_000);
   } finally {
     await jitsiOutage.end();
