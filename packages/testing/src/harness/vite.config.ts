@@ -12,6 +12,7 @@ const PACKAGES = join(import.meta.dirname, "..", "..", "..");
 
 const CONTENT_TYPES: Readonly<Record<string, string>> = {
   js: "text/javascript",
+  css: "text/css",
   wasm: "application/wasm",
   json: "application/json",
   svg: "image/svg+xml",

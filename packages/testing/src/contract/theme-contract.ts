@@ -6,7 +6,8 @@
  *
  * - WCAG AA (axe) for the dock and its popovers, and 3:1 for indicators
  *   against the tile they sit on;
- * - every state's indicator visible, and not drawn over by the frame;
+ * - every state's indicator visible, not faded, and drawn above the frame
+ *   (a theme may draw under it);
  * - faces clear: inside a margin of the video the frame draws nothing,
  *   and no video shape cuts it;
  * - frames take no clicks;
@@ -99,6 +100,64 @@ async function withAndWithoutFrame(
   return { framed, bare };
 }
 
+/**
+ * Whether an indicator is drawn above its tile's frame (a theme may draw
+ * under it: its background is translucent) and not faded out.
+ */
+function paintedOverFrame(
+  indicator: Locator,
+): Promise<{ opaque: boolean; aboveFrame: boolean }> {
+  return indicator.evaluate((el) => {
+    const tile = el.closest(".mav-dock-tile");
+    const frame = tile?.querySelector(".mav-dock-tile-frame");
+    const z = (target: Element, pseudo: string | null = null): number => {
+      const value = getComputedStyle(target, pseudo).zIndex;
+      return value === "auto" ? 0 : Number(value);
+    };
+    let opacity = 1;
+    for (let at: Element | null = el; at && at !== tile; at = at.parentElement)
+      opacity *= Number(getComputedStyle(at).opacity);
+    const bar = el.closest(".mav-dock-tile-bar") ?? el;
+    const frameZ = frame
+      ? Math.max(z(frame), z(frame, "::before"), z(frame, "::after"))
+      : -Infinity;
+    // The frame layer comes before the bar: equal z-index paints it below.
+    const before =
+      !frame ||
+      (frame.compareDocumentPosition(bar) &
+        Node.DOCUMENT_POSITION_FOLLOWING) !==
+        0;
+    return {
+      opaque: opacity >= 0.9,
+      aboveFrame: before && z(bar) >= frameZ,
+    };
+  });
+}
+
+/**
+ * Whether the frame draws inside the video's face area (all but a margin
+ * of each side); "moving" while the tile's box changes.
+ */
+async function faceCovered(
+  page: Page,
+  media: Locator,
+): Promise<boolean | "moving"> {
+  const box = await boxOf(media);
+  const { framed, bare } = await withAndWithoutFrame(page, {
+    x: box.x + box.width * MAX_FRAME_COVER,
+    y: box.y + box.height * MAX_FRAME_COVER,
+    width: box.width * (1 - 2 * MAX_FRAME_COVER),
+    height: box.height * (1 - 2 * MAX_FRAME_COVER),
+  });
+  const after = await boxOf(media);
+  const still =
+    after.x === box.x &&
+    after.y === box.y &&
+    after.width === box.width &&
+    after.height === box.height;
+  return still ? !framed.equals(bare) : "moving";
+}
+
 async function boxOf(target: Locator) {
   const box = await target.boundingBox();
   if (!box) throw new Error("not on screen");
@@ -157,6 +216,8 @@ function accessibilityTests(driver: ThemeDriver, layout: string): void {
   test("meets WCAG AA: the dock, its popovers and the settings window", async ({
     page,
   }) => {
+    // Four axe scans: slow on a busy machine.
+    test.slow();
     await call(page, driver, layout);
 
     await expectAA(page, ".mav-dock");
@@ -185,7 +246,7 @@ function accessibilityTests(driver: ThemeDriver, layout: string): void {
 }
 
 function frameTests(driver: ThemeDriver, layout: string): void {
-  test("shows every state's indicator, never drawn over by the frame", async ({
+  test("shows every state's indicator, never under the frame", async ({
     page,
   }) => {
     await call(page, driver, layout);
@@ -203,11 +264,10 @@ function frameTests(driver: ThemeDriver, layout: string): void {
         .locator(`.mav-dock-tile [data-indicator="${name}"]`)
         .first();
       await expect(indicator, name).toBeVisible();
-      const { framed, bare } = await withAndWithoutFrame(
-        page,
-        await boxOf(indicator),
-      );
-      expect(framed.equals(bare), `the frame draws over ${name}`).toBe(true);
+      expect(await paintedOverFrame(indicator), name).toEqual({
+        opaque: true,
+        aboveFrame: true,
+      });
     }
   });
 
@@ -215,23 +275,17 @@ function frameTests(driver: ThemeDriver, layout: string): void {
     page,
   }) => {
     await call(page, driver, layout);
+    // The bar and buttons are the dock's, not the frame's: leave them out.
+    await page.addStyleTag({
+      content:
+        ".mav-dock-tile-bar, .mav-dock-tile > button { visibility: hidden !important; }",
+    });
 
-    for (const media of await page.locator(".mav-dock-tile-media").all()) {
-      const box = await boxOf(media);
-      const face = {
-        x: box.x + box.width * MAX_FRAME_COVER,
-        y: box.y + box.height * MAX_FRAME_COVER,
-        width: box.width * (1 - 2 * MAX_FRAME_COVER),
-        height: box.height * (1 - 2 * MAX_FRAME_COVER),
-      };
-      // The bar and buttons are the dock's, not the frame's: leave them out.
-      await page.addStyleTag({
-        content:
-          ".mav-dock-tile-bar, .mav-dock-tile > button { visibility: hidden !important; }",
-      });
-      const { framed, bare } = await withAndWithoutFrame(page, face);
-      expect(framed.equals(bare), "the frame covers the face").toBe(true);
-    }
+    for (const media of await page.locator(".mav-dock-tile-media").all())
+      // Compared once the tile holds still across both screenshots.
+      await expect
+        .poll(() => faceCovered(page, media), { timeout: 10_000 })
+        .toBe(false);
   });
 
   test("frames take no clicks", async ({ page }) => {
