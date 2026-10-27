@@ -71,7 +71,7 @@ describe("distManifest", () => {
     ).toThrow(/"version" is generated/);
   });
 
-  it("requires family modules at this version, as releases are lockstep", () => {
+  it("requires family modules at this version, and says where to get them", () => {
     const livekit = {
       id: "modular-av-livekit",
       relationships: {
@@ -83,17 +83,42 @@ describe("distManifest", () => {
       },
     };
 
+    // Releases are lockstep, and nothing is on Foundry's package list:
+    // the stable manifest lets Foundry install a dependency by itself.
     expect(distManifest(livekit, "0.2.0").relationships).toEqual({
       requires: [
         {
           id: "modular-av",
           type: "module",
+          manifest: releaseUrls("modular-av", "0.2.0").manifest,
           compatibility: { minimum: "0.2.0" },
         },
         { id: "other", type: "module" },
       ],
-      recommends: [{ id: "modular-av-dock", type: "module" }],
+      recommends: [
+        {
+          id: "modular-av-dock",
+          type: "module",
+          manifest: releaseUrls("modular-av-dock", "0.2.0").manifest,
+        },
+      ],
     });
+  });
+
+  it("refuses a family relationship with its own manifest URL", () => {
+    expect(() =>
+      distManifest(
+        {
+          id: "modular-av",
+          relationships: {
+            recommends: [
+              { id: "modular-av-dock", manifest: "https://example.com/m.json" },
+            ],
+          },
+        },
+        "0.2.0",
+      ),
+    ).toThrow(/manifest of "modular-av-dock" is generated/);
   });
 
   it("refuses a family requirement with its own compatibility", () => {

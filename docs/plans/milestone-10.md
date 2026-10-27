@@ -55,10 +55,12 @@ test first, released as a patch if the owner wants):
 - Every `relationships.requires` and `recommends` entry gets its stable
   `manifest` URL (and a `reason` where it helps), generated or checked by
   the build so the URLs can't drift from `docs/RELEASING.md`'s pattern.
-- First, check on a fresh Foundry data directory what Foundry's install
-  dialog does with recommended packages (offered? ticked?) and with an
-  unlisted required one that has a `manifest`. The result decides what
-  the core recommends (question 3).
+- Checked in Foundry 14.369's source (2026-10-27): a relationship with a
+  `manifest` is fetched through Foundry's server and offered for
+  automatic install although unlisted; the check recurses into each
+  dependency's own requires and recommends; recommended ones are offered
+  ticked. Installing any family module therefore brings the core and the
+  dock. To confirm by hand on a fresh data directory after the release.
 
 ### 2. A catalog of the family
 
@@ -176,8 +178,12 @@ changeset.
 2. The "which service?" helper is in ("Where should calls go?").
 3. The menu is the assembly board above, prototype round 3 (approved
    2026-10-27).
-4. The core recommends the dock and the three services, each with its
-   manifest URL; revisited after the install-dialog check.
+4. The core recommends only the dock (revised 2026-10-27 after the
+   install-dialog check: Foundry 14.369's `Game#checkDependencies`
+   follows a dependency's own requires and recommends, recursively, and
+   its dialog ticks every installable one by default, so recommended
+   services would all be installed with any module). The service is
+   chosen on the board and in the missing-service notice.
 5. Listing on foundryvtt.com is decided separately, outside this
    milestone.
 

@@ -44,24 +44,48 @@ type Json = Readonly<Record<string, unknown>>;
 const isJson = (value: unknown): value is Json =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
+const RELATION_KINDS = ["requires", "recommends"] as const;
+
 /**
- * Family modules release in lockstep until 1.0, so each one requires the
- * others at its own version: Foundry's dependency check then means something.
+ * A family module in a relationship gets its stable manifest URL, so
+ * Foundry can install it (nothing is on Foundry's package list); one it
+ * requires is required at this version, as releases are lockstep until
+ * 1.0 and Foundry's dependency check then means something.
  */
-function lockstepRequires(source: Json, version: string): Json {
-  const relationships = source.relationships;
-  if (!isJson(relationships) || !Array.isArray(relationships.requires))
-    return source;
-  const requires = (relationships.requires as unknown[]).map((entry) => {
-    if (!isJson(entry) || typeof entry.id !== "string" || !ID.test(entry.id))
-      return entry;
-    if ("compatibility" in entry)
+function familyEntry(
+  kind: (typeof RELATION_KINDS)[number],
+  entry: unknown,
+  version: string,
+): unknown {
+  if (!isJson(entry) || typeof entry.id !== "string" || !ID.test(entry.id))
+    return entry;
+  for (const field of ["manifest", "compatibility"] as const)
+    if (field in entry)
       throw new Error(
-        `compatibility with "${entry.id}" is generated: remove it from module.json`,
+        field === "manifest"
+          ? `the manifest of "${entry.id}" is generated: remove it from module.json`
+          : `compatibility with "${entry.id}" is generated: remove it from module.json`,
       );
-    return { ...entry, compatibility: { minimum: version } };
-  });
-  return { ...source, relationships: { ...relationships, requires } };
+  const { manifest } = releaseUrls(entry.id, version);
+  return kind === "requires"
+    ? { ...entry, manifest, compatibility: { minimum: version } }
+    : { ...entry, manifest };
+}
+
+function familyRelationships(source: Json, version: string): Json {
+  const relationships = source.relationships;
+  if (!isJson(relationships)) return source;
+  const generated = Object.fromEntries(
+    RELATION_KINDS.filter((kind) => Array.isArray(relationships[kind])).map(
+      (kind) => [
+        kind,
+        (relationships[kind] as unknown[]).map((entry) =>
+          familyEntry(kind, entry, version),
+        ),
+      ],
+    ),
+  );
+  return { ...source, relationships: { ...relationships, ...generated } };
 }
 
 /** The `module.json` that goes into `dist/`: the source plus generated fields. */
@@ -74,5 +98,5 @@ export function distManifest(
     if (field in source)
       throw new Error(`"${field}" is generated: remove it from module.json`);
   }
-  return { ...lockstepRequires(source, version), version, ...urls };
+  return { ...familyRelationships(source, version), version, ...urls };
 }
