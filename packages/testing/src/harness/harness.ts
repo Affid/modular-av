@@ -3,8 +3,8 @@
 // modules named in ?module=<package dir>[,<package dir>…] from source (the
 // core first) and runs Foundry's startup hooks. With
 // ?players=p1,p2 the other players run as cores in the same page; with
-// ?sample=1 a sample plugin contributes one item of each kind. Tests read
-// window.harness.
+// ?sample=1 a sample plugin contributes one item of each kind; with
+// ?theme=<id> the dock shows that theme. Tests read window.harness.
 // Foundry brings Font Awesome (Pro 7.2.0 in 14.369); the harness the Free
 // edition of the same version, so screenshots show the icons.
 import "@fortawesome/fontawesome-free/css/all.min.css";
@@ -20,6 +20,11 @@ const entries = import.meta.glob("../../../*/src/index.ts");
 /** Every module's language file, as Foundry loads them. */
 const languages = import.meta.glob<{ default: Translations }>(
   "../../../*/lang/en.json",
+  { eager: true },
+);
+/** Every module's manifest, for its id. */
+const manifests = import.meta.glob<{ default: { id: string } }>(
+  "../../../*/module.json",
   { eager: true },
 );
 const translations = Object.assign(
@@ -40,14 +45,24 @@ async function start(): Promise<Harness> {
   const params = new URLSearchParams(location.search);
   const dir = params.get("module") ?? "core";
   const players = (params.get("players") ?? "").split(",").filter(Boolean);
+  const dirs = [
+    "core",
+    ...dir.split(",").filter((d) => d !== "" && d !== "core"),
+  ];
+  // The core's id may be changed (?id=), to test a misnamed install.
+  const modules = [
+    { id: params.get("id") ?? "modular-av", version: "0.0.0-harness" },
+    ...dirs.slice(1).flatMap((d) => {
+      const id = manifests[`../../../${d}/module.json`]?.default.id;
+      return id ? [{ id, version: "0.0.0-harness" }] : [];
+    }),
+  ];
   const world = createFakeWorld({
     users: [
       { id: "gm1", name: "Gamemaster", role: 4 },
       ...players.map((id) => ({ id, name: `Player ${id}`, role: 2 })),
     ],
-    modules: [
-      { id: params.get("id") ?? "modular-av", version: "0.0.0-harness" },
-    ],
+    modules,
     translations,
   });
   const client = world.connect("gm1", players.length > 0 ? { av: ALWAYS } : {});
@@ -58,15 +73,17 @@ async function start(): Promise<Harness> {
     params.get("sample") === "1"
       ? installSamplePlugin(client.Hooks, client.game.settings)
       : undefined;
-  const dirs = [
-    "core",
-    ...dir.split(",").filter((d) => d !== "" && d !== "core"),
-  ];
   for (const d of dirs) {
     const load = entries[`../../../${d}/src/index.ts`];
     if (!load) return { client, ready: false, error: `No package "${d}"` };
     await load();
   }
+  const theme = params.get("theme");
+  if (theme)
+    // A user setting can be set once Foundry is ready; the dock follows it.
+    client.Hooks.once("ready", () => {
+      void client.game.settings.set("modular-av-dock", "theme", theme);
+    });
   client.runLifecycle();
   const ui = players.length > 0 ? startPlayers(world, players, hub) : undefined;
   return {
