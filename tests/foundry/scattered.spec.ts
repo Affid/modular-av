@@ -261,3 +261,51 @@ test("choosing a theme loads only its stylesheet, and back", async ({
   await expect(p1.page.locator("link[data-mav-theme]")).toHaveCount(0);
   await expect(p1.page.locator("html")).not.toHaveClass(/mav-theme-/);
 });
+
+test("docked on the right, the dock stays above the collapsed sidebar", async ({
+  browser,
+}) => {
+  const p1 = track(await openPlayer(browser, "Player1"));
+  const dock = p1.page.locator("#camera-views .mav-dock");
+  await expect(dock).toBeVisible();
+  const choose = async (name: string): Promise<void> => {
+    await p1.page.locator(".mav-dock-placement").click();
+    await p1.page.getByRole("menuitemradio", { name }).click();
+  };
+
+  await choose("Docked on the right");
+  try {
+    // A tab with content (the chat tab lets clicks through when closed).
+    await p1.page.evaluate(() => {
+      const sidebar = (
+        globalThis as unknown as {
+          ui: {
+            sidebar: {
+              changeTab(tab: string, group: string): void;
+              collapse(): void;
+            };
+          };
+        }
+      ).ui.sidebar;
+      sidebar.changeTab("actors", "primary");
+      sidebar.collapse();
+    });
+    await expect(dock).toHaveAttribute("data-placement", "right");
+
+    // What is drawn at the dock's centre once the sidebar has slid away.
+    await expect
+      .poll(() =>
+        dock.evaluate((root) => {
+          const box = root.getBoundingClientRect();
+          const hit = document.elementFromPoint(
+            box.left + box.width / 2,
+            box.top + box.height / 2,
+          );
+          return Boolean(hit && root.contains(hit));
+        }),
+      )
+      .toBe(true);
+  } finally {
+    await choose("Docked on the left");
+  }
+});
