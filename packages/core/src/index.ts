@@ -4,7 +4,7 @@ import { IMPORTED_SETTING, importLegacy } from "./legacy.ts";
 import "./foundry/globals.ts";
 import { logError } from "./log.ts";
 import { createBrowserMediaEnv } from "./media/browser-env.ts";
-import { registerModulesMenu } from "./modules/menu.ts";
+import { checkIsDue, registerModulesMenu } from "./modules/menu.ts";
 import { assetUrl } from "./socket.ts";
 import { createBrowserWindows } from "./windows/browser-windows.ts";
 
@@ -42,6 +42,13 @@ Hooks.once("init", () => {
     default: false,
   });
   Hooks.once("ready", () => {
+    // A GM's browser asks GitHub for news at most once a day (if allowed).
+    if (checkIsDue(game, Date.now()))
+      import("./modules/news.ts")
+        .then(({ runNewsCheck }) => {
+          runNewsCheck(logError);
+        })
+        .catch(logError);
     importLegacy({
       storage: localStorage,
       imported: () => game.settings.get(MODULE_ID, IMPORTED_SETTING) === true,

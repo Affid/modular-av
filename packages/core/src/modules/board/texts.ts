@@ -27,7 +27,7 @@ const socketKind = (socket: Socket): string =>
   socket.parent === null ? socket.key.replace("core.", "") : "theme";
 
 export function createTexts(
-  host: BoardHost,
+  host: Pick<BoardHost, "t" | "doc">,
   pieces: readonly Piece[],
   soon: readonly { readonly id: string; readonly title: string }[],
 ): Texts {

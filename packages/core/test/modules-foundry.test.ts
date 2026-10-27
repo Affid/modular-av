@@ -6,8 +6,29 @@ import {
   readSavedPlan,
 } from "../src/modules/foundry-host.ts";
 import { registerModulesMenu } from "../src/modules/menu.ts";
+import { checkForNews } from "../src/modules/news.ts";
 
-function foundry(settings = new Map<string, unknown>()) {
+const catalogOf = (version: string) =>
+  JSON.stringify({
+    schema: 1,
+    modules: [
+      {
+        id: "modular-av-dock",
+        title: "Modular A/V — Dock",
+        description: "Cameras.",
+        kind: "ui",
+        version,
+        manifest:
+          "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-dock/module.json",
+        requires: [],
+      },
+    ],
+  });
+
+function foundry(
+  settings = new Map<string, unknown>(),
+  served: Readonly<Record<string, string>> = {},
+) {
   const calls = {
     emitted: [] as string[],
     reloads: 0,
@@ -73,11 +94,14 @@ function foundry(settings = new Map<string, unknown>()) {
       },
     },
     clipboard: undefined,
-    fetch: () =>
-      Promise.resolve({ ok: false, json: () => Promise.resolve(null) }),
+    fetch: (url: string) =>
+      Promise.resolve({
+        ok: url in served,
+        text: () => Promise.resolve(served[url] ?? ""),
+      }),
     onError: () => undefined,
   } satisfies BoardFoundry;
-  return { host: createFoundryBoardHost(deps), calls, settings };
+  return { host: createFoundryBoardHost(deps), deps, calls, settings };
 }
 
 describe("the board in Foundry", () => {
@@ -136,6 +160,28 @@ describe("the board in Foundry", () => {
     await expect(host.copy("x")).rejects.toThrow(/clipboard/);
   });
 
+  it("shows GitHub's catalog, unless the world turned asking it off", async () => {
+    const files = {
+      "/modules/modular-av/catalog.json": catalogOf("0.4.0"),
+      "https://raw.githubusercontent.com/Affid/modular-av/manifests/catalog.json":
+        catalogOf("0.5.0"),
+    };
+    const on = foundry(new Map(), files);
+    const off = foundry(new Map([["modular-av.checkGitHub", false]]), files);
+
+    const fetched = await on.host.loadCatalog();
+    const own = await off.host.loadCatalog();
+
+    expect([fetched.source, fetched.catalog.modules[0]?.version]).toEqual([
+      "github",
+      "0.5.0",
+    ]);
+    expect([own.source, own.catalog.modules[0]?.version]).toEqual([
+      "off",
+      "0.4.0",
+    ]);
+  });
+
   it("fails to load when the shipped catalog can't be read", async () => {
     const { host } = foundry();
 
@@ -154,6 +200,26 @@ describe("the board in Foundry", () => {
       plan: ["a"],
       trip: null,
     });
+  });
+});
+
+describe("the daily news", () => {
+  it("tells a GM of an update once, until there is another", async () => {
+    const files = {
+      "/modules/modular-av/catalog.json": catalogOf("0.4.0"),
+      "https://raw.githubusercontent.com/Affid/modular-av/manifests/catalog.json":
+        catalogOf("0.5.0"),
+    };
+    const { deps, settings } = foundry(new Map(), files);
+    const told: string[] = [];
+
+    await checkForNews(deps, (m) => told.push(m), 1000);
+    await checkForNews(deps, (m) => told.push(m), 2000);
+
+    expect(told).toEqual([
+      'modular-av.modules.news.message {"news":"modular-av.modules.news.updates {\\"names\\":\\"Dock\\"}"}',
+    ]);
+    expect(settings.get("modular-av.lastGitHubCheck")).toBe(2000);
   });
 });
 
@@ -196,6 +262,11 @@ describe("the modules menu", () => {
 
     expect(menu).toBeInstanceOf(Application);
     expect(opened).toBe(1);
-    expect(registered).toEqual(["modular-av.modulesPlan"]);
+    expect(registered).toEqual([
+      "modular-av.modulesPlan",
+      "modular-av.checkGitHub",
+      "modular-av.lastGitHubCheck",
+      "modular-av.lastModuleNews",
+    ]);
   });
 });

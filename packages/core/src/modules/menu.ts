@@ -4,6 +4,16 @@ import type { FoundryGame } from "../foundry/globals.ts";
 /** The world setting that keeps the board's plan between visits. */
 export const PLAN_SETTING = "modulesPlan";
 
+/** World: whether GMs' browsers ask GitHub for updates and new modules. */
+export const CHECK_SETTING = "checkGitHub";
+
+/** Client: when this browser last asked GitHub, and what it last told. */
+export const LAST_CHECK_SETTING = "lastGitHubCheck";
+export const LAST_NEWS_SETTING = "lastModuleNews";
+
+/** At most once a day, when a GM loads the world. */
+const CHECK_EVERY_MS = 24 * 60 * 60 * 1000;
+
 /** Under the core's module settings: "Plan your modules". */
 export const MODULES_MENU = "modules";
 
@@ -29,6 +39,26 @@ export function registerModulesMenu(deps: ModulesMenuDeps): void {
     type: Object,
     default: null,
   });
+  game.settings.register(MODULE_ID, CHECK_SETTING, {
+    name: `${MODULE_ID}.modules.check.name`,
+    hint: `${MODULE_ID}.modules.check.hint`,
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true,
+  });
+  game.settings.register(MODULE_ID, LAST_CHECK_SETTING, {
+    scope: "client",
+    config: false,
+    type: Number,
+    default: 0,
+  });
+  game.settings.register(MODULE_ID, LAST_NEWS_SETTING, {
+    scope: "client",
+    config: false,
+    type: String,
+    default: "",
+  });
   const Base = deps.base as unknown as new () => {
     render(options?: object): unknown;
   };
@@ -47,4 +77,12 @@ export function registerModulesMenu(deps: ModulesMenuDeps): void {
     type: OpenModulesBoard,
     restricted: true,
   });
+}
+
+/** Whether this GM's browser should ask GitHub for news now. */
+export function checkIsDue(game: FoundryGame, now: number): boolean {
+  if (!game.user.isGM) return false;
+  if (game.settings.get(MODULE_ID, CHECK_SETTING) === false) return false;
+  const last = Number(game.settings.get(MODULE_ID, LAST_CHECK_SETTING)) || 0;
+  return now - last >= CHECK_EVERY_MS;
 }

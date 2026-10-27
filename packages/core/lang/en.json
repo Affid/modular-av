@@ -56,6 +56,15 @@
         "label": "Plan your modules",
         "hint": "See which Modular A/V modules exist, plan which ones this world runs, and get the links to install them."
       },
+      "check": {
+        "name": "Check GitHub for module updates",
+        "hint": "When a GM opens the modules window, and at most once a day when a GM loads the world, the GM's browser asks GitHub (raw.githubusercontent.com, which sees its address) for the list of Modular A/V modules, to tell of updates and new modules. Players never do. Off: the window shows the modules this version knows."
+      },
+      "news": {
+        "updates": "updates for {names}",
+        "fresh": "new modules: {names}",
+        "message": "Modular A/V: {news}. See “Plan your modules” in its module settings."
+      },
       "title": "Modular A/V: plan your voice and video setup",
       "lead": "Put the pieces you want on the board. Nothing changes until you follow the steps below it.",
       "failed": "The modules window couldn't open. The browser console says why.",

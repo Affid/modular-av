@@ -27,8 +27,10 @@ test.afterEach(async () => {
 test("a GM plans the world's modules on the board", async ({ browser }) => {
   const gm = await openGm(browser);
   open = [gm];
+  // The test world never asks GitHub (pnpm foundry:setup): the core's own catalog.
   await gm.run(async (_api, game) => {
     await game.settings.set("modular-av", "modulesPlan", null);
+    await game.settings.set("modular-av", "checkGitHub", false);
   }, null);
 
   // Configure Settings, Modular A/V, "Plan your modules".
@@ -49,7 +51,7 @@ test("a GM plans the world's modules on the board", async ({ browser }) => {
   await expect(board).toContainText("LiveKit");
   await expect(board).toContainText("Dock");
   await expect(window.locator(".mav-board-source")).toContainText(
-    "this version of Modular A/V knows",
+    "Checking GitHub is off",
   );
 
   // Removing the Dock plans to turn it off, with the theme hanging off it.
@@ -99,6 +101,7 @@ test("a GM plans the world's modules on the board", async ({ browser }) => {
   expect(saved).toMatchObject({ trip: null });
   await gm.run(async (_api, game) => {
     await game.settings.set("modular-av", "modulesPlan", null);
+    await game.settings.set("modular-av", "checkGitHub", false);
   }, null);
 });
 
@@ -107,6 +110,9 @@ test("a GM reaches it from the Voice & Video Settings window too", async ({
 }) => {
   const gm = await openGm(browser);
   open = [gm];
+  await gm.run(async (_api, game) => {
+    await game.settings.set("modular-av", "checkGitHub", false);
+  }, null);
   await expect(gm.page.locator("#camera-views .mav-dock")).toBeVisible();
 
   await gm.page.locator(".mav-dock-settings").click();
@@ -118,4 +124,7 @@ test("a GM reaches it from the Voice & Video Settings window too", async ({
   await expect(
     gm.page.locator("#modular-av-modules .mav-board-plan"),
   ).toBeVisible();
+  await gm.run(async (_api, game) => {
+    await game.settings.set("modular-av", "checkGitHub", false);
+  }, null);
 });

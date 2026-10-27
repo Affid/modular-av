@@ -92,6 +92,17 @@ try {
     console.log(`Modules: enabled ${moduleIds.join(", ")}`);
     await reloadWorld(gm);
   }
+  // Tests never ask GitHub for the family's catalog; a spec turns it on.
+  await gm.evaluate(async () => {
+    const g = globalThis as unknown as {
+      game: {
+        settings: {
+          set(ns: string, key: string, value: unknown): Promise<unknown>;
+        };
+      };
+    };
+    await g.game.settings.set("modular-av", "checkGitHub", false);
+  });
   console.log("Test world ready.");
 } finally {
   await browser.close();

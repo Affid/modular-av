@@ -1,4 +1,9 @@
-import { parseCatalog } from "../catalog/catalog.ts";
+import { type Catalog, parseCatalog } from "../catalog/catalog.ts";
+import {
+  type CatalogFetch,
+  fetchCatalog,
+  loadCatalogs,
+} from "../catalog/fetch.ts";
 import { MODULE_ID } from "../constants.ts";
 import type { FoundryGame } from "../foundry/globals.ts";
 import { assetUrl } from "../socket.ts";
@@ -7,7 +12,7 @@ import {
   SETTINGS_WINDOW_SETTING,
 } from "../surfaces/choice.ts";
 import type { BoardHost, LoadedCatalog, SavedPlan } from "./host.ts";
-import { PLAN_SETTING } from "./menu.ts";
+import { CHECK_SETTING, PLAN_SETTING } from "./menu.ts";
 import type { WorldModules } from "./steps.ts";
 
 /** Foundry's own setting of which modules a world runs. */
@@ -25,9 +30,7 @@ export interface BoardFoundry {
     debouncedReload(): void;
   };
   readonly clipboard: { writeText(text: string): Promise<void> } | undefined;
-  readonly fetch: (
-    url: string,
-  ) => Promise<{ ok: boolean; json(): Promise<unknown> }>;
+  readonly fetch: CatalogFetch;
   readonly onError: (error: unknown) => void;
 }
 
@@ -48,7 +51,7 @@ export function readSavedPlan(value: unknown): SavedPlan | null {
   return { plan: ids, trip: trip === null ? null : strings(trip) };
 }
 
-function worldModules(game: FoundryGame): WorldModules {
+export function worldModules(game: FoundryGame): WorldModules {
   return new Map(
     [...game.modules.values()]
       .filter((m) => isFamily(m.id))
@@ -57,18 +60,28 @@ function worldModules(game: FoundryGame): WorldModules {
 }
 
 /** The catalog that came with this core, checked like any other. */
-async function bundledCatalog(foundry: BoardFoundry): Promise<LoadedCatalog> {
+export async function bundledCatalog(foundry: BoardFoundry): Promise<Catalog> {
   const url = assetUrl(
     (path) => foundry.utils.getRoute(path),
     MODULE_ID,
     "catalog.json",
   );
-  const response = await foundry.fetch(url);
-  const catalog = response.ok ? parseCatalog(await response.json()) : null;
+  const response = await foundry.fetch(url, {});
+  const catalog = response.ok
+    ? parseCatalog(JSON.parse(await response.text()))
+    : null;
   if (!catalog)
     throw new Error("The catalog shipped with Modular A/V is unreadable");
-  const known = new Set(catalog.modules.map((m) => m.id));
-  return { catalog, source: "bundled", known };
+  return catalog;
+}
+
+/** GitHub's catalog if the world allows asking, else the core's own. */
+export function loadCatalog(foundry: BoardFoundry): Promise<LoadedCatalog> {
+  return loadCatalogs({
+    bundled: () => bundledCatalog(foundry),
+    remote: () => fetchCatalog(foundry.fetch),
+    checkGitHub: foundry.game.settings.get(MODULE_ID, CHECK_SETTING) !== false,
+  });
 }
 
 /** Turns modules on and off as Foundry's module manager does, then reloads everyone. */
@@ -107,7 +120,7 @@ export function createFoundryBoardHost(foundry: BoardFoundry): BoardHost {
     othersOnline: () =>
       game.users.contents.filter((u) => u.active && u.id !== game.userId)
         .length,
-    loadCatalog: () => bundledCatalog(foundry),
+    loadCatalog: () => loadCatalog(foundry),
     savedPlan: () => readSavedPlan(game.settings.get(MODULE_ID, PLAN_SETTING)),
     savePlan: async (saved) => {
       await game.settings.set(MODULE_ID, PLAN_SETTING, saved);
