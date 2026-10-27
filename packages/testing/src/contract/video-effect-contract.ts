@@ -119,6 +119,25 @@ const setEffect = (page: Page, id: string, on: boolean): Promise<void> =>
     { effect: id, enabled: on },
   );
 
+/**
+ * Turns the effect on and starts sampling what is sent in the same task,
+ * so no sample can come from before it was wanted (the raw camera is
+ * rightly sent until then; on a busy machine a separate call could run
+ * one sample late).
+ */
+const setEffectRecording = (page: Page, id: string): Promise<void> =>
+  page.evaluate((effect) => {
+    const turnedOn = window
+      .videoContractApi?.()
+      .commands.setEffectEnabled(effect, true);
+    const sent: (string | null)[] = [];
+    window.videoContractSent = sent;
+    setInterval(() => {
+      sent.push(window.harness?.pipeline?.published().camera?.id ?? null);
+    }, 20); // SAMPLE_MS
+    return turnedOn;
+  }, id);
+
 const running = async (page: Page, id: string): Promise<void> => {
   await expect
     .poll(() => statusOf(page, id), { timeout: START_TIMEOUT_MS })
@@ -189,10 +208,9 @@ function runsTests(options: VideoEffectContractOptions): void {
     }) => {
       // Arrange
       const raw = await open(page, options);
-      await recordSent(page);
 
       // Act
-      await setEffect(page, id, true);
+      await setEffectRecording(page, id);
       await running(page, id);
 
       // Assert
@@ -252,10 +270,9 @@ function failClosedTests(options: VideoEffectContractOptions): void {
       },
     ]);
     const raw = await open(page, options);
-    await recordSent(page);
 
     // Act
-    await setEffect(page, first, true);
+    await setEffectRecording(page, first);
 
     // Assert
     await expect
