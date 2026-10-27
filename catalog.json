@@ -1,0 +1,130 @@
+{
+  "schema": 1,
+  "modules": [
+    {
+      "id": "modular-av",
+      "title": "Modular A/V — voice & video",
+      "description": "Voice and video for Foundry VTT, built from modules: pick a service, a look and the effects you want.",
+      "kind": "core",
+      "requires": [],
+      "version": "0.4.0",
+      "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av/module.json"
+    },
+    {
+      "id": "modular-av-cam-background",
+      "title": "Modular A/V: Camera background",
+      "description": "Blurs or replaces the background of your camera, in your browser, with MediaPipe's selfie segmentation. Pick it in the voice and video settings.",
+      "kind": "effect",
+      "requires": [
+        {
+          "id": "modular-av",
+          "minimum": "0.3.1"
+        }
+      ],
+      "version": "0.3.1",
+      "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-cam-background/module.json"
+    },
+    {
+      "id": "modular-av-dock",
+      "title": "Modular A/V: Dock",
+      "description": "A camera dock, voice panel and settings window for Modular A/V.",
+      "kind": "ui",
+      "requires": [
+        {
+          "id": "modular-av",
+          "minimum": "0.3.1"
+        }
+      ],
+      "version": "0.3.1",
+      "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-dock/module.json"
+    },
+    {
+      "id": "modular-av-dock-vines",
+      "title": "Modular A/V: Vines theme",
+      "description": "Vine leaves around the cameras of the Modular A/V dock, growing from the corner each one sits in, and a green palette. Best with the scattered layout.",
+      "kind": "theme",
+      "requires": [
+        {
+          "id": "modular-av-dock",
+          "minimum": "0.3.1"
+        }
+      ],
+      "version": "0.3.1",
+      "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-dock-vines/module.json"
+    },
+    {
+      "id": "modular-av-jitsi",
+      "title": "Modular A/V: Jitsi",
+      "description": "Carries Modular A/V calls over a self-hosted Jitsi Meet server with token authentication.",
+      "kind": "service",
+      "requires": [
+        {
+          "id": "modular-av",
+          "minimum": "0.3.1"
+        }
+      ],
+      "version": "0.3.1",
+      "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-jitsi/module.json"
+    },
+    {
+      "id": "modular-av-livekit",
+      "title": "Modular A/V: LiveKit",
+      "description": "Carries Modular A/V calls over LiveKit, self-hosted or LiveKit Cloud.",
+      "kind": "service",
+      "requires": [
+        {
+          "id": "modular-av",
+          "minimum": "0.3.1"
+        }
+      ],
+      "version": "0.3.1",
+      "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-livekit/module.json"
+    },
+    {
+      "id": "modular-av-mic-denoise",
+      "title": "Modular A/V: Noise cancellation",
+      "description": "Removes background noise from your microphone with RNNoise, Speex or GTCRN, run in your browser. Pick a model in the voice and video settings.",
+      "kind": "effect",
+      "requires": [
+        {
+          "id": "modular-av",
+          "minimum": "0.3.1"
+        }
+      ],
+      "version": "0.3.1",
+      "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-mic-denoise/module.json"
+    },
+    {
+      "id": "modular-av-p2p",
+      "title": "Modular A/V: P2P",
+      "description": "Carries Modular A/V calls directly between players' browsers, with no media server. Best for small tables.",
+      "kind": "service",
+      "requires": [
+        {
+          "id": "modular-av",
+          "minimum": "0.3.1"
+        }
+      ],
+      "version": "0.3.1",
+      "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-p2p/module.json"
+    }
+  ],
+  "soon": [
+    {
+      "id": "modular-av-livekit-krisp",
+      "title": "Modular A/V: Krisp for LiveKit Cloud",
+      "description": "Adds LiveKit's Krisp noise filter to the noise cancellation choice when your table calls through LiveKit Cloud. Players' browsers download it from npm (jsDelivr) when they turn it on, and Krisp reports the room's name and id, the player's user id and how long it ran to your LiveKit Cloud project; see the README.",
+      "kind": "effect",
+      "requires": [
+        {
+          "id": "modular-av",
+          "minimum": "0.4.0"
+        },
+        {
+          "id": "modular-av-livekit",
+          "minimum": "0.4.0"
+        }
+      ]
+    }
+  ]
+}
