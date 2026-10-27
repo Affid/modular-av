@@ -244,9 +244,10 @@
   --mav-dock-columns: 1;
   --mav-dock-tile-width: 100%;
   display: grid;
+  /* A cell holds a tile and its theme's frame (--mav-dock-frame-*). */
   grid-template-columns: repeat(
     var(--mav-dock-columns),
-    var(--mav-dock-tile-width)
+    calc(var(--mav-dock-tile-width) * var(--mav-dock-frame-across, 1))
   );
   align-content: start;
   justify-content: center;
@@ -263,7 +264,9 @@
 .mav-dock[data-placement="bottom"] .mav-dock-tiles {
   grid-auto-flow: column;
   grid-template-columns: none;
-  grid-auto-columns: var(--mav-dock-tile-width);
+  grid-auto-columns: calc(
+    var(--mav-dock-tile-width) * var(--mav-dock-frame-across, 1)
+  );
   grid-template-rows: 100%;
 }
 
@@ -272,10 +275,14 @@
   order: -1;
 }
 
+/* Frames may reach past the tile: the media clips the video, not the tile. */
 .mav-dock-tile {
   position: relative;
   aspect-ratio: 16 / 9;
-  overflow: hidden;
+  margin: calc(var(--mav-dock-tile-width) * var(--mav-dock-frame-top, 0))
+    calc(var(--mav-dock-tile-width) * var(--mav-dock-frame-right, 0))
+    calc(var(--mav-dock-tile-width) * var(--mav-dock-frame-bottom, 0))
+    calc(var(--mav-dock-tile-width) * var(--mav-dock-frame-left, 0));
   border-radius: var(--mav-dock-radius);
   background: var(--mav-dock-tile-bg);
   outline: var(--mav-dock-ring) solid transparent;
@@ -303,6 +310,11 @@
 .mav-dock-tile-frame {
   position: absolute;
   inset: 0;
+}
+
+.mav-dock-tile-media {
+  overflow: hidden;
+  border-radius: inherit;
 }
 
 .mav-dock-tile-video {
@@ -335,7 +347,13 @@
   border-radius: 50%;
 }
 
+/* Sized to the theme's declared reach (fractions of the tile's width;
+   the tile is 16:9, so its height is 9/16 of the width). */
 .mav-dock-tile-frame {
+  inset: calc(var(--mav-dock-frame-top, 0) * -177.78%)
+    calc(var(--mav-dock-frame-right, 0) * -100%)
+    calc(var(--mav-dock-frame-bottom, 0) * -177.78%)
+    calc(var(--mav-dock-frame-left, 0) * -100%);
   pointer-events: none;
 }
 
@@ -492,6 +510,7 @@
 
 .mav-dock[data-placement="scattered"] .mav-dock-tile {
   width: 240px;
+  margin: 0;
   cursor: grab;
 }
 

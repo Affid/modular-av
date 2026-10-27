@@ -1,5 +1,5 @@
 import type { CamerasHost, CamerasSurfaceDefinition } from "@modular-av/api";
-import { el, icon, NO_INSETS, setLabel } from "@modular-av/kit";
+import { el, icon, type Insets, NO_INSETS, setLabel } from "@modular-av/kit";
 import { type DockContext, MODULE_ID } from "../context.ts";
 import { openParticipantMenu } from "../menus/participant-menu.ts";
 import { openQuickControls } from "../panel/quick-controls.ts";
@@ -106,6 +106,28 @@ function build(ctx: DockContext, host: CamerasHost): Dock {
   return dock;
 }
 
+/** A theme's frame reach, as fractions of the tile's width. */
+const reachOf = (ctx: DockContext): Insets =>
+  ctx.themes.shown()?.frames?.reach ?? NO_INSETS;
+
+/**
+ * The frame layer reaches past each tile as the theme declares; the grid
+ * leaves room for it, and so does the scattered layout.
+ */
+function showFrames(ctx: DockContext, dock: Dock): void {
+  const reach = reachOf(ctx);
+  const style = dock.root.style;
+  const css = (value: number): string => String(Number(value.toFixed(4)));
+  for (const side of ["top", "right", "bottom", "left"] as const)
+    style.setProperty(`--mav-dock-frame-${side}`, css(reach[side]));
+  style.setProperty(
+    "--mav-dock-frame-across",
+    css(1 + reach.left + reach.right),
+  );
+  dock.tiles.setFrameReach(reach);
+  dock.scattered?.relayout();
+}
+
 /** The scattered layout's code, loaded only when a player picks it. */
 const loadScattered = () => import("../scattered/scattered.ts");
 
@@ -147,7 +169,7 @@ async function scatter(
       panelHandle: dock.header.element,
       panelMove: dock.header.move,
     },
-    { reach: () => NO_INSETS },
+    { reach: () => reachOf(ctx) },
   );
   show(dock);
 }
@@ -186,9 +208,14 @@ export function camerasSurface(ctx: DockContext): CamerasSurfaceDefinition {
         dock.scattered?.refresh();
         show(dock);
       });
+      showFrames(ctx, dock);
+      const offThemes = ctx.themes.onChange(() => {
+        showFrames(ctx, dock);
+      });
       show(dock);
       return {
         unmount() {
+          offThemes();
           dock.scattered?.dispose();
           placement.dispose();
           dock.tiles.dispose();

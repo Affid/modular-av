@@ -1,4 +1,5 @@
 import type { ModularAV, ParticipantId } from "@modular-av/api";
+import { NO_THEMES, type Themes } from "./themes/choice.ts";
 
 export const MODULE_ID = "modular-av-dock";
 
@@ -91,6 +92,8 @@ export interface DockContext {
   readonly now: () => number;
   readonly onError: (error: unknown) => void;
   readonly scenes: Scenes;
+  /** The themes registered, and the one shown. */
+  readonly themes: Themes;
 }
 
 export interface ContextDeps {
@@ -102,6 +105,7 @@ export interface ContextDeps {
   readonly onError: (error: unknown) => void;
   /** Foundry's hooks for the scene shown and its changes. */
   readonly onSceneChange?: (listener: () => void) => () => void;
+  readonly themes?: Themes;
 }
 
 const LAYOUT_FLAG = "layout";
@@ -153,5 +157,6 @@ export function createContext(deps: ContextDeps): DockContext {
     now: deps.now ?? (() => Date.now()),
     onError: deps.onError,
     scenes: createScenes(deps),
+    themes: deps.themes ?? NO_THEMES,
   };
 }

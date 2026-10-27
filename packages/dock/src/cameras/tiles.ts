@@ -3,7 +3,14 @@ import type {
   IndicatorContribution,
   ParticipantId,
 } from "@modular-av/api";
-import { el, fitGrid, placeInOrder, roving } from "@modular-av/kit";
+import {
+  el,
+  fitGrid,
+  type Insets,
+  NO_INSETS,
+  placeInOrder,
+  roving,
+} from "@modular-av/kit";
 import type { DockContext } from "../context.ts";
 import type { TileLayout } from "../settings.ts";
 import { orderTiles, tileView } from "../view/tile-view.ts";
@@ -24,6 +31,8 @@ export interface TileList {
   setHorizontal(horizontal: boolean): void;
   /** Scattered tiles are placed one by one, each with its handles. */
   setScattered(scattered: boolean): void;
+  /** How far a theme's frames reach past tiles (fractions of their width). */
+  setFrameReach(reach: Insets): void;
   /** The tile shown large in the focus layout. */
   focus(participant: ParticipantId): void;
   /** How many tiles there are now. */
@@ -66,6 +75,7 @@ export function createTileList(
   let focused: ParticipantId | null = null;
   let horizontal = false;
   let scattered = false;
+  let reach: Insets = NO_INSETS;
   let listeners: readonly (() => void)[] = [];
   const keys = roving(element, {
     items:
@@ -110,6 +120,7 @@ export function createTileList(
       gap,
       minTileWidth: MIN_TILE_WIDTH,
       scroll: horizontal ? "sideways" : "down",
+      reach,
     });
     element.style.setProperty("--mav-dock-columns", String(result.columns));
     element.style.setProperty(
@@ -191,6 +202,10 @@ export function createTileList(
     },
     setHorizontal(next) {
       horizontal = next;
+      fit();
+    },
+    setFrameReach(next) {
+      reach = next;
       fit();
     },
     setScattered(next) {

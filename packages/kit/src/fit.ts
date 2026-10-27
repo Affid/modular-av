@@ -1,4 +1,4 @@
-import type { Size } from "./rect.ts";
+import type { Insets, Size } from "./rect.ts";
 
 /** Video tiles are 16:9. */
 const ASPECT: Size = { width: 16, height: 9 };
@@ -13,6 +13,11 @@ export interface GridSpace {
   readonly minTileWidth?: number;
   /** Which way a grid too full to fit scrolls. */
   readonly scroll?: "down" | "sideways";
+  /**
+   * How far frames reach past each tile, as fractions of its width: tiles
+   * shrink so their frames fit too.
+   */
+  readonly reach?: Insets;
 }
 
 export interface GridFit {
@@ -64,12 +69,32 @@ function scrolling(space: GridSpace, minTileWidth: number): GridFit {
 }
 
 /**
+ * The space scaled down so a fit of bare tiles in it leaves room for
+ * their frames in the real one; the gap scales the stricter way.
+ */
+function withoutFrames(space: GridSpace, reach: Insets): GridSpace {
+  const across = 1 + reach.left + reach.right;
+  const down = 1 + (reach.top + reach.bottom) * (ASPECT.width / ASPECT.height);
+  return {
+    count: space.count,
+    width: space.width / across,
+    height: space.height / down,
+    gap: space.gap / Math.min(across, down),
+    ...(space.minTileWidth === undefined
+      ? {}
+      : { minTileWidth: space.minTileWidth }),
+    ...(space.scroll ? { scroll: space.scroll } : {}),
+  };
+}
+
+/**
  * The grid of 16:9 tiles that shows `count` videos largest in the space;
  * below `minTileWidth` it scrolls instead of shrinking further.
  */
 export function fitGrid(space: GridSpace): GridFit {
   if (space.count <= 0 || space.width <= 0 || space.height <= 0)
     return { columns: 1, tileWidth: 0, scrolls: false };
+  if (space.reach) return fitGrid(withoutFrames(space, space.reach));
   const best = bestFit(space);
   const min = space.minTileWidth ?? 0;
   return best.tileWidth < min ? scrolling(space, min) : best;

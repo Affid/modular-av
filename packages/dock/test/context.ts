@@ -11,6 +11,7 @@ import {
   type FoundryScene,
   type FoundrySettingConfig,
 } from "../src/context.ts";
+import type { Themes } from "../src/themes/choice.ts";
 
 /** A scene with flags, as Foundry keeps them; tests change it and announce it. */
 export interface FakeScene extends FoundryScene {
@@ -65,6 +66,7 @@ export interface TestDockOptions extends FakeApiOptions {
   readonly pushToTalk?: readonly string[];
   /** The scene viewed; null: none (no canvas, no active scene). */
   readonly scene?: FakeScene | null;
+  readonly themes?: Themes;
 }
 
 /** A dock context on the fake API, with the dock's real English texts. */
@@ -118,6 +120,7 @@ export function testDock(options: TestDockOptions = {}): TestDock {
     },
     now: () => 1_000_000,
     onError: (e) => errors.push(e),
+    ...(options.themes ? { themes: options.themes } : {}),
     onSceneChange: (listener) => {
       sceneListeners = [...sceneListeners, listener];
       return () => {

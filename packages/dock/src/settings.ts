@@ -1,5 +1,7 @@
 import { type DockContext, MODULE_ID } from "./context.ts";
 import type { Rect } from "@modular-av/kit";
+import { THEME_SETTINGS } from "./themes/choice.ts";
+import { DEFAULT_THEME } from "./themes/registry.ts";
 
 /**
  * Docked on Foundry's dock side, floating, or scattered over the screen;
@@ -19,7 +21,10 @@ export const SETTINGS = {
 const DEFAULT_RECT: Rect = { left: 80, top: 80, width: 360, height: 420 };
 
 /** Per player (`user` scope, across devices); shown in the dock's own settings. */
-export function registerSettings(settings: DockContext["settings"]): void {
+export function registerSettings(
+  settings: DockContext["settings"],
+  onThemeChange: () => void = () => undefined,
+): void {
   const user = (key: string, type: unknown, value: unknown): void => {
     settings.register(MODULE_ID, key, {
       scope: "user",
@@ -36,6 +41,21 @@ export function registerSettings(settings: DockContext["settings"]): void {
   user(SETTINGS.scattered, Object, {
     own: { tiles: {}, panel: null },
     scenes: {},
+  });
+  // The theme: the player's ("" follows the world's), and the world's.
+  settings.register(MODULE_ID, THEME_SETTINGS.own, {
+    scope: "user",
+    config: false,
+    type: String,
+    default: "",
+    onChange: onThemeChange,
+  });
+  settings.register(MODULE_ID, THEME_SETTINGS.world, {
+    scope: "world",
+    config: false,
+    type: String,
+    default: DEFAULT_THEME,
+    onChange: onThemeChange,
   });
 }
 

@@ -149,3 +149,32 @@ describe("placePopover", () => {
     ).toMatchObject({ side: "below", room: 384, top: 408 });
   });
 });
+
+describe("fitGrid with frames", () => {
+  it("shrinks tiles so their frames fit beside and below them", () => {
+    const reach = { top: 0.1, right: 0.1, bottom: 0.1, left: 0.1 };
+
+    const plain = fitGrid({ count: 1, width: 400, height: 1000, gap: 0 });
+    const framed = fitGrid({
+      count: 1,
+      width: 400,
+      height: 1000,
+      gap: 0,
+      reach,
+    });
+
+    expect(plain.tileWidth).toBe(400);
+    // The tile and its frame, 1.2 times as wide, fill the width.
+    expect(framed.tileWidth).toBeCloseTo(400 / 1.2);
+  });
+
+  it("allows for the frames below when height is short", () => {
+    const reach = { top: 0.1, right: 0, bottom: 0.1, left: 0 };
+
+    const fit = fitGrid({ count: 1, width: 1000, height: 225, gap: 0, reach });
+
+    // 16:9 tiles: a frame 0.1 of the width tall on each side.
+    const tall = fit.tileWidth * (9 / 16 + 0.2);
+    expect(tall).toBeCloseTo(225);
+  });
+});
