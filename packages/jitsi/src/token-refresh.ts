@@ -32,6 +32,7 @@ export function createTokenRefresh(
   connection: () => JitsiConnection | null,
   emitter: Emitter,
   onEnd: (error: ServiceError) => void,
+  onError: (error: unknown) => void,
 ): TokenRefresh {
   let waiting: ReturnType<typeof setTimeout> | undefined;
   const cancel = (): void => {
@@ -56,8 +57,9 @@ export function createTokenRefresh(
       try {
         await current.refreshToken(token);
         if (resuming) emitter.emit("state", "connected");
-      } catch {
+      } catch (error: unknown) {
         // lib-jitsi-meet didn't resume with it (it times out after 3 s).
+        onError(error);
         onEnd(NETWORK);
       }
     },

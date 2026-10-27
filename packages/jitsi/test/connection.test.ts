@@ -175,10 +175,22 @@ describe("joining a Jitsi room", () => {
       };
     };
 
+    let disconnects = 0;
+    const disconnect = s.sdk.setup;
+    s.sdk.setup = (c) => {
+      disconnect(c);
+      const real = c.disconnect.bind(c);
+      c.disconnect = () => {
+        disconnects += 1;
+        return real();
+      };
+    };
+
     await expect(join(s)).rejects.toMatchObject({
       serviceError: { code: "full", final: true },
     });
     expect(s.connection().disconnected).toBe(true);
+    expect(disconnects).toBe(1);
   });
 
   it("warns when the server makes players moderators", async () => {
@@ -200,6 +212,57 @@ describe("joining a Jitsi room", () => {
     expect(lastState(s)).toEqual(["connected", undefined]);
     expect(s.errors).toHaveLength(1);
     expect(String(s.errors[0])).toMatch(/moderator/);
+  });
+
+  it("fails the attempt, for a retry, when the connection drops while joining", async () => {
+    // Arrange: the room never answers, and the connection drops.
+    const s = setup();
+    s.sdk.setup = (c) => {
+      const init = c.initJitsiConference.bind(c);
+      c.initJitsiConference = (name, options) => {
+        const conference = init(name, options);
+        conference.join = () => {
+          queueMicrotask(() => {
+            c.emit(EVENTS.CONNECTION.CONNECTION_DISCONNECTED);
+          });
+        };
+        return conference;
+      };
+    };
+
+    // Act / Assert
+    await expect(join(s)).rejects.toMatchObject({
+      serviceError: { code: "network", final: false },
+    });
+    expect(s.connection().disconnected).toBe(true);
+  });
+
+  it("never reports connected after leaving during the join", async () => {
+    // Arrange
+    const s = setup();
+    let release = (): void => undefined;
+    s.sdk.setup = (c) => {
+      const init = c.initJitsiConference.bind(c);
+      c.initJitsiConference = (name, options) => {
+        const conference = init(name, options);
+        conference.join = () => {
+          release = () => {
+            conference.emit(EVENTS.CONFERENCE.CONFERENCE_JOINED);
+          };
+        };
+        return conference;
+      };
+    };
+
+    // Act
+    const joining = join(s);
+    await flush();
+    await s.service.disconnect("user");
+    release();
+
+    // Assert
+    await expect(joining).rejects.toMatchObject({ name: "AbortError" });
+    expect(s.seen.states.map(([state]) => state)).toEqual(["disconnected"]);
   });
 
   it("stops at once when the attempt is aborted", async () => {
@@ -245,6 +308,21 @@ describe("who is in the call", () => {
     s.conference().userLeaves("ep-bob");
 
     expect(s.seen.joined).toEqual(["bob"]);
+    expect(s.seen.left).toEqual(["bob"]);
+  });
+
+  it("counts a player with two tabs once, and as gone when both are", async () => {
+    const s = setup();
+    await join(s);
+
+    s.conference().userJoins("ep-bob-1", "bob");
+    s.conference().userJoins("ep-bob-2", "bob");
+    s.conference().userLeaves("ep-bob-1");
+    const afterOne = [...s.seen.left];
+    s.conference().userLeaves("ep-bob-2");
+
+    expect(s.seen.joined).toEqual(["bob"]);
+    expect(afterOne).toEqual([]);
     expect(s.seen.left).toEqual(["bob"]);
   });
 
@@ -397,6 +475,41 @@ describe("remote media", () => {
     });
   });
 
+  it("forgets the sources of tracks that went, and of players who left", async () => {
+    // Arrange
+    const s = setup();
+    await join(s);
+    for (const [endpoint, id] of [
+      ["ep-bob", "bob"],
+      ["ep-carol", "carol"],
+    ] as const) {
+      s.conference().userJoins(endpoint, id);
+      s.conference().emit(
+        EVENTS.CONFERENCE.TRACK_ADDED,
+        remoteTrack({
+          endpoint,
+          kind: "audio",
+          track: createFakeTrack("audio"),
+        }),
+      );
+    }
+    const bobAudio = remoteTrack({
+      endpoint: "ep-bob",
+      kind: "video",
+      track: createFakeTrack("video"),
+    });
+    s.conference().emit(EVENTS.CONFERENCE.TRACK_ADDED, bobAudio);
+
+    // Act
+    s.conference().emit(EVENTS.CONFERENCE.TRACK_REMOVED, bobAudio);
+    s.conference().userLeaves("ep-carol");
+    s.service.setSubscription("bob", "microphone", { enabled: false });
+
+    // Assert: only what is still there is asked for.
+    expect(s.conference().constraints?.constraints).toEqual({});
+    expect(s.conference().audio?.exclude).toEqual(["ep-bob-a0"]);
+  });
+
   it("reports how each participant's connection is, in the core's words", async () => {
     const s = setup();
     await join(s);
@@ -474,6 +587,29 @@ describe("the core's own tracks", () => {
     await s.service.setMuted(cam, true);
 
     expect(s.sdk.localTracks.map((t) => t.calls)).toEqual([["mute"], []]);
+    expect(fakeTrackInfo(camera).readyState).toBe("live");
+  });
+
+  it("lets go of a track whose publishing overlapped leaving, or failed", async () => {
+    // Arrange
+    const s = setup();
+    await join(s);
+    let finish = (): void => undefined;
+    s.conference().addTrack = () =>
+      new Promise<void>((resolve) => {
+        finish = resolve;
+      });
+    const camera = createFakeTrack("video");
+
+    // Act
+    const publishing = s.service.publish(camera, "camera");
+    await flush();
+    await s.service.disconnect("user");
+    finish();
+
+    // Assert
+    await expect(publishing).rejects.toThrow(/left/);
+    expect(s.sdk.localTracks[0]?.calls).toEqual(["dispose"]);
     expect(fakeTrackInfo(camera).readyState).toBe("live");
   });
 
@@ -586,6 +722,9 @@ describe("a token that runs out while connected", () => {
     await s.service.updateToken?.("fresh");
 
     expect(lastState(s)).toEqual(["lost", "network"]);
+    expect(s.errors).toEqual([
+      expect.objectContaining({ message: "timed out" }),
+    ]);
   });
 });
 

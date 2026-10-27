@@ -134,6 +134,37 @@ interface Live {
   readonly unsubscribe: readonly (() => void)[];
 }
 
+/**
+ * A connection whose token runs out gets a fresh one from the relay, one
+ * request at a time; a token for a connection since replaced or ended is
+ * dropped. Without a GM it never comes: the service then loses its
+ * connection and the core reconnects as usual. `wanted()` says whether
+ * the token (no argument) or a failure (`error`) still matters.
+ */
+function createTokenRefresher(
+  deps: Pick<SessionDeps, "requestToken" | "onError">,
+): (
+  connection: ServiceConnection,
+  signal: AbortSignal,
+  wanted: (error?: unknown) => boolean,
+) => void {
+  let refreshing: ServiceConnection | null = null;
+  return (connection, signal, wanted) => {
+    const update = connection.updateToken?.bind(connection);
+    if (!update || refreshing === connection) return;
+    refreshing = connection;
+    deps
+      .requestToken(signal)
+      .then((token) => (wanted() ? update(token) : undefined))
+      .catch((error: unknown) => {
+        if (wanted(error) && !isAbort(error)) deps.onError(error);
+      })
+      .finally(() => {
+        if (refreshing === connection) refreshing = null;
+      });
+  };
+}
+
 export function createSession(deps: SessionDeps): Session {
   let state = IDLE;
   let generation = 0;
@@ -223,34 +254,7 @@ export function createSession(deps: SessionDeps): Session {
     else if (next === "failed") failed(error ?? NETWORK);
   };
 
-  /**
-   * A connection whose token runs out gets a fresh one from the relay,
-   * one request at a time; a token for a connection since replaced or
-   * ended is dropped. Without a GM it never comes: the service then loses
-   * its connection and the core reconnects as usual.
-   */
-  let refreshing: ServiceConnection | null = null;
-  const refreshToken = (
-    current: number,
-    connection: ServiceConnection,
-  ): void => {
-    const update = connection.updateToken?.bind(connection);
-    if (!update || refreshing === connection || !controller) return;
-    refreshing = connection;
-    deps
-      .requestToken(controller.signal)
-      .then((token) =>
-        current === generation && live?.connection === connection
-          ? update(token)
-          : undefined,
-      )
-      .catch((error: unknown) => {
-        if (current === generation && !isAbort(error)) deps.onError(error);
-      })
-      .finally(() => {
-        if (refreshing === connection) refreshing = null;
-      });
-  };
+  const refreshToken = createTokenRefresher(deps);
 
   const wire = (current: number, connection: ServiceConnection): Live => ({
     connection,
@@ -260,7 +264,12 @@ export function createSession(deps: SessionDeps): Session {
         onServiceState(current, next, error);
       }),
       connection.on("tokenExpiring", () => {
-        refreshToken(current, connection);
+        if (controller)
+          refreshToken(connection, controller.signal, (error) =>
+            error === undefined
+              ? current === generation && live?.connection === connection
+              : current === generation,
+          );
       }),
       connection.on("trackAdded", deps.remote.trackAdded),
       connection.on("trackRemoved", deps.remote.trackRemoved),

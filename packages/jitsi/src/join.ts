@@ -29,6 +29,8 @@ export interface JitsiServer {
  */
 const CONFERENCE_OPTIONS = {
   p2p: { enabled: false },
+  disableThirdPartyRequests: true,
+  analytics: { disabled: true, rtcstatsEnabled: false, watchRTCEnabled: false },
   e2eping: { enabled: false },
   enableNoAudioDetection: false,
   enableNoisyMicDetection: false,
@@ -36,8 +38,11 @@ const CONFERENCE_OPTIONS = {
   pcStatsInterval: 5000,
 } as const;
 
-const aborted = (): DOMException =>
-  new DOMException("The connection attempt was aborted", "AbortError");
+/** The signal's own reason when it is the service's (a drop while joining). */
+const aborted = (signal: AbortSignal): Error =>
+  signal.reason instanceof JitsiServiceError
+    ? signal.reason
+    : new DOMException("The connection attempt was aborted", "AbortError");
 
 /** Settles on the first of `ok` or `fail`, or when `signal` aborts. */
 function settle(
@@ -51,7 +56,7 @@ function settle(
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     if (signal.aborted) {
-      reject(aborted());
+      reject(aborted(signal));
       return;
     }
     const done = (): void => {
@@ -69,7 +74,7 @@ function settle(
     };
     const onAbort = (): void => {
       done();
-      reject(aborted());
+      reject(aborted(signal));
     };
     target.on(events.ok, onOk);
     target.on(events.fail, onFail);

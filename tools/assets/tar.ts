@@ -1,6 +1,9 @@
 import { gunzipSync } from "node:zlib";
 
 const BLOCK = 512;
+
+/** More than any file a module ships: a larger archive is refused. */
+const MAX_TAR_BYTES = 256 * 1024 * 1024;
 const decoder = new TextDecoder();
 
 /** A NUL-terminated header field. */
@@ -20,14 +23,19 @@ const isFile = (type: string): boolean => type === "0" || type === "";
  * archive. The caller checks the archive's hash first; this only reads.
  */
 export function extractFromTarGz(tgz: Uint8Array, path: string): Uint8Array {
-  const tar = gunzipSync(tgz);
+  const tar = gunzipSync(tgz, { maxOutputLength: MAX_TAR_BYTES });
   let offset = 0;
   while (offset + BLOCK <= tar.length) {
     const header = tar.subarray(offset, offset + BLOCK);
     if (isEnd(header)) break;
     const name = field(header, 0, 100);
     const prefix = field(header, 345, 155);
-    const size = Number.parseInt(field(header, 124, 12).trim() || "0", 8);
+    const sizeField = field(header, 124, 12).trim() || "0";
+    const size = /^[0-7]+$/.test(sizeField)
+      ? Number.parseInt(sizeField, 8)
+      : NaN;
+    if (!Number.isSafeInteger(size))
+      throw new Error(`The archive has a corrupt header (${name})`);
     const start = offset + BLOCK;
     if (start + size > tar.length)
       throw new Error(`The archive is cut off inside ${name}`);

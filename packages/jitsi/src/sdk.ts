@@ -29,7 +29,8 @@ function memoryStorage(): Pick<Storage, "getItem" | "setItem" | "removeItem"> {
  */
 export const INIT_OPTIONS = {
   enableAnalyticsLogging: false,
-  analytics: { rtcstatsEnabled: false, watchRTCEnabled: false },
+  disableThirdPartyRequests: true,
+  analytics: { disabled: true, rtcstatsEnabled: false, watchRTCEnabled: false },
   pcStatsInterval: 5000,
 } as const;
 

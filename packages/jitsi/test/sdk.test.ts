@@ -43,7 +43,12 @@ describe("loading lib-jitsi-meet", () => {
     const [options] = init.mock.calls[0] as [Record<string, unknown>];
     expect(options).toMatchObject({
       enableAnalyticsLogging: false,
-      analytics: { rtcstatsEnabled: false, watchRTCEnabled: false },
+      disableThirdPartyRequests: true,
+      analytics: {
+        disabled: true,
+        rtcstatsEnabled: false,
+        watchRTCEnabled: false,
+      },
     });
     const storage = options.externalStorage as Storage;
     storage.setItem("jitsiMeetId", "x");

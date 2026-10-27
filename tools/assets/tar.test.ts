@@ -75,4 +75,16 @@ describe("taking one file out of a .tgz", () => {
 
     expect(() => extractFromTarGz(tgz, "package/a.js")).toThrow(/cut off/);
   });
+
+  it.each([["-0001000"], ["9zz"]])(
+    "refuses a header whose size is %j rather than looping or guessing",
+    (size) => {
+      const bad = entry("package/a.js", "a");
+      bad.write(`${size}\0`.padEnd(12, "\0"), 124, "ascii");
+
+      expect(() => extractFromTarGz(archive(bad), "package/a.js")).toThrow(
+        /corrupt/,
+      );
+    },
+  );
 });

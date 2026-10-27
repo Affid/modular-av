@@ -68,6 +68,8 @@ interface Live {
   readonly local: LocalTracks;
   readonly subscriptions: Subscriptions;
   readonly refresh: TokenRefresh;
+  /** Aborts a join under way when the connection ends or is left. */
+  readonly closing: AbortController;
   connection: JitsiConnection | null;
   conference: JitsiConference | null;
   wired: WiredConference | null;
@@ -75,9 +77,13 @@ interface Live {
   attempt: Attempt;
   leaving: boolean;
   ended: boolean;
+  /** Leaving runs once per connection. */
+  left: Promise<void> | null;
 }
 
-async function leave(live: Live): Promise<void> {
+const isClosed = (live: Live): boolean => live.leaving || live.ended;
+
+async function leaveOnce(live: Live): Promise<void> {
   const { conference, connection, options } = live;
   live.conference = null;
   live.connection = null;
@@ -87,10 +93,16 @@ async function leave(live: Live): Promise<void> {
   await connection?.disconnect().catch(options.onError);
 }
 
+function leave(live: Live): Promise<void> {
+  live.left ??= leaveOnce(live);
+  return live.left;
+}
+
 /** Reports the end once (never after leaving on purpose) and leaves. */
 function end(live: Live, error: ServiceError): void {
-  if (live.ended || live.leaving) return;
+  if (isClosed(live)) return;
   live.ended = true;
+  live.closing.abort(new JitsiServiceError(error));
   live.emitter.emit("state", error.final ? "failed" : "lost", error);
   void leave(live);
 }
@@ -100,7 +112,7 @@ function hooksFor(live: Live): ConferenceHooks {
     self: live.self,
     emitter: live.emitter,
     attempt: () => live.attempt,
-    leaving: () => live.leaving,
+    closed: () => isClosed(live),
     onUnvouched: () => {
       live.options.onError(new Error(UNVOUCHED));
     },
@@ -114,8 +126,11 @@ function hooksFor(live: Live): ConferenceHooks {
     onEnd: (error) => {
       end(live, error);
     },
-    onTrack: (sourceName, kind, remote) => {
-      live.subscriptions.track(sourceName, kind, remote);
+    onTrack: (source, kind, remote) => {
+      live.subscriptions.track(source, kind, remote);
+    },
+    onTrackGone: (source) => {
+      live.subscriptions.remove(source);
     },
   };
 }
@@ -123,48 +138,48 @@ function hooksFor(live: Live): ConferenceHooks {
 function wire(live: Live, conference: JitsiConference): void {
   const wired = wireConference(live.options.sdk, conference, hooksFor(live));
   live.wired = wired;
-  live.stats = createStatsCache(
-    live.options.sdk,
-    conference,
-    (participant) =>
-      [...wired.roster().endpoints].find(([, id]) => id === participant)?.[0],
+  live.stats = createStatsCache(live.options.sdk, conference, (participant) =>
+    wired.roster.endpointOf(participant),
   );
 }
 
 /** After it opened: a drop, a failure (e.g. the shard changed), a token. */
 function watchConnection(live: Live, connection: JitsiConnection): void {
   const events = live.options.sdk.events.connection;
-  const on = (event: string | undefined, listener: () => void): void => {
+  const on = (
+    event: string | undefined,
+    listener: (error: string) => void,
+  ): void => {
     if (event) connection.addEventListener(event, listener);
   };
   on(events.CONNECTION_DISCONNECTED, () => {
     end(live, NETWORK);
   });
-  connection.addEventListener(
-    events.CONNECTION_FAILED ?? "",
-    (error: string) => {
-      end(live, fromConnectionError(error, live.attempt));
-    },
-  );
+  on(events.CONNECTION_FAILED, (error) => {
+    end(live, fromConnectionError(error, live.attempt));
+  });
   on(events.CONNECTION_TOKEN_EXPIRED, () => {
     live.refresh.expired();
   });
 }
 
-async function connectLive(
+/** Gives up a join that ended meanwhile: with the end's reason, or as aborted. */
+function stopIfClosed(live: Live): void {
+  const reason: unknown = live.closing.signal.reason;
+  if (reason instanceof JitsiServiceError) throw reason;
+  if (isClosed(live))
+    throw new DOMException("The connection attempt was aborted", "AbortError");
+}
+
+async function joinLive(
   live: Live,
+  connection: JitsiConnection,
   room: RoomSpec,
-  token: string,
   signal: AbortSignal,
 ): Promise<void> {
-  const { sdk, server, now } = live.options;
-  live.attempt = { token, now: now() };
-  const connection = await openConnection(sdk, server, live.attempt, signal);
-  live.connection = connection;
-  watchConnection(live, connection);
   try {
     live.conference = await joinConference(
-      sdk,
+      live.options.sdk,
       connection,
       jitsiRoomName(room.name),
       live.attempt,
@@ -173,13 +188,30 @@ async function connectLive(
         wire(live, conference);
       },
     );
+    stopIfClosed(live);
   } catch (error: unknown) {
     live.leaving = true;
     await leave(live);
     throw error;
   }
+}
+
+async function connectLive(
+  live: Live,
+  room: RoomSpec,
+  token: string,
+  callerSignal: AbortSignal,
+): Promise<void> {
+  const { sdk, server, now } = live.options;
+  const signal = AbortSignal.any([callerSignal, live.closing.signal]);
+  live.attempt = { token, now: now() };
+  const connection = await openConnection(sdk, server, live.attempt, signal);
+  live.connection = connection;
+  watchConnection(live, connection);
+  await joinLive(live, connection, room, signal);
   live.wired?.start();
-  if (live.conference.isModerator()) live.options.onError(new Error(MODERATOR));
+  if (live.conference?.isModerator())
+    live.options.onError(new Error(MODERATOR));
   live.emitter.emit("state", "connected");
 }
 
@@ -200,7 +232,9 @@ function createLive(
       (error) => {
         end(live, error);
       },
+      options.onError,
     ),
+    closing: new AbortController(),
     connection: null,
     conference: null,
     wired: null,
@@ -208,6 +242,7 @@ function createLive(
     attempt: { token: "", now: 0 },
     leaving: false,
     ended: false,
+    left: null,
   };
   return live;
 }
@@ -230,6 +265,7 @@ export function createJitsiConnection(
     },
     async disconnect() {
       live.leaving = true;
+      live.closing.abort();
       await leave(live);
       live.emitter.emit("state", "disconnected");
     },

@@ -14,9 +14,10 @@ with:
 - **Prosody's `presence_identity` module on the main VirtualHost**, so
   the server tells everyone who each participant is, from their token
   (in docker-jitsi-meet, `XMPP_MODULES=presence_identity`). It isn't on
-  in any of Jitsi's default setups. Without it nobody appears in the call,
-  and the console says why: this module never takes a participant's word
-  for who they are.
+  in any of Jitsi's default setups. It is a security requirement, not
+  only a working one: it is what stops a modified client from claiming to
+  be another player. Without it nobody appears in the call (this module's
+  clients send no identity of their own), and the console says why.
 - **No moderator rights for players.** A Jitsi server with tokens makes
   everyone a moderator by default, and a moderator's client can mute or
   remove others. Let the token decide instead: Prosody's
@@ -76,7 +77,7 @@ The browser talks only to your Jitsi server: lib-jitsi-meet's analytics,
 statistics and log collection stay off. Like LiveKit's, Jitsi's client
 puts the token in the WebSocket's address, so it can show in that
 browser's console and in your server's logs while it is valid (ten
-minutes).
+minutes): don't log query strings on the server or its proxy.
 
 ## Licence
 

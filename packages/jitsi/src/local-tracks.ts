@@ -58,76 +58,126 @@ async function release(entry: Entry): Promise<void> {
   await entry.jitsi.dispose();
 }
 
+/** The core's track in a stream of its own, as lib-jitsi-meet takes it. */
+function wrap(
+  sdk: JitsiMeetJS,
+  track: MediaStreamTrack,
+  source: TrackSource,
+): Entry {
+  const kind = KINDS[source];
+  if (!kind || kind !== track.kind)
+    throw new Error(`Jitsi doesn't send ${source} tracks of ${track.kind}`);
+  const stream = new MediaStream([track]);
+  const [jitsi] = sdk.createLocalTracksFromMediaStreams([
+    kind === "video"
+      ? {
+          stream,
+          mediaType: kind,
+          videoType: "camera",
+          constraints: constraintsOf(track),
+        }
+      : { stream, mediaType: kind },
+  ]);
+  if (!jitsi) throw new Error("lib-jitsi-meet made no track");
+  return { source, stream, track, jitsi };
+}
+
+/** Runs `send`; if it fails, lets the new wrapper go before rethrowing. */
+async function sendOrRelease(
+  entry: Entry,
+  send: () => Promise<void>,
+): Promise<void> {
+  try {
+    await send();
+  } catch (error: unknown) {
+    await release(entry);
+    throw error;
+  }
+}
+
+/** The tracks sent, by the id given to the core. */
+function createEntries(): {
+  add(source: TrackSource, entry: Entry): string;
+  set(id: string, entry: Entry): void;
+  find(id: string): Entry;
+  take(id: string): Entry | undefined;
+  takeAll(): Entry[];
+} {
+  let entries = new Map<string, Entry>();
+  let next = 0;
+  return {
+    add(source, entry) {
+      next += 1;
+      const id = `${source}-${String(next)}`;
+      entries = new Map(entries).set(id, entry);
+      return id;
+    },
+    set(id, entry) {
+      entries = new Map(entries).set(id, entry);
+    },
+    find(id) {
+      const entry = entries.get(id);
+      if (!entry) throw new Error(`Unknown published track ${id}`);
+      return entry;
+    },
+    take(id) {
+      const entry = entries.get(id);
+      const rest = new Map(entries);
+      rest.delete(id);
+      entries = rest;
+      return entry;
+    },
+    takeAll() {
+      const all = [...entries.values()];
+      entries = new Map();
+      return all;
+    },
+  };
+}
+
 export function createLocalTracks(
   sdk: JitsiMeetJS,
   conference: () => JitsiConference | null,
 ): LocalTracks {
-  let entries = new Map<string, Entry>();
-  let next = 0;
-
-  const wrap = (track: MediaStreamTrack, source: TrackSource): Entry => {
-    const kind = KINDS[source];
-    if (!kind || kind !== track.kind)
-      throw new Error(`Jitsi doesn't send ${source} tracks of ${track.kind}`);
-    const stream = new MediaStream([track]);
-    const [jitsi] = sdk.createLocalTracksFromMediaStreams([
-      kind === "video"
-        ? {
-            stream,
-            mediaType: kind,
-            videoType: "camera",
-            constraints: constraintsOf(track),
-          }
-        : { stream, mediaType: kind },
-    ]);
-    if (!jitsi) throw new Error("lib-jitsi-meet made no track");
-    return { source, stream, track, jitsi };
-  };
-  const find = (published: PublishedTrack): Entry => {
-    const entry = entries.get(published.id);
-    if (!entry) throw new Error(`Unknown published track ${published.id}`);
-    return entry;
-  };
+  const entries = createEntries();
+  /** After leaving: a publish still under way lets its track go. */
+  let closed = false;
   const joined = (): JitsiConference => {
     const current = conference();
     if (!current) throw new Error("Not in a Jitsi conference");
     return current;
   };
-
   return {
     async publish(track, source) {
-      const entry = wrap(track, source);
-      await joined().addTrack(entry.jitsi);
-      next += 1;
-      const id = `${source}-${String(next)}`;
-      entries = new Map(entries).set(id, entry);
-      return { id, source };
+      const entry = wrap(sdk, track, source);
+      await sendOrRelease(entry, async () => {
+        await joined().addTrack(entry.jitsi);
+        if (closed) throw new Error("The Jitsi call was left meanwhile");
+      });
+      return { id: entries.add(source, entry), source };
     },
     async replace(published, track) {
-      const old = find(published);
-      const entry = wrap(track, old.source);
-      await joined().replaceTrack(old.jitsi, entry.jitsi);
-      entries = new Map(entries).set(published.id, entry);
+      const old = entries.find(published.id);
+      const entry = wrap(sdk, track, old.source);
+      await sendOrRelease(entry, () =>
+        joined().replaceTrack(old.jitsi, entry.jitsi),
+      );
+      entries.set(published.id, entry);
       await release(old);
     },
     async unpublish(published) {
-      const entry = entries.get(published.id);
-      if (!entry) return;
-      const rest = new Map(entries);
-      rest.delete(published.id);
-      entries = rest;
-      await release(entry);
+      const entry = entries.take(published.id);
+      if (entry) await release(entry);
     },
     /** Audio only, in the direction the core already set `enabled`. */
     async setMuted(published, muted) {
-      const entry = find(published);
+      const entry = entries.find(published.id);
       if (entry.source !== "microphone") return;
       await (muted ? entry.jitsi.mute() : entry.jitsi.unmute());
     },
     async releaseAll() {
-      const all = [...entries.values()];
-      entries = new Map();
-      await Promise.all(all.map(release));
+      closed = true;
+      await Promise.all(entries.takeAll().map(release));
     },
   };
 }
