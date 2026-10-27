@@ -35,6 +35,7 @@ export interface Member {
 export interface Hub {
   readonly now: () => number;
   readonly moderation: boolean;
+  readonly updatesTokens: boolean;
   readonly features: readonly string[];
   readonly needsToken: boolean;
   join(member: Member): void;
@@ -57,4 +58,5 @@ export interface Hub {
   kick(participant: ParticipantId): void;
   /** Errors thrown by event handlers, kept for the test to inspect. */
   recordError(error: unknown): void;
+  recordTokenUpdate(participant: ParticipantId): void;
 }

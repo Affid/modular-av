@@ -105,6 +105,10 @@ export interface ServiceEvents {
   trackRemoved: (track: RemoteTrack) => void;
   speaking: (participant: ParticipantId, speaking: boolean) => void;
   quality: (participant: ParticipantId, quality: ConnectionQuality) => void;
+  /**
+   * The connection needs a fresh token to stay up (Jitsi, to resume its
+   * XMPP session): the core fetches one and calls `updateToken`.
+   */
   tokenExpiring: () => void;
 }
 
@@ -134,6 +138,11 @@ export interface ServiceConnection {
     published: PublishedTrack,
     track: MediaStreamTrack,
   ): Promise<void>;
+  /**
+   * Takes a fresh token after `tokenExpiring`. Optional: a service that
+   * refreshes its own (LiveKit) or needs none (P2P) has no such method.
+   */
+  updateToken?(token: string): Promise<void>;
   /** Stops sending; never stops the track, which the core owns. */
   unpublish(published: PublishedTrack): Promise<void>;
   /** Signalling and bandwidth only: the core mutes its own final track. */

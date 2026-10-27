@@ -211,6 +211,23 @@ export function createMockConnection(
         }
       : {}),
 
+    ...(hub.updatesTokens
+      ? {
+          /** Like a server: takes only a valid token for this player and room. */
+          async updateToken(token: string) {
+            await roundTrip();
+            const self = requireMember();
+            const claims = verifyMockToken(
+              token,
+              { participant, room: self.room },
+              hub.now(),
+            );
+            if ("code" in claims) throw new MockServiceFailure(claims);
+            hub.recordTokenUpdate(participant);
+          },
+        }
+      : {}),
+
     on: (event, handler) => events.on(event, handler),
 
     getStats: () => Promise.resolve(STATS),

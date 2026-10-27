@@ -533,6 +533,72 @@ describe("reconnecting", () => {
   });
 });
 
+describe("tokens that expire while connected", () => {
+  it("hands a fresh token to a connection whose token is expiring", async () => {
+    // Arrange
+    const hub = createMockServiceHub();
+    const h = harness(hub, "p1");
+    h.session.start();
+    await settle();
+
+    // Act
+    hub.warnTokenExpiring("p1");
+    await settle();
+
+    // Assert
+    expect(h.tokens).toBe(2);
+    expect(hub.tokenUpdates("p1")).toBe(1);
+    expect(h.session.state.status).toBe("connected");
+  });
+
+  it("asks once for warnings that come while a token is on its way", async () => {
+    const hub = createMockServiceHub();
+    const h = harness(hub, "p1");
+    h.session.start();
+    await settle();
+
+    hub.warnTokenExpiring("p1");
+    hub.warnTokenExpiring("p1");
+    await settle();
+
+    expect(h.tokens).toBe(2);
+    expect(hub.tokenUpdates("p1")).toBe(1);
+  });
+
+  it("asks for nothing when the service takes no fresh token", async () => {
+    // Arrange
+    const hub = createMockServiceHub({ updatesTokens: false });
+    const h = harness(hub, "p1");
+    h.session.start();
+    await settle();
+
+    // Act
+    hub.warnTokenExpiring("p1");
+    await settle();
+
+    // Assert
+    expect(h.tokens).toBe(1);
+  });
+
+  it("drops a fresh token that arrives after the connection was replaced", async () => {
+    // Arrange
+    const hub = createMockServiceHub();
+    const h = harness(hub, "p1");
+    h.session.start();
+    await settle();
+
+    // Act: the replaced connection's token comes after its replacement.
+    hub.warnTokenExpiring("p1");
+    h.session.restart();
+    await settle();
+
+    // Assert
+    expect(h.session.state.status).toBe("connected");
+    expect(hub.tokenUpdates("p1")).toBe(0);
+    expect(h.errors).toEqual([]);
+  });
+});
+
 describe("a join that hangs", () => {
   it.each(["create", "connect"] as const)(
     "gives up after the join timeout when %s never settles, and retries",

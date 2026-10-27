@@ -223,12 +223,44 @@ export function createSession(deps: SessionDeps): Session {
     else if (next === "failed") failed(error ?? NETWORK);
   };
 
+  /**
+   * A connection whose token runs out gets a fresh one from the relay,
+   * one request at a time; a token for a connection since replaced or
+   * ended is dropped. Without a GM it never comes: the service then loses
+   * its connection and the core reconnects as usual.
+   */
+  let refreshing: ServiceConnection | null = null;
+  const refreshToken = (
+    current: number,
+    connection: ServiceConnection,
+  ): void => {
+    const update = connection.updateToken?.bind(connection);
+    if (!update || refreshing === connection || !controller) return;
+    refreshing = connection;
+    deps
+      .requestToken(controller.signal)
+      .then((token) =>
+        current === generation && live?.connection === connection
+          ? update(token)
+          : undefined,
+      )
+      .catch((error: unknown) => {
+        if (current === generation && !isAbort(error)) deps.onError(error);
+      })
+      .finally(() => {
+        if (refreshing === connection) refreshing = null;
+      });
+  };
+
   const wire = (current: number, connection: ServiceConnection): Live => ({
     connection,
     publications: createPublications(connection),
     unsubscribe: [
       connection.on("state", (next, error) => {
         onServiceState(current, next, error);
+      }),
+      connection.on("tokenExpiring", () => {
+        refreshToken(current, connection);
       }),
       connection.on("trackAdded", deps.remote.trackAdded),
       connection.on("trackRemoved", deps.remote.trackRemoved),

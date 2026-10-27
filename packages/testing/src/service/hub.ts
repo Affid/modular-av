@@ -22,6 +22,8 @@ export interface MockServiceOptions {
   readonly needsToken?: boolean;
   /** Reported in the capabilities once connected, e.g. "livekit-cloud". */
   readonly features?: readonly string[];
+  /** False: connections have no `updateToken`, like LiveKit's and P2P's. */
+  readonly updatesTokens?: boolean;
 }
 
 /**
@@ -47,6 +49,8 @@ export interface MockServiceHub {
   kick(participant: ParticipantId): void;
   closeRoom(room: string): void;
   warnTokenExpiring(participant: ParticipantId): void;
+  /** Valid fresh tokens a participant's connection took (`updateToken`). */
+  tokenUpdates(participant: ParticipantId): number;
   setSpeaking(participant: ParticipantId, speaking: boolean): void;
   /** How `viewer`'s connection rates its link to `target`. */
   setQuality(
@@ -70,6 +74,7 @@ export function createMockServiceHub(
   let rooms = new Map<string, readonly Member[]>();
   let muted = new Map<string, boolean>();
   let subscriptions = new Map<string, SubscriptionOptions>();
+  let tokenUpdates = new Map<ParticipantId, number>();
   let errors: readonly unknown[] = [];
 
   /** Drops what the server knew about a participant's media and views. */
@@ -98,6 +103,7 @@ export function createMockServiceHub(
   const hub: Hub = {
     now,
     moderation: options.moderation ?? false,
+    updatesTokens: options.updatesTokens ?? true,
     features: options.features ?? [],
     needsToken: options.needsToken ?? true,
     participants: (room) => membersOf(room).map((m) => m.participant),
@@ -150,6 +156,12 @@ export function createMockServiceHub(
     recordError(error) {
       errors = [...errors, error];
     },
+    recordTokenUpdate(participant) {
+      tokenUpdates = new Map(tokenUpdates).set(
+        participant,
+        (tokenUpdates.get(participant) ?? 0) + 1,
+      );
+    },
   };
 
   return {
@@ -186,6 +198,7 @@ export function createMockServiceHub(
     warnTokenExpiring: (participant) => {
       find(participant).events.emit("tokenExpiring");
     },
+    tokenUpdates: (participant) => tokenUpdates.get(participant) ?? 0,
     get errors() {
       return errors;
     },
