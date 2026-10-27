@@ -67,3 +67,19 @@ test("the settings window fits the screen, scrolls and moves", async ({
   const after = await window.boundingBox();
   expect(Math.round((after?.x ?? 0) - before.x)).toBe(-120);
 });
+
+test("the push to talk key changes in Foundry's controls", async ({
+  browser,
+}) => {
+  const gm = await openGm(browser);
+  open = [gm];
+  await expect(gm.page.locator("#camera-views .mav-dock")).toBeVisible();
+  await gm.page.locator(".mav-dock-settings").click();
+
+  await gm.page
+    .locator("#modular-av-settings")
+    .getByRole("button", { name: "Change in Foundry's controls" })
+    .click();
+
+  await expect(gm.page.locator("#controls-config")).toBeVisible();
+});

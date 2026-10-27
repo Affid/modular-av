@@ -79,9 +79,20 @@ export function openPopover(options: PopoverOptions): Popover {
     element.dataset.side = place.side;
   };
 
+  // Content that grows after it opens (details measured a moment later)
+  // would spill past its anchor: it is placed again whenever its size
+  // changes.
+  const view = doc.defaultView;
+  const resized = view?.ResizeObserver
+    ? new view.ResizeObserver(() => {
+        if (open) reposition();
+      })
+    : null;
+
   const close = (): void => {
     if (!open) return;
     open = false;
+    resized?.disconnect();
     element.removeEventListener(CLOSE_EVENT, close);
     doc.removeEventListener("pointerdown", onPointerDown, true);
     doc.removeEventListener("keydown", onKeyDown, true);
@@ -121,5 +132,6 @@ export function openPopover(options: PopoverOptions): Popover {
   doc.addEventListener("pointerdown", onPointerDown, true);
   doc.addEventListener("keydown", onKeyDown, true);
   reposition();
+  resized?.observe(element);
   return { element, reposition, close };
 }

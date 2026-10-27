@@ -27,7 +27,19 @@ declare global {
     off(hook: string, id: number): void;
     callAll(hook: string, ...args: unknown[]): boolean;
   };
-  var foundry: { readonly utils: { getRoute(path: string): string } };
+  var foundry: {
+    readonly utils: { getRoute(path: string): string };
+    readonly applications: {
+      readonly sidebar: {
+        readonly apps: {
+          /** Foundry's Controls window, where push to talk's key is set. */
+          readonly ControlsConfig: new () => {
+            render(options?: object): unknown;
+          };
+        };
+      };
+    };
+  };
 }
 
 const themeRegistry = createThemeRegistry();
@@ -112,6 +124,12 @@ Hooks.once("modularAV.register", (api: ModularAV) => {
     // The core's settings window, or Foundry's if another module's is chosen.
     openSettings: () => {
       game.webrtc?.config.render({ force: true });
+    },
+    // As Foundry's settings sidebar opens it.
+    openControls: () => {
+      void new foundry.applications.sidebar.apps.ControlsConfig().render({
+        force: true,
+      });
     },
     onError: reportError,
     onSceneChange,

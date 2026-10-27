@@ -67,6 +67,32 @@ test.describe("with LiveKit", () => {
       /\d+ ms/,
       { timeout: 30_000 },
     );
+    // Its details open by it, and stay by it once their numbers arrive.
+    const line = p1.page.locator(".mav-dock-connection-status");
+    await line.click();
+    const details = p1.page.locator(".mav-popover", {
+      has: p1.page.locator(".mav-dock-connection"),
+    });
+    await expect(details.locator(".mav-dock-connection-big")).toContainText(
+      /\d+ ms/,
+    );
+    await expect
+      .poll(async () => {
+        const [anchor, box] = [
+          await line.boundingBox(),
+          await details.boundingBox(),
+        ];
+        const height = p1.page.viewportSize()?.height ?? 0;
+        if (!anchor || !box) return "not shown";
+        const by =
+          box.y + box.height <= anchor.y + 1 ||
+          box.y >= anchor.y + anchor.height - 1;
+        return by && box.y >= 0 && box.y + box.height <= height
+          ? "by it"
+          : "off";
+      })
+      .toBe("by it");
+    await p1.page.keyboard.press("Escape");
     expect([...gm.notices, ...p1.notices]).toEqual([]);
   });
 
