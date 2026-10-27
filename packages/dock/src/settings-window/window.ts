@@ -36,6 +36,29 @@ function foundrySection(
   ]);
 }
 
+/** GMs: the core's modules window, to plan which modules the world runs. */
+function modulesSection(
+  ctx: DockContext,
+  doc: Document,
+  open: () => void,
+): HTMLElement {
+  const button = el("button", {
+    doc,
+    className: "mav-control-button",
+    text: ctx.t("settings.modules"),
+    attrs: { type: "button" },
+  });
+  button.addEventListener("click", open);
+  return section(doc, ctx.t("settings.modulesTitle"), [
+    el("p", {
+      doc,
+      className: "mav-settings-hint",
+      text: ctx.t("settings.modulesHint"),
+    }),
+    button,
+  ]);
+}
+
 /**
  * The "Voice & Video Settings" window: devices, voice, video, effects and
  * what other modules contributed. Returns what undoes its subscriptions.
@@ -74,6 +97,9 @@ export function renderSettings(
       effectsSection,
       ...contributed.map((c) => c.element),
       foundrySection(ctx, doc, host),
+      host.openModules
+        ? modulesSection(ctx, doc, () => host.openModules?.())
+        : null,
       alerts,
     ],
   });

@@ -24,6 +24,8 @@ export interface SettingsWindowDeps {
   readonly title: string;
   /** Foundry's own A/V settings window. */
   readonly foundrySettings: Openable;
+  /** The core's modules window, for GMs; absent for players. */
+  readonly openModules?: () => void;
   readonly onError: (error: unknown) => void;
 }
 
@@ -77,6 +79,7 @@ export function createSettingsWindow(
         openFoundrySettings: () => {
           deps.foundrySettings.render({ force: true });
         },
+        ...(deps.openModules ? { openModules: deps.openModules } : {}),
       });
       try {
         cleanup = deps.surface.render(host);

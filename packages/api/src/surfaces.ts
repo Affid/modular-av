@@ -58,6 +58,11 @@ export interface SettingsHost {
    * which the surface replaces as the window players open.
    */
   openFoundrySettings(): void;
+  /**
+   * GMs only: opens the core's modules window, where a GM plans which
+   * Modular A/V modules the world runs. Absent for players.
+   */
+  openModules?(): void;
 }
 
 export interface SettingsSurfaceDefinition extends SurfaceBase {

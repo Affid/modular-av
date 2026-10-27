@@ -124,6 +124,7 @@ describe("the settings window", () => {
   function open(
     options: TestDockOptions = {},
     before: (api: ReturnType<typeof testDock>["api"]) => void = () => undefined,
+    extra: Partial<SettingsHost> = {},
   ) {
     const test = testDock({
       state: avState({
@@ -145,6 +146,7 @@ describe("the settings window", () => {
       openFoundrySettings: () => {
         foundry += 1;
       },
+      ...extra,
     };
     before(test.api);
     const undo = renderSettings(test.ctx, host);
@@ -317,5 +319,24 @@ describe("the settings window", () => {
       ?.click();
 
     expect(foundry()).toBe(1);
+  });
+
+  it("offers a GM the modules window, and a player nothing of it", () => {
+    let modules = 0;
+    const gm = open({}, undefined, {
+      openModules: () => {
+        modules += 1;
+      },
+    });
+    const plan = (content: HTMLElement) =>
+      Array.from(content.querySelectorAll("button")).find(
+        (b) => b.textContent === "Plan your modules",
+      );
+
+    plan(gm.content)?.click();
+    const player = open();
+
+    expect(modules).toBe(1);
+    expect(plan(player.content)).toBeUndefined();
   });
 });

@@ -57,6 +57,21 @@ test("a GM plans the world's modules on the board", async ({ browser }) => {
   await expect(window.locator(".mav-board-status")).toContainText("Your plan:");
   await expect(window.locator(".mav-board-steps")).toContainText("turn off");
 
+  // A piece dragged from the tray onto its socket goes on the board.
+  await window
+    .getByRole("button", { name: "Remove Noise cancellation" })
+    .click();
+  await window
+    .locator(".mav-board-tray .mav-board-piece", {
+      hasText: "Noise cancellation",
+    })
+    .dragTo(window.locator('[data-socket="core.effects"]'));
+  await expect(
+    window.locator(".mav-board-arm.effects .mav-board-piece", {
+      hasText: "Noise cancellation",
+    }),
+  ).toBeVisible();
+
   const results = await new AxeBuilder({ page: gm.page })
     .include("#modular-av-modules")
     .withTags(AA)
@@ -85,4 +100,22 @@ test("a GM plans the world's modules on the board", async ({ browser }) => {
   await gm.run(async (_api, game) => {
     await game.settings.set("modular-av", "modulesPlan", null);
   }, null);
+});
+
+test("a GM reaches it from the Voice & Video Settings window too", async ({
+  browser,
+}) => {
+  const gm = await openGm(browser);
+  open = [gm];
+  await expect(gm.page.locator("#camera-views .mav-dock")).toBeVisible();
+
+  await gm.page.locator(".mav-dock-settings").click();
+  await gm.page
+    .locator("#modular-av-settings")
+    .getByRole("button", { name: "Plan your modules" })
+    .click();
+
+  await expect(
+    gm.page.locator("#modular-av-modules .mav-board-plan"),
+  ).toBeVisible();
 });

@@ -126,6 +126,36 @@ describe("the core's settings window", () => {
     expect(window.options.window?.resizable).toBe(true);
   });
 
+  it("offers a GM the modules window, and a player not", async () => {
+    const surface = settingsSurface();
+    const table = createTable();
+    const gm = table.join("gm", { register: withSurface(surface) });
+    const p1 = table.join("p1", { register: withSurface(surface) });
+    await table.settle();
+    let opened = 0;
+    gm.client.game.settings.menus.set("modular-av.modules", {
+      name: "",
+      label: "",
+      restricted: true,
+      type: class {
+        render() {
+          opened += 1;
+          return Promise.resolve();
+        }
+      },
+    });
+    await (master(gm).config as Openable).render({ force: true });
+    await (master(p1).config as Openable).render({ force: true });
+
+    surface.probe.hosts[0]?.openModules?.();
+
+    expect(opened).toBe(1);
+    expect(surface.probe.hosts).toHaveLength(2);
+    expect(Object.keys(surface.probe.hosts[1] ?? {})).not.toContain(
+      "openModules",
+    );
+  });
+
   it("still reaches Foundry's own A/V settings", async () => {
     const surface = settingsSurface();
     const table = createTable();

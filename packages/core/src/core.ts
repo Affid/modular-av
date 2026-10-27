@@ -46,6 +46,7 @@ import {
   registerSurfaceSettings,
 } from "./surfaces/choice.ts";
 import { createPlacement } from "./surfaces/placement.ts";
+import { MODULES_MENU } from "./modules/menu.ts";
 import { createSettingsWindow, menuTypeFor } from "./foundry/settings-host.ts";
 
 export const REGISTER_HOOK = "modularAV.register";
@@ -233,6 +234,12 @@ function registerServiceSetting(
   });
 }
 
+/** The core's modules window, as its settings menu opens it. */
+function openModulesMenu(game: FoundryGame): void {
+  const menu = game.settings.menus.get(`${MODULE_ID}.${MODULES_MENU}`);
+  if (menu) void new menu.type().render();
+}
+
 /**
  * A settings surface replaces Foundry's A/V settings window wherever
  * Foundry opens it: its settings menu and its camera dock's gear
@@ -252,6 +259,13 @@ function installSettingsWindow(
       surface,
       title: game.i18n.localize(`${MODULE_ID}.settingsWindow.title`),
       foundrySettings: webrtc.config,
+      ...(game.user.isGM
+        ? {
+            openModules: () => {
+              openModulesMenu(game);
+            },
+          }
+        : {}),
       onError: deps.onError,
     },
   );
