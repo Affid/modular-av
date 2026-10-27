@@ -1,0 +1,34 @@
+{
+  "name": "@modular-av/jitsi",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Modular A/V service module for self-hosted Jitsi Meet with token authentication.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p test/service"
+  },
+  "dependencies": {
+    "@modular-av/api": "workspace:*"
+  },
+  "devDependencies": {
+    "@modular-av/testing": "workspace:*"
+  },
+  "modularAV": {
+    "entryBudgetBytes": 10000,
+    "downloads": {
+      "vendor/lib-jitsi-meet.min.js": {
+        "url": "https://github.com/jitsi/lib-jitsi-meet/releases/download/v2205.0.0+7d14f385/lib-jitsi-meet.tgz",
+        "sha256": "aa9d567425c350f51c40c97f16c3bf950da9c9d11795ad84de990cc4ad90587a",
+        "extract": "package/dist/umd/lib-jitsi-meet.min.js"
+      },
+      "vendor/lib-jitsi-meet.LICENSE": {
+        "url": "https://github.com/jitsi/lib-jitsi-meet/releases/download/v2205.0.0+7d14f385/lib-jitsi-meet.tgz",
+        "sha256": "aa9d567425c350f51c40c97f16c3bf950da9c9d11795ad84de990cc4ad90587a",
+        "extract": "package/LICENSE"
+      }
+    }
+  }
+}

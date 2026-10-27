@@ -16,13 +16,14 @@ Paste a module's manifest URL into Foundry's "Install Module" dialog.
 | `modular-av`                | The core: needed by all the others.                                    | `https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av/module.json`                |
 | `modular-av-livekit`        | Calls over your LiveKit server or LiveKit Cloud.                       | `https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-livekit/module.json`        |
 | `modular-av-p2p`            | Calls directly between players' browsers, no server: for small tables. | `https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-p2p/module.json`            |
+| `modular-av-jitsi`          | Calls over your own Jitsi Meet server (with token authentication).     | `https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-jitsi/module.json`          |
 | `modular-av-dock`           | The camera dock, voice panel and settings window.                      | `https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-dock/module.json`           |
 | `modular-av-mic-denoise`    | Noise cancellation in your browser: RNNoise, Speex or GTCRN.           | `https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-mic-denoise/module.json`    |
 | `modular-av-cam-background` | Blurs or replaces your camera's background, in your browser.           | `https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-cam-background/module.json` |
 
 Each module's own page: [core](packages/core/README.md),
 [LiveKit](packages/livekit/README.md), [P2P](packages/p2p/README.md),
-[dock](packages/dock/README.md),
+[Jitsi](packages/jitsi/README.md), [dock](packages/dock/README.md),
 [noise cancellation](packages/mic-denoise/README.md),
 [camera background](packages/cam-background/README.md).
 `modular-av-livekit-krisp` (Krisp on LiveKit Cloud) is held back from
@@ -39,8 +40,9 @@ the dock can't open in a window of its own.
 
 ## Privacy and security
 
-- Your LiveKit API secret stays in the GM's browser. Players get
-  short-lived tokens, signed for them alone, from a GM's browser.
+- Your LiveKit API secret, or your Jitsi app secret, stays in the GM's
+  browser. Players get short-lived tokens, signed for them alone, from a
+  GM's browser.
 - Mute applies to what is sent, in every state of the connection.
 - A camera background that isn't running keeps your camera off: it is
   never sent without it.
@@ -61,6 +63,7 @@ The design and the reasons behind it are in
 | `packages/livekit`        | `@modular-av/livekit`        | `modular-av-livekit`        |
 | `packages/livekit-krisp`  | `@modular-av/livekit-krisp`  | `modular-av-livekit-krisp`  |
 | `packages/p2p`            | `@modular-av/p2p`            | `modular-av-p2p`            |
+| `packages/jitsi`          | `@modular-av/jitsi`          | `modular-av-jitsi`          |
 | `packages/mic-denoise`    | `@modular-av/mic-denoise`    | `modular-av-mic-denoise`    |
 | `packages/cam-background` | `@modular-av/cam-background` | `modular-av-cam-background` |
 | `packages/testing`        | `@modular-av/testing`        | (library)                   |
@@ -74,7 +77,7 @@ pnpm install
 pnpm verify            # everything CI would run, locally
 pnpm test          # unit tests (Vitest)
 pnpm test:browser  # browser tests (Playwright, fake devices; noise models in the "effects" project)
-pnpm test:services # service contracts: LiveKit and coturn (P2P) in Docker
+pnpm test:services # service contracts: LiveKit, coturn (P2P) and Jitsi in Docker
 pnpm test:foundry  # end to end in the local Foundry world
 pnpm bench:camera  # camera background measurements (not part of verify)
 pnpm build         # each module into packages/<dir>/dist

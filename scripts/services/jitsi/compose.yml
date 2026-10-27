@@ -1,0 +1,56 @@
+# Jitsi Meet for the service and Foundry tests: test-only secrets, loopback only.
+name: modular-av-jitsi-test
+x-common: &common
+  TZ: UTC
+  PUBLIC_URL: http://127.0.0.1:8000
+  ENABLE_AUTH: "1"
+  AUTH_TYPE: jwt
+  JWT_APP_ID: modular-av-test
+  JWT_APP_SECRET: modular-av-test-secret-not-for-production
+  JWT_ALLOW_EMPTY: "0"
+  ENABLE_GUESTS: "0"
+  ENABLE_XMPP_WEBSOCKET: "1"
+  XMPP_MODULES: presence_identity
+  # Players aren't moderators: the token's moderator claim decides.
+  XMPP_MUC_MODULES: token_affiliation
+  ENABLE_AUTO_OWNER: "0"
+  JICOFO_AUTH_PASSWORD: test-only-jicofo
+  JVB_AUTH_PASSWORD: test-only-jvb
+services:
+  web:
+    image: ghcr.io/jitsi/web:stable-11248-2@sha256:212b46259b7e27625b30d93fa3571deb6b4cae92068d2d1fd820e2fe0bc0b556
+    ports: ["127.0.0.1:8000:8000"]
+    environment:
+      <<: *common
+      DISABLE_HTTPS: "1"
+      ENABLE_HTTP_REDIRECT: "0"
+      ENABLE_LETSENCRYPT: "0"
+    networks: [meet.jitsi]
+  prosody:
+    image: ghcr.io/jitsi/prosody:stable-11248-2@sha256:47a2ac616f9f9daef0513be7561fce75beee7e1ec02c5980fe01cb13cdd4a0a8
+    environment: *common
+    networks:
+      meet.jitsi:
+        aliases: [xmpp.meet.jitsi]
+  jicofo:
+    image: ghcr.io/jitsi/jicofo:stable-11248-2@sha256:cedbfcc5efd987b10a027c941929581ee2a18a846ad11830d83efe8c646b47bd
+    environment:
+      <<: *common
+      JICOFO_MAX_MEMORY: 512m
+      # Prosody checks the tokens; Jicofo would make everyone it sees
+      # authenticated a moderator.
+      JICOFO_ENABLE_AUTH: "0"
+    depends_on: [prosody]
+    networks: [meet.jitsi]
+  jvb:
+    image: ghcr.io/jitsi/jvb:stable-11248-2@sha256:fbee39d421aad572f7050bce15a89c07f524ae01e590c62939b2d6235fdb15ef
+    ports: ["127.0.0.1:10000:10000/udp"]
+    environment:
+      <<: *common
+      JVB_ADVERTISE_IPS: 127.0.0.1
+      JVB_DISABLE_STUN: "true"
+      VIDEOBRIDGE_MAX_MEMORY: 1024m
+    depends_on: [prosody]
+    networks: [meet.jitsi]
+networks:
+  meet.jitsi:

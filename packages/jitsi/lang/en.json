@@ -1,0 +1,27 @@
+{
+  "modular-av-jitsi": {
+    "label": "Jitsi",
+    "settings": {
+      "serverUrl": {
+        "name": "Jitsi server address",
+        "hint": "Your Jitsi Meet server, such as https://meet.example.com (its XMPP WebSocket is found at /xmpp-websocket). Plain http:// works only on this computer or a private network. The server needs token authentication and Prosody's presence_identity module; see the module's README. Every player can read this setting."
+      },
+      "xmppDomain": {
+        "name": "XMPP domain",
+        "hint": "Leave empty when it is the server's host name. Docker installs of Jitsi use meet.jitsi."
+      },
+      "mucDomain": {
+        "name": "Conference domain",
+        "hint": "Leave empty for conference.<XMPP domain>. Docker installs of Jitsi use muc.meet.jitsi."
+      },
+      "appId": {
+        "name": "Jitsi app id",
+        "hint": "The server's JWT_APP_ID. Stored only in this browser. Players get short-lived tokens from a GM's browser."
+      },
+      "appSecret": {
+        "name": "Jitsi app secret",
+        "hint": "The server's JWT_APP_SECRET. Stored only in this browser and never sent to players. Enter it on each browser a GM uses to run the game."
+      }
+    }
+  }
+}
