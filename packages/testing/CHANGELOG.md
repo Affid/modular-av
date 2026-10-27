@@ -1,5 +1,12 @@
 # @modular-av/testing
 
+## 0.4.0
+
+### Patch Changes
+
+- Updated dependencies [be36f7d]
+  - @modular-av/api@0.4.0
+
 ## 0.3.1
 
 ### Patch Changes
