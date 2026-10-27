@@ -1,5 +1,12 @@
 # @modular-av/p2p
 
+## 0.2.0
+
+### Patch Changes
+
+- No changes of its own: released alongside `modular-av-jitsi`, since
+  every module shares one version until 1.0.
+
 ## 0.1.0
 
 ### Minor Changes

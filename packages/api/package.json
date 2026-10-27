@@ -1,6 +1,6 @@
 {
   "name": "@modular-av/api",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Types shared by every Modular A/V package.",
   "license": "MIT",
