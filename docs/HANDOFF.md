@@ -240,7 +240,7 @@ per module are possible later if others maintain them.
   is meaningful; an API break is a new major of the core. The same holds
   for the dock and its themes.
 - **Release in lockstep until 1.0** (changesets "fixed" group: every module
-  gets the same version), then independently.
+  gets the same version), then independently. What 1.0 needs: §19.
 - The core's `module.json` **recommends** `modular-av-dock` and
   `modular-av-livekit`, and **conflicts** with `avclient-livekit` and other
   A/V client modules. At `setup`, the core also checks that
@@ -1948,3 +1948,68 @@ it is picked up explicitly.
   - The scattered layout and themes are tested in Chromium only, and the
     whole Foundry suite wasn't run for milestone 9 (the dock and
     scattered specs were).
+
+## 19. The road to 1.0
+
+1.0 is a promise: the core's API (`@modular-av/api`, versioned as the
+core) and the dock's theme API (`api.themes`, the documented classes,
+attributes and tokens in `docs/dock-theming.md`) change only with a new
+major version, and modules stop releasing in lockstep (§3 "Releases and
+versions"). Written down after milestone 9 (2026-10-27); 1.0 is released
+when every item below is checked or explicitly dropped by the owner.
+
+**Used by real tables**
+
+- [ ] Two or three real sessions per service (LiveKit, P2P, Jitsi) with
+      real players, cameras and microphones, over ordinary home
+      connections: joining, speaking, muting, reconnecting after a drop,
+      a GM's block, the dock in every placement. Findings fixed or listed.
+- [ ] CPU and memory on a modest laptop with effects on (noise
+      cancellation, camera background) during a real session.
+- [ ] The P2P visibility pauses measured with a real table and tuned if
+      needed (§18, from milestone 5).
+
+**Browsers**
+
+- [ ] A smoke pass in Firefox and Safari (join, hear, see, mute, the
+      dock, the settings window) and in Foundry's desktop app; what
+      degrades is said in the READMEs (camera effects need Chrome or
+      Edge; a window of its own needs Document Picture-in-Picture).
+
+**The API, reviewed before it is frozen**
+
+- [ ] The public surface of `@modular-av/api` read through once with "can
+      we keep this for a major version?": names, optional members, error
+      codes, what the core guarantees. In particular
+      `MountedSurface.unmount` (the core never calls it) and anything
+      marked as a sketch.
+- [ ] The open-mic decision settled: keep "open mic" when the voice gate
+      can't run, or add the fail-closed option (§18).
+- [ ] The dock's theme API reviewed the same way, with
+      `dock.layouts.register` kept internal or published.
+- [ ] Each plugin's `relationships.requires` carries
+      `compatibility.minimum` for the core (and the dock) features it
+      needs, ready for independent versions.
+
+**Finding and installing the modules**
+
+- [ ] Every relationship carries its stable `manifest` URL, so installing
+      one module offers to install what it needs (checked on a fresh
+      Foundry data directory).
+- [ ] A GM can find the whole family from inside Foundry: a modules menu
+      in the core, a notice naming the services when none is enabled, and
+      READMEs that list every module (the core's mentions Jitsi).
+- [ ] Decided whether to list the modules on foundryvtt.com's package
+      registry.
+
+**Process**
+
+- [ ] CI runs the unit and browser tiers on every push (once the GitHub
+      Actions quota allows), and releases don't depend on one machine.
+- [ ] The release steps for independent versions written down and tried
+      once (changesets without the `fixed` group; how a change to
+      `@modular-av/api` bumps its dependents).
+
+**Not blocking 1.0**: the Krisp module (released on its own once LiveKit
+answers), the long functions and the flake in §18, JaaS, screen share,
+`modular-av-tokens` and the external call mode.
