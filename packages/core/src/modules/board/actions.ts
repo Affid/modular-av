@@ -67,8 +67,9 @@ async function apply(board: Board): Promise<void> {
   try {
     await board.host.apply({ on: a.on, off: a.off, ui: ui ?? null });
   } catch (error: unknown) {
-    // Nothing changed for good: the plan is still to be applied.
-    await board.host.savePlan(kept);
+    // Nothing changed for good: the plan is still to be applied. A failed
+    // restore is told on its own; the Apply error is the one passed on.
+    await board.host.savePlan(kept).catch(failed(board));
     throw error;
   }
 }

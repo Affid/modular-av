@@ -27,12 +27,13 @@ function loadStyles(doc: Document, href: string): void {
 }
 
 /** Mounts the board in `content`, unless the window closed meanwhile. */
-function fill(
+export function fill(
   host: BoardHost,
   content: HTMLElement,
   window: { live(): boolean; mounted(board: MountedBoard): void },
+  mount: typeof mountBoard = mountBoard,
 ): void {
-  mountBoard(host, content).then(
+  mount(host, content).then(
     (board) => {
       if (window.live()) window.mounted(board);
       else board.dispose();

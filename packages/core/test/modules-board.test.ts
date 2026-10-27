@@ -319,6 +319,11 @@ describe("the board's steps", () => {
     expect(calls.applied).toHaveLength(1);
     expect(calls.errors).toHaveLength(1);
     expect(calls.saved.at(-1)?.plan).toContain("modular-av-mic-denoise");
+
+    // Once it has failed, Apply can be tried again.
+    click("apply-ok");
+    await settle();
+    expect(calls.applied).toHaveLength(2);
   });
 
   it("keeps its announcements in one place across redraws", async () => {
@@ -330,5 +335,20 @@ describe("the board's steps", () => {
 
     expect(content.querySelector(".mav-board-toast")).toBe(toast);
     expect(toast?.textContent).toContain("Undone.");
+  });
+
+  it("changes nothing once closed, whatever answers late", async () => {
+    const { content, click, text, settle } = await open();
+    click("add-modular-av-p2p");
+    const before = text(".mav-board-steps");
+
+    click("chat");
+    mounted?.dispose();
+    await settle();
+
+    expect(text(".mav-board-steps")).toBe(before);
+    expect(
+      content.querySelector(".mav-board-toast")?.textContent,
+    ).not.toContain("Whispered");
   });
 });
