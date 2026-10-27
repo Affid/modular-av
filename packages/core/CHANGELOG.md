@@ -1,5 +1,13 @@
 # @modular-av/core
 
+## 0.3.1
+
+### Patch Changes
+
+- The Voice & Video Settings window fits the screen, scrolls when its
+  sections are taller, and can always be moved.
+- @modular-av/api@0.3.1
+
 ## 0.3.0
 
 ### Minor Changes

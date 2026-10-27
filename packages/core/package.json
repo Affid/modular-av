@@ -1,6 +1,6 @@
 {
   "name": "@modular-av/core",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "description": "Modular A/V core: the headless foundation every other module plugs into.",
   "license": "MIT",

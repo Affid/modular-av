@@ -1,5 +1,21 @@
 # @modular-av/dock
 
+## 0.3.1
+
+### Patch Changes
+
+- Connection details, readable and in the voice panel as in Discord: the
+  panel opens with your connection (signal bars, round trip, service and
+  path, or Reconnecting). A click shows the round trip over the last
+  minute, your numbers and every player's link; a player's menu shows
+  their link with a Details button. They used to sit in a menu, cut off.
+- A scattered camera follows the pointer and stays where it's dropped: it
+  no longer flickers back to its old spot mid-drag, nor saves that spot.
+  Docked on the right, the dock stays above Foundry's collapsed sidebar
+  instead of hiding under it.
+- @modular-av/api@0.3.1
+  - @modular-av/kit@0.3.1
+
 ## 0.3.0
 
 ### Minor Changes

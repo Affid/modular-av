@@ -1,5 +1,11 @@
 # @modular-av/livekit-krisp
 
+## 0.3.1
+
+### Patch Changes
+
+- @modular-av/api@0.3.1
+
 ## 0.3.0
 
 ### Patch Changes
