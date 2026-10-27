@@ -11,17 +11,31 @@ import {
   renderNotices,
   withDependencies,
 } from "../notices/notices.ts";
+import { workspaceCatalog } from "../release/catalog.ts";
 import { distManifest } from "../release/manifest.ts";
 import { ROOT } from "../workspace.ts";
 
 const readJson = (path: string): Record<string, unknown> =>
   JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown>;
 
+/** A `modularAV` option from a package.json. */
+const field = (pkg: Record<string, unknown>, key: string): unknown => {
+  const options = pkg.modularAV;
+  return typeof options === "object" && options !== null
+    ? (options as Record<string, unknown>)[key]
+    : undefined;
+};
+
 /**
  * Emits what Foundry needs next to the bundle: `module.json` with the
- * package version, the language files, the licence and the notices.
+ * package version, the language files, the licence and the notices; and
+ * for the core (`modularAV.catalog`), the catalog of this release.
  */
-function foundryFiles(packageDir: string, version: string): Plugin {
+function foundryFiles(
+  packageDir: string,
+  version: string,
+  withCatalog: boolean,
+): Plugin {
   return {
     name: "modular-av:foundry-files",
     async generateBundle(_options, bundle) {
@@ -40,6 +54,11 @@ function foundryFiles(packageDir: string, version: string): Plugin {
         );
       }
       emit("LICENSE", readFileSync(join(ROOT, "LICENSE"), "utf8"));
+      if (withCatalog)
+        emit(
+          "catalog.json",
+          `${JSON.stringify(await workspaceCatalog(), null, 2)}\n`,
+        );
       const moduleIds = Object.values(bundle).flatMap((output) =>
         output.type === "chunk" ? Object.keys(output.modules) : [],
       );
@@ -124,6 +143,9 @@ export function foundryModuleConfig(packageDir: string): UserConfig {
         cssFileName: id,
       },
     },
-    plugins: [foundryFiles(packageDir, version), packageAssets(packageDir)],
+    plugins: [
+      foundryFiles(packageDir, version, field(pkg, "catalog") === true),
+      packageAssets(packageDir),
+    ],
   };
 }

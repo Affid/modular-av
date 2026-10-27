@@ -7,6 +7,7 @@ import { copyFile, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { listModulePackages, type ModulePackage, ROOT } from "../workspace.ts";
+import { publishedCatalog } from "./catalog.ts";
 import { releaseHold } from "./hold.ts";
 import { MANIFESTS_BRANCH, tagFor } from "./manifest.ts";
 import { packModule } from "./pack.ts";
@@ -136,7 +137,13 @@ async function updateManifestsBranch(
     }
     await mkdir(join(tree, id), { recursive: true });
     await copyFile(manifest, join(tree, id, "module.json"));
-    run("git", ["add", join(id, "module.json")], tree);
+    // The family's catalog, for the core's modules menu, follows it.
+    const catalog = await publishedCatalog(tree);
+    await writeFile(
+      join(tree, "catalog.json"),
+      `${JSON.stringify(catalog, null, 2)}\n`,
+    );
+    run("git", ["add", join(id, "module.json"), "catalog.json"], tree);
     if (succeeds("git", ["diff", "--cached", "--quiet"], tree)) {
       console.log(
         `${id}/module.json on ${MANIFESTS_BRANCH} is already current`,
@@ -145,7 +152,11 @@ async function updateManifestsBranch(
     }
     run(
       "git",
-      ["commit", "-m", `chore: publish the ${id} ${version} manifest`],
+      [
+        "commit",
+        "-m",
+        `chore: publish the ${id} ${version} manifest and the catalog`,
+      ],
       tree,
     );
     run("git", ["push", "origin", MANIFESTS_BRANCH], tree);
@@ -168,7 +179,7 @@ async function publish(mod: ModulePackage, confirmed: boolean): Promise<void> {
     `create GitHub release ${tag} with ${mod.id}.zip and module.json (or update its files)`,
     prerelease
       ? `leave the ${MANIFESTS_BRANCH} branch alone: ${mod.version} is a prerelease`
-      : `update ${mod.id}/module.json on the ${MANIFESTS_BRANCH} branch and push it`,
+      : `update ${mod.id}/module.json and catalog.json on the ${MANIFESTS_BRANCH} branch and push them`,
   ];
   if (!confirmed) {
     console.log(`Dry run. With --yes this would:\n  - ${steps.join("\n  - ")}`);

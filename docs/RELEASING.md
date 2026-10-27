@@ -11,6 +11,14 @@ The `manifests` branch holds only those files. (GitHub's
 `releases/latest/download` can't serve this in a monorepo: "latest" is
 whichever module released last.)
 
+Beside them, `catalog.json` lists the family for the core's modules
+menu: every module published on the branch (its title, description,
+kind, version, family requirements and manifest URL) and the held ones
+as coming soon. Each publish regenerates it (`tools/release/catalog.ts`)
+and checks it with the core's own reader. The core's build ships the
+same catalog of its release (`modularAV.catalog` in its package.json),
+for when GitHub can't be reached.
+
 Until 1.0 every package shares one version (Changesets "fixed" group).
 
 A module whose package.json has `modularAV.releaseHold` (the reason, e.g.
@@ -31,7 +39,7 @@ by `publish` until the hold is removed.
      steps;
    - `pnpm release:publish <module-id> --yes` tags and pushes the tag,
      creates the GitHub release with the zip and `module.json`, and
-     updates the manifest on the `manifests` branch.
+     updates the manifest and `catalog.json` on the `manifests` branch.
 
 Releases are manual while GitHub Actions is unavailable; a release workflow
 can run the same script later.
