@@ -106,7 +106,15 @@ export function createTileList(
     }
   });
 
-  const fit = (): void => {
+  /** The tile width last fitted, to damp the dock's own resizes. */
+  let fitted: { columns: number; width: number } | null = null;
+
+  /**
+   * Fits the grid. A resize the list's own content caused (frames reach
+   * past tiles, so the list's height can follow its tiles) refits only
+   * for more than a pixel, or tiles would flip between two widths.
+   */
+  const fit = (fromResize = false): void => {
     // Scattered tiles have sizes of their own.
     if (scattered) return;
     const view = element.ownerDocument.defaultView;
@@ -122,11 +130,15 @@ export function createTileList(
       scroll: horizontal ? "sideways" : "down",
       reach,
     });
+    const width = Math.max(1, Math.floor(result.tileWidth));
+    const nudge =
+      fromResize &&
+      fitted?.columns === result.columns &&
+      Math.abs(fitted.width - width) <= 1;
+    if (nudge) return;
+    fitted = { columns: result.columns, width };
     element.style.setProperty("--mav-dock-columns", String(result.columns));
-    element.style.setProperty(
-      "--mav-dock-tile-width",
-      `${String(Math.max(1, Math.floor(result.tileWidth)))}px`,
-    );
+    element.style.setProperty("--mav-dock-tile-width", `${String(width)}px`);
   };
 
   const markFocus = (): void => {
@@ -187,7 +199,11 @@ export function createTileList(
     if (view === observedIn) return;
     resize?.disconnect();
     observedIn = view;
-    resize = view ? new view.ResizeObserver(fit) : null;
+    resize = view
+      ? new view.ResizeObserver(() => {
+          fit(true);
+        })
+      : null;
     resize?.observe(element);
   };
   observe();

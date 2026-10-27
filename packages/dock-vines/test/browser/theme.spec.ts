@@ -112,3 +112,29 @@ test("follows the dock into the Picture-in-Picture window", async ({
     )
     .toEqual({ themed: true, background: VINE_TILE });
 });
+
+test("the docked grid settles with frames that reach past the tiles", async ({
+  page,
+}) => {
+  await page.goto(
+    "/?module=dock,dock-vines&service=mock&sample=1&players=p1,p2&theme=vines",
+  );
+  await expect(page.locator(".mav-dock-tile")).toHaveCount(3, {
+    timeout: 20_000,
+  });
+  await page.waitForTimeout(1000);
+
+  // Frames make the list's height follow its tiles: no flipping between
+  // two widths, frame after frame.
+  const seen = await page.evaluate(async () => {
+    const list = document.querySelector<HTMLElement>(".mav-dock-tiles");
+    const widths = new Set<string>();
+    for (let i = 0; i < 30; i += 1) {
+      widths.add(list?.style.getPropertyValue("--mav-dock-tile-width") ?? "");
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    }
+    return [...widths];
+  });
+
+  expect(seen).toHaveLength(1);
+});
