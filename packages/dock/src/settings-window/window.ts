@@ -6,6 +6,7 @@ import {
 } from "../contributions/controls.ts";
 import type { DockContext } from "../context.ts";
 import { renderEffects } from "../panel/effects.ts";
+import { appearanceSection } from "./appearance.ts";
 import { contributedSections } from "./contributed.ts";
 import { section } from "./fields.ts";
 import { devicesSection, videoSection, voiceSection } from "./sections.ts";
@@ -55,6 +56,7 @@ export function renderSettings(
     ...devicesSection(ctx, doc, alerts),
     ...voiceSection(ctx, doc, alerts),
     ...videoSection(ctx, doc, alerts),
+    ...appearanceSection(ctx, doc, alerts),
   ];
   const contributed = contributedSections(ctx, doc, alerts);
   const effectsSection = section(doc, ctx.t("effects.title"), [

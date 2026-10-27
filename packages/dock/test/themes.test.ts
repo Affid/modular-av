@@ -2,6 +2,7 @@
 import { avState, participantState } from "@modular-av/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { camerasSurface } from "../src/cameras/dock.ts";
+import { renderSettings } from "../src/settings-window/window.ts";
 import { applyTheme, themeClass } from "../src/themes/apply.ts";
 import { createThemes } from "../src/themes/choice.ts";
 import { createThemeRegistry } from "../src/themes/registry.ts";
@@ -194,29 +195,47 @@ describe("applying a theme", () => {
   });
 });
 
+/** Themes as the dock sees them, with the vines theme registered. */
+function fakeThemes(start: { own?: string; world?: string } = {}) {
+  let own = start.own ?? "";
+  let world = start.world ?? "default";
+  let listeners: (() => void)[] = [];
+  const known = (id: string) => (id === "vines" ? vines : null);
+  const themes = {
+    list: () => [vines],
+    own: () => own,
+    worldDefault: () => world,
+    shown: () => (own === "default" ? null : (known(own) ?? known(world))),
+    choose: (id: string) => {
+      own = id;
+      themes.changed();
+      return Promise.resolve();
+    },
+    chooseWorldDefault: (id: string) => {
+      world = id;
+      themes.changed();
+      return Promise.resolve();
+    },
+    onChange: (listener: () => void) => {
+      listeners = [...listeners, listener];
+      return () => {
+        listeners = listeners.filter((l) => l !== listener);
+      };
+    },
+    changed: () => {
+      for (const listener of listeners) listener();
+    },
+  };
+  return themes;
+}
+
+const me = participantState({ id: "me", isLocal: true });
+
 describe("a theme's frames in the dock", () => {
-  it("sizes the frame layer to the theme's reach, and follows a change", () => {
-    let shown: ThemeDefinition | null = vines;
-    let listeners: (() => void)[] = [];
-    const themes = {
-      list: () => [vines],
-      own: () => "vines",
-      worldDefault: () => "default",
-      shown: () => shown,
-      choose: () => Promise.resolve(),
-      chooseWorldDefault: () => Promise.resolve(),
-      onChange: (listener: () => void) => {
-        listeners = [...listeners, listener];
-        return () => undefined;
-      },
-      changed: () => {
-        for (const listener of listeners) listener();
-      },
-    };
+  it("sizes the frame layer to the theme's reach, and follows a change", async () => {
+    const themes = fakeThemes({ own: "vines" });
     const { ctx } = testDock({
-      state: avState({
-        participants: [participantState({ id: "me", isLocal: true })],
-      }),
+      state: avState({ participants: [me] }),
       themes,
     });
     const host = fakeHost("left");
@@ -228,8 +247,86 @@ describe("a theme's frames in the dock", () => {
     expect(root?.style.getPropertyValue("--mav-dock-frame-across")).toBe(
       "1.16",
     );
-    shown = null;
-    themes.changed();
+    await themes.choose("default");
     expect(root?.style.getPropertyValue("--mav-dock-frame-top")).toBe("0");
+  });
+
+  it("offers the theme's suggested layout, without moving the dock", () => {
+    const themes = fakeThemes({ own: "vines" });
+    const { ctx } = testDock({
+      state: avState({ participants: [me] }),
+      themes,
+    });
+    const host = fakeHost("left");
+    camerasSurface(ctx).mount(host);
+
+    host.element
+      .querySelector<HTMLButtonElement>(".mav-dock-placement")
+      ?.click();
+
+    expect(
+      document.querySelector(
+        '[data-placement="scattered"][role="menuitemradio"]',
+      )?.textContent,
+    ).toBe("Scattered over the screen (the theme's suggestion)");
+    expect(
+      host.element.querySelector<HTMLElement>(".mav-dock")?.dataset.placement,
+    ).toBe("left");
+  });
+});
+
+describe("choosing a theme in the settings window", () => {
+  function open(isGM: boolean) {
+    const themes = fakeThemes();
+    const test = testDock({
+      state: avState({ participants: [me] }),
+      themes,
+      isGM,
+    });
+    const content = document.createElement("section");
+    document.body.append(content);
+    renderSettings(test.ctx, {
+      content,
+      close: () => Promise.resolve(),
+      openFoundrySettings: () => undefined,
+    });
+    const selects = () =>
+      [...content.querySelectorAll<HTMLSelectElement>("select")].filter((s) =>
+        [...s.options].some((o) => o.value === "vines"),
+      );
+    return { themes, content, selects };
+  }
+
+  it("lets a player choose a theme or follow the world's", async () => {
+    const { themes, selects } = open(false);
+    const [own] = selects();
+
+    expect(selects()).toHaveLength(1);
+    expect([...(own?.options ?? [])].map((o) => o.textContent)).toEqual([
+      "The world's theme (Modular A/V's own look)",
+      "Modular A/V's own look",
+      "Vines",
+    ]);
+    if (!own) throw new Error("no theme choice");
+    own.value = "vines";
+    own.dispatchEvent(new Event("change"));
+    await Promise.resolve();
+
+    expect(themes.own()).toBe("vines");
+  });
+
+  it("lets a GM set the world's theme too", async () => {
+    const { themes, selects } = open(true);
+    const world = selects()[1];
+
+    if (!world) throw new Error("no world theme choice");
+    world.value = "vines";
+    world.dispatchEvent(new Event("change"));
+    await Promise.resolve();
+
+    expect(themes.worldDefault()).toBe("vines");
+    expect(selects()[0]?.options[0]?.textContent).toBe(
+      "The world's theme (Vines)",
+    );
   });
 });

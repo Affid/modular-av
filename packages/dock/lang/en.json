@@ -22,6 +22,7 @@
       "saveSceneLayout": "Save as this scene's layout",
       "clearSceneLayout": "Remove this scene's layout",
       "backToScene": "Back to the scene's layout",
+      "suggested": "{layout} (the theme's suggestion)",
       "window": "In a window of its own",
       "windowUnsupported": "A window of its own needs Chrome or Edge.",
       "windowTitle": "Voice and video",
@@ -169,7 +170,12 @@
       "dock": "Dock",
       "foundry": "Foundry's A/V settings",
       "foundryHint": "The world's voice and video mode and relay server stay in Foundry's own settings.",
-      "missingDevice": "Not connected now"
+      "missingDevice": "Not connected now",
+      "appearance": "Appearance",
+      "theme": "Theme",
+      "themeDefault": "Modular A/V's own look",
+      "themeWorld": "The world's theme ({theme})",
+      "themeWorldDefault": "The world's theme, for players who haven't chosen"
     }
   }
 }

@@ -74,12 +74,20 @@ export function openPlacementMenu(
     attrs: { role: "alert" },
   });
   const supported = ctx.api.windows.pip.supported();
+  const suggested = ctx.themes.shown()?.suggestedLayout;
+  /** The theme's suggested layout is offered, never applied by itself. */
+  const isSuggested = (where: Where): boolean =>
+    where === suggested ||
+    (suggested === "docked" &&
+      ["left", "right", "top", "bottom"].includes(where));
   let popover: Popover | null = null;
   const items = CHOICES.map((where) => {
     const item = el("button", {
       doc,
       className: "mav-dock-menu-item",
-      text: ctx.t(`dock.${where}`),
+      text: isSuggested(where)
+        ? ctx.t("dock.suggested", { layout: ctx.t(`dock.${where}`) })
+        : ctx.t(`dock.${where}`),
       attrs: {
         type: "button",
         role: "menuitemradio",

@@ -62,7 +62,11 @@ export function selectField(
     const { options: list, value } = options.read();
     const same =
       list.length === select.options.length &&
-      list.every((o, i) => select.options[i]?.value === o.value);
+      list.every(
+        (o, i) =>
+          select.options[i]?.value === o.value &&
+          select.options[i].textContent === o.label,
+      );
     if (!same)
       select.replaceChildren(
         ...list.map((o) =>
