@@ -37,7 +37,10 @@ export function createPlacement(
       free = placement === "free";
       if (!free) settings()?.set("client", "dockPosition", placement);
       await ui().webrtc?.render();
-      ui().hotbar?._onResize?.();
+      // Foundry's hotbar reads its element: before it renders there is
+      // nothing to make room in (it measures the cameras when it does).
+      const hotbar = ui().hotbar;
+      if (hotbar?.element) hotbar._onResize?.();
     },
   };
 }

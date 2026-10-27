@@ -155,7 +155,11 @@ export interface FoundryUi {
   readonly webrtc: { render(options?: object): unknown } | null;
   readonly players?: { render(options?: object): unknown } | null;
   /** Foundry makes room for a vertical camera dock in it. */
-  readonly hotbar?: { _onResize?(): unknown } | null;
+  readonly hotbar?: {
+    /** Null until the hotbar first renders. */
+    readonly element?: Element | null;
+    _onResize?(): unknown;
+  } | null;
 }
 
 /** The core replaces both classes at `init`. */

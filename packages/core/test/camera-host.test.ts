@@ -108,6 +108,37 @@ describe("the core's camera dock host", () => {
     expect([views?.isVertical, views?.isHorizontal]).toEqual([true, false]);
   });
 
+  it("places the cameras before Foundry's hotbar has rendered", async () => {
+    const surface = camerasSurface();
+    const table = createTable();
+    const p1 = table.join("p1", { register: withSurface(surface) });
+    await table.settle();
+    // Foundry's Hotbar#_onResize reads its element, which isn't there yet.
+    let resized = 0;
+    Object.assign(p1.client.ui, {
+      hotbar: {
+        element: null,
+        _onResize() {
+          throw new TypeError("Cannot read properties of null");
+        },
+      },
+    });
+
+    await surface.recorded.hosts[0]?.setPlacement("free");
+
+    expect(surface.recorded.hosts[0]?.placement).toBe("free");
+    Object.assign(p1.client.ui, {
+      hotbar: {
+        element: document.createElement("div"),
+        _onResize() {
+          resized += 1;
+        },
+      },
+    });
+    await surface.recorded.hosts[0]?.setPlacement("left");
+    expect(resized).toBe(1);
+  });
+
   it("refuses a placement that doesn't exist", async () => {
     const surface = camerasSurface();
     const table = createTable();
