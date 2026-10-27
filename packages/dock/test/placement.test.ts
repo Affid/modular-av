@@ -339,4 +339,29 @@ describe("the settings window", () => {
     expect(modules).toBe(1);
     expect(plan(player.content)).toBeUndefined();
   });
+
+  it("with no effect modules, says they exist; a GM gets the modules window", () => {
+    let modules = 0;
+    const gm = open({}, undefined, {
+      openModules: () => {
+        modules += 1;
+      },
+    });
+    const player = open();
+    const effects = (content: HTMLElement) =>
+      Array.from(content.querySelectorAll("section")).find(
+        (s) => s.querySelector("h3, h2")?.textContent === "Effects",
+      );
+
+    Array.from(effects(gm.content)?.querySelectorAll("button") ?? [])
+      .find((b) => b.textContent === "Plan your modules")
+      ?.click();
+
+    expect(effects(player.content)?.hidden).toBe(false);
+    expect(effects(player.content)?.textContent).toContain(
+      "Noise cancellation and a camera background are modules of their own",
+    );
+    expect(effects(player.content)?.querySelector("button")).toBeNull();
+    expect(modules).toBe(1);
+  });
 });

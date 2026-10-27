@@ -4,7 +4,11 @@ import { IMPORTED_SETTING, importLegacy } from "./legacy.ts";
 import "./foundry/globals.ts";
 import { logError } from "./log.ts";
 import { createBrowserMediaEnv } from "./media/browser-env.ts";
-import { checkIsDue, registerModulesMenu } from "./modules/menu.ts";
+import {
+  checkIsDue,
+  noServiceIsDue,
+  registerModulesMenu,
+} from "./modules/menu.ts";
 import { assetUrl } from "./socket.ts";
 import { createBrowserWindows } from "./windows/browser-windows.ts";
 
@@ -42,6 +46,11 @@ Hooks.once("init", () => {
     default: false,
   });
   Hooks.once("ready", () => {
+    // A GM hears once that no service module is enabled (until dismissed).
+    if (noServiceIsDue(game, installed.api.services.list().length))
+      import("./modules/notice.ts")
+        .then(({ showNoServiceNotice }) => showNoServiceNotice())
+        .catch(logError);
     // A GM's browser asks GitHub for news at most once a day (if allowed).
     if (checkIsDue(game, Date.now()))
       import("./modules/news.ts")

@@ -65,6 +65,15 @@
         "fresh": "new modules: {names}",
         "message": "Modular A/V: {news}. See “Plan your modules” in its module settings."
       },
+      "noService": {
+        "title": "Modular A/V: no voice and video service",
+        "lead": "Nobody can join a call: no voice and video service module is enabled in this world. Each carries calls its own way:",
+        "item": "{name}: {what}",
+        "then": "The modules window shows which are installed and gives the links for the rest.",
+        "plan": "Plan your modules",
+        "dismiss": "Don't remind me again",
+        "close": "Close"
+      },
       "title": "Modular A/V: plan your voice and video setup",
       "lead": "Put the pieces you want on the board. Nothing changes until you follow the steps below it.",
       "failed": "The modules window couldn't open. The browser console says why.",

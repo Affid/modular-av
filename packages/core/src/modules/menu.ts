@@ -11,6 +11,9 @@ export const CHECK_SETTING = "checkGitHub";
 export const LAST_CHECK_SETTING = "lastGitHubCheck";
 export const LAST_NEWS_SETTING = "lastModuleNews";
 
+/** World: a GM said not to be told again that no service is enabled. */
+export const NO_SERVICE_SETTING = "noServiceDismissed";
+
 /** At most once a day, when a GM loads the world. */
 const CHECK_EVERY_MS = 24 * 60 * 60 * 1000;
 
@@ -46,6 +49,12 @@ export function registerModulesMenu(deps: ModulesMenuDeps): void {
     config: true,
     type: Boolean,
     default: true,
+  });
+  game.settings.register(MODULE_ID, NO_SERVICE_SETTING, {
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: false,
   });
   game.settings.register(MODULE_ID, LAST_CHECK_SETTING, {
     scope: "client",
@@ -86,3 +95,9 @@ export function checkIsDue(game: FoundryGame, now: number): boolean {
   const last = Number(game.settings.get(MODULE_ID, LAST_CHECK_SETTING)) || 0;
   return now - last >= CHECK_EVERY_MS;
 }
+
+/** Whether to tell this GM that no service module is enabled. */
+export const noServiceIsDue = (game: FoundryGame, services: number): boolean =>
+  services === 0 &&
+  game.user.isGM &&
+  game.settings.get(MODULE_ID, NO_SERVICE_SETTING) !== true;

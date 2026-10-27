@@ -265,6 +265,7 @@ describe("the modules menu", () => {
     expect(registered).toEqual([
       "modular-av.modulesPlan",
       "modular-av.checkGitHub",
+      "modular-av.noServiceDismissed",
       "modular-av.lastGitHubCheck",
       "modular-av.lastModuleNews",
     ]);

@@ -158,7 +158,9 @@
         "WorkerError": "it stopped working",
         "ContextLostError": "the graphics card stopped it",
         "WebGLUnavailableError": "this browser can't draw it"
-      }
+      },
+      "modules": "Noise cancellation and a camera background are modules of their own, not enabled in this world. Ask your GM about them.",
+      "modulesGm": "Noise cancellation and a camera background are modules of their own, not enabled in this world."
     },
     "settings": {
       "devices": "Devices",

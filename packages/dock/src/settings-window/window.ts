@@ -59,6 +59,28 @@ function modulesSection(
   ]);
 }
 
+/** No effect module here: say they exist; a GM can go plan them. */
+function effectModulesHint(
+  ctx: DockContext,
+  doc: Document,
+  host: SettingsHost,
+): HTMLElement[] {
+  const hint = el("p", {
+    doc,
+    className: "mav-settings-hint",
+    text: ctx.t(host.openModules ? "effects.modulesGm" : "effects.modules"),
+  });
+  if (!host.openModules) return [hint];
+  const plan = el("button", {
+    doc,
+    className: "mav-control-button",
+    text: ctx.t("settings.modules"),
+    attrs: { type: "button" },
+  });
+  plan.addEventListener("click", () => host.openModules?.());
+  return [hint, plan];
+}
+
 /**
  * The "Voice & Video Settings" window: devices, voice, video, effects and
  * what other modules contributed. Returns what undoes its subscriptions.
@@ -82,11 +104,14 @@ export function renderSettings(
     ...appearanceSection(ctx, doc, alerts),
   ];
   const contributed = contributedSections(ctx, doc, alerts);
-  const effectsSection = section(doc, ctx.t("effects.title"), [
-    effects.element,
-    ...extra.map((e) => e.element),
-  ]);
-  effectsSection.hidden = effects.element.hidden && extra.length === 0;
+  const noEffects = effects.element.hidden && extra.length === 0;
+  const effectsSection = section(
+    doc,
+    ctx.t("effects.title"),
+    noEffects
+      ? effectModulesHint(ctx, doc, host)
+      : [effects.element, ...extra.map((e) => e.element)],
+  );
   const form = el("div", {
     doc,
     className: "mav-settings",
