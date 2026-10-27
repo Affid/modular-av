@@ -190,3 +190,38 @@ test("saves where a tile was moved in the player's setting", async ({
   });
   expect(moved.y).toBeGreaterThan(0);
 });
+
+test("a dragged tile follows the pointer while Foundry's controls change, and stays where it is dropped", async ({
+  page,
+}) => {
+  await scattered(page);
+  const target = tile(page, "p2");
+  const start = await boxOf(target);
+
+  // Pressed at (60, 40) inside the tile: the tile moves as the pointer does.
+  const grab = { x: start.x + 60, y: start.y + 40 };
+  await page.mouse.move(grab.x, grab.y);
+  await page.mouse.down();
+  await page.mouse.move(grab.x - 200, grab.y - 100, { steps: 4 });
+  // Mid-drag, Foundry's controls change (a hover transition ends, the
+  // sidebar re-renders): the dock must not snap the tile back.
+  await page.evaluate(() => {
+    const sidebar = document.getElementById("sidebar-content");
+    sidebar?.dispatchEvent(new Event("transitionend", { bubbles: true }));
+    sidebar?.setAttribute("class", "expanded");
+  });
+  await page.evaluate(
+    () =>
+      new Promise((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(resolve)),
+      ),
+  );
+  const during = await boxOf(target);
+  await page.mouse.move(grab.x - 240, grab.y - 120, { steps: 2 });
+  await page.mouse.up();
+
+  expect(Math.round(during.x - start.x)).toBe(-200);
+  const dropped = await boxOf(target);
+  expect(Math.round(dropped.x - start.x)).toBe(-240);
+  expect(Math.round(dropped.y - start.y)).toBe(-120);
+});

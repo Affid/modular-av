@@ -190,6 +190,15 @@ function watchControls(
       place();
     });
   };
+  // Only Foundry's own controls moving matters, not every hover effect.
+  const moved = (event: Event): void => {
+    const from = event.target;
+    if (
+      from instanceof view.Element &&
+      controlElements(doc).some((c) => c.contains(from))
+    )
+      later();
+  };
   const resized = new view.ResizeObserver(later);
   const changed = new view.MutationObserver(later);
   resized.observe(panel);
@@ -202,12 +211,12 @@ function watchControls(
     });
   }
   view.addEventListener("resize", later);
-  doc.addEventListener("transitionend", later, true);
+  doc.addEventListener("transitionend", moved, true);
   return () => {
     resized.disconnect();
     changed.disconnect();
     view.removeEventListener("resize", later);
-    doc.removeEventListener("transitionend", later, true);
+    doc.removeEventListener("transitionend", moved, true);
     if (frame !== null) view.cancelAnimationFrame(frame);
   };
 }
@@ -336,6 +345,9 @@ export function createScattered(
     spots: new Map(),
   };
   const place = (): void => {
+    // Mid-drag, placing would snap the tile back to its saved spot (and a
+    // drop right after would save that spot): the drop places everything.
+    if (parts.root.querySelector("[data-dragging], [data-resizing]")) return;
     const arrangement = arrangementFor(shown.saved, layoutOf(shown.scene));
     shown.spots = placeAll(parts, arrangement, options.reach());
   };
