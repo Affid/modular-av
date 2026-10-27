@@ -33,8 +33,9 @@
       {
         "id": "modular-av",
         "type": "module",
+        "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av/module.json",
         "compatibility": {
-          "minimum": "0.3.1"
+          "minimum": "0.4.0"
         }
       }
     ]
@@ -44,7 +45,7 @@
       "kind": "ui"
     }
   },
-  "version": "0.3.1",
+  "version": "0.4.0",
   "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-dock/module.json",
-  "download": "https://github.com/Affid/modular-av/releases/download/modular-av-dock-v0.3.1/modular-av-dock.zip"
+  "download": "https://github.com/Affid/modular-av/releases/download/modular-av-dock-v0.4.0/modular-av-dock.zip"
 }
