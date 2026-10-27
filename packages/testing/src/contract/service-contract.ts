@@ -414,6 +414,9 @@ export function serviceContract(options: ServiceContractOptions): void {
       await bob.join();
       await alice.run((h) => h.publish(["microphone", "camera"]));
       await alice.run((h) => h.unpublish("camera"));
+      await expect
+        .poll(() => bob.events())
+        .toContainEqual({ type: "participantJoined", participant: "alice" });
 
       await alice.run((h) => h.leave());
 
