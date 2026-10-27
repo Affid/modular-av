@@ -1,12 +1,10 @@
 import { listModulePackages } from "../workspace.ts";
-import { checkEntrySize, checkStyleSize, checkWorkerSizes } from "./check.ts";
+import { checkEntrySize, checkStyleSizes, checkWorkerSizes } from "./check.ts";
 
 const modules = await listModulePackages();
 const results = [
   ...(await Promise.all(modules.map(checkEntrySize))),
-  ...(await Promise.all(modules.map(checkStyleSize))).filter(
-    (r) => r !== undefined,
-  ),
+  ...(await Promise.all(modules.map(checkStyleSizes))).flat(),
   ...(await Promise.all(modules.map(checkWorkerSizes))).flat(),
 ];
 

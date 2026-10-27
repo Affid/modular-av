@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 232 144.5">
+  <!--
+    Vine leaves for modular-av-dock-vines, drawn for this module (MIT).
+    The view box is the frame layer: the 16:9 tile (x 16 to 216, y 16 to
+    128.5) plus 8% of its width on every side. The vine grows from the top
+    left corner along the top and left edges; CSS mirrors it for the other
+    corners. Inside the tile it stays within 12% of each edge.
+  -->
+  <defs>
+    <path id="leaf" d="M0 0 C 4 -7, 13 -8, 18 0 C 13 8, 4 7, 0 0 Z" />
+  </defs>
+  <g fill="none" stroke="#3b6a2e" stroke-linecap="round">
+    <path stroke-width="3.2" d="M6 10 C 30 4, 52 20, 78 13 S 118 6, 140 15 S 164 20, 176 12" />
+    <path stroke-width="3.2" d="M10 6 C 4 28, 20 44, 13 64 S 6 92, 15 104" />
+    <path stroke-width="1.6" d="M78 13 C 84 6, 92 5, 98 8" />
+    <path stroke-width="1.6" d="M13 64 C 6 70, 5 78, 8 84" />
+  </g>
+  <g fill="#5f9d45" stroke="#2f5524" stroke-width="0.8">
+    <use href="#leaf" transform="translate(20 9) rotate(-25)" />
+    <use href="#leaf" transform="translate(40 14) rotate(30) scale(1.1)" />
+    <use href="#leaf" transform="translate(60 15) rotate(-35) scale(0.9)" />
+    <use href="#leaf" transform="translate(98 8) rotate(-10) scale(1.2)" />
+    <use href="#leaf" transform="translate(118 10) rotate(25)" />
+    <use href="#leaf" transform="translate(150 16) rotate(-30) scale(0.8)" />
+    <use href="#leaf" transform="translate(9 22) rotate(70)" />
+    <use href="#leaf" transform="translate(16 40) rotate(115) scale(1.1)" />
+    <use href="#leaf" transform="translate(12 58) rotate(65) scale(0.9)" />
+    <use href="#leaf" transform="translate(8 84) rotate(95) scale(1.2)" />
+  </g>
+  <g fill="#7fbf5f" stroke="#2f5524" stroke-width="0.6">
+    <use href="#leaf" transform="translate(30 6) rotate(-60) scale(0.7)" />
+    <use href="#leaf" transform="translate(86 12) rotate(40) scale(0.75)" />
+    <use href="#leaf" transform="translate(5 32) rotate(150) scale(0.7)" />
+    <use href="#leaf" transform="translate(14 76) rotate(40) scale(0.7)" />
+  </g>
+  <g fill="#c9a6d8" stroke="#6b4a7a" stroke-width="0.5">
+    <circle cx="10" cy="9" r="4" />
+    <circle cx="140" cy="15" r="2.6" />
+    <circle cx="15" cy="104" r="2.6" />
+  </g>
+</svg>

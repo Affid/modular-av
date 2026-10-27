@@ -1,0 +1,21 @@
+{
+  "name": "@modular-av/dock-vines",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Modular A/V theme module: vine-leaf frames and a green palette for modular-av-dock.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p test/browser"
+  },
+  "devDependencies": {
+    "@modular-av/dock": "workspace:*",
+    "@modular-av/testing": "workspace:*"
+  },
+  "modularAV": {
+    "entryBudgetBytes": 2000,
+    "styleBudgetBytes": 8000
+  }
+}

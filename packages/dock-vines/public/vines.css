@@ -1,0 +1,85 @@
+/*
+ * Modular A/V: Vines theme. Loaded by modular-av-dock only while the theme
+ * is chosen; every rule starts with the class it puts on <html>.
+ */
+
+/* ---- A green palette (text and icons meet WCAG AA on it) ---- */
+
+:root.mav-theme-vines {
+  --mav-text: #eef5e9;
+  --mav-text-muted: #b9ccb1;
+  --mav-surface: #16261b;
+  --mav-surface-raised: #223b29;
+  --mav-surface-sunken: #0f1b13;
+  --mav-border: #5b8455;
+  --mav-speaking: #9be37a;
+  --mav-focus: #f3d36b;
+  --mav-accent: #2f7a3a;
+  --mav-on-accent: #ffffff;
+  --mav-meter: #9be37a;
+  --mav-dock-tile-bg: #122016;
+  --mav-dock-radius: 10px;
+}
+
+/* ---- Frames: vine leaves, drawn in frames/vine-corner.svg ---- */
+
+/* The artwork fills the frame layer, which the dock sizes to the declared
+   reach; it grows from the top left corner, mirrored for the others. */
+.mav-theme-vines .mav-dock-tile-frame::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("frames/vine-corner.svg") no-repeat 0 0 / 100% 100%;
+}
+
+.mav-theme-vines
+  .mav-dock-tile:is([data-anchor="top-right"], [data-anchor="right"])
+  .mav-dock-tile-frame::before {
+  transform: scaleX(-1);
+}
+
+.mav-theme-vines
+  .mav-dock-tile:is([data-anchor="bottom-left"], [data-anchor="bottom"])
+  .mav-dock-tile-frame::before {
+  transform: scaleY(-1);
+}
+
+.mav-theme-vines
+  .mav-dock-tile[data-anchor="bottom-right"]
+  .mav-dock-tile-frame::before {
+  transform: scale(-1, -1);
+}
+
+/* Speaking: a soft glow around the video (the tile within the frame layer:
+   8% of its width on each side, which is 14.2% of its height). */
+.mav-theme-vines .mav-dock-tile-frame::after {
+  content: "";
+  position: absolute;
+  inset: 11.07% 6.9%;
+  border-radius: var(--mav-dock-radius);
+  box-shadow: 0 0 16px 4px rgb(155 227 122 / 75%);
+  opacity: 0;
+  transition: opacity 0.2s ease-out;
+}
+
+.mav-theme-vines .mav-dock-tile[data-speaking] .mav-dock-tile-frame::after {
+  opacity: 1;
+}
+
+/* Muted: the leaves go grey. */
+.mav-theme-vines .mav-dock-tile[data-muted] .mav-dock-tile-frame {
+  filter: grayscale(1) brightness(0.85);
+}
+
+/* ---- The panel and popovers ---- */
+
+.mav-theme-vines .mav-dock-panel,
+.mav-theme-vines .mav-popover {
+  border: 1px solid var(--mav-border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mav-theme-vines .mav-dock-tile-frame::after {
+    transition: none;
+  }
+}

@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { checkEntrySize, checkStyleSize, checkWorkerSizes } from "./check.ts";
+import { checkEntrySize, checkStyleSizes, checkWorkerSizes } from "./check.ts";
 
 let dir: string;
 
@@ -110,7 +110,7 @@ describe("checkEntrySize", () => {
   });
 });
 
-describe("checkStyleSize", () => {
+describe("checkStyleSizes", () => {
   beforeEach(async () => {
     dir = await mkdtemp(join(tmpdir(), "mav-size-"));
   });
@@ -125,7 +125,11 @@ describe("checkStyleSize", () => {
     version: "1.0.0",
   });
 
-  async function styles(budget: unknown, css?: string): Promise<void> {
+  async function styles(
+    budget: unknown,
+    css?: string,
+    file = "modular-av-dock.css",
+  ): Promise<void> {
     await writeFile(
       join(dir, "package.json"),
       JSON.stringify({
@@ -136,29 +140,40 @@ describe("checkStyleSize", () => {
     );
     if (css === undefined) return;
     await mkdir(join(dir, "dist"), { recursive: true });
-    await writeFile(join(dir, "dist", "modular-av-dock.css"), css);
+    await writeFile(join(dir, "dist", file), css);
   }
 
   it("skips a module without styles", async () => {
     await styles(10);
 
-    expect(await checkStyleSize(mod())).toBeUndefined();
+    expect(await checkStyleSizes(mod())).toEqual([]);
   });
 
   it("passes styles within their budget and fails those over it", async () => {
     await styles(4, "a{}");
-    expect((await checkStyleSize(mod()))?.problem).toBeUndefined();
+    expect((await checkStyleSizes(mod()))[0]?.problem).toBeUndefined();
 
     await styles(2, "a{}");
-    expect((await checkStyleSize(mod()))?.problem).toMatch(
+    expect((await checkStyleSizes(mod()))[0]?.problem).toMatch(
       /over their budget of 2/,
     );
+  });
+
+  it("checks a theme's own stylesheet, served from public/", async () => {
+    await styles(2, "a{color:red}", "vines.css");
+
+    const [result] = await checkStyleSizes(mod());
+
+    expect(result?.id).toBe("modular-av-dock/vines.css");
+    expect(result?.problem).toMatch(/over their budget of 2/);
   });
 
   it("fails styles without a budget", async () => {
     await styles(undefined, "a{}");
 
-    expect((await checkStyleSize(mod()))?.problem).toMatch(/styleBudgetBytes/);
+    expect((await checkStyleSizes(mod()))[0]?.problem).toMatch(
+      /styleBudgetBytes/,
+    );
   });
 });
 

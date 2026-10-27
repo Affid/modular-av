@@ -5,6 +5,9 @@
   "description": "Modular A/V UI module: the camera dock, voice panel, settings window and player list.",
   "license": "MIT",
   "type": "module",
+  "exports": {
+    "./themes": "./src/themes/types.ts"
+  },
   "scripts": {
     "build": "vite build",
     "dev": "vite build --watch",

@@ -256,6 +256,15 @@ importers:
         specifier: workspace:*
         version: link:../testing
 
+  packages/dock-vines:
+    devDependencies:
+      '@modular-av/dock':
+        specifier: workspace:*
+        version: link:../dock
+      '@modular-av/testing':
+        specifier: workspace:*
+        version: link:../testing
+
   packages/jitsi:
     dependencies:
       '@modular-av/api':

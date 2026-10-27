@@ -1,0 +1,16 @@
+{
+  "id": "modular-av-dock-vines",
+  "title": "Modular A/V: Vines theme",
+  "description": "Vine leaves around the cameras of the Modular A/V dock, growing from the corner each one sits in, and a green palette. Best with the scattered layout.",
+  "authors": [{ "name": "Andrei Fedorov", "url": "https://github.com/Affid" }],
+  "url": "https://github.com/Affid/modular-av",
+  "bugs": "https://github.com/Affid/modular-av/issues",
+  "license": "LICENSE",
+  "compatibility": { "minimum": "14", "verified": "14.369" },
+  "esmodules": ["modular-av-dock-vines.js"],
+  "languages": [{ "lang": "en", "name": "English", "path": "lang/en.json" }],
+  "relationships": {
+    "requires": [{ "id": "modular-av-dock", "type": "module" }]
+  },
+  "flags": { "modular-av": { "kind": "theme" } }
+}

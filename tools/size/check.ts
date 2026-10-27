@@ -1,4 +1,4 @@
-import { readFile, stat } from "node:fs/promises";
+import { readdir, readFile, stat } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { readWorkers } from "../assets/workers.ts";
 import type { ModulePackage } from "../workspace.ts";
@@ -94,25 +94,31 @@ export async function checkWorkerSizes(
 }
 
 /**
- * A UI module's stylesheet (`dist/<id>.css`) has a budget too
- * (`modularAV.styleBudgetBytes`): every page loads it. Undefined for a
- * module without styles.
+ * A UI module's stylesheets have a budget too (`modularAV.styleBudgetBytes`):
+ * its bundled `dist/<id>.css`, which every page loads, and a theme's own
+ * stylesheet, served from `public/`. Empty for a module without styles.
  */
-export async function checkStyleSize(
+export async function checkStyleSizes(
   mod: ModulePackage,
-): Promise<SizeResult | undefined> {
-  const file = `dist/${mod.id}.css`;
-  const bytes = await stat(join(mod.dir, file)).then(
-    (s) => s.size,
-    () => undefined,
+): Promise<readonly SizeResult[]> {
+  const dist = join(mod.dir, "dist");
+  const files = await readdir(dist).then(
+    (names) => names.filter((name) => name.endsWith(".css")).sort(),
+    () => [],
   );
-  if (bytes === undefined) return undefined;
+  if (files.length === 0) return [];
   const budget = await readBudget(mod.dir, "styleBudgetBytes");
-  const problem =
-    budget === undefined
-      ? "package.json has no modularAV.styleBudgetBytes"
-      : bytes > budget
-        ? `styles are ${String(bytes)} bytes, over their budget of ${String(budget)}`
-        : undefined;
-  return { id: `${mod.id}.css`, bytes, budget, problem };
+  return Promise.all(
+    files.map(async (file) => {
+      const { size: bytes } = await stat(join(dist, file));
+      const problem =
+        budget === undefined
+          ? "package.json has no modularAV.styleBudgetBytes"
+          : bytes > budget
+            ? `styles are ${String(bytes)} bytes, over their budget of ${String(budget)}`
+            : undefined;
+      const id = file === `${mod.id}.css` ? file : `${mod.id}/${file}`;
+      return { id, bytes, budget, problem };
+    }),
+  );
 }
