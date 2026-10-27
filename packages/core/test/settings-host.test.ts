@@ -109,6 +109,23 @@ describe("the core's settings window", () => {
     expect(document.querySelectorAll(".test-settings")).toHaveLength(1);
   });
 
+  it("fits the screen before Foundry places it: capped, scrolling, resizable", async () => {
+    const surface = settingsSurface();
+    const table = createTable();
+    const p1 = table.join("p1", { register: withSurface(surface) });
+    await table.settle();
+    const window = master(p1).config as Openable & {
+      readonly element: HTMLElement | null;
+      readonly options: { readonly window?: { readonly resizable?: boolean } };
+    };
+
+    await window.render({ force: true });
+
+    expect(window.element?.style.maxHeight).toBe("calc(100vh - 32px)");
+    expect(surface.probe.hosts[0]?.content.style.overflowY).toBe("auto");
+    expect(window.options.window?.resizable).toBe(true);
+  });
+
   it("still reaches Foundry's own A/V settings", async () => {
     const surface = settingsSurface();
     const table = createTable();
