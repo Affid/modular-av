@@ -185,6 +185,11 @@
 
 /* ---- Buttons ---- */
 
+/* What the dock hides stays hidden, whatever `display` a rule gives it. */
+:is(.mav-dock, .mav-popover, .mav-settings) [hidden] {
+  display: none !important;
+}
+
 .mav-dock-button,
 .mav-dock-tile-menu,
 .mav-dock-resize {

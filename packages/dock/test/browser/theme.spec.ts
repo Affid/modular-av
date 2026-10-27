@@ -116,6 +116,15 @@ test("indicators keep at least 3:1 against what they sit on", async ({
     expect(ratio, `${name} contrast`).toBeGreaterThanOrEqual(3);
 });
 
+test("buttons the dock hides aren't shown", async ({ page }) => {
+  await call(page);
+
+  // Docked and connected: no moving, nothing to reconnect.
+  await expect(page.locator(".mav-dock-move")).toBeHidden();
+  await expect(page.locator(".mav-dock-action")).toBeHidden();
+  await expect(page.locator(".mav-dock-leave")).toBeVisible();
+});
+
 test("a focused control shows a visible focus ring", async ({ page }) => {
   await call(page);
 
