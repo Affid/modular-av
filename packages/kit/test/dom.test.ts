@@ -126,7 +126,11 @@ describe("roving focus", () => {
   };
   const key = (target: Element, name: string): void => {
     target.dispatchEvent(
-      new KeyboardEvent("keydown", { key: name, bubbles: true }),
+      new KeyboardEvent("keydown", {
+        key: name,
+        bubbles: true,
+        cancelable: true,
+      }),
     );
   };
 
@@ -162,6 +166,20 @@ describe("roving focus", () => {
     list.dispose();
     if (b) key(b, "ArrowDown");
     expect(document.activeElement).toBe(b);
+  });
+
+  it("leaves an arrow key alone when an item used it (a move handle)", () => {
+    const bar = toolbar();
+    roving(bar, { items: "button" });
+    const [a] = [...bar.querySelectorAll("button")];
+    a?.addEventListener("keydown", (event) => {
+      event.preventDefault();
+    });
+    a?.focus();
+
+    if (a) key(a, "ArrowRight");
+
+    expect(document.activeElement).toBe(a);
   });
 
   it("keeps the tab stop on an item when items change", () => {

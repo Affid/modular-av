@@ -52,6 +52,8 @@ export function roving(group: HTMLElement, options: RovingOptions): Roving {
   };
 
   const onKey = (event: KeyboardEvent): void => {
+    // An item that used the key (a move handle's arrows) keeps the focus.
+    if (event.defaultPrevented) return;
     const all = items();
     const index = all.findIndex((i) => i.contains(event.target as Node));
     if (index < 0) return;
