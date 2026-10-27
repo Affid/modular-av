@@ -30,6 +30,12 @@ export interface ServiceContractOptions {
    */
   readonly auth?: "token" | "none";
   /**
+   * "token" when the server refuses what the token doesn't allow (LiveKit);
+   * "receivers" when tokens carry no publish rights (Jitsi) and only the
+   * receiving cores refuse a blocked player's media.
+   */
+  readonly publishRights?: "token" | "receivers";
+  /**
    * Cuts every client off the server, then restores it (e.g. by pausing
    * its container): the browser's offline mode keeps open localhost sockets.
    */
@@ -130,6 +136,7 @@ const states = (events: readonly RecordedEvent[]): string[] =>
 
 export function serviceContract(options: ServiceContractOptions): void {
   const tokens = (options.auth ?? "token") === "token";
+  const tokenRights = tokens && (options.publishRights ?? "token") === "token";
   const peers = (browser: Browser, ...ids: string[]): Promise<Peer[]> =>
     openPeers(browser, options, ...ids);
 
@@ -206,6 +213,24 @@ export function serviceContract(options: ServiceContractOptions): void {
         .toBeGreaterThan(20);
     });
 
+    test("carries the core's own tracks: a Web Audio microphone and a generated camera", async ({
+      browser,
+    }) => {
+      const [alice, bob] = await peers(browser, "alice", "bob");
+      if (!alice || !bob) throw new Error("no peers");
+      await alice.join();
+      await bob.join();
+
+      expect(await alice.run((h) => h.publishCoreTracks())).toEqual([]);
+
+      await expect
+        .poll(() => bob.run((h) => h.audioLevel("alice", 1500)))
+        .toBeGreaterThan(AUDIBLE);
+      await expect
+        .poll(() => bob.run((h) => h.videoBrightness("alice")))
+        .toBeGreaterThan(20);
+    });
+
     test("tells its own and each participant's connection details", async ({
       browser,
     }) => {
@@ -246,9 +271,12 @@ export function serviceContract(options: ServiceContractOptions): void {
         await h.setMuted("camera", true);
       });
 
+      // Muting never stops the core's tracks (Jitsi's video mute would).
       expect(
-        await alice.run((h) => h.localTracks().map((t) => t.enabled)),
-      ).toEqual([false, false]);
+        await alice.run((h) =>
+          h.localTracks().map((t) => `${String(t.enabled)}:${t.readyState}`),
+        ),
+      ).toEqual(["false:live", "false:live"]);
       await expect
         .poll(() => bob.run((h) => h.audioLevel("alice", 1500)))
         .toBeLessThan(SILENT);
@@ -297,7 +325,7 @@ export function serviceContract(options: ServiceContractOptions): void {
     test("refuses publishing outside the token's rights", async ({
       browser,
     }) => {
-      test.skip(!tokens, "the service takes no token");
+      test.skip(!tokenRights, "the service's tokens carry no publish rights");
       const [alice, bob] = await peers(browser, "alice", "bob");
       if (!alice || !bob) throw new Error("no peers");
       await alice.join({ canPublish: { audio: true, video: false } });
@@ -380,6 +408,7 @@ export function serviceContract(options: ServiceContractOptions): void {
       await alice.join();
       await bob.join();
       await alice.run((h) => h.publish(["microphone", "camera"]));
+      await alice.run((h) => h.unpublish("camera"));
 
       await alice.run((h) => h.leave());
 

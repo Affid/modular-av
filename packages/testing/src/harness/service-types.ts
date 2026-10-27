@@ -70,6 +70,8 @@ export interface ServiceHarness {
   sign(options: JoinOptions): Promise<string>;
   join(options: JoinOptions): Promise<JoinResult>;
   publish(sources: readonly ("microphone" | "camera")[]): Promise<string[]>;
+  /** Publishes tracks made as the core makes them (Web Audio, a generator). */
+  publishCoreTracks(): Promise<string[]>;
   setMuted(source: TrackSource, muted: boolean): Promise<void>;
   /** As the core mutes: on its own track. */
   setEnabled(source: TrackSource, enabled: boolean): void;

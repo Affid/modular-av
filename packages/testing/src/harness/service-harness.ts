@@ -9,6 +9,7 @@ import type {
   ServiceError,
   TrackSource,
 } from "@modular-av/api";
+import { coreCamera, coreMicrophone } from "./core-tracks.ts";
 import { meanLuminance, peakLevel } from "./service-probes.ts";
 import type {
   CreateDefinition,
@@ -99,6 +100,25 @@ function createHarness(definition: ServiceDefinition): ServiceHarness {
     });
   };
 
+  /** Publishes each track; returns "source: reason" for those refused. */
+  const publishAll = async (
+    tracks: readonly MediaStreamTrack[],
+  ): Promise<string[]> => {
+    const failures: string[] = [];
+    for (const track of tracks) {
+      const source = track.kind === "audio" ? "microphone" : "camera";
+      try {
+        const published = await live().publish(track, source);
+        local = new Map(local).set(source, { track, published });
+      } catch (error: unknown) {
+        failures.push(
+          `${source}: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
+    return failures;
+  };
+
   return {
     sign,
     async join(options) {
@@ -129,19 +149,10 @@ function createHarness(definition: ServiceDefinition): ServiceHarness {
         audio: sources.includes("microphone"),
         video: sources.includes("camera"),
       });
-      const failures: string[] = [];
-      for (const track of stream.getTracks()) {
-        const source = track.kind === "audio" ? "microphone" : "camera";
-        try {
-          const published = await live().publish(track, source);
-          local = new Map(local).set(source, { track, published });
-        } catch (error: unknown) {
-          failures.push(
-            `${source}: ${error instanceof Error ? error.message : String(error)}`,
-          );
-        }
-      }
-      return failures;
+      return publishAll(stream.getTracks());
+    },
+    async publishCoreTracks() {
+      return publishAll([await coreMicrophone(), await coreCamera()]);
     },
     async setMuted(source, muted) {
       const entry = local.get(source);
