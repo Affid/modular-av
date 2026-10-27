@@ -615,9 +615,10 @@ Rules that come with these interfaces:
   re-acquire** core tracks. Mute is `track.enabled = false` on the core's
   final track (WebRTC sends silence/black), applied in every connection
   state; `setMuted` only tells the service (signalling, bandwidth).
-- **`mediaOwnership: "service"`** (e.g. if lib-jitsi-meet can't take
-  outside tracks — check first) shows "this service controls your
-  microphone" and disables the gate and effects for it.
+- **`mediaOwnership: "service"`** (for a service that can't take outside
+  tracks) shows "this service controls your microphone" and disables the
+  gate and effects for it. No service needs it so far (lib-jitsi-meet
+  takes outside tracks, §16), and the core doesn't implement it yet.
 - **Reconnect once**: a service reports `resuming` while its own transport
   recovers (LiveKit does for about a minute); the core starts its backoff
   only on `lost`, with a fresh token each attempt.
@@ -1634,9 +1635,127 @@ livekit-server 1.13.8):
   229 of 240 KB (58 KB gzipped; unminified, as every module), MediaPipe's
   runtime 13.8 MB and the models 0.25 and 16.4 MB.
 
-## 16. Open items
+## 16. Findings from milestone 8
 
-Left open after milestone 7. None of them is part of a milestone unless
+Verified while building and testing `modular-av-jitsi` (Foundry 14.369,
+Chromium from Playwright 1.64, lib-jitsi-meet v2205.0.0+7d14f385,
+docker-jitsi-meet `stable-11248-2`):
+
+- **The service as built**: the core's own tracks, a GM-relayed HS256
+  token per player (one room, the Foundry user id in `context.user.id`,
+  no name, `moderator: "false"`), every call through the bridge (Jitsi's
+  own peer-to-peer mode off). The entry is 4.7 KB plus a 3.2 KB token
+  chunk (budget 10 KB); the connection code is a 13 KB lazy chunk; the
+  SDK a separate 1.14 MB file loaded only for a call.
+- **lib-jitsi-meet takes outside tracks**
+  (`createLocalTracksFromMediaStreams`), with three catches. Its video
+  `mute()` removes the stream, stops the track and asks `getUserMedia`
+  for a new one on unmute: video is never muted through it (the core's
+  disabled track sends black). Its `dispose()` stops the stream it was
+  given: each track goes in a `MediaStream` the module owns, emptied
+  before disposing. It sizes simulcast layers from `getSettings().height`
+  and falls back to its own capture constraints, which a track it didn't
+  capture lacks, and a `MediaStreamTrackGenerator` (an effect's output)
+  reports no size: the module passes the track's size, or 640×480. Audio
+  `mute()` writes `enabled`, in the direction the core already set.
+- **It isn't on npm** (the `lib-jitsi-meet` package there is from 2022):
+  Jitsi publishes each build as a `.tgz` on GitHub releases. pnpm 12
+  refuses it as a dependency by default (`blockExoticSubdeps`: it pulls
+  its strophe.js fork from a URL), so the build downloads the pinned
+  archive, checks its SHA-256 and takes out the official minified file
+  and its licence (`modularAV.downloads` with `extract`, a small tar
+  reader in `tools/assets/tar.ts`). It loads with a `<script>` tag and
+  sets `window.JitsiMeetJS`; the module types the parts it uses. Its
+  logs go through the module (redacted, as warnings), not to the
+  console, and its analytics, rtcstats and watchRTC stay off; a test
+  checks the page talks only to the Jitsi server.
+- **Identity needs Prosody's `presence_identity` on the main
+  VirtualHost** (docker: `XMPP_MODULES`, not `XMPP_MUC_MODULES`; it hooks
+  the sender's presence, which runs on the sender's host). It replaces
+  any identity a client sends with the token's `context.user`. None of
+  Jitsi's default setups load it. The module never takes a participant's
+  word: without an identity from the server they are ignored, and the
+  console says why.
+- **A Jitsi server with tokens makes every participant a moderator**:
+  Jicofo grants ownership to everyone it sees authenticated, whatever the
+  token's `moderator` claim says, so a modified client could mute or
+  remove others. Prosody's `token_affiliation` on the conference
+  component, `ENABLE_AUTO_OWNER=0` and `JICOFO_ENABLE_AUTH=0` (Prosody
+  still checks every token) leave players without it; the module warns
+  when it finds itself a moderator.
+- **Reconnecting**: `CONNECTION_INTERRUPTED`/`RESTORED` (the media path
+  to the bridge) are `resuming`/`connected`; a dropped XMPP connection, a
+  failed conference or a failure after joining are `lost` (kicked, a full
+  or closed room and a refused token are final). A 20 s pause of all
+  four containers recovers by itself. lib-jitsi-meet checks the token
+  when its XMPP session resumes; if it ran out (after ten minutes), it
+  cancels the resume and waits for `refreshToken`: the module reports
+  `resuming` and `tokenExpiring`, the core fetches a token through the
+  relay and calls `updateToken`, and without one within 30 s (no GM) the
+  connection is `lost`. `connect()` resolves once in the room; the media
+  path to the bridge comes up a moment later (Jicofo starts the bridge
+  session only for two or more), so an outage before it is up shows as
+  the XMPP link failing (`lost`), not `resuming`. Measured with the call
+  up: `resuming` 6 s into the outage. The outage tests start from an
+  established call (the other side hears the microphone).
+- **The same player twice**: the newer tab wins, on both sides. A tab
+  closed without leaving (a reload) stays in the room while Prosody keeps
+  its session for resumption. For the player's own new tab, that older
+  endpoint and its late tracks are ignored. For everyone else, a newer
+  endpoint of someone present replaces the older one: they are reported
+  as left and joined again, so Foundry's dock redraws them (otherwise
+  the old endpoint's join, seen before the reloaded page was online in
+  Foundry, left them without a tile). Both found by the Foundry suite.
+- **Receiving**: refused media isn't sent at all: video by receiver
+  constraints (height 0, or 180/360/720 for the core's quality), audio
+  by the bridge's audio subscription (an exclusion list). Jitsi's tokens
+  carry no publish rights, so a GM's block is enforced by receivers, as
+  with P2P (`publishRights: "receivers"` in the service contract).
+  Speaking comes from the senders' gates over Foundry
+  (`speakingDetection: false`; Jitsi names one dominant speaker only).
+  Quality maps Jitsi's connection quality (0–100); connection details
+  come from its stats events (every 5 s), a participant's from their own
+  report of their link to the bridge.
+- **meet.jit.si can't be a service**: its sign-in page (Firebase, Google
+  or GitHub) gives the token only to an opener on meet.jit.si itself or
+  redirects to `meet.jit.si/<room>#jwt=…`, the token is a Firebase ID
+  token (about an hour), players would be anonymous guests, and its
+  terms ask for 8x8's branding for 15 s and cap free use at 25 active
+  endpoints a month. A foreign origin can open its XMPP WebSocket. It
+  fits the external call mode (an iframe) instead. JaaS's terms for a
+  module where each table brings its own key weren't reachable.
+- **Tokens in URLs**: lib-jitsi-meet puts the token in the WebSocket's
+  query (as livekit-client does), so it shows in that browser's console
+  when the socket fails and in the server's access logs, for its ten
+  minutes.
+- **Test tooling**: `scripts/services/jitsi/compose.yml` (images pinned
+  by tag and digest, about 2 GB on disk, 470 MB of RAM idle and 790 MB in
+  the contract run, ready in about 5 s; ready means the web container
+  answers and Jicofo has logged its bridge, since its health endpoint is
+  404 and on the container's loopback). The service contract gained a
+  test with the core's kind of tracks (a Web Audio microphone, a
+  generated camera) and checks that tracks stay live after mute and
+  unpublish; LiveKit and P2P pass both. The mock service has
+  `updateToken` (`updatesTokens: false` leaves it out).
+- **Reviews** (code and security): no critical or high findings. Fixed:
+  a player with two tabs counted once, subscriptions pruned (and keyed by
+  endpoint as well as source name), a drop or a leave during the join
+  settling `connect()`, leaving once, a failed refresh reported, wrappers
+  of overlapping publishes released, lib-jitsi-meet's
+  `disableThirdPartyRequests` and `analytics.disabled` set, the tar
+  reader refusing corrupt sizes and capping decompression. Left as they
+  are: see "From milestone 8" in §17.
+- **API changes** (additive): `ServiceConnection.updateToken?()`; the
+  core answers `tokenExpiring`, one request at a time, for the live
+  connection only.
+- **Not done yet**: JaaS (RS256 with the app's private key) until its
+  terms are checked; screen share; server-side moderation; a server
+  without tokens (an "insecure" mode like LiveKit's dev mode); versions
+  other than stable 11248 aren't tested.
+
+## 17. Open items
+
+Left open after milestone 8. None of them is part of a milestone unless
 it is picked up explicitly.
 
 - **Browser-tier flake**: "two players who join at the same moment link
@@ -1708,4 +1827,29 @@ it is picked up explicitly.
   - MediaPipe's WebAssembly includes Eigen under the MPL-2.0 (weak
     copyleft, file-level): redistributable with the notice and a pointer
     to its source, which the notices give.
-
+- **From milestone 8**:
+  - JaaS (8x8's Jitsi as a Service): RS256 tokens signed with the app's
+    private key would work from the GM's browser; its terms for a module
+    where each table brings its own account weren't reachable.
+  - Screen share over Jitsi, and Jitsi servers without tokens (an
+    "insecure" mode for local servers, like LiveKit's dev mode).
+  - Only Jitsi stable 11248 is tested; Jitsi publishes no rule for which
+    client and server versions work together.
+  - lib-jitsi-meet logs an error of its own when the server offers no
+    TURN credentials (a TypeError parsing the refusal); the module turns
+    it into a warning.
+  - A participant without an identity from the server is ignored with a
+    console error, not ended on: a hard failure would end everyone's call
+    whenever a gateway or recorder joins. On a server without
+    `presence_identity` a modified client could claim another player's
+    identity (the README makes the module a requirement).
+  - Another tab of the same player that joins while this one is still
+    joining counts as older: both stay (a small window).
+  - Plain `ws://` is accepted for `*.local` names, as for LiveKit.
+  - The camera background's fail-closed contract test
+    (`video-effect-contract.ts`, "files can't load") can record the raw
+    camera in its first sample under heavy load: it starts sampling
+    before it turns the effect on, while the raw camera is rightly being
+    sent. Seen once inside `pnpm verify` (load 15); ten runs alone passed.
+    Starting the sampler with the command, in one evaluation, would fix
+    the test; the core held the camera as it should.
