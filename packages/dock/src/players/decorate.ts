@@ -19,7 +19,7 @@ const BADGES = "mav-players-badges";
 function mark(ctx: DockContext, item: HTMLElement, state: AVState): void {
   const id = item.dataset.userId ?? "";
   const p = state.participants[id];
-  const view = p ? tileView(p, state.local, state.worldMode) : null;
+  const view = p ? tileView(p, state.local) : null;
   item.toggleAttribute("data-speaking", view?.flags.speaking ?? false);
   item.toggleAttribute("data-in-call", p?.connected ?? false);
   let badges = item.querySelector<HTMLElement>(`:scope > .${BADGES}`);

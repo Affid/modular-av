@@ -87,6 +87,8 @@ describe("deafened badges", () => {
       hidden: false,
       deafened: true,
       canBroadcast: { audio: true, video: true },
+      blockedAudio: false,
+      blockedVideo: false,
       volume: 1,
       hiddenByMe: false,
       quality: null,

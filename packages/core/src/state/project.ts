@@ -59,6 +59,8 @@ function participant(
   const { facts, local } = input;
   const isLocal = user.id === facts.selfId;
   const activity = facts.settings()?.activity[user.id] ?? {};
+  const rights = facts.canBroadcast(user.id);
+  const allowed = facts.modeAllows();
   const serviceSpeaking =
     input.service.capabilities?.speakingDetection ?? false;
   const remoteSpeaking = serviceSpeaking
@@ -83,7 +85,9 @@ function participant(
     muted: isLocal ? local.muted : (activity.muted ?? false),
     hidden: isLocal ? !local.videoEnabled : (activity.hidden ?? false),
     deafened: user.getFlag(MODULE_ID, DEAFENED_FLAG) === true,
-    canBroadcast: facts.canBroadcast(user.id),
+    canBroadcast: rights,
+    blockedAudio: allowed.audio && !rights.audio,
+    blockedVideo: allowed.video && !rights.video,
     volume: facts.entry(user.id).volume ?? 1,
     hiddenByMe: !isLocal && (facts.entry(user.id).blocked ?? false),
     quality: input.quality.get(user.id) ?? null,

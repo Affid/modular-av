@@ -8,12 +8,11 @@ import { panelView } from "../src/view/panel-view.ts";
 import { sessionView } from "../src/view/session-view.ts";
 import { orderTiles, tileView } from "../src/view/tile-view.ts";
 
-const BOTH = { audio: true, video: true } as const;
 const local = localState();
 
 describe("a player's tile", () => {
   it("is plain for someone connected, sending both and quiet", () => {
-    const view = tileView(participantState({ id: "p1" }), local, BOTH);
+    const view = tileView(participantState({ id: "p1" }), local);
 
     expect(view).toMatchObject({
       id: "p1",
@@ -40,11 +39,7 @@ describe("a player's tile", () => {
     ["reconnecting their link", { quality: "lost" as const }, "connection"],
     ["in Foundry but not in the call", { connected: false }, "not-connected"],
   ])("shows a player %s", (_name, changes, indicator) => {
-    const view = tileView(
-      participantState({ id: "p1", ...changes }),
-      local,
-      BOTH,
-    );
+    const view = tileView(participantState({ id: "p1", ...changes }), local);
 
     expect(view.indicators).toContain(indicator);
   });
@@ -53,21 +48,25 @@ describe("a player's tile", () => {
     const view = tileView(
       participantState({ id: "p1", speaking: true, muted: true }),
       local,
-      BOTH,
     );
 
     expect(view.flags).toMatchObject({ speaking: true, muted: true });
   });
 
-  it("tells a GM's block from what the world's mode allows", () => {
+  it("shows a GM's block, never what the world's mode leaves out", () => {
     const blocked = participantState({
       id: "p1",
       canBroadcast: { audio: false, video: false },
+      blockedAudio: true,
+      blockedVideo: true,
       hasVideo: false,
     });
 
-    const byGm = tileView(blocked, local, BOTH);
-    const audioOnly = tileView(blocked, local, { audio: false, video: false });
+    const byGm = tileView(blocked, local);
+    const audioOnly = tileView(
+      { ...blocked, blockedAudio: false, blockedVideo: false },
+      local,
+    );
 
     expect(byGm.indicators).toEqual(["blocked-audio", "blocked-video"]);
     expect(byGm.video).toBe("blocked");
@@ -87,8 +86,8 @@ describe("a player's tile", () => {
     });
     const me = participantState({ id: "me", isLocal: true });
 
-    const mine = tileView(me, warned, BOTH);
-    const theirs = tileView(participantState({ id: "p1" }), warned, BOTH);
+    const mine = tileView(me, warned);
+    const theirs = tileView(participantState({ id: "p1" }), warned);
 
     expect(mine.indicators).toEqual([
       "open-mic",

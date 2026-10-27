@@ -1,7 +1,6 @@
 import type {
   ConnectionQuality,
   LocalState,
-  MediaPermissions,
   ParticipantId,
   ParticipantState,
 } from "@modular-av/api";
@@ -59,21 +58,14 @@ function localWarnings(local: LocalState): Indicator[] {
   ];
 }
 
-/**
- * A participant's tile. A kind the world's mode allows but `canBroadcast`
- * doesn't is a GM's block; a kind the mode disallows is nobody's block.
- */
-export function tileView(
-  p: ParticipantState,
-  local: LocalState,
-  worldMode: MediaPermissions,
-): TileView {
+/** A participant's tile: blocked only by a GM, never by the world's mode. */
+export function tileView(p: ParticipantState, local: LocalState): TileView {
   const flags: TileFlags = {
     speaking: p.speaking,
     muted: p.muted,
     deafened: p.deafened,
-    blockedAudio: worldMode.audio && !p.canBroadcast.audio,
-    blockedVideo: worldMode.video && !p.canBroadcast.video,
+    blockedAudio: p.blockedAudio,
+    blockedVideo: p.blockedVideo,
     connected: p.connected,
     hiddenByMe: p.hiddenByMe,
   };

@@ -72,6 +72,12 @@ export interface ParticipantState {
   readonly deafened: boolean;
   /** Foundry's `BROADCAST_AUDIO` / `BROADCAST_VIDEO`, set by GMs. */
   readonly canBroadcast: MediaPermissions;
+  /**
+   * A GM took away a kind the world's mode allows. A kind the mode leaves
+   * out is nobody's block: `canBroadcast` is false, these stay false.
+   */
+  readonly blockedAudio: boolean;
+  readonly blockedVideo: boolean;
   /** This client's playback volume for them, 0 to 1. */
   readonly volume: number;
   /** This client neither plays nor shows them (Foundry's "hide user"). */

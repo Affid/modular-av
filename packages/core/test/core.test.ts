@@ -398,6 +398,10 @@ describe("GM authority", () => {
       audio: false,
       video: true,
     });
+    expect(gm.api.state.get().participants.p1).toMatchObject({
+      blockedAudio: true,
+      blockedVideo: false,
+    });
   });
 
   it("rejoins with new rights when the GM changes them", async () => {
@@ -521,6 +525,8 @@ describe("Foundry's world mode", () => {
     expect(p1.env.captures).toEqual(["audio:default"]);
     expect(p1.api.state.get().worldMode).toEqual({ audio: true, video: false });
     expect(p1.api.state.get().participants.p1?.canBroadcast.video).toBe(false);
+    // The mode leaves video out: nobody blocked it.
+    expect(p1.api.state.get().participants.p1?.blockedVideo).toBe(false);
   });
 
   it("stays idle with A/V disabled", async () => {

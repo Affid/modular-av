@@ -30,6 +30,8 @@ export function participantState(
     hidden: false,
     deafened: false,
     canBroadcast: BOTH,
+    blockedAudio: false,
+    blockedVideo: false,
     volume: 1,
     hiddenByMe: false,
     quality: null,

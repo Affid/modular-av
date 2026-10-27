@@ -133,7 +133,8 @@ function ownActions(
       {
         label,
         name: `block-${kind}`,
-        checked: () => p()?.canBroadcast[kind] === false,
+        checked: () =>
+          (kind === "audio" ? p()?.blockedAudio : p()?.blockedVideo) === true,
         toggle: (on) => commands.setBroadcastPermissions(id, { [kind]: !on }),
       },
       alerts,

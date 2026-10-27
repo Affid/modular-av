@@ -100,6 +100,32 @@ describe("a participant's menu", () => {
     ]);
   });
 
+  it("shows a GM's block on the switch, not what the world's mode leaves out", () => {
+    const audioOnly = participantState({
+      id: "p1",
+      canBroadcast: { audio: true, video: false },
+      blockedAudio: true,
+    });
+    const { ctx } = testDock({
+      state: avState({
+        participants: [me, audioOnly],
+        worldMode: { audio: true, video: false },
+      }),
+      isGM: true,
+    });
+
+    const menu = openParticipantMenu(ctx, "p1", anchor());
+    const checked = (action: string): string | null | undefined =>
+      menu?.element
+        .querySelector(`[data-action="${action}"]`)
+        ?.getAttribute("aria-checked");
+
+    expect([checked("block-audio"), checked("block-video")]).toEqual([
+      "true",
+      "false",
+    ]);
+  });
+
   it("offers other modules' actions where they apply, checked as they say", () => {
     const { ctx, api } = testDock({ state });
     const ran: string[] = [];

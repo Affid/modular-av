@@ -33,16 +33,12 @@ export interface TileList {
   dispose(): void;
 }
 
-type Slice = readonly [
-  AVState["participants"],
-  AVState["local"],
-  AVState["worldMode"],
-];
+type Slice = readonly [AVState["participants"], AVState["local"]];
 
-const slice = (s: AVState): Slice => [s.participants, s.local, s.worldMode];
+const slice = (s: AVState): Slice => [s.participants, s.local];
 
 const sameSlice = (a: Slice, b: Slice): boolean =>
-  a[0] === b[0] && a[1] === b[1] && a[2] === b[2];
+  a[0] === b[0] && a[1] === b[1];
 
 /** Those in the call, and the local player whatever their state. */
 const shown = (s: AVState) =>
@@ -136,7 +132,7 @@ export function createTileList(
             markFocus();
           },
         });
-      tile.update(tileView(p, state.local, state.worldMode));
+      tile.update(tileView(p, state.local));
       next.set(p.id, tile);
     }
     const counted = next.size !== tiles.size;
