@@ -2,7 +2,7 @@ import type { AVState, DeviceKind, VoiceMode } from "@modular-av/api";
 import { createMeter, el } from "@modular-av/kit";
 import type { Rendered } from "../contributions/controls.ts";
 import type { DockContext } from "../context.ts";
-import { run } from "../ui/run.ts";
+import { sensitivityBar } from "./sensitivity.ts";
 import {
   type Option,
   row,
@@ -139,17 +139,15 @@ export function voiceSection(
     },
     alerts,
   );
-  const threshold = thresholdField(ctx, doc, alerts);
-  const meter = selfMeter(ctx, doc);
+  const sensitivity = sensitivityBar(ctx, doc, alerts);
   const element = section(doc, ctx.t("settings.voice"), [
     row(doc, ctx.t("settings.voiceMode"), mode.element),
     ...pushToTalk(ctx, doc),
     el("h3", { doc, text: ctx.t("settings.sensitivity") }),
     auto.element,
-    row(doc, ctx.t("settings.threshold"), threshold.element),
-    meter.element,
+    sensitivity.element,
   ]);
-  return [mode, auto, threshold, meter, { element, dispose: () => undefined }];
+  return [mode, auto, sensitivity, { element, dispose: () => undefined }];
 }
 
 /** Foundry's push to talk key, which Foundry's own controls change. */
@@ -169,34 +167,6 @@ function pushToTalk(ctx: DockContext, doc: Document): readonly HTMLElement[] {
     el("p", { doc, text: ctx.t("settings.pushToTalkKey", { key }) }),
     change,
   ];
-}
-
-/** The gate's fixed level, in dBFS, used while sensitivity isn't automatic. */
-function thresholdField(
-  ctx: DockContext,
-  doc: Document,
-  alerts: HTMLElement,
-): Rendered {
-  const input = el("input", {
-    doc,
-    attrs: { type: "range", min: "-100", max: "0", step: "1" },
-  });
-  const render = (): void => {
-    const { auto, threshold } = ctx.api.state.get().local.inputSensitivity;
-    input.value = String(threshold);
-    input.disabled = auto;
-    input.setAttribute("aria-valuetext", `${String(threshold)} dB`);
-  };
-  input.addEventListener("change", () => {
-    run(ctx, alerts, () =>
-      ctx.api.commands.setInputSensitivity({ threshold: Number(input.value) }),
-    );
-  });
-  render();
-  return {
-    element: input,
-    dispose: ctx.api.state.subscribe((s) => s.local.inputSensitivity, render),
-  };
 }
 
 /** Whether others' video shows on this client. */

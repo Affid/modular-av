@@ -180,6 +180,8 @@
       "sensitivity": "Input sensitivity",
       "automatic": "Set it automatically",
       "threshold": "Threshold",
+      "thresholdAuto": "Automatic",
+      "decibels": "{value} dB",
       "video": "Video",
       "receiveVideo": "Show other players' video",
       "dock": "Dock",

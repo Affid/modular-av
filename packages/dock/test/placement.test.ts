@@ -364,4 +364,51 @@ describe("the settings window", () => {
     expect(effects(player.content)?.querySelector("button")).toBeNull();
     expect(modules).toBe(1);
   });
+
+  it("sets the threshold on the level bar itself: one scale, its value shown", async () => {
+    const { content, api } = open({
+      state: avState({
+        participants: [me],
+        local: { inputSensitivity: { auto: false, threshold: -42 } },
+      }),
+    });
+    const bar = content.querySelector(".mav-sensitivity");
+    const handle = bar?.querySelector<HTMLInputElement>('input[type="range"]');
+    const meter = bar?.querySelector('[role="meter"]');
+
+    handle?.setAttribute("value", "-30");
+    if (handle) handle.value = "-30";
+    handle?.dispatchEvent(new Event("change"));
+    api.setState((s) => ({
+      ...s,
+      local: { ...s.local, inputSensitivity: { auto: true, threshold: -30 } },
+    }));
+    await settle();
+
+    // The handle runs over the meter's own range.
+    expect([handle?.min, handle?.max]).toEqual(["-80", "0"]);
+    expect(meter?.getAttribute("aria-valuemin")).toBe("-80");
+    expect(api.calls).toContainEqual({
+      command: "setInputSensitivity",
+      args: [{ threshold: -30 }],
+    });
+    // Automatic: no handle to drag, and it says so.
+    expect(handle?.hidden).toBe(true);
+    expect(bar?.textContent).toContain("Automatic");
+  });
+
+  it("shows the threshold it is set to", () => {
+    const { content } = open({
+      state: avState({
+        participants: [me],
+        local: { inputSensitivity: { auto: false, threshold: -42 } },
+      }),
+    });
+    const bar = content.querySelector(".mav-sensitivity");
+
+    expect(bar?.textContent).toContain("-42 dB");
+    expect(
+      bar?.querySelector('input[type="range"]')?.getAttribute("aria-valuetext"),
+    ).toBe("-42 dB");
+  });
 });

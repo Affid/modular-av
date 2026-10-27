@@ -956,6 +956,105 @@
   margin: 0;
 }
 
+/*
+ * Input sensitivity: the threshold's handle on the level bar itself, one
+ * scale. The meter is inset by half the handle's width, so the handle's
+ * centre lands on the level it sets.
+ */
+.mav-sensitivity {
+  display: grid;
+  gap: 4px;
+}
+
+.mav-sensitivity-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.mav-sensitivity-value {
+  color: var(--mav-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.mav-sensitivity-bar {
+  position: relative;
+  display: grid;
+  align-items: center;
+  height: 24px;
+}
+
+.mav-sensitivity-bar .mav-meter {
+  height: 10px;
+  margin: 0 3px;
+  border-radius: 5px;
+  /* A control's track: seen at 3:1 even while silent. */
+  box-shadow: inset 0 0 0 1px var(--mav-text-muted);
+}
+
+/* The handle stands for the threshold: no second mark under it. */
+.mav-sensitivity-bar:has(> .mav-sensitivity-handle:not([hidden]))
+  .mav-meter-threshold {
+  display: none;
+}
+
+.mav-sensitivity-handle {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  appearance: none;
+  cursor: ew-resize;
+}
+
+.mav-sensitivity-handle[hidden] {
+  display: none;
+}
+
+.mav-sensitivity-handle::-webkit-slider-runnable-track {
+  height: 100%;
+  background: transparent;
+}
+
+.mav-sensitivity-handle::-moz-range-track {
+  background: transparent;
+}
+
+.mav-sensitivity-handle::-webkit-slider-thumb {
+  appearance: none;
+  width: 6px;
+  height: 24px;
+  border: 1px solid var(--mav-surface-sunken);
+  border-radius: 3px;
+  background: var(--mav-text);
+}
+
+.mav-sensitivity-handle::-moz-range-thumb {
+  width: 6px;
+  height: 24px;
+  border: 1px solid var(--mav-surface-sunken);
+  border-radius: 3px;
+  background: var(--mav-text);
+}
+
+.mav-settings .mav-sensitivity-handle:focus-visible {
+  outline: none;
+}
+
+.mav-sensitivity-handle:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid var(--mav-focus);
+  outline-offset: 2px;
+}
+
+.mav-sensitivity-handle:focus-visible::-moz-range-thumb {
+  outline: 2px solid var(--mav-focus);
+  outline-offset: 2px;
+}
+
 .mav-settings-preview {
   width: 100%;
   max-width: 320px;
