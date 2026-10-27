@@ -9,7 +9,16 @@ isn't running), and keeps your server's secret away from players.
 ## Modules
 
 Install the core, one service and the dock; add effects as you like.
-Paste a module's manifest URL into Foundry's "Install Module" dialog.
+Paste a module's manifest URL into Foundry's "Install Module" dialog:
+Foundry offers what it needs with it (installing the dock brings the
+core). Then, as a GM, open **Plan your modules** in the core's module
+settings: it shows every module, which ones this world runs, and gives
+the links for the rest.
+
+Which service? Players' browsers linked directly (`modular-av-p2p`) for
+up to about six players, nothing to run; LiveKit Cloud or your own
+LiveKit server (`modular-av-livekit`) for larger tables; your own Jitsi
+Meet server (`modular-av-jitsi`) if you run one.
 
 | Module                      | What it does                                                           | Manifest URL                                                                                         |
 | --------------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
@@ -50,6 +59,9 @@ the dock can't open in a window of its own.
   never sent without it.
 - Noise cancellation and camera backgrounds run in your browser; no audio
   or video goes anywhere for them. Their files come with the modules.
+- A GM's browser asks GitHub for the list of modules when "Plan your
+  modules" opens and at most once a day (a world setting turns it off);
+  see the [core's page](packages/core/README.md).
 
 ## For developers
 
