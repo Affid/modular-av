@@ -1,3 +1,5 @@
+export { anchorOf, ANCHORS, avoid, isAnchor, placeAnchored } from "./anchor.ts";
+export type { Anchor, Anchored, AvoidOptions } from "./anchor.ts";
 export { el, icon, iconOf, placeInOrder, setLabel, uniqueId } from "./dom.ts";
 export type { ElementOptions } from "./dom.ts";
 export { dragToMove, dragToResize } from "./drag.ts";
