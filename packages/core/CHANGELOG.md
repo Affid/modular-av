@@ -1,5 +1,21 @@
 # @modular-av/core
 
+## 0.3.0
+
+### Minor Changes
+
+- 8e37fee: `ParticipantState.blockedAudio` and `blockedVideo`: a GM took away a kind
+  the world's mode allows. UIs no longer work it out from `worldMode` and
+  `canBroadcast`.
+
+### Patch Changes
+
+- 17d2efd: A cameras UI that starts floating or scattered after a reload places
+  itself again: the core asked Foundry's hotbar to make room before the
+  hotbar had rendered, and Foundry threw.
+- Updated dependencies [8e37fee]
+  - @modular-av/api@0.3.0
+
 ## 0.2.0
 
 ### Minor Changes

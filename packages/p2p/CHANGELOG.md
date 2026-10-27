@@ -1,5 +1,12 @@
 # @modular-av/p2p
 
+## 0.3.0
+
+### Patch Changes
+
+- Updated dependencies [8e37fee]
+  - @modular-av/api@0.3.0
+
 ## 0.2.0
 
 ### Patch Changes

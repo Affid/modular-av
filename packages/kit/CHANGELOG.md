@@ -1,5 +1,22 @@
 # @modular-av/kit
 
+## 0.3.0
+
+### Minor Changes
+
+- 8e37fee: The dock's scattered layout: every camera on its own, against a corner or
+  edge of the screen or wherever it is dragged, moved and resized with the
+  pointer or the keyboard, saved per player, kept clear of Foundry's
+  sidebar, controls, hotbar and chat. A GM can save the arrangement as a
+  scene's layout for everyone. Themes: other modules register them through
+  the dock's API, each player picks one (or follows the world's), and tile
+  frames are declared, so the dock leaves room for them.
+
+### Patch Changes
+
+- 254ff35: Roving focus leaves alone the arrow keys an item used: the floating
+  dock's move button moves the dock instead of the focus.
+
 ## 0.2.0
 
 No changes in this release.

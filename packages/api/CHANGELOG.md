@@ -1,5 +1,13 @@
 # @modular-av/api
 
+## 0.3.0
+
+### Minor Changes
+
+- 8e37fee: `ParticipantState.blockedAudio` and `blockedVideo`: a GM took away a kind
+  the world's mode allows. UIs no longer work it out from `worldMode` and
+  `canBroadcast`.
+
 ## 0.2.0
 
 ### Minor Changes
