@@ -155,7 +155,7 @@
       "requires": [
         {
           "id": "modular-av",
-          "minimum": "0.8.0"
+          "minimum": "0.8.1"
         }
       ],
       "facts": [
@@ -169,7 +169,7 @@
         }
       ],
       "icon": "fa-solid fa-wave-square",
-      "version": "0.8.0",
+      "version": "0.8.1",
       "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-mic-denoise/module.json"
     },
     {
