@@ -1,6 +1,6 @@
 // The core's modules window in Foundry: a GM opens it from the module
-// settings, sees what the world runs on the board, plans a change and
-// gets the links; the window passes axe's WCAG 2.1 AA checks.
+// settings, sees what the world runs on air, changes the next setup in
+// the chain; the window passes axe's WCAG 2.1 AA checks.
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 import { configureWorld, openGm, type Player } from "./world.ts";
@@ -24,7 +24,7 @@ test.afterEach(async () => {
   open = [];
 });
 
-test("a GM plans the world's modules on the board", async ({ browser }) => {
+test("a GM plans the world's modules in the chain", async ({ browser }) => {
   const gm = await openGm(browser);
   open = [gm];
   // The test world never asks GitHub (pnpm foundry:setup): the core's own catalog.
@@ -43,35 +43,33 @@ test("a GM plans the world's modules on the board", async ({ browser }) => {
   await gm.page.getByRole("button", { name: "Plan your modules" }).click();
 
   const window = gm.page.locator("#modular-av-modules");
-  const board = window.locator(".mav-board-plan");
-  await expect(board).toBeVisible();
-  await expect(window.locator(".mav-board-status")).toContainText(
-    "This world runs",
-  );
-  await expect(board).toContainText("LiveKit");
-  await expect(board).toContainText("Dock");
+  const next = window.locator(".mav-board-next");
+  await expect(next).toBeVisible();
+  await expect(window.locator(".mav-board-onair")).toContainText("LiveKit");
+  await expect(next).toContainText("Dock");
   await expect(window.locator(".mav-board-source")).toContainText(
     "Checking GitHub is off",
   );
 
-  // Removing the Dock plans to turn it off, with the theme hanging off it.
-  await window.getByRole("button", { name: "Remove Dock" }).click();
-  await expect(window.locator(".mav-board-status")).toContainText("Your plan:");
-  await expect(window.locator(".mav-board-steps")).toContainText("turn off");
+  // Foundry's own camera dock instead of the Dock: the Dock comes off
+  // air when going live, with the theme hanging off it.
+  await window.locator('[data-key="stage-cameras"]').click();
+  await window.locator('[data-key="tile-built-in:cameras"]').click();
+  await window.locator('[data-key="inspect-act"]').click();
+  await expect(window.locator(".mav-board-status")).toContainText(
+    "Your next setup:",
+  );
+  await expect(window.locator(".mav-board-leaving").first()).toContainText(
+    "Dock",
+  );
 
-  // A piece dragged from the tray onto its socket goes on the board.
-  await window
-    .getByRole("button", { name: "Remove Noise cancellation" })
-    .click();
-  await window
-    .locator(".mav-board-tray .mav-board-piece", {
-      hasText: "Noise cancellation",
-    })
-    .dragTo(window.locator('[data-socket="core.effects"]'));
+  // An effect taken out and put back, from its tile.
+  await window.locator('[data-key="stage-effects"]').click();
+  await window.locator('[data-key="tile-modular-av-mic-denoise"]').click();
+  await window.locator('[data-key="inspect-act"]').click();
+  await window.locator('[data-key="inspect-act"]').click();
   await expect(
-    window.locator(".mav-board-arm.effects .mav-board-piece", {
-      hasText: "Noise cancellation",
-    }),
+    next.locator(".mav-board-slot", { hasText: "Noise cancellation" }),
   ).toBeVisible();
 
   const results = await new AxeBuilder({ page: gm.page })
@@ -87,7 +85,7 @@ test("a GM plans the world's modules on the board", async ({ browser }) => {
   await content.evaluate((c) => {
     c.scrollTop = 0;
   });
-  await gm.page.screenshot({ path: "test-results/foundry/modules-board.png" });
+  await gm.page.screenshot({ path: "test-results/foundry/modules-chain.png" });
   await content.evaluate((c) => {
     c.scrollTop = c.scrollHeight;
   });
@@ -122,7 +120,7 @@ test("a GM reaches it from the Voice & Video Settings window too", async ({
     .click();
 
   await expect(
-    gm.page.locator("#modular-av-modules .mav-board-plan"),
+    gm.page.locator("#modular-av-modules .mav-board-next"),
   ).toBeVisible();
   await gm.run(async (_api, game) => {
     await game.settings.set("modular-av", "checkGitHub", false);
