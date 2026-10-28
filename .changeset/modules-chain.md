@@ -20,6 +20,8 @@ and Soundcheck walk you to Foundry's Setup screen and back, and
 Soundcheck opens each module's settings where they live.
 
 For module authors: the Voice & Video Settings window can open on a tab
-(`SettingsHost.tab`, a `SettingsWindowTab`), and each module's manifest
+(`SettingsHost.tab`, a `SettingsWindowTab`; while it is open,
+`SettingsHost.onTabRequest` tells the surface, which keeps what is
+drafted), its code loads when it first opens, and each module's manifest
 can give its card an icon and a few facts (`flags["modular-av"].icon`
 and `.facts`).
