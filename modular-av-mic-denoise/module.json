@@ -32,17 +32,28 @@
         "type": "module",
         "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av/module.json",
         "compatibility": {
-          "minimum": "0.5.0"
+          "minimum": "0.6.0"
         }
       }
     ]
   },
   "flags": {
     "modular-av": {
-      "kind": "effect"
+      "kind": "effect",
+      "icon": "fa-solid fa-wave-square",
+      "facts": [
+        {
+          "label": "Who turns it on",
+          "value": "Each player, in Voice & Video Settings"
+        },
+        {
+          "label": "Works with",
+          "value": "Every service"
+        }
+      ]
     }
   },
-  "version": "0.5.0",
+  "version": "0.6.0",
   "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-mic-denoise/module.json",
-  "download": "https://github.com/Affid/modular-av/releases/download/modular-av-mic-denoise-v0.5.0/modular-av-mic-denoise.zip"
+  "download": "https://github.com/Affid/modular-av/releases/download/modular-av-mic-denoise-v0.6.0/modular-av-mic-denoise.zip"
 }
