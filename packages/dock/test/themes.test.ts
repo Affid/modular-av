@@ -2,7 +2,6 @@
 import { avState, participantState } from "@modular-av/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { camerasSurface } from "../src/cameras/dock.ts";
-import { renderSettings } from "../src/settings-window/window.ts";
 import { applyTheme, themeClass } from "../src/themes/apply.ts";
 import { createThemes } from "../src/themes/choice.ts";
 import { createThemeRegistry } from "../src/themes/registry.ts";
@@ -272,61 +271,5 @@ describe("a theme's frames in the dock", () => {
     expect(
       host.element.querySelector<HTMLElement>(".mav-dock")?.dataset.placement,
     ).toBe("left");
-  });
-});
-
-describe("choosing a theme in the settings window", () => {
-  function open(isGM: boolean) {
-    const themes = fakeThemes();
-    const test = testDock({
-      state: avState({ participants: [me] }),
-      themes,
-      isGM,
-    });
-    const content = document.createElement("section");
-    document.body.append(content);
-    renderSettings(test.ctx, {
-      content,
-      close: () => Promise.resolve(),
-      openFoundrySettings: () => undefined,
-    });
-    const selects = () =>
-      [...content.querySelectorAll<HTMLSelectElement>("select")].filter((s) =>
-        [...s.options].some((o) => o.value === "vines"),
-      );
-    return { themes, content, selects };
-  }
-
-  it("lets a player choose a theme or follow the world's", async () => {
-    const { themes, selects } = open(false);
-    const [own] = selects();
-
-    expect(selects()).toHaveLength(1);
-    expect([...(own?.options ?? [])].map((o) => o.textContent)).toEqual([
-      "The world's theme (Modular A/V's own look)",
-      "Modular A/V's own look",
-      "Vines",
-    ]);
-    if (!own) throw new Error("no theme choice");
-    own.value = "vines";
-    own.dispatchEvent(new Event("change"));
-    await Promise.resolve();
-
-    expect(themes.own()).toBe("vines");
-  });
-
-  it("lets a GM set the world's theme too", async () => {
-    const { themes, selects } = open(true);
-    const world = selects()[1];
-
-    if (!world) throw new Error("no world theme choice");
-    world.value = "vines";
-    world.dispatchEvent(new Event("change"));
-    await Promise.resolve();
-
-    expect(themes.worldDefault()).toBe("vines");
-    expect(selects()[0]?.options[0]?.textContent).toBe(
-      "The world's theme (Vines)",
-    );
   });
 });

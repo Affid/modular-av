@@ -59,9 +59,11 @@ test("is offered without it: the dock's own look stays", async ({ page }) => {
 
   await expect(page.locator("link[data-mav-theme]")).toHaveCount(0);
   await page.locator(".mav-dock-settings").click();
-  const choice = page.getByLabel("Theme", { exact: true });
+  await page.getByRole("tab", { name: "Appearance" }).click();
+  // The harness's user is a GM: one theme, for everyone.
+  const choice = page.getByLabel("Theme for everyone", { exact: true });
+  await expect(choice).toHaveValue("default");
   await expect(choice.locator("option")).toHaveText([
-    "The world's theme (Modular A/V's own look)",
     "Modular A/V's own look",
     "Vines",
   ]);

@@ -53,7 +53,7 @@ export interface TestDock {
   readonly ctx: DockContext;
   readonly errors: unknown[];
   readonly saved: Map<string, unknown>;
-  opened: { settings: number; controls: number };
+  opened: { settings: number };
   /** Each reload asked for: true for every page, false for this one. */
   readonly reloads: boolean[];
   /** Push to talk's bindings as set. */
@@ -86,7 +86,7 @@ export function testDock(options: TestDockOptions = {}): TestDock {
   const configs = new Map(
     (options.foundrySettings ?? []).map((s) => [`${s.namespace}.${s.key}`, s]),
   );
-  const opened = { settings: 0, controls: 0 };
+  const opened = { settings: 0 };
   const reloads: boolean[] = [];
   const pushToTalkSet: (readonly string[])[] = [];
   let sceneListeners: readonly (() => void)[] = [];
@@ -124,9 +124,6 @@ export function testDock(options: TestDockOptions = {}): TestDock {
     },
     openSettings: () => {
       opened.settings += 1;
-    },
-    openControls: () => {
-      opened.controls += 1;
     },
     reload: (everyone) => {
       reloads.push(everyone);

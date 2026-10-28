@@ -1,4 +1,4 @@
-import type { SettingsSectionContribution } from "@modular-av/api";
+import type { SettingsSectionContribution, SettingsTab } from "@modular-av/api";
 import { el } from "@modular-av/kit";
 import {
   byOrder,
@@ -166,15 +166,18 @@ function contributedSection(
   };
 }
 
+/** Other modules' sections for a tab: `null` for those naming none. */
 export function contributedSections(
   ctx: DockContext,
   doc: Document,
   alerts: HTMLElement,
+  tab: SettingsTab | null,
 ): readonly Rendered[] {
   return ctx.api.contributions
     .list()
     .filter(
-      (c): c is SettingsSectionContribution => c.kind === "settings-section",
+      (c): c is SettingsSectionContribution =>
+        c.kind === "settings-section" && (c.tab ?? null) === tab,
     )
     .sort(byOrder)
     .map((c) => contributedSection(ctx, doc, c, alerts));

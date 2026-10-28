@@ -5,85 +5,132 @@ import {
   renderContributedControls,
 } from "../contributions/controls.ts";
 import type { DockContext } from "../context.ts";
-import { renderEffects } from "../panel/effects.ts";
-import { appearanceSection } from "./appearance.ts";
 import { contributedSections } from "./contributed.ts";
+import { createDraft, type Draft } from "./draft.ts";
+import type { DraftKey } from "./draft-fields.ts";
 import { section } from "./fields.ts";
-import { devicesSection, videoSection, voiceSection } from "./sections.ts";
+import { createFooter } from "./footer.ts";
+import { appearanceTab } from "./tab-appearance.ts";
+import { callTab } from "./tab-call.ts";
+import { videoTab } from "./tab-video.ts";
+import { voiceTab } from "./tab-voice.ts";
+import { createTabs, type TabSpec } from "./tabs.ts";
 
-/** Foundry's own A/V settings keep the world's mode and relay server. */
-function foundrySection(
-  ctx: DockContext,
-  doc: Document,
-  host: SettingsHost,
-): HTMLElement {
-  const open = el("button", {
-    doc,
-    className: "mav-control-button",
-    text: ctx.t("settings.foundry"),
-    attrs: { type: "button" },
-  });
-  open.addEventListener("click", () => {
-    host.openFoundrySettings();
-  });
-  return section(doc, ctx.t("settings.foundry"), [
-    el("p", {
-      doc,
-      className: "mav-settings-hint",
-      text: ctx.t("settings.foundryHint"),
-    }),
-    open,
-  ]);
+/** The tab each of the window's own fields is on. */
+const TAB_OF: Readonly<Record<Exclude<DraftKey, "effects">, string>> = {
+  service: "call",
+  worldMode: "call",
+  relay: "call",
+  audioInput: "voice",
+  audioOutput: "voice",
+  voiceMode: "voice",
+  pttKey: "voice",
+  sensitivityAuto: "voice",
+  threshold: "voice",
+  videoInput: "video",
+  receiveVideo: "video",
+  theme: "appearance",
+  camerasOwn: "appearance",
+  camerasWorld: "appearance",
+  settingsWindow: "appearance",
+};
+
+/** The tabs with unsaved changes; an effect's is its kind's tab. */
+function unsavedTabs(ctx: DockContext, draft: Draft): ReadonlySet<string> {
+  const tabs = new Set<string>();
+  for (const key of draft.changed()) {
+    if (key !== "effects") tabs.add(TAB_OF[key]);
+  }
+  const now = draft.get("effects");
+  const was = draft.savedValue("effects");
+  for (const d of ctx.api.effects.list()) {
+    const group = d.exclusiveGroup ?? d.id;
+    if ((now[group] ?? "") !== (was[group] ?? ""))
+      tabs.add(d.kind === "audio" ? "voice" : "video");
+  }
+  return tabs;
 }
 
-/** GMs: the core's modules window, to plan which modules the world runs. */
-function modulesSection(
+/** Other modules' sections naming no tab, and their settings controls. */
+function moreTab(
   ctx: DockContext,
   doc: Document,
-  open: () => void,
-): HTMLElement {
-  const button = el("button", {
-    doc,
-    className: "mav-control-button",
-    text: ctx.t("settings.modules"),
-    attrs: { type: "button" },
-  });
-  button.addEventListener("click", open);
-  return section(doc, ctx.t("settings.modulesTitle"), [
-    el("p", {
-      doc,
-      className: "mav-settings-hint",
-      text: ctx.t("settings.modulesHint"),
-    }),
-    button,
-  ]);
+  alerts: HTMLElement,
+): readonly Rendered[] {
+  const controls = renderContributedControls(ctx, doc, "settings", alerts);
+  const sections = contributedSections(ctx, doc, alerts, null);
+  return [
+    ...(controls.length
+      ? [
+          {
+            element: section(
+              doc,
+              ctx.t("tabs.more"),
+              controls.map((c) => c.element),
+            ),
+            dispose() {
+              for (const c of controls) c.dispose();
+            },
+          },
+        ]
+      : []),
+    ...sections,
+  ];
 }
 
-/** No effect module here: say they exist; a GM can go plan them. */
-function effectModulesHint(
+function tabSpecs(
   ctx: DockContext,
   doc: Document,
+  draft: Draft,
   host: SettingsHost,
-): HTMLElement[] {
-  const hint = el("p", {
-    doc,
-    className: "mav-settings-hint",
-    text: ctx.t(host.openModules ? "effects.modulesGm" : "effects.modules"),
-  });
-  if (!host.openModules) return [hint];
-  const plan = el("button", {
-    doc,
-    className: "mav-control-button",
-    text: ctx.t("settings.modules"),
-    attrs: { type: "button" },
-  });
-  plan.addEventListener("click", () => host.openModules?.());
-  return [hint, plan];
+  alerts: HTMLElement,
+): TabSpec[] {
+  const untabbed = ctx.api.contributions
+    .list()
+    .some(
+      (c) =>
+        (c.kind === "settings-section" && c.tab === undefined) ||
+        (c.kind === "control" &&
+          c.place === "settings" &&
+          c.effect === undefined),
+    );
+  return [
+    {
+      id: "call",
+      label: ctx.t("tabs.call"),
+      render: () => callTab(ctx, doc, draft, host, alerts),
+    },
+    {
+      id: "voice",
+      label: ctx.t("tabs.voice"),
+      render: () => voiceTab(ctx, doc, draft, host, alerts),
+    },
+    {
+      id: "video",
+      label: ctx.t("tabs.video"),
+      render: () => videoTab(ctx, doc, draft, alerts),
+    },
+    {
+      id: "appearance",
+      label: ctx.t("tabs.appearance"),
+      render: () => appearanceTab(ctx, doc, draft, alerts),
+    },
+    ...(untabbed
+      ? [
+          {
+            id: "more",
+            label: ctx.t("tabs.more"),
+            render: () => moreTab(ctx, doc, alerts),
+          },
+        ]
+      : []),
+  ];
 }
 
 /**
- * The "Voice & Video Settings" window: devices, voice, video, effects and
- * what other modules contributed. Returns what undoes its subscriptions.
+ * The "Voice & Video Settings" window: tabs for the call, voice, video and
+ * appearance (and other modules' own), every change drafted until Save.
+ * Returns what undoes it.
  */
 export function renderSettings(
   ctx: DockContext,
@@ -95,42 +142,36 @@ export function renderSettings(
     className: "mav-dock-alert",
     attrs: { role: "alert" },
   });
-  const effects = renderEffects(ctx, doc, alerts);
-  const extra = renderContributedControls(ctx, doc, "settings", alerts);
-  const own: readonly Rendered[] = [
-    ...devicesSection(ctx, doc, alerts),
-    ...voiceSection(ctx, doc, alerts),
-    ...videoSection(ctx, doc, alerts),
-    ...appearanceSection(ctx, doc, alerts),
-  ];
-  const contributed = contributedSections(ctx, doc, alerts);
-  const noEffects = effects.element.hidden && extra.length === 0;
-  const effectsSection = section(
+  const draft = createDraft(ctx);
+  const tabs = createTabs(
     doc,
-    ctx.t("effects.title"),
-    noEffects
-      ? effectModulesHint(ctx, doc, host)
-      : [effects.element, ...extra.map((e) => e.element)],
+    tabSpecs(ctx, doc, draft, host, alerts),
+    ctx.t("tabs.label"),
   );
-  const form = el("div", {
-    doc,
-    className: "mav-settings",
-    children: [
-      ...own
-        .map((p) => p.element)
-        .filter((e) => e.classList.contains("mav-settings-section")),
-      effectsSection,
-      ...contributed.map((c) => c.element),
-      foundrySection(ctx, doc, host),
-      host.openModules
-        ? modulesSection(ctx, doc, () => host.openModules?.())
-        : null,
-      alerts,
-    ],
-  });
-  host.content.replaceChildren(form);
+  const footer = createFooter(ctx, doc, draft, alerts);
+  const mark = (): void => {
+    const unsaved = unsavedTabs(ctx, draft);
+    tabs.mark((id) => unsaved.has(id));
+  };
+  const offDraft = draft.subscribe(mark);
+  // Changes made elsewhere (the quick controls) show in untouched fields.
+  const offState = ctx.api.state.subscribe(
+    (s) => s.local,
+    () => {
+      draft.sync();
+    },
+  );
+  host.content.replaceChildren(
+    el("div", {
+      doc,
+      className: "mav-settings",
+      children: [tabs.element, alerts, footer.element],
+    }),
+  );
   return () => {
-    for (const part of [...own, effects, ...extra, ...contributed])
-      part.dispose();
+    offDraft();
+    offState();
+    tabs.dispose();
+    footer.dispose();
   };
 }

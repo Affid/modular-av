@@ -44,6 +44,20 @@ export interface FoundryGameish {
     readonly client: Record<string, unknown>;
     _initializeUserVoiceDetection(mode: string): void;
   };
+  readonly keybindings: {
+    get(ns: string, action: string): readonly FoundryBinding[];
+    set(
+      ns: string,
+      action: string,
+      bindings: readonly FoundryBinding[],
+    ): Promise<unknown>;
+  };
+}
+
+/** A key binding as Foundry's keybindings hold it. */
+export interface FoundryBinding {
+  readonly key: string;
+  readonly modifiers?: readonly string[];
 }
 
 export async function openPlayer(

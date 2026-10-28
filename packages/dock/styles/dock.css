@@ -1009,6 +1009,11 @@
   margin: 0;
 }
 
+/* The section's gap spaces its paragraphs. */
+.mav-settings-section > p {
+  margin: 0;
+}
+
 /*
  * Input sensitivity: the threshold's handle on the level bar itself, one
  * scale. The meter is inset by half the handle's width, so the handle's
@@ -1108,13 +1113,228 @@
   outline-offset: 2px;
 }
 
-.mav-settings-preview {
+/*
+ * The window's tabs down the side (as Foundry's own settings), one panel
+ * at a time, and the footer that saves what the tabs drafted.
+ */
+.mav-settings-tabbed {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.mav-settings-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mav-settings-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   width: 100%;
-  max-width: 320px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--mav-text-muted);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.mav-settings-tab:hover {
+  background: var(--mav-surface);
+  color: var(--mav-text);
+}
+
+.mav-settings-tab[aria-selected="true"] {
+  background: var(--mav-surface-raised);
+  color: var(--mav-text);
+  font-weight: 600;
+}
+
+/* Unsaved changes on this tab: a dot, and its name says so too. */
+.mav-settings-tab[data-unsaved]::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  margin-inline-start: auto;
+  border-radius: 50%;
+  background: var(--mav-accent);
+}
+
+.mav-settings-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
+.mav-settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mav-settings-group[hidden],
+.mav-settings-row[hidden] {
+  display: none;
+}
+
+.mav-settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mav-settings-actions .mav-control-button,
+.mav-settings-footer .mav-control-button {
+  width: auto;
+}
+
+.mav-settings-footer {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 10px 0 2px;
+  border-top: 1px solid var(--mav-border);
+  background: var(--mav-surface-sunken);
+}
+
+.mav-settings-pending {
+  flex: 1;
+  min-width: 180px;
+  margin: 0;
+  color: var(--mav-text-muted);
+}
+
+.mav-control-button.mav-primary {
+  border-color: var(--mav-accent);
+  background: var(--mav-accent);
+  color: var(--mav-on-accent);
+  font-weight: 600;
+}
+
+.mav-control-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.mav-key kbd {
+  padding: 0 6px;
+  border: 1px solid var(--mav-border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--mav-surface-raised);
+  font-family: ui-monospace, "Cascadia Mono", monospace;
+}
+
+.mav-key[data-listening] {
+  border-color: var(--mav-focus);
+}
+
+.mav-call-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-weight: 600;
+}
+
+.mav-call-state::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--mav-speaking);
+}
+
+.mav-call-state[data-on="false"]::before {
+  background: var(--mav-muted);
+}
+
+/* Video: the preview leads, the camera and its background beside it. */
+.mav-settings-camera {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.mav-settings-camera-side {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.mav-settings-preview {
+  position: relative;
+  width: 100%;
   aspect-ratio: 16 / 9;
+  overflow: hidden;
   border-radius: var(--mav-dock-radius);
   background: var(--mav-dock-tile-bg);
+}
+
+.mav-settings-preview video {
+  width: 100%;
+  height: 100%;
   object-fit: cover;
+  transform: scaleX(-1);
+}
+
+.mav-preview-note {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 16px;
+  color: var(--mav-text);
+  text-align: center;
+}
+
+.mav-preview-note[hidden] {
+  display: none;
+}
+
+.mav-preview-only {
+  position: absolute;
+  inset-inline-end: 8px;
+  bottom: 8px;
+  padding: 1px 7px;
+  border-radius: 4px;
+  background: rgb(0 0 0 / 65%);
+  color: var(--mav-text);
+  font-size: 0.85em;
+}
+
+/* A narrow window: tabs above, the preview above its controls. */
+@container (max-width: 560px) {
+  .mav-settings-tabbed,
+  .mav-settings-camera {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mav-settings-tabs {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .mav-settings-tab {
+    width: auto;
+  }
+}
+
+.mav-settings {
+  container-type: inline-size;
 }
 
 /* ---- Player list ---- */

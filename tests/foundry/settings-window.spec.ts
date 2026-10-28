@@ -68,18 +68,42 @@ test("the settings window fits the screen, scrolls and moves", async ({
   expect(Math.round((after?.x ?? 0) - before.x)).toBe(-120);
 });
 
-test("the push to talk key changes in Foundry's controls", async ({
+test("push to talk's key is set in place, as Foundry's own binding", async ({
   browser,
 }) => {
   const gm = await openGm(browser);
   open = [gm];
   await expect(gm.page.locator("#camera-views .mav-dock")).toBeVisible();
+  const was = await gm.run(
+    (api, game) =>
+      Promise.resolve({
+        mode: api.state.get().local.voiceMode,
+        keys: game.keybindings.get("core", "pushToTalk"),
+      }),
+    null,
+  );
   await gm.page.locator(".mav-dock-settings").click();
+  const window = gm.page.locator("#modular-av-settings");
+  await window.getByRole("tab", { name: "Voice" }).click();
 
-  await gm.page
-    .locator("#modular-av-settings")
-    .getByRole("button", { name: "Change in Foundry's controls" })
-    .click();
+  await window.getByLabel("Input mode").selectOption("ptt");
+  await window.locator('[data-field="pttKey"]').click();
+  await gm.page.keyboard.press("KeyV");
+  await window.getByRole("button", { name: "Save changes" }).click();
 
-  await expect(gm.page.locator("#controls-config")).toBeVisible();
+  await expect
+    .poll(() =>
+      gm.run(
+        (_api, game) =>
+          Promise.resolve(
+            game.keybindings.get("core", "pushToTalk").map((b) => b.key),
+          ),
+        null,
+      ),
+    )
+    .toEqual(["KeyV"]);
+  await gm.run(async (api, game, before) => {
+    await game.keybindings.set("core", "pushToTalk", before.keys);
+    await api.commands.setVoiceMode(before.mode);
+  }, was);
 });

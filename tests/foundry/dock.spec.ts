@@ -140,6 +140,7 @@ test.describe("with LiveKit", () => {
 
     const window = p1.page.locator("#modular-av-settings");
     await expect(window.locator(".mav-settings")).toBeVisible();
+    await window.getByRole("tab", { name: "Voice" }).click();
     await expect(
       window.getByRole("heading", { name: "Devices" }),
     ).toBeVisible();

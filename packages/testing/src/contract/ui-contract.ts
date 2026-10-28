@@ -45,6 +45,11 @@ export interface UIDriver {
   openConnectionDetails(page: Page, menu: Locator): Promise<Locator>;
   /** Puts the cameras in the Picture-in-Picture window, from a click. */
   openWindow(page: Page): Promise<void>;
+  /**
+   * In an open settings window with tabs, shows the sections that name no
+   * tab (as the sample's doesn't).
+   */
+  showUntabbedSettings?(page: Page): Promise<void>;
 }
 
 const PLAYERS = ["p1", "p2"] as const;
@@ -318,6 +323,7 @@ function contributionTests(driver: UIDriver): void {
     await open(page, driver);
 
     await driver.control(page, "settings").click();
+    await driver.showUntabbedSettings?.(page);
 
     const section = page.getByRole("heading", { name: "Sample settings" });
     await expect(section).toBeVisible();

@@ -55,7 +55,7 @@ export function createSettingsWindow(
         icon: "fa-solid fa-headset",
         resizable: true,
       },
-      position: { width: 560 },
+      position: { width: 760 },
     };
 
     override _renderHTML(): Promise<unknown> {

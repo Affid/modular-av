@@ -95,8 +95,6 @@ export interface DockContext {
   readonly foundrySetting: (key: string) => FoundrySettingConfig | null;
   /** The key codes bound to Foundry's push to talk. */
   readonly pushToTalkKeys: () => readonly string[];
-  /** Opens Foundry's controls, where the push to talk key is set. */
-  readonly openControls: () => void;
   /** Binds Foundry's push to talk to this key (a KeyboardEvent code). */
   readonly setPushToTalkKey: (code: string) => Promise<void>;
   /** Reloads this page, or every connected one (a GM's). */
@@ -112,7 +110,6 @@ export interface ContextDeps {
   readonly game: DockGame;
   readonly api: ModularAV;
   readonly openSettings: () => void;
-  readonly openControls?: () => void;
   readonly reload?: (everyone: boolean) => void;
   readonly now?: () => number;
   readonly onError: (error: unknown) => void;
@@ -166,7 +163,6 @@ export function createContext(deps: ContextDeps): DockContext {
     foundrySetting: (key) => game.settings.settings?.get(key) ?? null,
     pushToTalkKeys: () =>
       (game.keybindings?.get("core", "pushToTalk") ?? []).map((b) => b.key),
-    openControls: deps.openControls ?? (() => undefined),
     setPushToTalkKey: async (code) => {
       await game.keybindings?.set?.("core", "pushToTalk", [
         { key: code, modifiers: [] },

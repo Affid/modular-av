@@ -12,6 +12,8 @@ import {
  */
 export interface Draft {
   get<K extends DraftKey>(key: K): DraftValues[K];
+  /** What is saved now for `key`. */
+  savedValue<K extends DraftKey>(key: K): DraftValues[K];
   set<K extends DraftKey>(key: K, value: DraftValues[K]): void;
   /** Fields that differ from what is saved, in the window's order. */
   changed(): readonly DraftKey[];
@@ -56,6 +58,7 @@ export function createDraft(ctx: DockContext): Draft {
     KEYS.filter((key) => mine(key) && !same(draft[key], saved[key]));
   return {
     get: (key) => draft[key],
+    savedValue: (key) => saved[key],
     set(key, value) {
       draft = { ...draft, [key]: value };
       notify();

@@ -30,16 +30,6 @@ declare global {
   };
   var foundry: {
     readonly utils: { getRoute(path: string): string; debouncedReload(): void };
-    readonly applications: {
-      readonly sidebar: {
-        readonly apps: {
-          /** Foundry's Controls window, where push to talk's key is set. */
-          readonly ControlsConfig: new () => {
-            render(options?: object): unknown;
-          };
-        };
-      };
-    };
   };
 }
 
@@ -130,12 +120,6 @@ Hooks.once("modularAV.register", (api: ModularAV) => {
     reload: (everyone) => {
       if (everyone) game.socket.emit("reload");
       foundry.utils.debouncedReload();
-    },
-    // As Foundry's settings sidebar opens it.
-    openControls: () => {
-      void new foundry.applications.sidebar.apps.ControlsConfig().render({
-        force: true,
-      });
     },
     onError: reportError,
     onSceneChange,

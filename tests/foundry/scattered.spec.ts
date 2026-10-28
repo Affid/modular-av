@@ -246,18 +246,16 @@ test("choosing a theme loads only its stylesheet, and back", async ({
   );
 
   await p1.page.locator(".mav-dock-settings").click();
-  await p1.page
-    .locator("#modular-av-settings")
-    .getByLabel("Theme", { exact: true })
-    .selectOption("vines");
+  const window = p1.page.locator("#modular-av-settings");
+  await window.getByRole("tab", { name: "Appearance" }).click();
+  await window.getByLabel("Theme", { exact: true }).selectOption("vines");
+  await window.getByRole("button", { name: "Save changes" }).click();
 
   expect((await loaded).status()).toBe(200);
   await expect(p1.page.locator("html")).toHaveClass(/mav-theme-vines/);
   await expect(p1.page.locator("link[data-mav-theme]")).toHaveCount(1);
-  await p1.page
-    .locator("#modular-av-settings")
-    .getByLabel("Theme", { exact: true })
-    .selectOption("default");
+  await window.getByLabel("Theme", { exact: true }).selectOption("default");
+  await window.getByRole("button", { name: "Save changes" }).click();
   await expect(p1.page.locator("link[data-mav-theme]")).toHaveCount(0);
   await expect(p1.page.locator("html")).not.toHaveClass(/mav-theme-/);
 });
