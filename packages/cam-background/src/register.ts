@@ -41,7 +41,6 @@ export function registerBackground(
   });
   for (const definition of definitions) api.effects.register(definition);
   const contributions = backgroundContributions({
-    api,
     settings: deps.settings,
     route: deps.route,
     pickImage: async (current) => {

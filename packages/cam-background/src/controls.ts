@@ -1,15 +1,11 @@
 import type {
-  AVCommands,
-  AVState,
   ButtonControl,
   ChoiceControl,
   ChoiceOption,
   Contribution,
-  EffectState,
+  ControlContribution,
   Observable,
   RangeControl,
-  Store,
-  ToggleState,
 } from "@modular-av/api";
 import { ImageLoadError } from "./errors.ts";
 import {
@@ -19,38 +15,11 @@ import {
 } from "./settings.ts";
 
 export interface ControlsDeps {
-  readonly api: {
-    readonly state: Pick<Store<AVState>, "get" | "subscribe">;
-    readonly commands: Pick<AVCommands, "setEffectEnabled">;
-  };
   readonly settings: CameraBackgroundSettings;
   /** Foundry's route for a path on its server. */
   readonly route: (path: string) => string;
   /** Asks the player for an image: a path or an address, or null. */
   readonly pickImage: (current: string) => Promise<string | null>;
-}
-
-const toggleOf = (status: EffectState | undefined): ToggleState => ({
-  on: status?.status === "starting" || status?.status === "running",
-  busy: status?.status === "starting",
-  disabled: status?.status === "unsupported",
-});
-
-const sameToggle = (a: ToggleState, b: ToggleState): boolean =>
-  a.on === b.on && a.busy === b.busy && a.disabled === b.disabled;
-
-/** An effect's state in the core's store, as a toggle's. */
-function effectToggle(
-  state: ControlsDeps["api"]["state"],
-  id: string,
-): Observable<ToggleState> {
-  return {
-    get: () => toggleOf(state.get().local.effects[id]),
-    subscribe: (listener) =>
-      state.subscribe((s) => toggleOf(s.local.effects[id]), listener, {
-        equals: sameToggle,
-      }),
-  };
 }
 
 function map<A, B>(source: Observable<A>, f: (a: A) => B): Observable<B> {
@@ -63,8 +32,15 @@ function map<A, B>(source: Observable<A>, f: (a: A) => B): Observable<B> {
   };
 }
 
-function strengthControl(settings: CameraBackgroundSettings): RangeControl {
+/** Shown with the effect's choice, while it is chosen. */
+const attachedTo = (effect: string) =>
+  ({ kind: "control", place: "quick", effect }) as const;
+
+function strengthControl(
+  settings: CameraBackgroundSettings,
+): RangeControl & ControlContribution {
   return {
+    ...attachedTo("background-blur"),
     type: "range",
     id: `${MODULE_ID}.strength`,
     label: `${MODULE_ID}.controls.strength`,
@@ -77,11 +53,10 @@ function strengthControl(settings: CameraBackgroundSettings): RangeControl {
   };
 }
 
-function imageControls(
-  deps: ControlsDeps,
-): readonly [ChoiceControl, ButtonControl] {
+function imageControls(deps: ControlsDeps): readonly ControlContribution[] {
   const { settings } = deps;
-  const choice: ChoiceControl = {
+  const choice: ChoiceControl & ControlContribution = {
+    ...attachedTo("background-replace"),
     type: "choice",
     id: `${MODULE_ID}.image`,
     label: `${MODULE_ID}.controls.image`,
@@ -97,7 +72,8 @@ function imageControls(
     state: settings.image,
     set: (value) => settings.set("image", value),
   };
-  const pick: ButtonControl = {
+  const pick: ButtonControl & ControlContribution = {
+    ...attachedTo("background-replace"),
     type: "button",
     id: `${MODULE_ID}.pick`,
     label: `${MODULE_ID}.controls.pick`,
@@ -115,44 +91,23 @@ function imageControls(
 }
 
 /**
- * Quick toggles for blur (with its strength) and replace (with the image),
- * and a settings section with the quality: every UI draws them its way.
+ * The blur's strength and the replacement's images, each shown with its
+ * effect's choice, and the quality on the settings window's Video tab:
+ * every UI draws them its way.
  */
 export function backgroundContributions(
   deps: ControlsDeps,
 ): readonly Contribution[] {
-  const { api, settings } = deps;
-  const strength = strengthControl(settings);
-  const images = imageControls(deps);
-  const toggle = (
-    mode: "blur" | "replace",
-    icon: string,
-    controls: ToggleControlChildren,
-  ): Contribution => ({
-    kind: "control",
-    place: "quick",
-    type: "toggle",
-    id: `${MODULE_ID}.${mode}`,
-    label: `${MODULE_ID}.effects.${mode}`,
-    icon,
-    state: effectToggle(api.state, `background-${mode}`),
-    set: (on) => api.commands.setEffectEnabled(`background-${mode}`, on),
-    controls,
-  });
   return [
-    toggle("blur", "fa-solid fa-droplet", [strength]),
-    toggle("replace", "fa-solid fa-image", images),
+    strengthControl(deps.settings),
+    ...imageControls(deps),
     {
       kind: "settings-section",
       id: `${MODULE_ID}.section`,
       label: `${MODULE_ID}.section`,
       icon: "fa-solid fa-user",
+      tab: "video",
       settings: [`${MODULE_ID}.quality`],
-      controls: [strength, ...images],
     },
   ];
 }
-
-type ToggleControlChildren = NonNullable<
-  Extract<Contribution, { type: "toggle" }>["controls"]
->;

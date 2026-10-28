@@ -19,6 +19,7 @@ const CONTRIBUTION_KINDS = [
 ] as const;
 const CONTROL_TYPES = ["toggle", "range", "choice", "button"] as const;
 const PLACES = ["quick", "settings"] as const;
+const TABS = ["call", "voice", "video", "appearance"] as const;
 
 class Problem extends Error {}
 
@@ -109,6 +110,11 @@ function checkKind(c: Fields): void {
   switch (c.kind) {
     case "control":
       check(oneOf(PLACES, c.place), 'place must be "quick" or "settings"');
+      if (c.effect !== undefined)
+        check(
+          typeof c.effect === "string" && c.effect !== "",
+          "effect must be an effect's id",
+        );
       checkControl(c, false);
       return;
     case "participant-action":
@@ -145,6 +151,8 @@ function checkSection(c: Fields): void {
       "secrets must be some of the section's settings",
     );
   if (c.controls !== undefined) checkControls(c.controls, false);
+  if (c.tab !== undefined)
+    check(oneOf(TABS, c.tab), `tab must be one of ${TABS.join(", ")}`);
 }
 
 const named = (value: unknown): string =>

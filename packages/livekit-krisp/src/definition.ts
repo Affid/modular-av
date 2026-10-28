@@ -59,5 +59,6 @@ export const krispSection: SettingsSectionContribution = {
   id: `${MODULE_ID}.section`,
   label: `${MODULE_ID}.section`,
   icon: "fa-solid fa-wave-square",
+  tab: "voice",
   settings: [`${MODULE_ID}.${QUALITY_SETTING}`],
 };

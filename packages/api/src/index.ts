@@ -12,6 +12,7 @@ export type {
   ParticipantActionContribution,
   RangeControl,
   SettingsSectionContribution,
+  SettingsTab,
   StatusRowContribution,
   ToggleControl,
   ToggleState,

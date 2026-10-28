@@ -85,6 +85,12 @@ export type ControlContribution = Control &
   ContributionBase & {
     readonly kind: "control";
     readonly place: "quick" | "settings";
+    /**
+     * The effect (its id) this control sets something of, e.g. a blur's
+     * strength: UIs show it with that effect's choice, wherever the choice
+     * is, only while the effect is chosen; `place` then doesn't matter.
+     */
+    readonly effect?: string;
   };
 
 /** An item of a participant's menu, e.g. a GM's "Block video". */
@@ -114,6 +120,9 @@ export interface StatusRowContribution extends ItemBase, ContributionBase {
   readonly value: Observable<Label | null>;
 }
 
+/** Where a settings window with tabs shows a section. */
+export type SettingsTab = "call" | "voice" | "video" | "appearance";
+
 /**
  * A section of the settings window: Foundry settings, by key
  * ("<module-id>.<key>"), rendered from their registration, and controls.
@@ -126,6 +135,8 @@ export interface SettingsSectionContribution
   /** Of `settings`, those holding a secret: their fields never show the value. */
   readonly secrets?: readonly string[];
   readonly controls?: readonly Control[];
+  /** Its tab, in a window with tabs; a tab of its own ("More") if not given. */
+  readonly tab?: SettingsTab;
 }
 
 export type Contribution =

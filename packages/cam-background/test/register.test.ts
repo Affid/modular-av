@@ -21,8 +21,9 @@ describe("registering the camera background", () => {
       "background-replace",
     ]);
     expect(api.contributions.list().map((c) => c.id)).toEqual([
-      `${MODULE_ID}.blur`,
-      `${MODULE_ID}.replace`,
+      `${MODULE_ID}.strength`,
+      `${MODULE_ID}.image`,
+      `${MODULE_ID}.pick`,
       `${MODULE_ID}.section`,
     ]);
   });

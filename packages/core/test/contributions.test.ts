@@ -76,6 +76,21 @@ const VALID: readonly Contribution[] = [
     label: "LiveKit",
     settings: ["modular-av-livekit.url", "modular-av-livekit.apiSecret"],
     secrets: ["modular-av-livekit.apiSecret"],
+    tab: "call",
+  },
+  {
+    kind: "control",
+    place: "quick",
+    type: "range",
+    id: "cam.strength",
+    label: "Strength",
+    min: 10,
+    max: 100,
+    step: 5,
+    state: observable(60),
+    set: () => Promise.resolve(),
+    // Shown with the blur's choice, while blur is chosen.
+    effect: "background-blur",
   },
 ];
 
@@ -126,6 +141,8 @@ describe("contribution checks", () => {
       /setting/,
     ],
     ["an indicator without an icon", { ...VALID[3], icon: undefined }, /icon/],
+    ["an effect that isn't an id", { ...blur, effect: "" }, /effect/],
+    ["a tab no window has", { ...VALID[5], tab: "sidebar" }, /tab/],
     [
       "a render that isn't a function",
       { ...blur, render: "<b>hi</b>" },
