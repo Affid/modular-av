@@ -27,13 +27,26 @@ const PREVIOUS: Readonly<Record<string, readonly string[]>> = {
   both: ["ArrowLeft", "ArrowUp"],
 };
 
+/**
+ * Laid out: an item a style hides (display: none) can't take the focus.
+ * Some DOMs (tests' happy-dom) lack checkVisibility: the style says.
+ */
+function shown(item: HTMLElement): boolean {
+  const optional: Partial<Pick<HTMLElement, "checkVisibility">> = item;
+  if (optional.checkVisibility) return item.checkVisibility();
+  const view = item.ownerDocument.defaultView;
+  return view?.getComputedStyle(item).display !== "none";
+}
+
 export function roving(group: HTMLElement, options: RovingOptions): Roving {
   const orientation = options.orientation ?? "horizontal";
-  const items = (): HTMLElement[] =>
+  const listed = (): HTMLElement[] =>
     Array.from(group.querySelectorAll<HTMLElement>(options.items));
+  const items = (): HTMLElement[] => listed().filter(shown);
 
+  // Every item, shown or not: a hidden one never keeps the tab stop.
   const stop = (target: HTMLElement): void => {
-    for (const item of items()) item.tabIndex = item === target ? 0 : -1;
+    for (const item of listed()) item.tabIndex = item === target ? 0 : -1;
   };
 
   const refresh = (): void => {

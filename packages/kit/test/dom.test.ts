@@ -153,6 +153,19 @@ describe("roving focus", () => {
     expect(document.activeElement).toBe(a);
   });
 
+  it("skips an item a style hides, and never leaves the tab stop on it", () => {
+    const bar = toolbar();
+    const [a, b, c] = [...bar.querySelectorAll("button")];
+    if (b) b.style.display = "none";
+    roving(bar, { items: "button" });
+
+    a?.focus();
+    if (a) key(a, "ArrowRight");
+
+    expect(document.activeElement).toBe(c);
+    expect(b?.tabIndex).toBe(-1);
+  });
+
   it("uses the up and down keys for a vertical list, and stops when undone", () => {
     const bar = toolbar();
     const list = roving(bar, { items: "button", orientation: "vertical" });
