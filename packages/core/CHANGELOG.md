@@ -1,5 +1,48 @@
 # @modular-av/core
 
+## 0.5.0
+
+### Minor Changes
+
+- fda84f1: For module authors: `api.preview.camera(element, { device, effect })` and
+  `api.preview.microphone(element, { device, listener })` preview a device
+  outside the call, and stop when asked or when the element goes. A
+  contributed control can name the `effect` it belongs to, and is shown
+  under that effect when it is chosen; a settings section can name its
+  `tab` (`"call"`, `"voice"`, `"video"` or `"appearance"`).
+
+  Camera background's strength and picture now show under Blur and Replace
+  themselves, instead of in a section of their own.
+
+  The testing package's fake Foundry holds the world's A/V settings as
+  `core.rtcWorldSettings`, as Foundry does, and fakes the previews.
+
+### Patch Changes
+
+- 1301827: The Voice & Video Settings window has tabs (Call, Voice, Video,
+  Appearance, and More for other modules' settings that name no tab) and is
+  wider. Nothing changes until Save: the footer says what is unsaved and
+  whether saving reloads the page, and Reset puts everything back.
+
+  - Call: a GM turns calls off or on, picks the service and the relay
+    server here, without Foundry's own window. A player sees whether calls
+    are on.
+  - Voice: push to talk's key is set in place (click, then press the key);
+    voice activity shows the microphone's level as you speak, even outside
+    a call.
+  - Video: a preview of your camera, with the background effect you drafted,
+    even outside a call.
+  - Each effect group is one control: Off and its effects as buttons (a
+    list when there are more than two), with the chosen effect's own
+    settings under it. The quick controls use it too.
+  - Appearance: a GM picks one theme, for everyone; a player sees "As the
+    GM chose" and can pick their own.
+
+- Updated dependencies [f5b2bcb]
+- Updated dependencies [fda84f1]
+  - @modular-av/kit@0.5.0
+  - @modular-av/api@0.5.0
+
 ## 0.4.0
 
 ### Minor Changes

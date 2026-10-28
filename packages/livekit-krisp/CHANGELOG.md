@@ -1,5 +1,12 @@
 # @modular-av/livekit-krisp
 
+## 0.5.0
+
+### Patch Changes
+
+- Updated dependencies [fda84f1]
+  - @modular-av/api@0.5.0
+
 ## 0.4.0
 
 ### Patch Changes

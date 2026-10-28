@@ -1,5 +1,41 @@
 # @modular-av/dock
 
+## 0.5.0
+
+### Minor Changes
+
+- 1301827: The Voice & Video Settings window has tabs (Call, Voice, Video,
+  Appearance, and More for other modules' settings that name no tab) and is
+  wider. Nothing changes until Save: the footer says what is unsaved and
+  whether saving reloads the page, and Reset puts everything back.
+
+  - Call: a GM turns calls off or on, picks the service and the relay
+    server here, without Foundry's own window. A player sees whether calls
+    are on.
+  - Voice: push to talk's key is set in place (click, then press the key);
+    voice activity shows the microphone's level as you speak, even outside
+    a call.
+  - Video: a preview of your camera, with the background effect you drafted,
+    even outside a call.
+  - Each effect group is one control: Off and its effects as buttons (a
+    list when there are more than two), with the chosen effect's own
+    settings under it. The quick controls use it too.
+  - Appearance: a GM picks one theme, for everyone; a player sees "As the
+    GM chose" and can pick their own.
+
+### Patch Changes
+
+- d6bd349: Input sensitivity is set on the level bar itself, as in Discord: your
+  level fills the bar (green while you're heard) and the threshold is a
+  handle on the same scale, its value in dB beside it. With "Set it
+  automatically" on, the handle goes and the bar shows the gate's own
+  threshold. The slider and the meter used to sit apart on different
+  scales, with no value shown.
+- Updated dependencies [f5b2bcb]
+- Updated dependencies [fda84f1]
+  - @modular-av/kit@0.5.0
+  - @modular-av/api@0.5.0
+
 ## 0.4.0
 
 ### Minor Changes

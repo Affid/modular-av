@@ -1,5 +1,13 @@
 # @modular-av/kit
 
+## 0.5.0
+
+### Patch Changes
+
+- f5b2bcb: Popovers whose content arrives after they open, such as the connection
+  details, are placed again as they grow, so they stay by what opened them
+  instead of spilling below it.
+
 ## 0.4.0
 
 No changes in this release.
