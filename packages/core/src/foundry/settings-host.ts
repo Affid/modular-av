@@ -8,13 +8,20 @@ import type { Openable } from "./lazy-settings-window.ts";
 
 type ApplicationBase = abstract new (...args: never[]) => object;
 
+/** Where a window is, as Foundry's ApplicationV2 keeps it. */
+interface Spot {
+  readonly top?: number | undefined;
+  readonly left?: number | undefined;
+}
+
 /** The parts of Foundry's ApplicationV2 the window overrides or calls. */
 interface ApplicationLike {
   readonly element: HTMLElement | null;
   readonly options: object;
+  readonly position?: Spot;
   render(options?: object): Promise<unknown>;
   /** Foundry keeps the window on screen whenever it is positioned. */
-  setPosition?(position?: object): unknown;
+  setPosition?(position?: object): Spot | undefined;
   close(options?: object): Promise<unknown>;
   _renderHTML(context: object, options: object): Promise<unknown>;
   _replaceHTML(result: unknown, content: HTMLElement, options: object): void;
@@ -29,6 +36,31 @@ function tabIn(options: object | undefined): SettingsWindowTab | undefined {
   const asked = (options as { modularAV?: { tab?: unknown } } | undefined)
     ?.modularAV?.tab;
   return [...TABS, "more" as const].find((tab) => tab === asked);
+}
+
+/**
+ * Where to put the window each time its content settles: centred again
+ * while it is where it was last put (its content loads in steps), left
+ * where the player moved it after that, only kept on screen.
+ */
+export function centreUntilMoved(): {
+  next(current: Spot): object;
+  placed(spot: Spot | undefined): void;
+} {
+  let last: Spot | null = null;
+  let moved = false;
+  return {
+    next(current) {
+      moved ||=
+        last !== null &&
+        (current.top !== last.top || current.left !== last.left);
+      return moved ? {} : { top: undefined, left: undefined };
+    },
+    // A copy: Foundry hands back its own position, which it changes later.
+    placed(spot) {
+      last = spot ? { top: spot.top, left: spot.left } : null;
+    },
+  };
 }
 
 export interface SettingsWindowDeps {
@@ -124,17 +156,17 @@ export function createSettingsWindow(
     }
 
     /**
-     * The surface's content can grow after Foundry placed the window: the
-     * first time it settles the window is centred again, after that only
-     * kept on screen (a window the player moved stays put).
+     * The surface's content grows after Foundry placed the window (it
+     * loads on first open): centred again as it does, until the player
+     * moves the window, which then stays put, only kept on screen.
      */
     followContent(content: HTMLElement): ResizeObserver | null {
       const view = content.ownerDocument.defaultView;
       if (!view?.ResizeObserver) return null;
-      let centred = false;
+      const follow = centreUntilMoved();
       const observer = new view.ResizeObserver(() => {
-        this.setPosition?.(centred ? {} : { top: undefined, left: undefined });
-        centred = true;
+        const target = follow.next(this.position ?? {});
+        follow.placed(this.setPosition?.(target));
       });
       observer.observe(content.firstElementChild ?? content);
       return observer;
