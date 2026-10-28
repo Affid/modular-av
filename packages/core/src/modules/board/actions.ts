@@ -1,10 +1,15 @@
 import type { BoardHost } from "../host.ts";
 import { pieceOf, piecesOf } from "../pieces.ts";
 import type { Plan } from "../plan.ts";
-import { applicable, planDiff, runningOf } from "../steps.ts";
+import { applicable, planDiff } from "../steps.ts";
 import { BUILDS, withBuild } from "./builds.ts";
 import { type Choice, choose, tileOf, tilesOf } from "./chain.ts";
-import { type BoardState, type Confirming, toSave } from "./state.ts";
+import {
+  type BoardState,
+  type Confirming,
+  runningPlan,
+  toSave,
+} from "./state.ts";
 import type { Texts } from "./texts.ts";
 import type { Actions } from "./view.ts";
 
@@ -139,9 +144,10 @@ function planActions(
       save(board);
     },
     undoAll() {
+      const state = board.state();
       change(
         board,
-        runningOf(board.state().world),
+        runningPlan(board.host, state.world, state.pieces),
         t().t("status.backToWorld"),
         "status",
       );

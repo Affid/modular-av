@@ -4,12 +4,14 @@ import type {
   SettingsWindowTab,
 } from "@modular-av/api";
 import { TABS } from "../contributions.ts";
+import type { Openable } from "./lazy-settings-window.ts";
 
 type ApplicationBase = abstract new (...args: never[]) => object;
 
 /** The parts of Foundry's ApplicationV2 the window overrides or calls. */
 interface ApplicationLike {
   readonly element: HTMLElement | null;
+  readonly options: object;
   render(options?: object): Promise<unknown>;
   /** Foundry keeps the window on screen whenever it is positioned. */
   setPosition?(position?: object): unknown;
@@ -17,10 +19,6 @@ interface ApplicationLike {
   _renderHTML(context: object, options: object): Promise<unknown>;
   _replaceHTML(result: unknown, content: HTMLElement, options: object): void;
   _onClose(options: object): void;
-}
-
-export interface Openable {
-  render(options?: object): unknown;
 }
 
 /**
@@ -53,13 +51,14 @@ export interface SettingsWindowDeps {
 export function createSettingsWindow(
   base: ApplicationBase,
   deps: SettingsWindowDeps,
-): Openable {
+): ApplicationLike {
   const Base = base as unknown as new (...args: unknown[]) => ApplicationLike;
   // Not private members: Foundry's constructor may call overridden methods.
   let filled: HTMLElement | null = null;
   let cleanup: (() => void) | null = null;
   let watching: ResizeObserver | null = null;
   let requested: SettingsWindowTab | undefined;
+  let tabListeners: readonly ((tab: SettingsWindowTab) => void)[] = [];
 
   class ModularAVSettings extends Base {
     static DEFAULT_OPTIONS = {
@@ -74,11 +73,11 @@ export function createSettingsWindow(
       position: { width: 760 },
     };
 
-    override async render(options?: object): Promise<unknown> {
+    override render(options?: object): Promise<unknown> {
       const tab = tabIn(options);
-      // The surface draws its tabs once: an open window opens again on it.
-      if (tab && filled) await this.close();
-      requested = tab;
+      // An open window is told: closing it would lose what is drafted.
+      if (tab && filled) for (const listener of tabListeners) listener(tab);
+      else requested = tab;
       return super.render(options);
     }
 
@@ -105,6 +104,12 @@ export function createSettingsWindow(
         },
         ...(deps.openModules ? { openModules: deps.openModules } : {}),
         ...(requested ? { tab: requested } : {}),
+        onTabRequest: (listener: (tab: SettingsWindowTab) => void) => {
+          tabListeners = [...tabListeners, listener];
+          return () => {
+            tabListeners = tabListeners.filter((l) => l !== listener);
+          };
+        },
       });
       requested = undefined;
       try {
@@ -140,6 +145,7 @@ export function createSettingsWindow(
       watching?.disconnect();
       watching = null;
       filled = null;
+      tabListeners = [];
       const done = cleanup;
       cleanup = null;
       try {
@@ -151,16 +157,4 @@ export function createSettingsWindow(
   }
 
   return new ModularAVSettings();
-}
-
-/**
- * Foundry's settings menu opens `new type()` on every click: each opens
- * the one window instead of a second with the same id.
- */
-export function menuTypeFor(window: Openable): new () => Openable {
-  return class OpenModularAVSettings {
-    render(options?: object): unknown {
-      return window.render({ force: true, ...options });
-    }
-  };
 }

@@ -71,15 +71,31 @@ const LIMITS = {
   value: 80,
 };
 /** One Font Awesome style and one icon: nothing else reaches the class. */
-const ICON = /^fa-(?:solid|regular|brands) fa-[a-z0-9-]{1,40}$/;
+const ICON = /^fa-(?:solid|regular|brands) fa-([a-z0-9-]{1,40})$/;
+/** Font Awesome's classes that size, move or animate an icon, not name one. */
+const NOT_AN_ICON =
+  /^(?:\d+x|[2-9]?xs|sm|lg|xl|2xl|fw|li|ul|border|inverse|spin(?:-.*)?|pulse|beat(?:-.*)?|bounce|fade|shake|flip(?:-.*)?|rotate-.*|stack(?:-.*)?|pull-.*|sr-only.*|layers.*|width-auto)$/;
+
+const isIcon = (value: unknown): value is string => {
+  if (typeof value !== "string") return false;
+  const name = ICON.exec(value)?.[1];
+  return name !== undefined && !NOT_AN_ICON.test(name);
+};
 
 type Fields = Readonly<Record<string, unknown>>;
 
 const isFields = (value: unknown): value is Fields =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
+/** Control and format characters: line breaks, bidi overrides, zero widths. */
+const INVISIBLE = /[\p{Cc}\p{Cf}]/u;
+
+/** Plain text that reads as it is shown: no character turns it around. */
 const text = (value: unknown, max: number): value is string =>
-  typeof value === "string" && value.length > 0 && value.length <= max;
+  typeof value === "string" &&
+  value.length > 0 &&
+  value.length <= max &&
+  !INVISIBLE.test(value);
 
 function requirement(value: unknown): Requirement | null {
   if (!isFields(value) || typeof value.id !== "string" || !ID.test(value.id))
@@ -109,7 +125,7 @@ function card(value: Fields): Pick<SoonModule, "facts" | "icon"> {
     read && read.length > 0 && read.every((f) => f !== null)
       ? { facts: read }
       : {};
-  return typeof icon === "string" && ICON.test(icon) ? { ...kept, icon } : kept;
+  return isIcon(icon) ? { ...kept, icon } : kept;
 }
 
 function soonModule(value: unknown): SoonModule | null {

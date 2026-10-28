@@ -9,6 +9,7 @@ import {
 import { piecesOf } from "../src/modules/pieces.ts";
 import {
   BACKGROUND,
+  BOOST,
   catalog,
   DENOISE,
   DOCK,
@@ -80,6 +81,7 @@ describe("a stage's tiles", () => {
     expect(tilesOf(state, "effects").map((t) => [t.id, t.status])).toEqual([
       [DENOISE, "missing"],
       [BACKGROUND, "missing"],
+      [BOOST, "missing"],
       [KRISP, "soon"],
     ]);
   });
@@ -153,6 +155,25 @@ describe("choosing in the chain", () => {
     const state = stateOf({ [DOCK]: "running", [VINES]: "running" });
 
     expect([...choose(state, BUILT_IN.look).plan]).toEqual([DOCK]);
+  });
+
+  it("locks an effect until its service is in the chain, and brings it", () => {
+    const state = stateOf({ [P2P]: "running" });
+
+    const next = choose(state, BOOST);
+
+    expect(tileOf(state, BOOST).locked).toBe(LIVEKIT);
+    expect([...next.plan].sort()).toEqual([BOOST, LIVEKIT].sort());
+    expect(next.dropped).toEqual([P2P]);
+  });
+
+  it("takes an effect out with the service it runs on", () => {
+    const state = stateOf({ [LIVEKIT]: "running", [BOOST]: "running" });
+
+    const next = choose(state, P2P);
+
+    expect([...next.plan]).toEqual([P2P]);
+    expect(next.dropped).toEqual([LIVEKIT, BOOST]);
   });
 
   it("changes nothing for what is coming soon", () => {

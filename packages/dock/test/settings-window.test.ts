@@ -2,6 +2,7 @@
 import type {
   SettingsHost,
   SettingsSectionContribution,
+  SettingsWindowTab,
   VideoEffectDefinition,
 } from "@modular-av/api";
 import { avState, participantState } from "@modular-av/testing";
@@ -546,6 +547,30 @@ describe("the settings window's More tab", () => {
 });
 
 describe("the settings window's tabs", () => {
+  it("switch to a tab asked for while open, keeping what is drafted", () => {
+    const asked: { listener?: (tab: SettingsWindowTab) => void } = {};
+    let unsubscribed = 0;
+    const view = open({}, undefined, {
+      onTabRequest: (listener) => {
+        asked.listener = listener;
+        return () => {
+          unsubscribed += 1;
+        };
+      },
+    });
+    view.tab("voice");
+    view.choose("voiceMode", "ptt");
+
+    asked.listener?.("appearance");
+
+    expect(
+      view.q('[role="tab"][aria-selected="true"]')?.getAttribute("data-tab"),
+    ).toBe("appearance");
+    expect(view.footer()).toBe("1 unsaved change. Nothing reloads.");
+    view.undo();
+    expect(unsubscribed).toBe(1);
+  });
+
   it("open on the tab the window was opened for", () => {
     const view = open({}, undefined, { tab: "video" });
 

@@ -30,7 +30,7 @@ export interface BoardState {
 }
 
 /** What runs, with only the service in use when several run. */
-function runningPlan(
+export function runningPlan(
   host: BoardHost,
   world: WorldModules,
   pieces: readonly Piece[],

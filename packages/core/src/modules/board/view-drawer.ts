@@ -7,7 +7,11 @@ import { emblem, noteOf, ribbons, statusChip } from "./view-card.ts";
 export const DRAWER_ID = "mav-board-drawer";
 const INSPECT_ID = "mav-board-inspect";
 
-function tileButton(view: View, tile: Tile): HTMLButtonElement {
+function tileButton(
+  view: View,
+  tile: Tile,
+  selected: string,
+): HTMLButtonElement {
   const { text } = view;
   const flag = tile.inChain
     ? el("span", {
@@ -25,7 +29,7 @@ function tileButton(view: View, tile: Tile): HTMLButtonElement {
       "data-key": `tile-${tile.id}`,
       "data-stage": tile.stage,
       "data-status": tile.status,
-      "aria-pressed": String(view.state.selected === tile.id),
+      "aria-pressed": String(selected === tile.id),
       "aria-controls": INSPECT_ID,
       ...(tile.inChain ? { "data-in-chain": "" } : {}),
       ...(tile.locked || tile.status === "soon" ? { "data-locked": "" } : {}),
@@ -59,12 +63,11 @@ function actionLabel(view: View, tile: Tile): string | null {
   const t = (key: string, data?: Readonly<Record<string, string>>) =>
     text.t(`chain.act.${key}`, data);
   if (tile.status === "soon") return null;
-  if (tile.stage === "effects") return t(tile.inChain ? "takeOut" : "add");
-  if (tile.inChain) return null;
-  const current = chain[tile.stage].find((id) => id !== tile.id);
-  if (tile.locked && tile.status !== "built-in")
+  if (tile.locked && tile.status !== "built-in" && !tile.inChain)
     return t("withParent", { name, parent: text.name(tile.locked) });
-  if (tile.locked) return null;
+  if (tile.stage === "effects") return t(tile.inChain ? "takeOut" : "add");
+  if (tile.inChain || tile.locked) return null;
+  const current = chain[tile.stage].find((id) => id !== tile.id);
   return current && !current.startsWith("built-in:")
     ? t("instead", { name, current: text.name(current) })
     : t("use", { name });
@@ -147,7 +150,6 @@ function inspect(view: View, id: string): HTMLElement {
       id: INSPECT_ID,
       "data-stage": tile.stage,
       "aria-label": view.text.name(id),
-      "aria-live": "polite",
     },
     children: [
       el("div", {
@@ -238,7 +240,7 @@ export function drawer(view: View): HTMLElement | null {
             doc: view.doc,
             className: "mav-board-tiles",
             attrs: { role: "group", "aria-label": t("title") },
-            children: tiles.map((tile) => tileButton(view, tile)),
+            children: tiles.map((tile) => tileButton(view, tile, selected)),
           }),
           inspect(view, selected),
         ],

@@ -157,6 +157,12 @@ const onAir = (content: HTMLElement) =>
     (n) => n.textContent,
   );
 
+const choose = (click: (key: string) => void, stage: string, id: string) => {
+  click(`stage-${stage}`);
+  click(`tile-${id}`);
+  click("inspect-act");
+};
+
 describe("the modules board's chain", () => {
   it("shows what the world runs on air, and the same chain next", async () => {
     const { content, text } = await open();
@@ -179,6 +185,18 @@ describe("the modules board's chain", () => {
     expect(text(".mav-board-leaving")).toBe(
       "Comes off air when you go live: Peer to peer (stays installed).",
     );
+  });
+
+  it("goes back to what is on air with only the service in use", async () => {
+    const { content, click } = await open({
+      ...RUNNING,
+      "modular-av-p2p": { active: true },
+    });
+    choose(click, "cameras", "built-in:cameras");
+
+    click("undo-all");
+
+    expect(chain(content)).toEqual(["LiveKit", "Dock", "The Dock's own look"]);
   });
 
   it("opens a stage's choices and swaps the service, saying so, and undoes it", async () => {
@@ -297,12 +315,6 @@ describe("the modules board's chain", () => {
   });
 });
 
-const choose = (click: (key: string) => void, stage: string, id: string) => {
-  click(`stage-${stage}`);
-  click(`tile-${id}`);
-  click("inspect-act");
-};
-
 describe("the modules board's steps", () => {
   it("gives the fewest links, and leaves for Setup with them saved", async () => {
     const { calls, click, text, settle } = await open();
@@ -357,6 +369,22 @@ describe("the modules board's steps", () => {
       { on: ["modular-av-p2p"], off: ["modular-av-livekit"], ui: null },
     ]);
     expect(calls.saved.at(-1)).toBeNull();
+  });
+
+  it("gives the link of a module planned after coming back from Setup", async () => {
+    const { click, text } = await open(
+      { ...RUNNING, "modular-av-p2p": { active: false } },
+      {
+        plan: ["modular-av-p2p", "modular-av-dock", "modular-av-mic-denoise"],
+        trip: ["modular-av-p2p"],
+      },
+    );
+
+    click("objective-load");
+
+    expect(text(".mav-board-objectives")).toContain(
+      url("modular-av-mic-denoise"),
+    );
   });
 
   it("names updates, done on Setup", async () => {

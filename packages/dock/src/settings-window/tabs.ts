@@ -21,6 +21,8 @@ export interface Tabs {
   readonly element: HTMLElement;
   /** Marks the tabs with unsaved changes. */
   mark(unsaved: (id: string) => boolean): void;
+  /** Shows a tab by id; an unknown one changes nothing. */
+  select(id: string): void;
   dispose(): void;
 }
 
@@ -148,6 +150,9 @@ export function createTabs(
     }),
     mark(unsaved) {
       markTabs(buttons, specs, options, unsaved);
+    },
+    select(id) {
+      show(specs.findIndex((spec) => spec.id === id));
     },
     dispose() {
       for (const part of shown) part.dispose();

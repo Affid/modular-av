@@ -2145,6 +2145,12 @@ Verified while rebuilding "Plan your modules" as a signal chain
   by hand): the board's next setup keeps only the one the world's
   `modular-av.service` setting names, so going live turns the others
   off.
-- **The core's entry is at 109,938 of its 110,000-byte budget** after
-  this work (the catalog reader's facts, the settings window's tab):
-  the next change to the entry needs something moved to a lazy chunk.
+- **The core's entry budget** (110,000 bytes) ran out with this work;
+  the settings window's code now loads on first open
+  (`foundry/lazy-settings-window.ts`: Foundry only ever calls
+  `game.webrtc.config.render`), bringing the entry to 108,717. The
+  plain status can't move the same way: a notice raised at startup (a
+  microphone refused) would be missed while its code loads.
+- **A tab asked for while the settings window is open** goes to the
+  open window (`SettingsHost.onTabRequest`), which switches tabs and
+  keeps what is drafted: closing and reopening it would lose the draft.

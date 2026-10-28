@@ -182,7 +182,13 @@ function setupTodo(
 /** Load in: updates and the fewest links to paste, carried to Setup. */
 export function loadBody(view: View): readonly (HTMLElement | null)[] {
   const { state, text } = view;
-  const install = state.trip ?? planDiff(state.plan, state.world).install;
+  // What the plan still needs, and what the trip was for and didn't get.
+  const install = [
+    ...new Set([
+      ...planDiff(state.plan, state.world).install,
+      ...(state.trip ?? []),
+    ]),
+  ];
   const missing = install.filter((id) => !state.world.has(id));
   const links = linksFor(missing, state.pieces).map((l) => ({
     ...l,

@@ -109,25 +109,26 @@ describe("the core's settings window", () => {
     expect(document.querySelectorAll(".test-settings")).toHaveLength(1);
   });
 
-  it("opens on the tab it is asked for, again if it is open", async () => {
+  it("opens on the tab it is asked for, or tells the open one, keeping its drafts", async () => {
     const surface = settingsSurface();
     const table = createTable();
     const p1 = table.join("p1", { register: withSurface(surface) });
     await table.settle();
-    const window = master(p1).config as Openable;
+    const window = master(p1).config as Openable & {
+      close(): Promise<unknown>;
+    };
 
-    await window.render({ force: true });
     await window.render({ force: true, modularAV: { tab: "voice" } });
+    const told: string[] = [];
+    surface.probe.hosts[0]?.onTabRequest?.((tab) => told.push(tab));
     await window.render({ force: true, modularAV: { tab: "more" } });
     await window.render({ force: true, modularAV: { tab: "nope" } });
+    await window.close();
+    await window.render({ force: true });
 
-    expect(surface.probe.hosts.map((h) => h.tab)).toEqual([
-      undefined,
-      "voice",
-      "more",
-    ]);
-    expect(surface.probe.cleanups).toBe(2);
-    expect(document.querySelectorAll(".test-settings")).toHaveLength(1);
+    expect(surface.probe.hosts.map((h) => h.tab)).toEqual(["voice", undefined]);
+    expect(told).toEqual(["more"]);
+    expect(surface.probe.cleanups).toBe(1);
   });
 
   it("fits the screen before Foundry places it: capped, scrolling, resizable", async () => {

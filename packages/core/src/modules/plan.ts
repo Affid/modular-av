@@ -3,12 +3,11 @@ import { type Piece, pieceOf, socketOf } from "./pieces.ts";
 /** The modules the GM wants running, by id. */
 export type Plan = ReadonlySet<string>;
 
-/** Pieces in the plan that hang off `id` (a theme off its dock). */
+/** Pieces in the plan that need `id` (a theme its Dock, an effect its service). */
 const hangingOff = (plan: Plan, id: string, pieces: readonly Piece[]) =>
-  [...plan].filter((other) => {
-    const piece = pieceOf(pieces, other);
-    return piece !== undefined && socketOf(piece).parent === id;
-  });
+  [...plan].filter(
+    (other) => pieceOf(pieces, other)?.requires.includes(id) === true,
+  );
 
 /**
  * The plan with `id` on the board. A single socket holds one piece: the

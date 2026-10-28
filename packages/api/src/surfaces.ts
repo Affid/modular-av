@@ -71,6 +71,12 @@ export interface SettingsHost {
    * sections that name no tab). Absent: the surface's own first tab.
    */
   readonly tab?: SettingsWindowTab;
+  /**
+   * Called when a tab is asked for while the window is open: the surface
+   * shows it, keeping what is drafted. Returns the unsubscribe. A surface
+   * that doesn't listen keeps its tab.
+   */
+  onTabRequest?(listener: (tab: SettingsWindowTab) => void): () => void;
 }
 
 export interface SettingsSurfaceDefinition extends SurfaceBase {

@@ -11,6 +11,8 @@ export const DENOISE = "modular-av-mic-denoise";
 export const BACKGROUND = "modular-av-cam-background";
 export const VINES = "modular-av-dock-vines";
 export const KRISP = "modular-av-livekit-krisp";
+/** An effect that runs only on LiveKit, as Krisp will. */
+export const BOOST = "modular-av-livekit-boost";
 
 const url = (id: string) =>
   `https://raw.githubusercontent.com/Affid/modular-av/manifests/${id}/module.json`;
@@ -42,6 +44,7 @@ export const catalog: Catalog = {
     mod(DOCK, "ui"),
     mod(DENOISE, "effect"),
     mod(BACKGROUND, "effect"),
+    mod(BOOST, "effect", ["modular-av", LIVEKIT]),
     mod(VINES, "theme", ["modular-av", DOCK]),
   ],
   soon: [

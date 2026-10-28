@@ -28,6 +28,9 @@ export const BUILT_IN = {
   look: "built-in:look",
 } as const;
 
+/** The Dock, named when the catalog lists no camera display. */
+const DOCK_ID = "modular-av-dock";
+
 export type TileStatus = "running" | "off" | "missing" | "built-in" | "soon";
 
 /** What going live does to a module: installed first, turned on, or off. */
@@ -111,7 +114,7 @@ function builtInTile(state: BoardState, id: string): Tile {
     // The Dock's own look needs a Dock: the first camera display there is.
     locked:
       stage === "look" && uiOf(state) === undefined
-        ? (state.pieces.find((p) => p.kind === "ui")?.id ?? null)
+        ? (state.pieces.find((p) => p.kind === "ui")?.id ?? DOCK_ID)
         : null,
     update: false,
     isNew: false,
@@ -138,10 +141,8 @@ export function tileOf(state: BoardState, id: string): Tile {
           : "missing",
     inChain: state.plan.has(id),
     note: piece ? noteOf(state, id) : null,
-    locked:
-      piece?.kind === "theme" && parent && !state.plan.has(parent)
-        ? parent
-        : null,
+    // A theme needs its Dock, an effect may need its service.
+    locked: parent && !state.plan.has(parent) ? parent : null,
     update: updatesFor(state.world, state.loaded.catalog).includes(id),
     isNew: piece !== undefined && !state.loaded.known.has(id),
   };
@@ -175,7 +176,7 @@ export function choose(state: BoardState, id: string): Choice {
   if (!piece) return unchanged;
   if (piece.kind === "effect" && plan.has(id)) return take(id);
   const parent = piece.requires.find((r) => r !== MODULE_ID);
-  const needs = piece.kind === "theme" && parent && !plan.has(parent);
+  const needs = parent !== undefined && !plan.has(parent);
   const base = needs ? withPiece(plan, parent, pieces) : { plan, dropped: [] };
   const next = withPiece(base.plan, id, pieces);
   return {

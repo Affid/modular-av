@@ -154,6 +154,10 @@ export function renderSettings(
     tabs.mark((id) => unsaved.has(id));
   };
   const offDraft = draft.subscribe(mark);
+  // Opened again for a tab while open: show it, keeping what is drafted.
+  const offTab = host.onTabRequest?.((tab) => {
+    tabs.select(tab);
+  });
   // Changes made elsewhere (the quick controls) show in untouched fields.
   const offState = ctx.api.state.subscribe(
     (s) => s.local,
@@ -170,6 +174,7 @@ export function renderSettings(
   );
   return () => {
     offDraft();
+    offTab?.();
     offState();
     tabs.dispose();
     footer.dispose();

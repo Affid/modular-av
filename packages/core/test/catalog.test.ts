@@ -78,6 +78,12 @@ describe("reading a catalog of the family", () => {
     ["a fact with no label", { facts: [{ value: "b" }] }],
     ["an icon that isn't a Font Awesome class", { icon: 'x" onload="y' }],
     ["an icon with a class too many", { icon: "fa-solid fa-a fa-b" }],
+    ["a Font Awesome size, not an icon", { icon: "fa-solid fa-10x" }],
+    ["a Font Awesome animation, not an icon", { icon: "fa-solid fa-spin" }],
+    [
+      "a fact with a direction override",
+      { facts: [{ label: "a", value: "b\u202Ec" }] },
+    ],
   ])("drops %s, keeping the module", (_case, extra) => {
     const catalog = parseCatalog(mod(extra));
 
@@ -95,6 +101,8 @@ describe("reading a catalog of the family", () => {
     ["a version that isn't semver", mod({ version: "latest" })],
     ["a title too long", mod({ title: "x".repeat(121) })],
     ["a description too long", mod({ description: "x".repeat(501) })],
+    ["a title that turns its text around", mod({ title: "LiveKit\u202Eevil" })],
+    ["a title with a control character", mod({ title: "Live\u0007Kit" })],
     ["a requirement outside the family", mod({ requires: [{ id: "x" }] })],
     ["the same module twice", { ...valid, modules: [livekit, livekit] }],
     ["too many modules", { ...valid, modules: Array(101).fill(livekit) }],

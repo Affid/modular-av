@@ -48,7 +48,10 @@ import {
 import { createPlacement } from "./surfaces/placement.ts";
 import { lazyPreviews } from "./media/lazy-previews.ts";
 import { MODULES_MENU } from "./modules/menu.ts";
-import { createSettingsWindow, menuTypeFor } from "./foundry/settings-host.ts";
+import {
+  lazySettingsWindow,
+  menuTypeFor,
+} from "./foundry/lazy-settings-window.ts";
 
 export const REGISTER_HOOK = "modularAV.register";
 /** Foundry's menu for its A/V settings window. */
@@ -258,21 +261,26 @@ function installSettingsWindow(
   const surface = chosenSurface(game, surfaces, "settings");
   const webrtc = game.webrtc;
   if (!surface || !webrtc) return;
-  const window = createSettingsWindow(
-    deps.foundry.applications.api.ApplicationV2,
-    {
-      surface,
-      title: game.i18n.localize(`${MODULE_ID}.settingsWindow.title`),
-      foundrySettings: webrtc.config,
-      ...(game.user.isGM
-        ? {
-            openModules: () => {
-              openModulesMenu(game);
-            },
-          }
-        : {}),
-      onError: deps.onError,
-    },
+  const foundrySettings = webrtc.config;
+  const window = lazySettingsWindow(
+    () =>
+      import("./foundry/settings-host.ts").then(({ createSettingsWindow }) =>
+        createSettingsWindow(deps.foundry.applications.api.ApplicationV2, {
+          surface,
+          title: game.i18n.localize(`${MODULE_ID}.settingsWindow.title`),
+          foundrySettings,
+          ...(game.user.isGM
+            ? {
+                openModules: () => {
+                  openModulesMenu(game);
+                },
+              }
+            : {}),
+          onError: deps.onError,
+        }),
+      ),
+    foundrySettings,
+    deps.onError,
   );
   webrtc.config = window;
   const menu = game.settings.menus.get(FOUNDRY_AV_MENU);

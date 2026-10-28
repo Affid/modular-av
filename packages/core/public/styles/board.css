@@ -459,6 +459,7 @@
   background: color-mix(in srgb, var(--mav-board-kind) 20%, transparent);
   color: var(--mav-board-kind);
   font-size: 15px;
+  overflow: hidden;
 }
 .mav-board-emblem.large {
   width: 50px;
