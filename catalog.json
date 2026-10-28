@@ -7,7 +7,7 @@
       "description": "Voice and video for Foundry VTT, built from modules: pick a service, a look and the effects you want.",
       "kind": "core",
       "requires": [],
-      "version": "0.8.0",
+      "version": "0.8.1",
       "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av/module.json"
     },
     {
@@ -211,11 +211,11 @@
       "requires": [
         {
           "id": "modular-av",
-          "minimum": "0.8.0"
+          "minimum": "0.8.1"
         },
         {
           "id": "modular-av-livekit",
-          "minimum": "0.8.0"
+          "minimum": "0.8.1"
         }
       ],
       "facts": [
