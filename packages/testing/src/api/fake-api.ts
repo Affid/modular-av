@@ -4,6 +4,7 @@
  * do), commands that are recorded and may be made to fail, attachments,
  * meters the test feeds, a Picture-in-Picture window and stats.
  */
+import { createFakePreviews, type FakePreviews } from "./fake-previews.ts";
 import type {
   AVCommands,
   AVState,
@@ -39,6 +40,8 @@ export interface MeterSubscription {
 }
 
 export interface FakeApi extends ModularAV {
+  /** Previews asked for, with ways to feed and refuse them. */
+  readonly preview: FakePreviews;
   /** Changes the state; listeners run in a microtask. */
   setState(change: (state: AVState) => AVState): void;
   readonly calls: readonly CommandCall[];
@@ -156,6 +159,7 @@ export function createFakeApi(options: FakeApiOptions = {}): FakeApi {
   let pip: PipWindow | null = null;
   const surfaces = openRegistry<SurfaceDefinition>();
   const contributions = openRegistry<Contribution>();
+  const preview = createFakePreviews();
 
   const command =
     (name: keyof AVCommands) =>
@@ -175,6 +179,7 @@ export function createFakeApi(options: FakeApiOptions = {}): FakeApi {
     version: "0.0.0-fake",
     state: store,
     commands,
+    preview,
     media: {
       attach(participant, source, element) {
         const attachment = { participant, source, element, detached: false };

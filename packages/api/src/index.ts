@@ -30,6 +30,12 @@ export type {
 } from "./effects.ts";
 export type { MeterReading, Meters } from "./meters.ts";
 export type { ModuleKind, ModularAVModuleFlags } from "./module.ts";
+export type {
+  CameraPreviewOptions,
+  MicrophonePreviewOptions,
+  Preview,
+  Previews,
+} from "./preview.ts";
 export type { Registry } from "./registry.ts";
 export type {
   ConnectionQuality,

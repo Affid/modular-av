@@ -125,3 +125,4 @@ export type {
   FakeApiOptions,
   MeterSubscription,
 } from "./api/fake-api.ts";
+export type { FakePreview, FakePreviews } from "./api/fake-previews.ts";

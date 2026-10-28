@@ -1,6 +1,5 @@
-import { MODULE_ID } from "./constants.ts";
+import { IMPORTED_SETTING, MODULE_ID } from "./constants.ts";
 import { installCore } from "./core.ts";
-import { IMPORTED_SETTING, importLegacy } from "./legacy.ts";
 import "./foundry/globals.ts";
 import { logError } from "./log.ts";
 import { createBrowserMediaEnv } from "./media/browser-env.ts";
@@ -58,13 +57,22 @@ Hooks.once("init", () => {
           runNewsCheck(logError);
         })
         .catch(logError);
-    importLegacy({
-      storage: localStorage,
-      imported: () => game.settings.get(MODULE_ID, IMPORTED_SETTING) === true,
-      markImported: async (value) => {
-        await game.settings.set(MODULE_ID, IMPORTED_SETTING, value);
-      },
-      setInputSensitivity: (s) => installed.api.commands.setInputSensitivity(s),
-    }).catch(logError);
+    // Once per player: its code loads only until then.
+    const imported = () =>
+      game.settings.get(MODULE_ID, IMPORTED_SETTING) === true;
+    if (!imported())
+      import("./legacy.ts")
+        .then(({ importLegacy }) =>
+          importLegacy({
+            storage: localStorage,
+            imported,
+            markImported: async (value) => {
+              await game.settings.set(MODULE_ID, IMPORTED_SETTING, value);
+            },
+            setInputSensitivity: (s) =>
+              installed.api.commands.setInputSensitivity(s),
+          }),
+        )
+        .catch(logError);
   });
 });

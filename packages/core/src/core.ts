@@ -3,6 +3,7 @@ import type {
   Contribution,
   EffectDefinition,
   ModularAV,
+  Previews,
   ServiceDefinition,
   SurfaceDefinition,
 } from "@modular-av/api";
@@ -136,6 +137,11 @@ export function installCore(deps: CoreDeps): InstalledCore {
         controller().attach(...args),
     }),
     meters: meters.api,
+    preview: lazyPreviews(() =>
+      import("./media/preview.ts").then(({ createPreviews }) =>
+        createPreviews({ env: deps.env, effects: effects.api }),
+      ),
+    ),
     windows: Object.freeze({
       pip: createPipWindows(deps.windows, deps.onError),
     }),
@@ -216,6 +222,19 @@ export function installCore(deps: CoreDeps): InstalledCore {
   });
 
   return { api, controller };
+}
+
+/** Previews load their code on first use: the core's entry stays small. */
+function lazyPreviews(load: () => Promise<Previews>): Previews {
+  let loaded: Promise<Previews> | null = null;
+  const previews = (): Promise<Previews> => (loaded ??= load());
+  const lazy: Previews = {
+    camera: async (element, options) =>
+      (await previews()).camera(element, options),
+    microphone: async (element, options) =>
+      (await previews()).microphone(element, options),
+  };
+  return Object.freeze(lazy);
 }
 
 function registerServiceSetting(

@@ -2,6 +2,7 @@ import type { AVCommands } from "./commands.ts";
 import type { Contribution } from "./contributions.ts";
 import type { EffectDefinition } from "./effects.ts";
 import type { Meters } from "./meters.ts";
+import type { Previews } from "./preview.ts";
 import type { Registry } from "./registry.ts";
 import type {
   ConnectionStats,
@@ -53,6 +54,8 @@ export interface ModularAV {
   readonly commands: AVCommands;
   readonly media: MediaAttachment;
   readonly meters: Meters;
+  /** Cameras and microphones previewed outside the call. */
+  readonly preview: Previews;
   readonly windows: Windows;
   readonly stats: Stats;
   readonly services: Registry<ServiceDefinition>;

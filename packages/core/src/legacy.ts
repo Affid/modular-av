@@ -7,7 +7,6 @@ import type { InputSensitivity } from "@modular-av/api";
  * over its own, once, and only what the player saved.
  */
 export const LEGACY_PREFIX = "avclient-livekit.";
-export const IMPORTED_SETTING = "legacyImported";
 
 /** An old client setting as the player saved it; undefined if never saved. */
 export function readLegacyClient(
