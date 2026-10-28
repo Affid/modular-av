@@ -32,7 +32,7 @@
         "type": "module",
         "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-dock/module.json",
         "compatibility": {
-          "minimum": "0.7.0"
+          "minimum": "0.8.0"
         }
       }
     ]
@@ -53,7 +53,7 @@
       ]
     }
   },
-  "version": "0.7.0",
+  "version": "0.8.0",
   "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-dock-vines/module.json",
-  "download": "https://github.com/Affid/modular-av/releases/download/modular-av-dock-vines-v0.7.0/modular-av-dock-vines.zip"
+  "download": "https://github.com/Affid/modular-av/releases/download/modular-av-dock-vines-v0.8.0/modular-av-dock-vines.zip"
 }
