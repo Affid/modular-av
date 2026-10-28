@@ -32,17 +32,32 @@
         "type": "module",
         "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av/module.json",
         "compatibility": {
-          "minimum": "0.5.0"
+          "minimum": "0.6.0"
         }
       }
     ]
   },
   "flags": {
     "modular-av": {
-      "kind": "service"
+      "kind": "service",
+      "icon": "fa-solid fa-tower-broadcast",
+      "facts": [
+        {
+          "label": "Table size",
+          "value": "Any size"
+        },
+        {
+          "label": "Server",
+          "value": "LiveKit Cloud (free tier) or your own"
+        },
+        {
+          "label": "After installing",
+          "value": "Server address and key"
+        }
+      ]
     }
   },
-  "version": "0.5.0",
+  "version": "0.6.0",
   "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-livekit/module.json",
-  "download": "https://github.com/Affid/modular-av/releases/download/modular-av-livekit-v0.5.0/modular-av-livekit.zip"
+  "download": "https://github.com/Affid/modular-av/releases/download/modular-av-livekit-v0.6.0/modular-av-livekit.zip"
 }

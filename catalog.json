@@ -89,10 +89,25 @@
       "requires": [
         {
           "id": "modular-av",
-          "minimum": "0.5.0"
+          "minimum": "0.6.0"
         }
       ],
-      "version": "0.5.0",
+      "facts": [
+        {
+          "label": "Table size",
+          "value": "Any size"
+        },
+        {
+          "label": "Server",
+          "value": "LiveKit Cloud (free tier) or your own"
+        },
+        {
+          "label": "After installing",
+          "value": "Server address and key"
+        }
+      ],
+      "icon": "fa-solid fa-tower-broadcast",
+      "version": "0.6.0",
       "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-livekit/module.json"
     },
     {
