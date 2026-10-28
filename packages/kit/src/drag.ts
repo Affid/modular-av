@@ -123,7 +123,8 @@ export type Edge = "top" | "right" | "bottom" | "left";
 
 /**
  * Resizes `target` by dragging `handle` (or with its arrow keys) on the
- * edges `edges()` names when the drag starts.
+ * edges `edges()` names when the drag starts, within `min` and, where
+ * given, the `max()` read then.
  */
 export function dragToResize(
   handle: HTMLElement,
@@ -131,18 +132,26 @@ export function dragToResize(
   options: {
     readonly edges: () => readonly Edge[];
     readonly min: Size;
+    readonly max?: () => Size;
     readonly onEnd: (rect: Rect) => void;
     readonly enabled?: () => boolean;
   },
 ): () => void {
   let start: Rect = boxOf(target);
   let edges: readonly Edge[] = [];
+  let max: Size = { width: Infinity, height: Infinity };
   const { min } = options;
+  /** Unmoved, a size stays as it was, even outside the limits (a click). */
+  const within = (value: number, axis: keyof Size): number =>
+    value === start[axis]
+      ? value
+      : Math.max(Math.min(value, max[axis]), min[axis]);
   return bothWays(handle, {
     enabled: options.enabled ?? (() => true),
     start() {
       start = boxOf(target);
       edges = options.edges();
+      max = options.max?.() ?? { width: Infinity, height: Infinity };
       target.toggleAttribute("data-resizing", true);
     },
     move(dx, dy) {
@@ -153,9 +162,9 @@ export function dragToResize(
         ? start.height - dy
         : start.height + dy;
       if (edges.includes("left") || edges.includes("right"))
-        target.style.width = px(Math.max(width, min.width));
+        target.style.width = px(within(width, "width"));
       if (edges.includes("top") || edges.includes("bottom"))
-        target.style.height = px(Math.max(height, min.height));
+        target.style.height = px(within(height, "height"));
     },
     end() {
       target.toggleAttribute("data-resizing", false);

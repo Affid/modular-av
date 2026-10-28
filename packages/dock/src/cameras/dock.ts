@@ -13,6 +13,7 @@ import {
   type TileLayout,
 } from "../settings.ts";
 import type { Scattered } from "../scattered/scattered.ts";
+import { createDockedEdge, dockedResize } from "./docked-size.ts";
 import { createHeader, type Header } from "./header.ts";
 import { createPlacement, type Placement, type Where } from "./placement.ts";
 import { openPlacementMenu } from "./placement-menu.ts";
@@ -220,7 +221,8 @@ export function camerasSurface(
     mount(host) {
       const dock = build(ctx, host);
       const resize = resizeHandle(ctx, dock.root.ownerDocument);
-      dock.root.append(resize);
+      const edge = createDockedEdge(ctx, dock.root.ownerDocument);
+      dock.root.append(resize, edge.element);
       host.element.append(dock.root);
       const placement = createPlacement(ctx, host, {
         root: dock.root,
@@ -229,6 +231,12 @@ export function camerasSurface(
         resize,
       });
       dock.placement = placement;
+      const offDockedResize = dockedResize(
+        ctx,
+        host.element,
+        edge,
+        () => placement.where,
+      );
       placement.onChange((where) => {
         scatter(ctx, dock, where, load).catch(ctx.onError);
         // In or out of the Picture-in-Picture window: timers and observers follow.
@@ -255,6 +263,7 @@ export function camerasSurface(
           offThemes();
           dock.scattered?.dispose();
           placement.dispose();
+          offDockedResize();
           dock.tiles.dispose();
           dock.header.dispose();
           dock.panel.dispose();

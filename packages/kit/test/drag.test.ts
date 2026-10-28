@@ -143,6 +143,46 @@ describe("dragToResize", () => {
     expect(onEnd).toHaveBeenCalledTimes(1);
   });
 
+  it("never resizes past the largest size, read when the drag starts", () => {
+    const { target, handle } = box();
+    let max = { width: 260, height: 400 };
+    dragToResize(handle, target, {
+      edges: () => ["right", "bottom"],
+      min: { width: 150, height: 80 },
+      max: () => max,
+      onEnd: vi.fn(),
+    });
+
+    pointer(handle, "pointerdown", 300, 200);
+    max = { width: 1000, height: 1000 };
+    pointer(handle, "pointermove", 500, 250);
+    pointer(handle, "pointerup", 500, 250);
+
+    expect([target.style.width, target.style.height]).toEqual([
+      "260px",
+      "150px",
+    ]);
+  });
+
+  it("leaves an edge it didn't move at its size, even outside the limits", () => {
+    const { target, handle } = box();
+    dragToResize(handle, target, {
+      edges: () => ["right", "bottom"],
+      min: { width: 250, height: 80 },
+      max: () => ({ width: 1000, height: 90 }),
+      onEnd: vi.fn(),
+    });
+
+    pointer(handle, "pointerdown", 300, 200);
+    pointer(handle, "pointermove", 300, 200);
+    pointer(handle, "pointerup", 300, 200);
+
+    expect([target.style.width, target.style.height]).toEqual([
+      "200px",
+      "100px",
+    ]);
+  });
+
   it("resizes by keyboard: the arrows grow and shrink it", () => {
     const { target, handle } = box();
     dragToResize(handle, target, {

@@ -16,6 +16,7 @@ export const SETTINGS = {
   tileLayout: "tileLayout",
   collapsed: "collapsed",
   scattered: "scatteredLayouts",
+  dockedSize: "dockedSize",
 } as const;
 
 const DEFAULT_RECT: Rect = { left: 80, top: 80, width: 360, height: 420 };
@@ -37,6 +38,9 @@ export function registerSettings(
   user(SETTINGS.floatingRect, Object, DEFAULT_RECT);
   user(SETTINGS.tileLayout, String, "grid");
   user(SETTINGS.collapsed, Boolean, false);
+  // Docked: the width on a side, the height at the top or bottom; null
+  // follows the theme's (cameras/docked-size.ts).
+  user(SETTINGS.dockedSize, Object, { width: null, height: null });
   // The scattered layout's arrangements (scattered/arrangement.ts).
   user(SETTINGS.scattered, Object, {
     own: { tiles: {}, panel: null },

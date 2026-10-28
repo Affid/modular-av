@@ -46,7 +46,9 @@
 
 #camera-views:has(> .mav-dock[data-placement="left"]),
 #camera-views:has(> .mav-dock[data-placement="right"]) {
-  width: var(--mav-dock-width);
+  /* A player's own size (the edge's grip) sets the token here; never more
+     than half the window. */
+  width: min(var(--mav-dock-width), 50vw);
 }
 
 /* Docked on the right, the dock sits where Foundry's collapsed sidebar
@@ -57,7 +59,7 @@
 
 #camera-views:has(> .mav-dock[data-placement="top"]),
 #camera-views:has(> .mav-dock[data-placement="bottom"]) {
-  height: var(--mav-dock-height);
+  height: min(var(--mav-dock-height), 50vh);
 }
 
 /* Floating, scattered or in its own window: nothing left in the page's layout. */
@@ -489,6 +491,116 @@
 
 .mav-dock:not([data-placement="floating"]) .mav-dock-resize {
   display: none;
+}
+
+/* ---- Docked: the inner edge resizes; its grip shows on hover or focus ---- */
+
+.mav-dock-edge {
+  display: none;
+}
+
+.mav-dock:is(
+    [data-placement="left"],
+    [data-placement="right"],
+    [data-placement="top"],
+    [data-placement="bottom"]
+  ):not([data-collapsed]) {
+  position: relative;
+}
+
+.mav-dock:is(
+    [data-placement="left"],
+    [data-placement="right"],
+    [data-placement="top"],
+    [data-placement="bottom"]
+  ):not([data-collapsed])
+  .mav-dock-edge {
+  display: block;
+  position: absolute;
+  z-index: 2;
+  touch-action: none;
+}
+
+.mav-dock[data-placement="left"] .mav-dock-edge,
+.mav-dock[data-placement="right"] .mav-dock-edge {
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: ew-resize;
+}
+
+.mav-dock[data-placement="left"] .mav-dock-edge {
+  right: 0;
+}
+
+.mav-dock[data-placement="right"] .mav-dock-edge {
+  left: 0;
+}
+
+.mav-dock[data-placement="top"] .mav-dock-edge,
+.mav-dock[data-placement="bottom"] .mav-dock-edge {
+  left: 0;
+  right: 0;
+  height: 8px;
+  cursor: ns-resize;
+}
+
+.mav-dock[data-placement="top"] .mav-dock-edge {
+  bottom: 0;
+}
+
+.mav-dock[data-placement="bottom"] .mav-dock-edge {
+  top: 0;
+}
+
+.mav-dock-edge-grip {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16px;
+  height: 36px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--mav-border);
+  border-radius: 8px;
+  color: var(--mav-text-muted);
+  /* Three lines, drawn in the text colour. */
+  background-color: var(--mav-surface-raised);
+  background-image:
+    linear-gradient(currentColor 0 0), linear-gradient(currentColor 0 0),
+    linear-gradient(currentColor 0 0);
+  background-position:
+    calc(50% - 4px) 50%,
+    50% 50%,
+    calc(50% + 4px) 50%;
+  background-size: 2px 14px;
+  background-repeat: no-repeat;
+  cursor: inherit;
+  opacity: 0;
+  transform: translate(-50%, -50%);
+  transition: opacity 120ms ease-out;
+}
+
+.mav-dock[data-placement="top"] .mav-dock-edge-grip,
+.mav-dock[data-placement="bottom"] .mav-dock-edge-grip {
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+
+.mav-dock-edge:hover .mav-dock-edge-grip,
+.mav-dock-edge-grip:focus-visible,
+#camera-views[data-resizing] .mav-dock-edge-grip {
+  opacity: 1;
+}
+
+.mav-dock-edge-grip:hover,
+#camera-views[data-resizing] .mav-dock-edge-grip {
+  color: var(--mav-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mav-dock-edge-grip {
+    transition: none;
+  }
 }
 
 /* ---- Scattered: a layer over the window; only tiles and the panel take clicks ---- */

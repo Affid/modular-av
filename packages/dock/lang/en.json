@@ -30,6 +30,7 @@
       "expand": "Show the cameras",
       "move": "Move the dock (arrow keys)",
       "resize": "Resize the dock (arrow keys)",
+      "resizeDocked": "Resize the dock (arrow keys; Home or a double-click resets it)",
       "backToPage": "Back into the page"
     },
     "tile": {
