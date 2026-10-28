@@ -48,8 +48,12 @@ test("everyone the same size again from the same button", async ({ page }) => {
     .getByRole("button", { name: "Show everyone the same size" })
     .click();
 
-  const widths = new Set<number>();
-  for (const tile of await page.locator(".mav-dock-tile").all())
-    widths.add(await widthOf(tile));
-  expect(widths.size).toBe(1);
+  // The grid is fitted again a frame later: wait for it.
+  const sizes = async (): Promise<number> => {
+    const widths = new Set<number>();
+    for (const tile of await page.locator(".mav-dock-tile").all())
+      widths.add(await widthOf(tile));
+    return widths.size;
+  };
+  await expect.poll(sizes).toBe(1);
 });
