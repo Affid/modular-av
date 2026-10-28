@@ -32,17 +32,28 @@
         "type": "module",
         "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av/module.json",
         "compatibility": {
-          "minimum": "0.5.0"
+          "minimum": "0.6.0"
         }
       }
     ]
   },
   "flags": {
     "modular-av": {
-      "kind": "effect"
+      "kind": "effect",
+      "icon": "fa-solid fa-image-portrait",
+      "facts": [
+        {
+          "label": "Who turns it on",
+          "value": "Each player, in Voice & Video Settings"
+        },
+        {
+          "label": "Browsers",
+          "value": "Chrome and Edge"
+        }
+      ]
     }
   },
-  "version": "0.5.0",
+  "version": "0.6.0",
   "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-cam-background/module.json",
-  "download": "https://github.com/Affid/modular-av/releases/download/modular-av-cam-background-v0.5.0/modular-av-cam-background.zip"
+  "download": "https://github.com/Affid/modular-av/releases/download/modular-av-cam-background-v0.6.0/modular-av-cam-background.zip"
 }

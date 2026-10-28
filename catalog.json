@@ -18,10 +18,21 @@
       "requires": [
         {
           "id": "modular-av",
-          "minimum": "0.5.0"
+          "minimum": "0.6.0"
         }
       ],
-      "version": "0.5.0",
+      "facts": [
+        {
+          "label": "Who turns it on",
+          "value": "Each player, in Voice & Video Settings"
+        },
+        {
+          "label": "Browsers",
+          "value": "Chrome and Edge"
+        }
+      ],
+      "icon": "fa-solid fa-image-portrait",
+      "version": "0.6.0",
       "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-cam-background/module.json"
     },
     {
