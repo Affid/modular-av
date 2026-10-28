@@ -42,8 +42,9 @@ const hasPopoverApi = (element: HTMLElement): boolean =>
 /**
  * Opens `content` next to `anchor`, in the anchor's document (the
  * Picture-in-Picture window, maybe), sized to that window. It closes on
- * Escape, on a click outside and through `close()`, then gives the focus
- * back to the anchor. One is open per document at a time, whichever UI
+ * Escape, on a click outside, on its anchor clicked again (a toggle: the
+ * click never reaches the anchor's own handler, which would open it once
+ * more) and through `close()`, then gives the focus back to the anchor. One is open per document at a time, whichever UI
  * module opened it, except those it is opened from. Native popovers
  * (`popover="manual"`, the top layer) where the browser has them; the
  * closing rules are this helper's, the same everywhere (an "auto" one would
@@ -96,6 +97,7 @@ export function openPopover(options: PopoverOptions): Popover {
     element.removeEventListener(CLOSE_EVENT, close);
     doc.removeEventListener("pointerdown", onPointerDown, true);
     doc.removeEventListener("keydown", onKeyDown, true);
+    doc.removeEventListener("click", onAnchorClick, true);
     for (const child of doc.querySelectorAll<HTMLElement>(POPOVER))
       if (child.dataset.mavFrom === element.id)
         child.dispatchEvent(new Event(CLOSE_EVENT));
@@ -111,6 +113,14 @@ export function openPopover(options: PopoverOptions): Popover {
   const onPointerDown = (event: Event): void => {
     const target = event.target as Node | null;
     if (target && !within(element, target) && !anchor.contains(target)) close();
+  };
+  // Captured on the document, ahead of the anchor's own listeners.
+  const onAnchorClick = (event: Event): void => {
+    const target = event.target as Node | null;
+    if (!target || !anchor.contains(target)) return;
+    event.stopPropagation();
+    event.preventDefault();
+    close();
   };
   const onKeyDown = (event: KeyboardEvent): void => {
     if (event.key !== "Escape") return;
@@ -131,6 +141,7 @@ export function openPopover(options: PopoverOptions): Popover {
   anchor.setAttribute("aria-expanded", "true");
   doc.addEventListener("pointerdown", onPointerDown, true);
   doc.addEventListener("keydown", onKeyDown, true);
+  doc.addEventListener("click", onAnchorClick, true);
   reposition();
   resized?.observe(element);
   return { element, reposition, close };

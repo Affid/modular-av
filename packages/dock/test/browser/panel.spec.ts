@@ -59,3 +59,17 @@ for (const placement of ["Docked on the left", "Docked at the top"]) {
     );
   });
 }
+
+test("the microphone's arrow closes its menu when clicked again", async ({
+  page,
+}) => {
+  await call(page);
+  const arrow = page.getByRole("button", { name: "Microphone options" });
+
+  await arrow.click();
+  await expect(page.locator(".mav-popover")).toBeVisible();
+  await arrow.click();
+
+  await expect(page.locator(".mav-popover")).toHaveCount(0);
+  await expect(arrow).toHaveAttribute("aria-expanded", "false");
+});

@@ -58,3 +58,31 @@ describe("a popover whose content grows after it opens", () => {
     expect(observed).toBeNull();
   });
 });
+
+describe("a popover's anchor", () => {
+  it("closes it on a second click instead of opening it again", () => {
+    const anchor = document.createElement("button");
+    document.body.append(anchor);
+    let opened: ReturnType<typeof openPopover> | null = null;
+    const opens = vi.fn(() => {
+      opened = openPopover({
+        anchor,
+        content: document.createElement("p"),
+        label: "Menu",
+      });
+    });
+    anchor.addEventListener("click", opens);
+
+    anchor.click();
+    expect(document.querySelectorAll(".mav-popover")).toHaveLength(1);
+    anchor.click();
+
+    expect(document.querySelectorAll(".mav-popover")).toHaveLength(0);
+    expect(opens).toHaveBeenCalledTimes(1);
+    expect(anchor.getAttribute("aria-expanded")).toBe("false");
+    expect(opened).not.toBeNull();
+    // A third click opens it again.
+    anchor.click();
+    expect(document.querySelectorAll(".mav-popover")).toHaveLength(1);
+  });
+});
