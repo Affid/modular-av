@@ -1,8 +1,13 @@
 /*
- * Modular A/V's modules window: the assembly board (the core in the
- * middle, a socket for each kind), the tray below it, then the steps.
- * Loaded when the window first opens. Colours follow Foundry's theme.
+ * Modular A/V's modules window: what runs (On air), the chain the GM
+ * builds (Next: effects, service, cameras, in the order a call flows,
+ * each stage holding cards), its choices as tiles, the starter builds,
+ * and the steps (Load in, Go live, Soundcheck). Loaded when the window
+ * first opens. Colours follow Foundry's theme.
  */
+
+/* The open stage's tiles, the starter builds and the steps. */
+@import url("board-choices.css");
 .mav-board {
   --mav-board-bg: #efe8dc;
   --mav-board-dot: #ddd3c1;
@@ -28,6 +33,10 @@
   --mav-board-plan: #1f5f8a;
   --mav-board-plan-ink: #ffffff;
   --mav-board-focus: #1f6fd1;
+  --mav-board-on-air: #c62828;
+  --mav-board-on-air-ink: #ffffff;
+  --mav-board-rack: #e3d9c8;
+  --mav-board-cable: #4a4036;
 
   display: grid;
   gap: 16px;
@@ -62,6 +71,10 @@
   --mav-board-plan: #8cc4ee;
   --mav-board-plan-ink: #0b1a26;
   --mav-board-focus: #79b0ff;
+  --mav-board-on-air: #e5484d;
+  --mav-board-on-air-ink: #ffffff;
+  --mav-board-rack: #26222a;
+  --mav-board-cable: #0b0a0d;
 }
 
 .mav-board h2 {
@@ -134,20 +147,14 @@
   box-shadow: none;
 }
 
-/* What runs, what the plan changes; updates; where the list came from */
+/* What the plan means now; updates; where the list came from */
 .mav-board-status {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 12px;
-  align-items: center;
-  padding: 10px 12px;
-  border-radius: 6px;
-  border: 1px solid var(--mav-board-line);
-  background: var(--mav-board-piece);
+  font-size: 15px;
+  outline: none;
 }
-.mav-board-status .grow {
-  flex: 1;
-  min-width: 200px;
+.mav-board-status[data-back] {
+  border-left: 3px solid var(--mav-board-ok);
+  padding-left: 10px;
 }
 .mav-board-notice {
   font-size: 13.5px;
@@ -163,306 +170,348 @@
   color: var(--mav-board-warn);
 }
 
-/* The board */
-.mav-board-plan {
-  background-color: var(--mav-board-bg);
-  background-image: radial-gradient(
-    var(--mav-board-dot) 1.2px,
-    transparent 1.2px
-  );
-  background-size: 18px 18px;
-  border: 1px solid var(--mav-board-line);
-  border-radius: 8px;
-  padding: 18px;
-  display: grid;
-  gap: 26px;
-  align-items: start;
-  grid-template-columns: minmax(0, 1fr) minmax(150px, 190px) minmax(0, 1fr);
-  grid-template-areas: "service core cameras" "effects effects effects";
-}
-.mav-board-arm {
-  display: grid;
-  gap: 8px;
-  min-width: 0;
-}
-.mav-board-arm.service {
-  grid-area: service;
-}
-.mav-board-arm.cameras {
-  grid-area: cameras;
-}
-.mav-board-arm.effects {
-  grid-area: effects;
-}
-.mav-board-arm-label {
-  display: flex;
-  gap: 8px;
-  align-items: baseline;
-  flex-wrap: wrap;
-}
-.mav-board-arm-label .need {
-  font-size: 12px;
-  color: var(--mav-board-ink-soft);
-}
-.mav-board-arm-label .need.required {
-  color: var(--mav-board-danger);
-  font-weight: 600;
-}
-.mav-board-core {
-  grid-area: core;
-  align-self: center;
-  text-align: center;
-  padding: 18px 12px;
-  border-radius: 10px;
-  background: var(--mav-board-core);
-  color: var(--mav-board-core-ink);
-  display: grid;
-  gap: 4px;
-  position: relative;
-}
-.mav-board-core strong {
-  font-size: 20px;
-  letter-spacing: 0.03em;
-}
-.mav-board-core::before,
-.mav-board-core::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  height: 3px;
-  width: 26px;
-  background: var(--mav-board-line);
-}
-.mav-board-core::before {
-  right: 100%;
-}
-.mav-board-core::after {
-  left: 100%;
-}
-
-.mav-board-piece,
-.mav-board-socket {
-  --mav-board-kind: var(--mav-board-ink-soft);
-  position: relative;
-  border-radius: 8px;
-  padding: 9px 12px;
-  min-width: 0;
-  display: grid;
-  gap: 4px;
-}
-.mav-board-piece {
-  background: var(--mav-board-piece);
-  border: 1.5px solid var(--mav-board-kind);
-  box-shadow: 0 2px 0 rgb(0 0 0 / 10%);
-}
-.mav-board-piece[draggable="true"] {
-  cursor: grab;
-}
-.mav-board-piece[data-planned="true"] {
-  border-style: dashed;
-}
-.mav-board-socket {
-  border: 2px dashed var(--mav-board-kind);
-  background: color-mix(in srgb, var(--mav-board-kind) 6%, transparent);
-  min-height: 54px;
-  align-content: center;
-}
-.mav-board-socket[data-fits="true"] {
-  border-style: solid;
-  background: color-mix(in srgb, var(--mav-board-kind) 18%, transparent);
-}
-:is(.mav-board-socket, .mav-board-slot, .mav-board-tray)[data-over="true"] {
-  outline: 3px solid var(--mav-board-accent);
-  outline-offset: 2px;
-}
-.mav-board-piece::before,
-.mav-board-socket::before {
-  content: "";
-  position: absolute;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-}
-.mav-board-piece::before {
-  background: var(--mav-board-kind);
-  border: 2px solid var(--mav-board-bg);
-}
-.mav-board-socket::before {
-  border: 2px dashed var(--mav-board-kind);
-  background: var(--mav-board-bg);
-}
-.mav-board [data-knob="right"]::before {
-  right: -9px;
-  top: 50%;
-  margin-top: -7px;
-}
-.mav-board [data-knob="left"]::before {
-  left: -9px;
-  top: 50%;
-  margin-top: -7px;
-}
-.mav-board [data-knob="top"]::before {
-  top: -9px;
-  left: 24px;
-}
-.mav-board [data-kind="service"],
-.mav-board [data-socket="core.service"] {
+/* Each stage's colour, for cards, chips and tiles */
+.mav-board [data-stage="service"] {
   --mav-board-kind: var(--mav-board-service);
 }
-.mav-board [data-kind="ui"],
-.mav-board [data-socket="core.cameras"] {
+.mav-board [data-stage="cameras"] {
   --mav-board-kind: var(--mav-board-ui);
 }
-.mav-board [data-kind="effect"],
-.mav-board [data-socket="core.effects"] {
+.mav-board [data-stage="effects"] {
   --mav-board-kind: var(--mav-board-effect);
 }
-.mav-board [data-kind="theme"],
-.mav-board [data-socket$=".theme"] {
+.mav-board [data-stage="look"] {
   --mav-board-kind: var(--mav-board-theme);
 }
-.mav-board-socket .empty {
-  font-size: 13px;
-  color: var(--mav-board-ink-soft);
+.mav-board [data-stage="built-in"] {
+  --mav-board-kind: var(--mav-board-off);
 }
-.mav-board-piece .name {
-  font-weight: 600;
-}
-.mav-board-piece .what {
-  font-size: 13px;
-  color: var(--mav-board-ink-soft);
-}
-.mav-board-piece .tools {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-.mav-board-slot {
-  display: grid;
-  gap: 8px;
-}
-.mav-board-children {
-  display: grid;
-  gap: 8px;
-  margin-left: 18px;
-  padding-left: 14px;
-  border-left: 3px solid var(--mav-board-line);
-}
-.mav-board-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-.mav-board-badge {
-  font-size: 12px;
-  border-radius: 999px;
-  padding: 1px 8px;
-  border: 1px solid currentColor;
+
+/* On air, Next: broadcast signs */
+.mav-board-sign {
+  justify-self: start;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 3px;
+  border: 1.5px solid currentColor;
   white-space: nowrap;
 }
-.mav-board-badge.running {
-  color: var(--mav-board-ok);
+.mav-board-sign.on {
+  background: var(--mav-board-on-air);
+  border-color: var(--mav-board-on-air);
+  color: var(--mav-board-on-air-ink);
 }
-.mav-board-badge.off {
+.mav-board-sign.off {
   color: var(--mav-board-off);
 }
-.mav-board-badge.missing {
-  color: var(--mav-board-ink-soft);
-  border-style: dashed;
+.mav-board-sign.next {
+  color: var(--mav-board-plan);
 }
-.mav-board-badge.update {
-  color: var(--mav-board-warn);
-}
-.mav-board-badge.new {
-  color: var(--mav-board-new);
-}
-.mav-board-badge.needs,
-.mav-board-badge.will-remove {
-  color: var(--mav-board-danger);
-}
-.mav-board-badge.will-remove {
-  border-style: dashed;
-}
-.mav-board-badge.will-add {
-  background: var(--mav-board-plan);
-  border-color: var(--mav-board-plan);
-  color: var(--mav-board-plan-ink);
-}
-.mav-board-helper {
+
+.mav-board-onair {
   display: grid;
-  gap: 8px;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px 12px;
+  align-items: center;
+  padding: 10px 12px;
   border: 1px solid var(--mav-board-line);
-  border-radius: 6px;
-  padding: 10px;
+  border-radius: 8px;
   background: var(--mav-board-piece);
 }
-.mav-board-helper fieldset {
-  border: 0;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  gap: 6px;
-}
-.mav-board-helper legend {
-  font-weight: 600;
-  padding: 0;
-  margin-bottom: 4px;
-}
-.mav-board-choice {
+.mav-board-minichain {
   display: flex;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 4px 6px;
   align-items: center;
 }
-
-/* The tray */
-.mav-board-tray {
-  border: 1px dashed var(--mav-board-line);
-  border-radius: 8px;
-  padding: 12px;
-  display: grid;
-  gap: 10px;
-}
-.mav-board-groups {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-}
-.mav-board-group {
-  display: grid;
-  gap: 8px;
-  align-content: start;
-}
-.mav-board-tray .soon {
-  font-size: 13px;
+.mav-board-minichain .arrow {
   color: var(--mav-board-ink-soft);
-  border-top: 1px dashed var(--mav-board-line);
-  padding-top: 8px;
+  font-size: 11px;
+}
+.mav-board-chip {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  padding: 1px 9px 1px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--mav-board-line);
+  background: var(--mav-board-bg);
+  font-size: 13px;
+  white-space: nowrap;
+}
+.mav-board-chip i {
+  color: var(--mav-board-kind);
 }
 
-/* The steps */
-.mav-board-steps {
+/* Next: the chain */
+.mav-board-next {
   display: grid;
   gap: 14px;
-  border-top: 1px solid var(--mav-board-line);
-  padding-top: 14px;
-}
-.mav-board-warning {
-  color: var(--mav-board-danger);
-}
-.mav-board-step {
+  padding: 14px;
   border: 1px solid var(--mav-board-line);
+  border-radius: 10px;
+  background: var(--mav-board-bg);
+}
+.mav-board-next > .head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  align-items: center;
+}
+.mav-board-next > .head .hint {
+  flex: 1 1 240px;
+}
+.mav-board-chain {
+  display: flex;
+  align-items: stretch;
+}
+.mav-board-jack {
+  flex: 0 0 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-align: center;
+  font-size: 11.5px;
+  line-height: 1.2;
+  color: var(--mav-board-ink-soft);
+}
+.mav-board-jack b {
+  font-size: 11.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--mav-board-ink);
+}
+.mav-board-jack .socket {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    var(--mav-board-cable) 32%,
+    var(--mav-board-off) 36%,
+    var(--mav-board-line) 60%
+  );
+}
+.mav-board-cable {
+  flex: 0 0 14px;
+  align-self: center;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--mav-board-cable);
+  position: relative;
+  overflow: hidden;
+}
+.mav-board-cable.flow::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 0 -18px;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0 5px,
+    var(--mav-board-ok) 5px 9px
+  );
+}
+.mav-board-stage {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 8px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--mav-board-line);
+  border-top: 3px solid var(--mav-board-kind);
+  background: var(--mav-board-rack);
+}
+.mav-board-stage > .head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 2px 6px;
+  padding: 0 4px;
+}
+.mav-board-stage > .head .label {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--mav-board-kind);
+}
+.mav-board-stage > .head .need {
+  font-size: 11.5px;
+  color: var(--mav-board-ink-soft);
+}
+.mav-board-stage[data-stage="service"] > .head .need {
+  color: var(--mav-board-warn);
+}
+.mav-board-stage > .plain {
+  font-size: 12.5px;
+  color: var(--mav-board-ink-soft);
+  padding: 0 4px;
+}
+.mav-board .mav-board-patch {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  height: auto;
+  padding: 8px 6px 6px;
+  border: 1px solid transparent;
   border-radius: 8px;
-  padding: 12px;
-  display: grid;
-  gap: 10px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.mav-board .mav-board-patch.sub {
+  flex: none;
+}
+.mav-board .mav-board-patch:hover {
+  border-color: var(--mav-board-button-line);
+}
+.mav-board .mav-board-patch[aria-expanded="true"] {
+  border-color: var(--mav-board-accent);
+  box-shadow: inset 0 0 0 1px var(--mav-board-accent);
+}
+.mav-board-patch .foot {
+  margin-top: auto;
+  padding: 0 3px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--mav-board-accent);
+}
+.mav-board-patch .sub-label {
+  padding: 0 3px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--mav-board-theme);
+}
+
+/* A module's card on its stage */
+.mav-board-slot {
+  position: relative;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 8px;
+  border-radius: 7px;
+  border: 1px solid var(--mav-board-line);
+  border-top: 3px solid var(--mav-board-kind);
   background: var(--mav-board-piece);
 }
-.mav-board-step > .mav-board-button {
-  justify-self: start;
+.mav-board-slot[data-status="built-in"] {
+  border-top-color: var(--mav-board-line);
 }
-.mav-board-step[data-done="true"] {
+.mav-board-slot .text {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.mav-board-slot .name {
+  font-weight: 600;
+  line-height: 1.2;
+}
+.mav-board-slot .note,
+.mav-board-tile .note {
+  font-size: 12px;
+  color: var(--mav-board-ink-soft);
+}
+.mav-board-slot .note[data-note="install"] {
+  color: var(--mav-board-warn);
+}
+.mav-board-slot .note[data-note="turnOn"] {
+  color: var(--mav-board-plan);
+}
+.mav-board-slot .note[data-note="turnOff"] {
+  color: var(--mav-board-danger);
+}
+.mav-board-slot.empty {
+  align-items: center;
+  border-style: dashed;
+  border-top-width: 1px;
+  background: transparent;
+  color: var(--mav-board-ink-soft);
+  font-size: 13px;
+}
+.mav-board-slot.empty.required {
+  border-color: var(--mav-board-warn);
+  color: var(--mav-board-ink);
+}
+
+/* The emblem: a hexagon tinted by its stage */
+.mav-board-emblem {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 36px;
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+  background: color-mix(in srgb, var(--mav-board-kind) 20%, transparent);
+  color: var(--mav-board-kind);
+  font-size: 15px;
+}
+.mav-board-emblem.large {
+  width: 50px;
+  height: 56px;
+  font-size: 22px;
+}
+
+.mav-board-status-chip {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: max-content;
+  max-width: 100%;
+  font-size: 11.5px;
+  padding: 0 7px;
+  border-radius: 999px;
+  border: 1px solid var(--mav-board-line);
+  color: var(--mav-board-ink-soft);
+  white-space: nowrap;
+}
+.mav-board-status-chip[data-status="running"] {
+  color: var(--mav-board-ok);
   border-color: var(--mav-board-ok);
 }
+.mav-board-status-chip[data-status="missing"],
+.mav-board-status-chip[data-status="soon"] {
+  border-style: dashed;
+}
+.mav-board-ribbons {
+  position: absolute;
+  top: -9px;
+  right: 6px;
+  display: flex;
+  gap: 4px;
+}
+.mav-board-ribbon {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0 6px;
+  border-radius: 3px;
+}
+.mav-board-ribbon.update {
+  background: var(--mav-board-warn);
+  color: var(--mav-board-accent-ink);
+}
+.mav-board-ribbon.new {
+  background: var(--mav-board-new);
+  color: var(--mav-board-plan-ink);
+}
+
 .mav-board-todo {
   margin: 0;
   padding-left: 20px;
@@ -524,23 +573,56 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .mav-board-socket,
-  .mav-board-piece {
+  .mav-board-cable.flow::after {
+    animation: mav-board-flow 0.9s linear infinite;
+  }
+  .mav-board-tile,
+  .mav-board-patch {
     transition:
       background-color 0.15s,
       border-color 0.15s;
   }
 }
-
-/* A narrow window: one column, the core on top */
-@container (max-width: 640px) {
-  .mav-board-plan {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "core" "service" "cameras" "effects";
+@keyframes mav-board-flow {
+  to {
+    transform: translateX(9px);
   }
-  .mav-board-core::before,
-  .mav-board-core::after {
-    display: none;
+}
+
+/* A wide window: tiles beside the inspect panel, builds side by side */
+@container (min-width: 700px) {
+  .mav-board-loadout {
+    grid-template-columns: minmax(0, 1fr) 260px;
+  }
+  .mav-board-builds .cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+/* A narrow window: the chain stacks, top to bottom */
+@container (max-width: 699px) {
+  .mav-board-chain {
+    flex-direction: column;
+  }
+  .mav-board-jack {
+    flex: 0 0 auto;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 10px;
+    text-align: start;
+    padding: 2px 8px;
+  }
+  .mav-board-cable {
+    flex: 0 0 14px;
+    width: 6px;
+    height: 14px;
+    align-self: flex-start;
+    margin-left: 16px;
+  }
+  .mav-board-onair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .mav-board-objective > .body {
+    padding-left: 12px;
   }
 }
 .modular-av-modules .window-content {

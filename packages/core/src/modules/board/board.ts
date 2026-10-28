@@ -1,14 +1,13 @@
 import { el } from "@modular-av/kit";
 import type { BoardHost } from "../host.ts";
-import { pieceOf, socketOf } from "../pieces.ts";
 import { type Board, createActions } from "./actions.ts";
 import { type BoardState, initialState } from "./state.ts";
 import { createTexts, type Texts } from "./texts.ts";
 import type { Actions, View } from "./view.ts";
-import { board as boardView } from "./view-board.ts";
+import { next } from "./view-chain.ts";
+import { objectives } from "./view-objectives.ts";
+import { onAir } from "./view-onair.ts";
 import { sourceLine, statusBar, updatesNotice } from "./view-status.ts";
-import { steps } from "./view-steps.ts";
-import { tray } from "./view-tray.ts";
 
 /** How long a toast stays, unless another replaces it. */
 const TOAST_MS = 6000;
@@ -67,27 +66,12 @@ function render(root: HTMLElement, view: View): void {
         sourceLine(view),
         updatesNotice(view),
         statusBar(view),
-        boardView(view),
-        tray(view),
-        steps(view),
+        onAir(view),
+        next(view),
+        objectives(view),
       ],
     }),
   );
-}
-
-/** Shows which sockets a picked-up piece fits; null puts it down. */
-function markFits(
-  content: HTMLElement,
-  state: BoardState,
-  id: string | null,
-): void {
-  const body = content.ownerDocument.body;
-  if (id) body.dataset.mavDragging = id;
-  else delete body.dataset.mavDragging;
-  const piece = id ? pieceOf(state.pieces, id) : undefined;
-  const key = piece && !state.plan.has(piece.id) ? socketOf(piece).key : "";
-  for (const hole of content.querySelectorAll<HTMLElement>("[data-socket]"))
-    hole.dataset.fits = String(hole.dataset.socket === key);
 }
 
 /** Puts focus on what an action leads to, by its data-key. */
@@ -95,9 +79,22 @@ const focusOn = (root: HTMLElement, key: string): void => {
   root.querySelector<HTMLElement>(`[data-key="${key}"]`)?.focus();
 };
 
-/** Ctrl+Z (Cmd+Z) undoes, except while typing in a field. */
-function undoKey(undo: () => void): (event: KeyboardEvent) => void {
+/**
+ * Ctrl+Z (Cmd+Z) undoes, except while typing in a field; Escape closes an
+ * open confirmation, else the open stage's choices.
+ */
+function keys(
+  undo: () => void,
+  escape: () => boolean,
+): (event: KeyboardEvent) => void {
   return (event) => {
+    if (event.key === "Escape") {
+      if (escape()) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      return;
+    }
     const typing =
       event.target instanceof HTMLInputElement && event.target.type !== "radio";
     const z = event.key.toLowerCase() === "z";
@@ -108,7 +105,18 @@ function undoKey(undo: () => void): (event: KeyboardEvent) => void {
 }
 
 /**
- * The assembly board in `content`: loads the catalog, shows the plan,
+ * What Escape closes in the board: an open confirmation, else the open
+ * stage's choices. False when nothing is: Foundry closes the window.
+ */
+const closer = (state: () => BoardState, actions: Actions) => (): boolean => {
+  if (state().confirming) actions.confirm(null);
+  else if (state().open) actions.openStage(null);
+  else return false;
+  return true;
+};
+
+/**
+ * The modules board in `content`: loads the catalog, shows the plan,
  * redraws after every action with focus where the action leads.
  */
 export async function mountBoard(
@@ -145,12 +153,12 @@ export async function mountBoard(
     toast: (message, withUndo) => {
       if (!disposed) toast.show(message, withUndo);
     },
-    markFits: (id) => {
-      markFits(content, state, id);
-    },
   };
   actions = createActions(board);
-  const onKey = undoKey(undo);
+  const onKey = keys(
+    undo,
+    closer(() => state, actions),
+  );
   content.addEventListener("keydown", onKey);
   draw();
   return {
@@ -158,7 +166,6 @@ export async function mountBoard(
       disposed = true;
       content.removeEventListener("keydown", onKey);
       toast.stop();
-      delete doc.body.dataset.mavDragging;
     },
   };
 }

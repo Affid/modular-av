@@ -2,7 +2,6 @@ import { el } from "@modular-av/kit";
 import { pieceOf } from "../pieces.ts";
 import { applicable, planDiff } from "../steps.ts";
 import { button, type View } from "./view.ts";
-import { setupStep } from "./view-setup.ts";
 
 const t = (view: View, key: string, data?: Readonly<Record<string, string>>) =>
   view.text.t(`steps.world.${key}`, data);
@@ -102,25 +101,19 @@ function applyConfirm(view: View): HTMLElement {
   });
 }
 
-/** Step 2: Apply turns modules on and off, and everyone reloads. */
-function worldStep(view: View): HTMLElement {
-  const diff = planDiff(view.state.plan, view.state.world);
-  const done = diff.turnOn.length + diff.turnOff.length === 0;
-  const place = el("section", {
+/** Go live: Apply turns modules on and off, and everyone reloads. */
+export function liveBody(view: View): readonly (HTMLElement | null)[] {
+  const who = el("p", {
     doc: view.doc,
-    className: "mav-board-step",
-    attrs: { "data-done": String(done) },
-    children: [
-      el("h3", { doc: view.doc, text: t(view, "title") }),
-      el("p", { doc: view.doc, className: "hint", text: t(view, "who") }),
-    ],
+    className: "hint",
+    text: t(view, "who"),
   });
-  if (done) {
-    place.append(el("p", { doc: view.doc, text: t(view, "done") }));
-    return place;
-  }
+  const diff = planDiff(view.state.plan, view.state.world);
+  if (diff.turnOn.length + diff.turnOff.length === 0)
+    return [el("p", { doc: view.doc, text: t(view, "done") })];
   const parts = applyParts(view);
-  place.append(
+  return [
+    who,
     todo(view),
     button(view, {
       label: parts ? t(view, "button", { parts }) : t(view, "nothing"),
@@ -131,61 +124,6 @@ function worldStep(view: View): HTMLElement {
         view.act.confirm("apply");
       },
     }),
-  );
-  if (view.state.confirming === "apply") place.append(applyConfirm(view));
-  return place;
-}
-
-/** Step 3: what to set once the pieces run. */
-function settingsStep(view: View): HTMLElement | null {
-  const { plan, pieces } = view.state;
-  const s = (key: string, data?: Readonly<Record<string, string>>) =>
-    view.text.t(`steps.settings.${key}`, data);
-  const effects = pieces.filter((p) => p.kind === "effect" && plan.has(p.id));
-  const themes = pieces.filter((p) => p.kind === "theme" && plan.has(p.id));
-  const items = [
-    plan.has("modular-av-livekit") ? s("livekit") : null,
-    plan.has("modular-av-jitsi") ? s("jitsi") : null,
-    ...themes.map((p) => s("theme", { name: view.text.name(p.id) })),
-    effects.length
-      ? s("effects", { names: view.text.names(effects.map((p) => p.id)) })
-      : null,
-  ].filter((item): item is string => item !== null);
-  if (!items.length) return null;
-  return el("section", {
-    doc: view.doc,
-    className: "mav-board-step",
-    children: [
-      el("h3", { doc: view.doc, text: s("title") }),
-      el("ul", {
-        doc: view.doc,
-        className: "mav-board-todo",
-        children: items.map((item) => el("li", { doc: view.doc, text: item })),
-      }),
-    ],
-  });
-}
-
-export function steps(view: View): HTMLElement {
-  const hasService = view.state.pieces.some(
-    (p) => p.kind === "service" && view.state.plan.has(p.id),
-  );
-  return el("section", {
-    doc: view.doc,
-    className: "mav-board-steps",
-    attrs: { "aria-label": view.text.t("steps.label") },
-    children: [
-      el("h2", { doc: view.doc, text: view.text.t("steps.title") }),
-      hasService
-        ? null
-        : el("p", {
-            doc: view.doc,
-            className: "mav-board-warning",
-            text: view.text.t("steps.serviceFirst"),
-          }),
-      setupStep(view),
-      worldStep(view),
-      settingsStep(view),
-    ],
-  });
+    view.state.confirming === "apply" ? applyConfirm(view) : null,
+  ];
 }

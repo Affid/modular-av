@@ -75,7 +75,7 @@
         "close": "Close"
       },
       "title": "Modular A/V: plan your voice and video setup",
-      "lead": "Put the pieces you want on the board. Nothing changes until you follow the steps below it.",
+      "lead": "Build your next setup in the chain below: each stage takes the modules for its part of the call. Nothing changes in this world until you go live.",
       "failed": "The modules window couldn't open. The browser console says why.",
       "source": {
         "github": "Checked GitHub for updates and new modules just now.",
@@ -86,113 +86,32 @@
       },
       "updates": {
         "label": "Updates available:",
-        "hint": "Update them on Setup (step 1), whenever you next go there."
+        "hint": "Update them on Setup (Load in), whenever you next go there."
       },
       "status": {
-        "runs": "This world runs {names}. Add or swap pieces below.",
-        "runsNothing": "This world runs no Modular A/V pieces yet. Add some below.",
-        "plan": "Your plan: {changes}. Nothing has changed yet; the steps below make it so.",
+        "start": "Start with the service: choose how calls travel, or pick a starter build. Nothing changes in this world until you go live.",
+        "onAir": "On air as planned. Soundcheck lists the settings to check.",
+        "plan": "Your next setup: {changes}. Nothing has changed yet.",
         "install": "{count} to install",
         "turnOn": "{count} to turn on",
         "turnOff": "{count} to turn off",
-        "back": "Welcome back. Installed: {got}. Still missing: {missing} (its link is in step 1).",
+        "back": "Welcome back. Installed: {got}. Still missing: {missing} (its link is in Load in).",
         "backNothing": "nothing yet",
-        "backAll": "Welcome back: {names} installed. Apply below.",
-        "undo": "Undo",
-        "undoAll": "Undo all",
+        "backAll": "Welcome back: {names} installed. Go live below.",
+        "undo": "Undo last change",
+        "undoAll": "Back to what is on air",
         "undone": "Undone.",
-        "backToWorld": "Back to what this world runs."
-      },
-      "board": {
-        "label": "Your plan",
-        "core": "Modular A/V",
-        "coreVersion": "core {version}",
-        "coreUpdate": "core {version} · update available",
-        "roomForMore": "Room for more."
-      },
-      "socket": {
-        "service": {
-          "label": "Service",
-          "need": "Required: pick one",
-          "empty": "Empty: nobody can join a call until a service is here."
-        },
-        "cameras": {
-          "label": "Cameras",
-          "need": "Optional: pick one",
-          "empty": "Empty: Foundry's own camera dock shows the cameras."
-        },
-        "effects": {
-          "label": "Effects",
-          "need": "Optional: any number",
-          "empty": "Empty: microphones and cameras go out as they are."
-        },
-        "theme": {
-          "label": "Theme for the {name}",
-          "need": "Optional: pick one",
-          "empty": "Empty: the {name}'s own look."
-        }
-      },
-      "badge": {
-        "running": "Running",
-        "off": "Installed, off",
-        "missing": "Not installed",
-        "willInstall": "Will install",
-        "willTurnOn": "Will turn on",
-        "willTurnOff": "Will turn off",
-        "willTurnOffNeeds": "Will turn off: needs the {name}",
-        "update": "Update available",
-        "new": "New",
-        "needsCore": "Needs Modular A/V {version}"
-      },
-      "piece": {
-        "remove": "Remove {name}",
-        "add": "Add to {socket}",
-        "instead": "Use instead of {name}",
-        "needs": "Needs {name} on the board",
-        "added": "{name} on the board.",
-        "swapped": "{name} on the board; {dropped} back in the tray.",
-        "removed": "{names} back in the tray."
-      },
-      "tray": {
-        "label": "Pieces you can add",
-        "title": "Pieces",
-        "hint": "Add a piece with its button, or drag it onto a socket. Drag a piece from the board back here to remove it.",
-        "onBoard": "{names} on the board.",
-        "none": "None yet.",
-        "soon": "Coming soon: {names}.",
-        "service": "Services",
-        "ui": "Cameras",
-        "effect": "Effects",
-        "theme": "Themes"
-      },
-      "helper": {
-        "open": "Help me choose",
-        "close": "Close",
-        "label": "Help me choose a service",
-        "question": "Where should calls go?",
-        "browsers": "Just the players' browsers, no server",
-        "browsersWhy": "Peer to peer: free and nothing to run. Best up to 6 players.",
-        "livekit": "LiveKit Cloud, or my own LiveKit server",
-        "livekitWhy": "LiveKit: handles larger tables; LiveKit Cloud has a free tier.",
-        "jitsi": "My own Jitsi Meet server",
-        "jitsiWhy": "Jitsi Meet: uses the server you run, with token sign-in.",
-        "use": "Use {name}",
-        "useInstead": "Use {name} instead of {current}",
-        "already": "{name} is on the board"
+        "backToWorld": "Your next setup matches what is on air."
       },
       "steps": {
-        "title": "Steps",
-        "label": "Steps",
-        "serviceFirst": "Add a service first: without one, nobody can join a call.",
         "setup": {
-          "title": "1. On Foundry's Setup screen",
           "who": "Whoever runs your Foundry server does this. On a hosted server, use your host's install page with the same links.",
           "done": "Nothing to install or update.",
           "update": "Update {names}: Add-on Modules, Update All.",
           "install": "Install: Add-on Modules, Install Module, paste each link into Manifest URL, Install. Accept the modules Foundry offers with it.",
           "brings": "Brings {names} with it.",
           "copyOne": "Copy {name} link",
-          "carryHint": "The links can't follow you to Setup: copy them or save the file first. This plan stays saved in the world.",
+          "carryHint": "The links can't follow you to Setup: copy them or save the file first. Your next setup stays saved in this world.",
           "copyAll": "Copy all links",
           "saveFile": "Save as a file",
           "chat": "Send to my chat, for whoever runs your server",
@@ -209,16 +128,15 @@
           "copyFailed": "Copying isn't allowed here; select the text instead."
         },
         "world": {
-          "title": "2. In this world",
           "who": "You, as GM. Everyone's page reloads once.",
-          "done": "This world already runs this plan.",
+          "done": "This world already runs your next setup.",
           "turnOn": "turn on {names}",
           "turnOff": "turn off {names}",
           "apply": "Apply: {parts}.",
           "carries": "Apply: {parts}; {name} carries the calls.",
           "keeps": "{names} stays on until {name} is installed, so calls keep working.",
           "keepsNone": "{names} stays on: without a service, nobody can join a call.",
-          "waiting": "Waiting to be installed (step 1): {names}.",
+          "waiting": "Waiting to be installed (Load in): {names}.",
           "waitingNeeds": "{names} waits for what it needs.",
           "button": "Apply: {parts}…",
           "nothing": "Nothing to apply yet",
@@ -227,14 +145,7 @@
           "reloadAlone": "Everyone's page reloads now.",
           "ok": "Apply and reload everyone",
           "later": "After the session",
-          "kept": "The plan stays saved: it's here when you open this window again."
-        },
-        "settings": {
-          "title": "3. Check these settings",
-          "livekit": "LiveKit's settings: your LiveKit Cloud or server address and key (the key stays in your browser).",
-          "jitsi": "Jitsi Meet's settings: your server's address and app secret.",
-          "theme": "Voice & Video Settings, Appearance: make {name} the world's theme, or let players choose.",
-          "effects": "Tell players: {names} are in their Voice & Video Settings."
+          "kept": "Your next setup stays saved: it's here when you open this window again."
         }
       },
       "file": {
@@ -279,7 +190,205 @@
         },
         "modular-av-livekit-krisp": {
           "title": "Krisp noise filter, for LiveKit Cloud"
+        },
+        "built-in:cameras": {
+          "title": "Foundry's own camera dock",
+          "what": "The camera row Foundry has always had. Nothing to install."
+        },
+        "built-in:look": {
+          "title": "The Dock's own look",
+          "what": "Plain frames that follow Foundry's colours."
         }
+      },
+      "chain": {
+        "onAirLabel": "What this world runs now",
+        "onAir": "On air",
+        "offAir": "Off air",
+        "nothingOnAir": "Nothing carries calls yet: nobody can join a call in this world.",
+        "next": "Next",
+        "nextTitle": "Your next setup",
+        "nextHint": "Build it here; the world keeps running what is on air until you go live.",
+        "jack": {
+          "in": "In",
+          "inWhat": "Players' mics and cameras",
+          "out": "Out",
+          "outWhat": "Everyone's screen"
+        },
+        "stage": {
+          "effects": {
+            "label": "Effects",
+            "need": "Optional, any number",
+            "plain": "Clean up sound and picture"
+          },
+          "service": {
+            "label": "Service",
+            "need": "Required, one",
+            "plain": "Carry the call"
+          },
+          "cameras": {
+            "label": "Cameras",
+            "need": "Optional, one",
+            "plain": "Show the faces"
+          },
+          "look": {
+            "label": "Theme",
+            "need": "Optional, one",
+            "plain": "Dress the Dock"
+          }
+        },
+        "empty": {
+          "effects": "None: sound and picture go out as they are.",
+          "service": "Choose one: without it, nobody can join a call.",
+          "look": "Needs the Dock"
+        },
+        "foot": {
+          "effects": "Add or remove",
+          "addEffect": "Add an effect",
+          "swap": "Swap",
+          "chooseService": "Choose a service",
+          "change": "Change",
+          "changeLook": "Change theme",
+          "seeThemes": "See themes"
+        },
+        "close": "Close choices",
+        "status": {
+          "running": "Running",
+          "off": "Installed, off",
+          "missing": "Not installed",
+          "built-in": "Built in",
+          "soon": "Coming soon"
+        },
+        "note": {
+          "install": "Install on Setup first",
+          "turnOn": "Joins when you go live",
+          "turnOff": "Comes off air when you go live"
+        },
+        "always": "Always there.",
+        "withDock": "Comes with the Dock.",
+        "needs": "Needs the {name}",
+        "ribbon": {
+          "update": "Update",
+          "new": "New"
+        },
+        "inChain": "In chain",
+        "finish": "Done",
+        "drawer": {
+          "effects": {
+            "title": "Effects: clean up what players send",
+            "lead": "Add any number. Each player turns them on for themselves."
+          },
+          "service": {
+            "title": "Where should calls go?",
+            "lead": "Every call needs exactly one service. You can swap it later."
+          },
+          "cameras": {
+            "title": "Where should the faces show?",
+            "lead": "One camera display at a time."
+          },
+          "look": {
+            "title": "How should the Dock look?",
+            "lead": "Themes dress the Dock. You can make one the table's look; players can still pick their own."
+          }
+        },
+        "act": {
+          "add": "Add to the chain",
+          "takeOut": "Take out of the chain",
+          "use": "Use {name}",
+          "instead": "Use {name} instead of {current}",
+          "withParent": "Use {name}, with the {parent}"
+        },
+        "current": {
+          "effects": "In your chain",
+          "service": "Carries the calls in your chain",
+          "cameras": "Shows the cameras in your chain",
+          "look": "Dresses the Dock in your chain"
+        },
+        "soon": "Coming soon: not released yet.",
+        "lookNeedsDock": "Themes dress the Dock: choose the Dock first.",
+        "chosen": {
+          "service": "{name} will carry the calls.",
+          "serviceInstead": "{name} will carry the calls, in place of {dropped}.",
+          "cameras": "{name} will show the cameras.",
+          "effects": "{name} added to your next setup.",
+          "removed": "{name} taken out of your next setup.",
+          "look": "The Dock will wear {name}.",
+          "built-in:cameras": "Foundry's own camera dock will show the cameras.",
+          "built-in:look": "The Dock keeps its own look.",
+          "dropped": "Taken out: {names}.",
+          "added": "Comes with it: {names}."
+        },
+        "built": "Chain filled: {names}. Change any stage, then follow the steps below.",
+        "builds": {
+          "title": "Or fill the chain in one click",
+          "lead": "Three common setups. Each is a starting point: change any stage afterwards.",
+          "tableSize": "Table size",
+          "setup": "Setup",
+          "fills": "Fills the chain with",
+          "use": "Use this build",
+          "tag": {
+            "quickest": "Quickest",
+            "mostTables": "Most tables"
+          },
+          "browsers": {
+            "title": "Just our browsers",
+            "sub": "Peer to peer, no server",
+            "line": "Free and nothing to run. Best for small tables.",
+            "tableSize": "Up to 6 players",
+            "setup": "Nothing to set"
+          },
+          "livekit": {
+            "title": "LiveKit",
+            "sub": "LiveKit Cloud, or your own LiveKit server",
+            "line": "Handles larger tables. LiveKit Cloud has a free tier.",
+            "tableSize": "Any size",
+            "setup": "Address and key"
+          },
+          "jitsi": {
+            "title": "Our own Jitsi Meet",
+            "sub": "The Jitsi Meet server you run",
+            "line": "Uses a server you already run, with token sign-in.",
+            "tableSize": "What your server handles",
+            "setup": "Address and app secret"
+          }
+        },
+        "steps": "Load in, go live, soundcheck",
+        "step": {
+          "load": {
+            "name": "Load in",
+            "sub": "install the new modules"
+          },
+          "live": {
+            "name": "Go live",
+            "sub": "switch the world to your next setup"
+          },
+          "check": {
+            "name": "Soundcheck",
+            "sub": "check each module's settings"
+          }
+        },
+        "state": {
+          "blocked": "Choose a service first",
+          "todo": "To do",
+          "waiting": "Waits for Load in",
+          "later": "After you go live",
+          "done": "Done"
+        },
+        "installed": "{got} of {total} installed",
+        "whereSetup": "On the Setup screen",
+        "whereWorld": "In this world",
+        "check": {
+          "foundry": "{name}'s settings, in Foundry's settings window",
+          "section": "{name}, in Voice & Video Settings",
+          "theme": "Make {names} the table's look, or let players choose",
+          "effects": "Tell players: {names} are in their Voice & Video Settings; each turns them on for themselves",
+          "open": "Open",
+          "locked": "After it is on air",
+          "now": "This world runs your setup. Check these before players join.",
+          "later": "After you go live, check these. Each module's settings appear once it is on air.",
+          "none": "Nothing to check."
+        },
+        "leaving": "Comes off air when you go live: {names} (stays installed).",
+        "kept": "{names} stays on air until {name} is installed, so calls keep working."
       }
     }
   }

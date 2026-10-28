@@ -151,6 +151,15 @@ describe("the board in Foundry", () => {
       ["modular-av-p2p", { active: false, version: "0.3.0" }],
     ]);
     expect(host.othersOnline()).toBe(1);
+    expect(host.serviceInUse()).toBeNull();
+  });
+
+  it("knows the service the world's setting names", () => {
+    const { host } = foundry(
+      new Map([["modular-av.service", "modular-av-p2p"]]),
+    );
+
+    expect(host.serviceInUse()).toBe("modular-av-p2p");
   });
 
   it("applies as Foundry's module manager does, then reloads everyone", async () => {

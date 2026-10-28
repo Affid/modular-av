@@ -8,7 +8,7 @@ import {
   fetchCatalog,
   loadCatalogs,
 } from "../catalog/fetch.ts";
-import { MODULE_ID } from "../constants.ts";
+import { MODULE_ID, SERVICE_SETTING } from "../constants.ts";
 import type { FoundryGame } from "../foundry/globals.ts";
 import { assetUrl } from "../socket.ts";
 import {
@@ -148,6 +148,28 @@ function configuredOf(foundry: BoardFoundry): readonly string[] {
   return [...new Set(ids)];
 }
 
+/** What Soundcheck lists, and where each item is set. */
+function soundcheck(
+  foundry: BoardFoundry,
+): Pick<BoardHost, "settingsSections" | "configuredModules" | "openCheck"> {
+  return {
+    settingsSections: () => sectionsOf(foundry),
+    configuredModules: () => configuredOf(foundry),
+    openCheck: (target) => {
+      // Without the core's window (A/V off), the core's own settings.
+      if ("foundry" in target || !foundry.settingsWindow)
+        foundry.openFoundrySettings(
+          "foundry" in target ? target.foundry : MODULE_ID,
+        );
+      else
+        void foundry.settingsWindow.render({
+          force: true,
+          modularAV: { tab: target.tab },
+        });
+    },
+  };
+}
+
 export function createFoundryBoardHost(foundry: BoardFoundry): BoardHost {
   const { game, doc } = foundry;
   return {
@@ -158,6 +180,10 @@ export function createFoundryBoardHost(foundry: BoardFoundry): BoardHost {
     othersOnline: () =>
       game.users.contents.filter((u) => u.active && u.id !== game.userId)
         .length,
+    serviceInUse: () => {
+      const id = game.settings.get(MODULE_ID, SERVICE_SETTING);
+      return typeof id === "string" && id !== "" ? id : null;
+    },
     loadCatalog: () => loadCatalog(foundry),
     savedPlan: () => readSavedPlan(game.settings.get(MODULE_ID, PLAN_SETTING)),
     savePlan: async (saved) => {
@@ -187,20 +213,7 @@ export function createFoundryBoardHost(foundry: BoardFoundry): BoardHost {
       foundry.clipboard
         ? foundry.clipboard.writeText(text)
         : Promise.reject(new Error("No clipboard on this page")),
-    settingsSections: () => sectionsOf(foundry),
-    configuredModules: () => configuredOf(foundry),
-    openCheck: (target) => {
-      // Without the core's window (A/V off), the core's own settings.
-      if ("foundry" in target || !foundry.settingsWindow)
-        foundry.openFoundrySettings(
-          "foundry" in target ? target.foundry : MODULE_ID,
-        );
-      else
-        void foundry.settingsWindow.render({
-          force: true,
-          modularAV: { tab: target.tab },
-        });
-    },
+    ...soundcheck(foundry),
     onError: foundry.onError,
   };
 }

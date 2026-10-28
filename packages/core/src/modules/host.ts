@@ -38,6 +38,8 @@ export interface BoardHost {
   world(): WorldModules;
   /** Other users connected now. */
   othersOnline(): number;
+  /** The service module the world's setting names to carry calls, if any. */
+  serviceInUse(): string | null;
   loadCatalog(retry?: boolean): Promise<LoadedCatalog>;
   savedPlan(): SavedPlan | null;
   savePlan(saved: SavedPlan | null): Promise<void>;

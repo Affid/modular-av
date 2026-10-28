@@ -78,6 +78,7 @@ async function open(
     copied: [] as string[],
     whispered: [] as string[],
     errors: [] as unknown[],
+    opened: [] as unknown[],
   };
   const host: BoardHost = {
     doc: document,
@@ -121,8 +122,11 @@ async function open(
       return Promise.resolve();
     },
     settingsSections: () => [],
-    configuredModules: () => [],
-    openCheck: () => undefined,
+    configuredModules: () => ["modular-av-livekit"],
+    serviceInUse: () => "modular-av-livekit",
+    openCheck: (target) => {
+      calls.opened.push(target);
+    },
     onError: (error) => {
       calls.errors.push(error);
     },
@@ -142,37 +146,62 @@ async function open(
   return { content, calls, q, click, text, settle };
 }
 
-const onBoard = (content: HTMLElement) =>
-  [...content.querySelectorAll(".mav-board-plan .mav-board-piece .name")].map(
+/** The names on the Next chain's cards, in signal order. */
+const chain = (content: HTMLElement) =>
+  [...content.querySelectorAll(".mav-board-next .mav-board-slot .name")].map(
     (n) => n.textContent,
   );
 
-describe("the assembly board", () => {
-  it("shows what the world runs, the rest in the tray", async () => {
+const onAir = (content: HTMLElement) =>
+  [...content.querySelectorAll(".mav-board-onair .mav-board-chip")].map(
+    (n) => n.textContent,
+  );
+
+describe("the modules board's chain", () => {
+  it("shows what the world runs on air, and the same chain next", async () => {
     const { content, text } = await open();
 
-    expect(onBoard(content)).toEqual(["LiveKit", "Dock"]);
-    expect(text(".mav-board-status")).toContain(
-      "This world runs LiveKit and Dock.",
-    );
-    expect(text(".mav-board-tray")).toContain("Peer to peer");
-    expect(text(".mav-board-tray")).toContain("Coming soon: Krisp");
+    expect(onAir(content)).toEqual(["LiveKit", "Dock"]);
+    expect(chain(content)).toEqual(["LiveKit", "Dock", "The Dock's own look"]);
+    expect(text(".mav-board-status")).toContain("On air as planned.");
   });
 
-  it("swaps the service with a piece's button, saying so, and undoes it", async () => {
+  it("plans only the service in use when several run", async () => {
+    const { content, text } = await open({
+      ...RUNNING,
+      "modular-av-p2p": { active: true },
+    });
+
+    expect(chain(content)).toEqual(["LiveKit", "Dock", "The Dock's own look"]);
+    expect(text(".mav-board-status")).toContain(
+      "Your next setup: 1 to turn off.",
+    );
+    expect(text(".mav-board-leaving")).toBe(
+      "Comes off air when you go live: Peer to peer (stays installed).",
+    );
+  });
+
+  it("opens a stage's choices and swaps the service, saying so, and undoes it", async () => {
     const { content, calls, click, text } = await open();
 
-    click("add-modular-av-p2p");
+    click("stage-service");
+    expect(document.activeElement?.getAttribute("data-key")).toBe(
+      "drawer-title",
+    );
+    click("tile-modular-av-p2p");
+    expect(text(".mav-board-inspect")).toContain("Peer to peer");
+    click("inspect-act");
 
-    expect(onBoard(content)).toEqual(["Peer to peer", "Dock"]);
+    expect(chain(content)).toEqual([
+      "Peer to peer",
+      "Dock",
+      "The Dock's own look",
+    ]);
     expect(text(".mav-board-toast")).toContain(
-      "Peer to peer on the board; LiveKit back in the tray.",
+      "Peer to peer will carry the calls, in place of LiveKit.",
     );
     expect(text(".mav-board-status")).toContain(
-      "Your plan: 1 to install, 1 to turn off.",
-    );
-    expect(document.activeElement?.getAttribute("data-key")).toBe(
-      "remove-modular-av-p2p",
+      "Your next setup: 1 to install, 1 to turn off.",
     );
     expect(calls.saved.at(-1)?.plan).toEqual([
       "modular-av-dock",
@@ -183,51 +212,103 @@ describe("the assembly board", () => {
       new KeyboardEvent("keydown", { key: "z", ctrlKey: true, bubbles: true }),
     );
 
-    expect(onBoard(content)).toEqual(["LiveKit", "Dock"]);
+    expect(chain(content)).toEqual(["LiveKit", "Dock", "The Dock's own look"]);
     expect(calls.saved.at(-1)).toBeNull();
   });
 
-  it("takes a theme only with what it themes, and removes it with it", async () => {
-    const { content, click, q } = await open({
-      ...RUNNING,
-      "modular-av-dock": { active: false },
+  it("brings the Dock with a theme, and takes the theme out with it", async () => {
+    const { content, click } = await open({
+      "modular-av": { active: true },
       "modular-av-livekit": { active: true },
     });
-    expect(q('[data-key="add-modular-av-dock-vines"]')).toMatchObject({
-      disabled: true,
-      textContent: "Needs Dock on the board",
-    });
 
-    click("add-modular-av-dock");
-    click("add-modular-av-dock-vines");
-    expect(onBoard(content)).toEqual(["LiveKit", "Dock", "Vines theme"]);
+    click("stage-look");
+    click("tile-modular-av-dock-vines");
+    click("inspect-act");
+    expect(chain(content)).toEqual(["LiveKit", "Dock", "Vines theme"]);
 
-    click("remove-modular-av-dock");
-
-    expect(onBoard(content)).toEqual(["LiveKit"]);
+    click("stage-cameras");
+    click("tile-built-in:cameras");
+    click("inspect-act");
+    expect(chain(content)).toEqual(["LiveKit", "Foundry's own camera dock"]);
   });
 
-  it("helps choose a service", async () => {
-    const { content, click, q } = await open();
-    click("helper-open");
+  it("fills an empty chain with a starter build", async () => {
+    const { content, click, q } = await open({
+      "modular-av": { active: true },
+    });
+    expect(q(".mav-board-builds")).not.toBeNull();
 
-    q('[data-key="helper-browsers"]')?.click();
-    q('[data-key="helper-browsers"]')?.dispatchEvent(new Event("change"));
-    expect(q('[data-key="helper-go"]')?.textContent).toBe(
-      "Use Peer to peer instead of LiveKit",
-    );
-    click("helper-go");
+    click("build-livekit");
 
-    expect(onBoard(content)).toContain("Peer to peer");
+    expect(chain(content)).toEqual([
+      "Noise cancellation",
+      "LiveKit",
+      "Dock",
+      "The Dock's own look",
+    ]);
+    expect(q(".mav-board-builds")).toBeNull();
+  });
+
+  it.each([
+    ["a fresh world", { "modular-av": { active: true } }],
+    ["a running world", RUNNING],
+    [
+      "a world with an update",
+      { ...RUNNING, "modular-av-dock": { active: true, version: "0.3.1" } },
+    ],
+  ])("never shows a string's key, in %s", async (_case, world) => {
+    const { content, click, q } = await open(world);
+    const keys = new Set<string>();
+    const look = () => {
+      const found = content.textContent.match(/modular-av\.[\w.:-]+/g);
+      for (const match of found ?? []) keys.add(match);
+    };
+
+    for (const stage of ["effects", "service", "cameras", "look"]) {
+      click(`stage-${stage}`);
+      for (const tile of content.querySelectorAll<HTMLElement>(
+        ".mav-board-tile",
+      )) {
+        tile.click();
+        look();
+      }
+    }
+    for (const step of ["load", "live", "check"]) {
+      if (
+        q(`[data-key="objective-${step}"]`)?.getAttribute("aria-expanded") !==
+        "true"
+      )
+        click(`objective-${step}`);
+      look();
+    }
+
+    expect([...keys]).toEqual([]);
+  });
+
+  it("says a module is coming soon, with nothing to choose", async () => {
+    const { click, q, text } = await open();
+
+    click("stage-effects");
+    click("tile-modular-av-livekit-krisp");
+
+    expect(text(".mav-board-inspect")).toContain("Coming soon");
+    expect(q('[data-key="inspect-act"]')).toBeNull();
   });
 });
 
-describe("the board's steps", () => {
-  it("gives the links to install, and leaves for Setup with them saved", async () => {
-    const { calls, click, text, settle } = await open();
-    click("add-modular-av-p2p");
+const choose = (click: (key: string) => void, stage: string, id: string) => {
+  click(`stage-${stage}`);
+  click(`tile-${id}`);
+  click("inspect-act");
+};
 
-    expect(text(".mav-board-steps")).toContain(url("modular-av-p2p"));
+describe("the modules board's steps", () => {
+  it("gives the fewest links, and leaves for Setup with them saved", async () => {
+    const { calls, click, text, settle } = await open();
+    choose(click, "service", "modular-av-p2p");
+
+    expect(text(".mav-board-objectives")).toContain(url("modular-av-p2p"));
     click("copy-all");
     await settle();
     expect(calls.copied[0]).toContain(`Peer to peer: ${url("modular-av-p2p")}`);
@@ -244,23 +325,27 @@ describe("the board's steps", () => {
     expect(calls.left).toBe(1);
   });
 
-  it("keeps the running service until its replacement is installed", async () => {
+  it("keeps the running service on air until its replacement is installed", async () => {
     const { click, text, q } = await open();
-    click("add-modular-av-p2p");
+    choose(click, "service", "modular-av-p2p");
+    expect(text(".mav-board-leaving")).toBe(
+      "LiveKit stays on air until Peer to peer is installed, so calls keep working.",
+    );
+    click("objective-live");
 
-    expect(text(".mav-board-steps")).toContain(
+    expect(text(".mav-board-objectives")).toContain(
       "LiveKit stays on until Peer to peer is installed",
     );
     expect(q('[data-key="apply"]')?.disabled).toBe(true);
   });
 
-  it("welcomes the GM back and applies what was installed", async () => {
+  it("welcomes the GM back and goes live with what was installed", async () => {
     const { calls, click, text, settle } = await open(
       { ...RUNNING, "modular-av-p2p": { active: false } },
       { plan: ["modular-av-p2p", "modular-av-dock"], trip: ["modular-av-p2p"] },
     );
     expect(text(".mav-board-status")).toContain(
-      "Welcome back: Peer to peer installed. Apply below.",
+      "Welcome back: Peer to peer installed.",
     );
 
     click("apply");
@@ -281,20 +366,6 @@ describe("the board's steps", () => {
     });
 
     expect(text(".mav-board-notice")).toContain("Updates available: Dock");
-    expect(text(".mav-board-steps")).toContain(
-      "Update Dock: Add-on Modules, Update All.",
-    );
-  });
-
-  it("keeps the only service on when the plan has none", async () => {
-    const { click, text, q } = await open();
-
-    click("remove-modular-av-livekit");
-
-    expect(text(".mav-board-steps")).toContain(
-      "LiveKit stays on: without a service, nobody can join a call.",
-    );
-    expect(q('[data-key="apply"]')?.disabled).toBe(true);
   });
 
   it("never plans to turn off a running module the catalog doesn't know", async () => {
@@ -303,16 +374,16 @@ describe("the board's steps", () => {
       { plan: ["modular-av-livekit", "modular-av-dock"], trip: null },
     );
 
-    expect(text(".mav-board-status")).toContain("This world runs");
+    expect(text(".mav-board-status")).toContain("On air as planned.");
   });
 
-  it("keeps the plan when Apply fails, and applies once however often clicked", async () => {
+  it("keeps the plan when going live fails, and goes once however often clicked", async () => {
     const { calls, click, settle } = await open(
       { ...RUNNING, "modular-av-mic-denoise": { active: false } },
       null,
       true,
     );
-    click("add-modular-av-mic-denoise");
+    choose(click, "effects", "modular-av-mic-denoise");
     click("apply");
 
     click("apply-ok");
@@ -323,17 +394,30 @@ describe("the board's steps", () => {
     expect(calls.errors).toHaveLength(1);
     expect(calls.saved.at(-1)?.plan).toContain("modular-av-mic-denoise");
 
-    // Once it has failed, Apply can be tried again.
     click("apply-ok");
     await settle();
     expect(calls.applied).toHaveLength(2);
+  });
+
+  it("opens each module's settings to check, ticking it off", async () => {
+    const { calls, click, q } = await open();
+    click("objective-check");
+
+    click("check-foundry:modular-av-livekit");
+
+    expect(calls.opened).toEqual([{ foundry: "modular-av-livekit" }]);
+    expect(
+      q('[data-key="objective-check"]')
+        ?.closest(".mav-board-objective")
+        ?.getAttribute("data-state"),
+    ).toBe("done");
   });
 
   it("keeps its announcements in one place across redraws", async () => {
     const { content, click } = await open();
     const toast = content.querySelector(".mav-board-toast");
 
-    click("add-modular-av-p2p");
+    choose(click, "service", "modular-av-p2p");
     click("undo");
 
     expect(content.querySelector(".mav-board-toast")).toBe(toast);
@@ -342,14 +426,14 @@ describe("the board's steps", () => {
 
   it("changes nothing once closed, whatever answers late", async () => {
     const { content, click, text, settle } = await open();
-    click("add-modular-av-p2p");
-    const before = text(".mav-board-steps");
+    choose(click, "service", "modular-av-p2p");
+    const before = text(".mav-board-objectives");
 
     click("chat");
     mounted?.dispose();
     await settle();
 
-    expect(text(".mav-board-steps")).toBe(before);
+    expect(text(".mav-board-objectives")).toBe(before);
     expect(
       content.querySelector(".mav-board-toast")?.textContent,
     ).not.toContain("Whispered");

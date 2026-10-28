@@ -8,7 +8,7 @@ import type {
 } from "@modular-av/api";
 import { createCommands } from "./commands.ts";
 import { validateContribution, validateSurface } from "./contributions.ts";
-import { MODULE_ID } from "./constants.ts";
+import { MODULE_ID, SERVICE_SETTING } from "./constants.ts";
 import {
   type Controller,
   createController,
@@ -51,7 +51,6 @@ import { MODULES_MENU } from "./modules/menu.ts";
 import { createSettingsWindow, menuTypeFor } from "./foundry/settings-host.ts";
 
 export const REGISTER_HOOK = "modularAV.register";
-export const SERVICE_SETTING = "service";
 /** Foundry's menu for its A/V settings window. */
 const FOUNDRY_AV_MENU = "core.webrtc";
 

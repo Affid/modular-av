@@ -1,5 +1,5 @@
 import { el } from "@modular-av/kit";
-import { planDiff, runningOf, updatesFor } from "../steps.ts";
+import { planDiff, updatesFor } from "../steps.ts";
 import { button, type View } from "./view.ts";
 
 /** Where the list of modules came from, and a retry when GitHub failed. */
@@ -60,14 +60,13 @@ function summary(view: View): string {
         })
       : text.t("status.backAll", { names: text.names(got) });
   }
+  const hasService = state.pieces.some(
+    (p) => p.kind === "service" && state.plan.has(p.id),
+  );
+  if (!hasService) return text.t("status.start");
   const diff = planDiff(state.plan, state.world);
-  const changes = diff.turnOn.length + diff.turnOff.length;
-  if (changes === 0) {
-    const running = [...runningOf(state.world)];
-    return running.length
-      ? text.t("status.runs", { names: text.names(running) })
-      : text.t("status.runsNothing");
-  }
+  if (diff.turnOn.length + diff.turnOff.length === 0)
+    return text.t("status.onAir");
   const counts: readonly (readonly [string, number])[] = [
     ["status.install", diff.install.length],
     ["status.turnOn", diff.turnOn.length - diff.install.length],
@@ -79,35 +78,17 @@ function summary(view: View): string {
   return text.t("status.plan", { changes: parts.join(", ") });
 }
 
-/** The plan in a sentence, announced, with undo. */
+/** The plan in a sentence, announced; focus lands here after big changes. */
 export function statusBar(view: View): HTMLElement {
-  const { state } = view;
-  const changed = planDiff(state.plan, state.world);
-  const differs = changed.turnOn.length + changed.turnOff.length > 0;
-  return el("div", {
+  return el("p", {
     doc: view.doc,
     className: "mav-board-status",
-    attrs: { role: "status", tabindex: "-1", "data-key": "status" },
-    children: [
-      el("span", { doc: view.doc, className: "grow", text: summary(view) }),
-      state.history.length
-        ? button(view, {
-            label: view.text.t("status.undo"),
-            key: "undo",
-            onClick: () => {
-              view.act.undo();
-            },
-          })
-        : null,
-      differs
-        ? button(view, {
-            label: view.text.t("status.undoAll"),
-            key: "undo-all",
-            onClick: () => {
-              view.act.undoAll();
-            },
-          })
-        : null,
-    ],
+    attrs: {
+      role: "status",
+      tabindex: "-1",
+      "data-key": "status",
+      ...(view.state.trip?.length ? { "data-back": "" } : {}),
+    },
+    text: summary(view),
   });
 }

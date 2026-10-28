@@ -179,8 +179,8 @@ function setupTodo(
   });
 }
 
-/** Step 1: updates and the fewest links to paste, carried to Setup. */
-export function setupStep(view: View): HTMLElement {
+/** Load in: updates and the fewest links to paste, carried to Setup. */
+export function loadBody(view: View): readonly (HTMLElement | null)[] {
   const { state, text } = view;
   const install = state.trip ?? planDiff(state.plan, state.world).install;
   const missing = install.filter((id) => !state.world.has(id));
@@ -189,25 +189,15 @@ export function setupStep(view: View): HTMLElement {
     url: pieceOf(state.pieces, l.id)?.manifest ?? "",
   }));
   const updates = updatesFor(state.world, state.loaded.catalog);
-  const done = links.length + updates.length === 0;
-  const place = el("section", {
+  const who = el("p", {
     doc: view.doc,
-    className: "mav-board-step",
-    attrs: { "data-done": String(done) },
-    children: [
-      el("h3", { doc: view.doc, text: text.t("steps.setup.title") }),
-      el("p", {
-        doc: view.doc,
-        className: "hint",
-        text: text.t("steps.setup.who"),
-      }),
-    ],
+    className: "hint",
+    text: text.t("steps.setup.who"),
   });
-  if (done) {
-    place.append(el("p", { doc: view.doc, text: text.t("steps.setup.done") }));
-    return place;
-  }
-  place.append(
+  if (links.length + updates.length === 0)
+    return [el("p", { doc: view.doc, text: text.t("steps.setup.done") })];
+  return [
+    who,
     setupTodo(view, links, updates),
     el("p", {
       doc: view.doc,
@@ -215,7 +205,6 @@ export function setupStep(view: View): HTMLElement {
       text: text.t("steps.setup.carryHint"),
     }),
     carry(view, installText(text, links, updates)),
-  );
-  if (state.confirming === "leave") place.append(leaveConfirm(view));
-  return place;
+    state.confirming === "leave" ? leaveConfirm(view) : null,
+  ];
 }

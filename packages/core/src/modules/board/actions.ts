@@ -1,11 +1,12 @@
 import type { BoardHost } from "../host.ts";
 import { pieceOf, piecesOf } from "../pieces.ts";
-import { type Plan, withoutPiece, withPiece } from "../plan.ts";
+import type { Plan } from "../plan.ts";
 import { applicable, planDiff, runningOf } from "../steps.ts";
+import { BUILDS, withBuild } from "./builds.ts";
+import { type Choice, choose, tileOf, tilesOf } from "./chain.ts";
 import { type BoardState, type Confirming, toSave } from "./state.ts";
 import type { Texts } from "./texts.ts";
 import type { Actions } from "./view.ts";
-import { ANSWERS } from "./view-helper.ts";
 
 /** How actions reach the board: its state, a re-render, a toast. */
 export interface Board {
@@ -15,8 +16,6 @@ export interface Board {
   /** Replaces the state and re-renders, focus on `focus` (a data-key). */
   set(next: BoardState, focus?: string): void;
   toast(message: string, withUndo?: boolean): void;
-  /** Marks the sockets a picked-up piece fits. */
-  markFits(id: string | null): void;
 }
 
 /** Reports an action's failure; the board stays as it was. */
@@ -74,29 +73,58 @@ async function apply(board: Board): Promise<void> {
   }
 }
 
+/** What the toast says of a choice: what it does, and what came or went. */
+function chosenMessage(board: Board, id: string, choice: Choice): string {
+  const t = board.texts();
+  const tile = tileOf(board.state(), id);
+  const swapped = tile.stage === "service" && choice.dropped.length > 0;
+  const key =
+    tile.status === "built-in"
+      ? id
+      : tile.stage === "effects" && !choice.plan.has(id)
+        ? "removed"
+        : swapped
+          ? "serviceInstead"
+          : tile.stage;
+  const said = t.t(`chain.chosen.${key}`, {
+    name: t.name(id),
+    dropped: t.names(choice.dropped),
+  });
+  if (swapped) return said;
+  if (choice.dropped.length)
+    return `${said} ${t.t("chain.chosen.dropped", { names: t.names(choice.dropped) })}`;
+  if (choice.added.length)
+    return `${said} ${t.t("chain.chosen.added", { names: t.names(choice.added) })}`;
+  return said;
+}
+
 function planActions(
   board: Board,
-): Pick<Actions, "add" | "remove" | "undo" | "undoAll"> {
+): Pick<Actions, "choose" | "build" | "undo" | "undoAll"> {
   const t = () => board.texts();
   return {
-    add(id) {
+    choose(id) {
       const state = board.state();
-      const next = withPiece(state.plan, id, state.pieces);
-      if (next.plan === state.plan) return;
-      const name = t().name(id);
-      const message = next.dropped.length
-        ? t().t("piece.swapped", { name, dropped: t().names(next.dropped) })
-        : t().t("piece.added", { name });
-      change(board, next.plan, message, `remove-${id}`);
+      const choice = choose(state, id);
+      if (choice.plan === state.plan) return;
+      change(
+        board,
+        choice.plan,
+        chosenMessage(board, id, choice),
+        `tile-${id}`,
+      );
     },
-    remove(id) {
+    build(id) {
       const state = board.state();
-      const next = withoutPiece(state.plan, id, state.pieces);
-      if (next.plan === state.plan) return;
-      const message = t().t("piece.removed", {
-        names: t().names(next.removed),
-      });
-      change(board, next.plan, message, `add-${id}`);
+      const build = BUILDS.find((b) => b.id === id);
+      if (!build) return;
+      const choice = withBuild(state, build);
+      change(
+        board,
+        choice.plan,
+        t().t("chain.built", { names: t().names(build.modules) }),
+        "status",
+      );
     },
     undo() {
       const state = board.state();
@@ -116,6 +144,46 @@ function planActions(
         runningOf(board.state().world),
         t().t("status.backToWorld"),
         "status",
+      );
+    },
+  };
+}
+
+/** Opening a stage's choices, picking a tile, opening a step, checking. */
+function viewActions(
+  board: Board,
+): Pick<Actions, "openStage" | "select" | "showStep" | "check"> {
+  return {
+    openStage(stage) {
+      const state = board.state();
+      if (stage === null || stage === state.open) {
+        board.set({ ...state, open: null }, `stage-${state.open ?? "service"}`);
+        return;
+      }
+      const tiles = tilesOf(state, stage);
+      const first = tiles.find((tile) => tile.inChain) ?? tiles[0];
+      board.set(
+        { ...state, open: stage, selected: first?.id ?? null },
+        "drawer-title",
+      );
+    },
+    select(id) {
+      board.set({ ...board.state(), selected: id }, `tile-${id}`);
+    },
+    showStep(key) {
+      const state = board.state();
+      const shown = state.panel === key ? "none" : key;
+      board.set(
+        { ...state, panel: shown, confirming: null },
+        `objective-${key}`,
+      );
+    },
+    check(item) {
+      if (item.target) board.host.openCheck(item.target);
+      const state = board.state();
+      board.set(
+        { ...state, checked: new Set([...state.checked, item.id]) },
+        "objective-check",
       );
     },
   };
@@ -194,24 +262,10 @@ function carryActions(
 }
 
 export function createActions(board: Board): Actions {
-  const answerKey = (id: string): string =>
-    `helper-${ANSWERS.find((a) => a.id === id)?.answer ?? ""}`;
   return {
     ...planActions(board),
+    ...viewActions(board),
     ...tripActions(board),
     ...carryActions(board),
-    helper(open) {
-      const state = board.state();
-      board.set(
-        { ...state, helperOpen: open },
-        open ? answerKey(state.answer ?? ANSWERS[0].id) : "helper-open",
-      );
-    },
-    answer(id) {
-      board.set({ ...board.state(), answer: id }, answerKey(id));
-    },
-    dragging(id) {
-      board.markFits(id);
-    },
   };
 }

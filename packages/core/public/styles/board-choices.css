@@ -1,0 +1,395 @@
+/*
+ * Modular A/V's modules window, continued (imported by board.css): an
+ * open stage's tiles and the inspect panel, the starter builds, and the
+ * steps (Load in, Go live, Soundcheck).
+ */
+
+/* An open stage: its choices as tiles, one inspected */
+.mav-board-drawer {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--mav-board-accent);
+  border-radius: 10px;
+  background: var(--mav-board-piece);
+}
+.mav-board-drawer > .head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px 12px;
+}
+.mav-board-drawer > .head h3 {
+  color: var(--mav-board-kind);
+  outline: none;
+}
+.mav-board-drawer > .head .hint {
+  flex: 1 1 100%;
+  order: 3;
+}
+.mav-board-loadout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+.mav-board-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+  gap: 8px;
+  align-content: start;
+}
+.mav-board .mav-board-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: auto;
+  height: auto;
+  min-height: 112px;
+  padding: 10px;
+  border: 1px solid var(--mav-board-line);
+  border-top: 3px solid var(--mav-board-kind);
+  border-radius: 6px;
+  background: var(--mav-board-bg);
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.mav-board .mav-board-tile[data-in-chain] {
+  background: color-mix(
+    in srgb,
+    var(--mav-board-kind) 12%,
+    var(--mav-board-bg)
+  );
+  border-color: var(--mav-board-kind);
+}
+.mav-board .mav-board-tile[aria-pressed="true"] {
+  outline: 2px solid var(--mav-board-accent);
+  outline-offset: 1px;
+}
+.mav-board .mav-board-tile[data-locked] {
+  opacity: 0.7;
+  border-style: dashed;
+  border-top-style: solid;
+}
+.mav-board-tile .name {
+  font-weight: 600;
+  line-height: 1.2;
+}
+.mav-board-tile .mav-board-status-chip {
+  margin-top: auto;
+}
+.mav-board-tile .flag {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0 6px;
+  border-radius: 3px;
+  background: var(--mav-board-kind);
+  color: var(--mav-board-accent-ink);
+}
+.mav-board-inspect {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  padding: 14px;
+  border: 1px solid var(--mav-board-line);
+  border-radius: 8px;
+  background: var(--mav-board-bg);
+}
+.mav-board-inspect .top {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.mav-board-inspect h4 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+.mav-board-inspect .kind {
+  font-size: 12.5px;
+  color: var(--mav-board-kind);
+}
+.mav-board-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.mav-board-chips .mav-board-ribbons {
+  position: static;
+}
+.mav-board-plan-line {
+  font-size: 13px;
+  padding: 6px 9px;
+  border-radius: 5px;
+  background: var(--mav-board-piece);
+  color: var(--mav-board-plan);
+}
+.mav-board-facts {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 12px;
+  margin: 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--mav-board-line);
+  font-size: 13px;
+}
+.mav-board-facts dt {
+  color: var(--mav-board-ink-soft);
+}
+.mav-board-facts dd {
+  margin: 0;
+}
+.mav-board-done {
+  font-size: 13.5px;
+  color: var(--mav-board-ok);
+}
+.mav-board-done[data-status="soon"] {
+  color: var(--mav-board-ink-soft);
+}
+.mav-board-leaving {
+  font-size: 13px;
+  color: var(--mav-board-ink-soft);
+}
+
+/* Starter builds */
+.mav-board-builds {
+  display: grid;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--mav-board-line);
+}
+.mav-board-builds .cards {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+.mav-board-build {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--mav-board-line);
+  border-radius: 8px;
+  background: var(--mav-board-piece);
+}
+.mav-board-build .top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.mav-board-build h3 {
+  font-size: 17px;
+}
+.mav-board-build .mav-board-button {
+  margin-top: auto;
+}
+.mav-board-tag {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 1px 8px;
+  border-radius: 3px;
+  background: var(--mav-board-service);
+  color: var(--mav-board-plan-ink);
+}
+.mav-board-tag.quickest {
+  background: var(--mav-board-button);
+  color: var(--mav-board-ink);
+}
+.mav-board-meter {
+  display: grid;
+  grid-template-columns: 72px 46px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  font-size: 12.5px;
+}
+.mav-board-meter .k,
+.mav-board-includes .k {
+  color: var(--mav-board-ink-soft);
+}
+.mav-board-meter .pips,
+.mav-board-pips {
+  display: inline-flex;
+  gap: 3px;
+}
+.mav-board-meter .pips i,
+.mav-board-pips i {
+  width: 12px;
+  height: 6px;
+  border-radius: 1px;
+  background: var(--mav-board-line);
+}
+.mav-board-meter .pips i.on {
+  background: var(--mav-board-accent);
+}
+.mav-board-pips i.on {
+  background: var(--mav-board-ok);
+}
+.mav-board-includes {
+  display: grid;
+  gap: 4px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--mav-board-line);
+  font-size: 12.5px;
+}
+.mav-board-includes .inc {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+}
+.mav-board-includes .inc i {
+  color: var(--mav-board-kind);
+}
+.mav-board-includes .st {
+  margin-left: auto;
+  color: var(--mav-board-ink-soft);
+}
+.mav-board-includes .st[data-status="running"] {
+  color: var(--mav-board-ok);
+}
+
+/* Load in, Go live, Soundcheck */
+.mav-board-objectives {
+  display: grid;
+  gap: 10px;
+}
+.mav-board-objective-list,
+.mav-board-checks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.mav-board-objective {
+  border: 1px solid var(--mav-board-line);
+  border-radius: 7px;
+  background: var(--mav-board-piece);
+}
+.mav-board-objective[data-current] {
+  border-color: var(--mav-board-accent);
+  box-shadow: 0 0 0 1px var(--mav-board-accent);
+}
+.mav-board .mav-board-objective-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: center;
+  width: 100%;
+  height: auto;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 7px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+/* The step's number in a diamond (a check mark once done) */
+.mav-board-objective-head .mark {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin: 0 3px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.mav-board-objective-head .mark::before {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  transform: rotate(45deg);
+  border: 1.5px solid var(--mav-board-button-line);
+  border-radius: 3px;
+}
+.mav-board-objective[data-current] .mark {
+  color: var(--mav-board-accent);
+}
+.mav-board-objective[data-current] .mark::before {
+  border-color: var(--mav-board-accent);
+}
+.mav-board-objective[data-state="done"] .mark::before {
+  background: var(--mav-board-ok);
+  border-color: var(--mav-board-ok);
+}
+.mav-board-objective[data-state="done"] .mark::after {
+  content: "\2713";
+  position: relative;
+  color: var(--mav-board-accent-ink);
+}
+.mav-board-objective-head .title {
+  flex: 1 1 220px;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.mav-board-objective-head .name {
+  font-size: 15px;
+  font-weight: 700;
+}
+.mav-board-objective[data-current] .name {
+  color: var(--mav-board-accent);
+}
+.mav-board-objective-head .sub,
+.mav-board-objective-head .state {
+  font-size: 13px;
+  color: var(--mav-board-ink-soft);
+}
+.mav-board-objective-head .state {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.mav-board-where {
+  font-size: 12px;
+  color: var(--mav-board-ink-soft);
+  border: 1px solid var(--mav-board-line);
+  border-radius: 999px;
+  padding: 1px 8px;
+  white-space: nowrap;
+}
+.mav-board-where.away {
+  color: var(--mav-board-service);
+  border-color: var(--mav-board-service);
+}
+.mav-board-objective > .body {
+  display: grid;
+  gap: 10px;
+  padding: 0 12px 12px 46px;
+}
+.mav-board-check {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid var(--mav-board-line);
+  border-radius: 6px;
+  background: var(--mav-board-bg);
+}
+.mav-board-check .text {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+.mav-board-check[data-done="true"] .text::before {
+  content: "\2713  ";
+  color: var(--mav-board-ok);
+}
+.mav-board-check[data-locked] {
+  opacity: 0.7;
+}

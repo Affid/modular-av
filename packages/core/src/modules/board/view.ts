@@ -1,18 +1,24 @@
 import { el } from "@modular-av/kit";
 import type { BoardHost } from "../host.ts";
-import type { Piece } from "../pieces.ts";
-import { isNewer, updatesFor } from "../steps.ts";
+import { updatesFor } from "../steps.ts";
+import type { Build } from "./builds.ts";
+import type { Stage } from "./chain.ts";
+import type { Check, ObjectiveKey } from "./objectives.ts";
 import type { BoardState, Confirming } from "./state.ts";
 import type { Texts } from "./texts.ts";
 
 /** What a view may ask the board to do; the board re-renders after. */
 export interface Actions {
-  add(id: string): void;
-  remove(id: string): void;
+  /** Chooses a tile in its stage (a toggle for an effect). */
+  choose(id: string): void;
+  build(id: Build["id"]): void;
+  /** Opens a stage's choices; null (or the open one) closes them. */
+  openStage(stage: Stage | null): void;
+  select(id: string): void;
+  showStep(key: ObjectiveKey): void;
+  check(item: Check): void;
   undo(): void;
   undoAll(): void;
-  helper(open: boolean): void;
-  answer(id: string): void;
   confirm(which: Confirming): void;
   leave(): void;
   apply(): void;
@@ -20,8 +26,6 @@ export interface Actions {
   saveFile(text: string): void;
   chat(text: string): void;
   retry(): void;
-  /** A piece picked up (or put down: null); sockets show where it fits. */
-  dragging(id: string | null): void;
 }
 
 export interface View {
@@ -60,59 +64,3 @@ export const coreVersion = (state: BoardState): string =>
 
 export const isUpdatable = (state: BoardState, id: string): boolean =>
   updatesFor(state.world, state.loaded.catalog).includes(id);
-
-/** Status and plan badges for a piece, on the board or in the tray. */
-export function badges(
-  view: View,
-  piece: Piece,
-  where: "board" | "tray",
-): HTMLElement {
-  const { state, text } = view;
-  const installed = state.world.get(piece.id);
-  const list: [string, string][] = [
-    installed?.active
-      ? ["running", text.t("badge.running")]
-      : installed
-        ? ["off", text.t("badge.off")]
-        : ["missing", text.t("badge.missing")],
-  ];
-  if (where === "board" && !installed?.active)
-    list.push([
-      "will-add",
-      text.t(installed ? "badge.willTurnOn" : "badge.willInstall"),
-    ]);
-  if (where === "tray" && installed?.active) list.push(turnOff(view, piece));
-  if (isUpdatable(state, piece.id))
-    list.push(["update", text.t("badge.update")]);
-  if (!state.loaded.known.has(piece.id))
-    list.push(["new", text.t("badge.new")]);
-  if (piece.needsCore && isNewer(piece.needsCore, coreVersion(state)))
-    list.push([
-      "needs",
-      text.t("badge.needsCore", { version: piece.needsCore }),
-    ]);
-  return el("span", {
-    doc: view.doc,
-    className: "mav-board-badges",
-    children: list.map(([kind, label]) =>
-      el("span", {
-        doc: view.doc,
-        className: `mav-board-badge ${kind}`,
-        text: label,
-      }),
-    ),
-  });
-}
-
-/** A running piece left in the tray: it goes, maybe with what it needs. */
-function turnOff(view: View, piece: Piece): [string, string] {
-  const parent = piece.requires.find(
-    (r) => r !== "modular-av" && !view.state.plan.has(r),
-  );
-  return [
-    "will-remove",
-    parent
-      ? view.text.t("badge.willTurnOffNeeds", { name: view.text.name(parent) })
-      : view.text.t("badge.willTurnOff"),
-  ];
-}
