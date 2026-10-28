@@ -6,6 +6,8 @@ import type {
 import {
   el,
   fitGrid,
+  fitSpeaker,
+  type GridSpace,
   type Insets,
   NO_INSETS,
   placeInOrder,
@@ -21,6 +23,34 @@ import {
   type Tile,
   type TileHandlers,
 } from "./tile.ts";
+
+/** What the list's custom properties say: the grid, or one player large. */
+interface Fitted {
+  readonly columns: number;
+  readonly width: number;
+  /** The large tile's width, and how many thumbnails it spans. */
+  readonly focusWidth: number;
+  readonly span: number;
+}
+
+const px = (value: number): string =>
+  `${String(Math.max(1, Math.floor(value)))}px`;
+
+/** One player large over thumbnails, or everyone in the largest grid. */
+function fitted(space: GridSpace, focus: boolean): Fitted {
+  if (focus) {
+    const speaker = fitSpeaker(space);
+    return {
+      columns: speaker.span,
+      width: Math.max(1, Math.floor(speaker.thumbWidth)),
+      focusWidth: speaker.focusWidth,
+      span: speaker.span,
+    };
+  }
+  const grid = fitGrid(space);
+  const width = Math.max(1, Math.floor(grid.tileWidth));
+  return { columns: grid.columns, width, focusWidth: width, span: 1 };
+}
 
 /** Below this, tiles stop shrinking and the list scrolls. */
 const MIN_TILE_WIDTH = 120;
@@ -108,7 +138,7 @@ export function createTileList(
   });
 
   /** The tile width last fitted, to damp the dock's own resizes. */
-  let fitted: { columns: number; width: number } | null = null;
+  let last: Fitted | null = null;
 
   /**
    * Fits the grid. A resize the list's own content caused (frames reach
@@ -122,29 +152,37 @@ export function createTileList(
     const gap = view
       ? parseFloat(view.getComputedStyle(element).columnGap) || 0
       : 0;
-    const result = fitGrid({
-      count: element.dataset.tileLayout === "focus" ? 1 : tiles.size,
-      width: element.clientWidth,
-      height: element.clientHeight,
-      gap,
-      minTileWidth: MIN_TILE_WIDTH,
-      scroll: horizontal ? "sideways" : "down",
-      reach,
-    });
-    const width = Math.max(1, Math.floor(result.tileWidth));
+    const focus = element.dataset.tileLayout === "focus";
+    const result = fitted(
+      {
+        count: tiles.size,
+        width: element.clientWidth,
+        height: element.clientHeight,
+        gap,
+        // Thumbnails have a smaller floor of their own.
+        ...(focus ? {} : { minTileWidth: MIN_TILE_WIDTH }),
+        scroll: horizontal ? "sideways" : "down",
+        reach,
+      },
+      focus,
+    );
     const nudge =
       fromResize &&
-      fitted?.columns === result.columns &&
-      Math.abs(fitted.width - width) <= 1;
+      last?.columns === result.columns &&
+      Math.abs(last.width - result.width) <= 1;
     if (nudge) return;
-    fitted = { columns: result.columns, width };
-    element.style.setProperty("--mav-dock-columns", String(result.columns));
-    element.style.setProperty("--mav-dock-tile-width", `${String(width)}px`);
+    last = result;
+    const style = element.style;
+    style.setProperty("--mav-dock-columns", String(result.columns));
+    style.setProperty("--mav-dock-tile-width", px(result.width));
+    style.setProperty("--mav-dock-focus-width", px(result.focusWidth));
+    style.setProperty("--mav-dock-focus-span", String(result.span));
   };
 
   const markFocus = (): void => {
-    const first = tiles.keys().next().value ?? null;
-    const id = focused && tiles.has(focused) ? focused : first;
+    // The local player's tile comes first: by default, the first other.
+    const [own, firstOther] = tiles.keys();
+    const id = focused && tiles.has(focused) ? focused : (firstOther ?? own);
     for (const [tileId, tile] of tiles)
       tile.element.toggleAttribute("data-focused", tileId === id);
   };

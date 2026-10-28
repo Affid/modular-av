@@ -107,3 +107,69 @@ export function fitFocus(space: Size): Size {
     ? { width: byHeight, height: space.height }
     : { width: space.width, height: heightForWidth(space.width) };
 }
+
+export interface SpeakerFit {
+  /** Thumbnail columns (down) or rows (sideways) the large tile spans. */
+  readonly span: number;
+  /** CSS pixels, not rounded. */
+  readonly focusWidth: number;
+  readonly thumbWidth: number;
+}
+
+/** Thumbnails stop shrinking here; below, the list scrolls. */
+const MIN_THUMB_WIDTH = 96;
+
+/** At least this many thumbnails across under a large tile: a third of it. */
+const MIN_THUMB_COLUMNS = 3;
+
+/** Under the large tile: `columns` thumbnails across, `rows` rows of them. */
+function speakerDown(space: GridSpace, others: number): SpeakerFit {
+  const { width, height, gap } = space;
+  const min = space.minTileWidth ?? MIN_THUMB_WIDTH;
+  const fitting = Math.max(1, Math.floor((width + gap) / (min + gap)));
+  const span = Math.max(
+    1,
+    Math.min(Math.max(MIN_THUMB_COLUMNS, others), fitting),
+  );
+  const rows = Math.ceil(others / span);
+  const byWidth = (width - gap * (span - 1)) / span;
+  // The large tile and the rows under it, all 16:9, fill the height.
+  const byHeight =
+    (height - gap * rows - heightForWidth(gap * (span - 1))) /
+    heightForWidth(span + rows);
+  const thumbWidth = Math.max(
+    Math.min(byWidth, byHeight),
+    Math.min(byWidth, min),
+  );
+  return { span, thumbWidth, focusWidth: span * thumbWidth + gap * (span - 1) };
+}
+
+/** Beside the large tile: `span` rows of thumbnails, as tall as it. */
+function speakerSideways(space: GridSpace): SpeakerFit {
+  const { width, height, gap } = space;
+  const twoRows = widthForHeight((height - gap) / 2);
+  const span = twoRows >= MIN_THUMB_WIDTH ? 2 : 1;
+  const byHeight = widthForHeight((height - gap * (span - 1)) / span);
+  const byWidth = (width - gap * (span - 1)) / span;
+  const thumbWidth = Math.min(byHeight, byWidth);
+  return { span, thumbWidth, focusWidth: span * thumbWidth + gap * (span - 1) };
+}
+
+/**
+ * One player large and everyone else as thumbnails: under the large tile
+ * in a dock that scrolls down, in rows beside it in one that scrolls
+ * sideways. The large tile spans `span` thumbnail columns (or rows).
+ */
+export function fitSpeaker(space: GridSpace): SpeakerFit {
+  if (space.count <= 0 || space.width <= 0 || space.height <= 0)
+    return { span: 1, focusWidth: 0, thumbWidth: 0 };
+  if (space.reach) return fitSpeaker(withoutFrames(space, space.reach));
+  const others = space.count - 1;
+  if (others === 0) {
+    const { width } = fitFocus(space);
+    return { span: 1, focusWidth: width, thumbWidth: width };
+  }
+  return space.scroll === "sideways"
+    ? speakerSideways(space)
+    : speakerDown(space, others);
+}

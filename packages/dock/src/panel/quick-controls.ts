@@ -4,11 +4,11 @@ import {
   renderContributedControls,
 } from "../contributions/controls.ts";
 import type { DockContext } from "../context.ts";
-import { renderEffects } from "./effects.ts";
 
 /**
- * The "Voice & video settings" popover: the effects and every quick
- * control other modules contributed. It subscribes only while open.
+ * The "More controls" popover: the quick controls other modules
+ * contributed of their own (devices and effects have the microphone's and
+ * the camera's menus). It subscribes only while open.
  */
 export function openQuickControls(
   ctx: DockContext,
@@ -20,10 +20,12 @@ export function openQuickControls(
     className: "mav-dock-alert",
     attrs: { role: "alert" },
   });
-  const parts: readonly Rendered[] = [
-    renderEffects(ctx, doc, alerts),
-    ...renderContributedControls(ctx, doc, "quick", alerts),
-  ];
+  const parts: readonly Rendered[] = renderContributedControls(
+    ctx,
+    doc,
+    "quick",
+    alerts,
+  );
   const content = el("div", {
     doc,
     className: "mav-dock-quick-controls",

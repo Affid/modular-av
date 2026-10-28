@@ -45,6 +45,7 @@ function show(dock: Dock): void {
     collapsed: dock.collapsed,
     count: dock.tiles.count,
   });
+  dock.panel.refresh();
 }
 
 function resizeHandle(ctx: DockContext, doc: Document): HTMLButtonElement {
@@ -74,6 +75,16 @@ function build(ctx: DockContext, host: CamerasHost): Dock {
       import("../panel/quick-controls.ts")
         .then(({ openQuickControls }) => {
           if (anchor.isConnected) openQuickControls(ctx, anchor);
+        })
+        .catch(ctx.onError);
+    },
+    menu: (kind, anchor) => {
+      // Like the quick controls, the menus' code loads on first use.
+      import("../panel/device-menus.ts")
+        .then(({ openCameraMenu, openMicMenu }) => {
+          if (!anchor.isConnected) return;
+          if (kind === "mic") openMicMenu(ctx, anchor);
+          else openCameraMenu(ctx, anchor);
         })
         .catch(ctx.onError);
     },

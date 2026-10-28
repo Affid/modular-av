@@ -11,7 +11,7 @@ import type { Rendered } from "../contributions/controls.ts";
 import type { DockContext } from "../context.ts";
 import type { Draft } from "./draft.ts";
 
-interface Parts {
+export interface SensitivityParts {
   readonly element: HTMLElement;
   readonly meter: Meter;
   readonly handle: HTMLInputElement;
@@ -19,7 +19,10 @@ interface Parts {
 }
 
 /** The label and value over the bar; the handle on the meter, one scale. */
-function parts(ctx: DockContext, doc: Document): Parts {
+export function sensitivityParts(
+  ctx: DockContext,
+  doc: Document,
+): SensitivityParts {
   const id = uniqueId(doc, "mav-threshold");
   const meter = createMeter(doc, { label: ctx.t("menu.level") });
   const handle = el("input", {
@@ -80,7 +83,7 @@ export function sensitivityBar(
   doc: Document,
   draft: Draft,
 ): Rendered {
-  const { element, meter, handle, value } = parts(ctx, doc);
+  const { element, meter, handle, value } = sensitivityParts(ctx, doc);
   const note = el("p", {
     doc,
     className: "mav-settings-hint",

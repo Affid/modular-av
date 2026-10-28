@@ -29,9 +29,10 @@
   --mav-dock-width: 300px;
   --mav-dock-height: 225px;
   /* Docked at the top or bottom: the header's and the panel's width, the
-     panel's six buttons in a row. */
+     panel's row in it: six buttons and two half-width menu arrows, each
+     arrow joined to its button by a 1px seam instead of the 4px gap. */
   --mav-dock-side: calc(
-    6 * var(--mav-dock-button) + 5 * 4px + 2 * var(--mav-dock-gap)
+    7 * var(--mav-dock-button) + 5 * 4px + 2 * 1px + 2 * var(--mav-dock-gap)
   );
   --mav-dock-tile-bg: #111214;
   --mav-dock-ring: 3px;
@@ -275,8 +276,7 @@
   list-style: none;
 }
 
-/* Docked at the top or bottom, the grid has the rows the fit chose; one
-   player large is a strip of full-height tiles, the focused one first. */
+/* Docked at the top or bottom, the grid has the rows the fit chose. */
 .mav-dock:is([data-placement="top"], [data-placement="bottom"])
   .mav-dock-tiles {
   align-self: stretch;
@@ -288,9 +288,22 @@
   scrollbar-width: thin;
 }
 
+/* One player large: their tile first, across the thumbnail columns under
+   it (--mav-dock-focus-span of them); its frame follows its own width. */
+.mav-dock:not([data-placement="scattered"])
+  .mav-dock-tiles[data-tile-layout="focus"]
+  .mav-dock-tile[data-focused] {
+  --mav-dock-tile-width: var(--mav-dock-focus-width);
+  grid-column: 1 / -1;
+  order: -1;
+}
+
+/* At the top or bottom, the thumbnails are rows beside the large tile,
+   which is as tall as they are together. */
 .mav-dock:is([data-placement="top"], [data-placement="bottom"])
   .mav-dock-tiles[data-tile-layout="focus"] {
   grid-template-columns: none;
+  grid-template-rows: repeat(var(--mav-dock-focus-span), auto);
   grid-auto-flow: column;
   grid-auto-columns: calc(
     var(--mav-dock-tile-width) * var(--mav-dock-frame-across, 1)
@@ -300,12 +313,8 @@
 .mav-dock:is([data-placement="top"], [data-placement="bottom"])
   .mav-dock-tiles[data-tile-layout="focus"]
   .mav-dock-tile[data-focused] {
-  grid-column: auto;
-}
-
-.mav-dock-tiles[data-tile-layout="focus"] .mav-dock-tile[data-focused] {
-  grid-column: 1 / -1;
-  order: -1;
+  grid-column: span var(--mav-dock-focus-span);
+  grid-row: span var(--mav-dock-focus-span);
 }
 
 /* Frames may reach past the tile: the media clips the video, not the tile. */
@@ -479,15 +488,46 @@
   display: none;
 }
 
+/* The arrow beside the microphone and the camera that opens its menu:
+   half a button, joined to its button by a hairline. */
+.mav-dock-menu-arrow {
+  width: calc(var(--mav-dock-button) / 2);
+  margin-inline-start: -3px;
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+  font-size: 0.7em;
+}
+
+.mav-dock-buttons > .mav-dock-button:has(+ .mav-dock-menu-arrow) {
+  border-start-end-radius: 0;
+  border-end-end-radius: 0;
+}
+
 /* ---- Panel ---- */
 
 .mav-dock-panel {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
   gap: var(--mav-dock-gap);
   padding: var(--mav-dock-gap);
   border-radius: var(--mav-dock-radius);
   background: var(--mav-surface);
+}
+
+/* Every part of the panel takes a row of its own but the warnings, beside
+   the connection line: they come and go as the player talks (speaking
+   while muted), and the panel keeps its size. */
+.mav-dock-panel > * {
+  grid-column: 1 / -1;
+}
+
+.mav-dock-panel > .mav-dock-connection-status {
+  grid-column: 1;
+}
+
+.mav-dock-panel > .mav-dock-warnings {
+  grid-column: 2;
 }
 
 /* Docked at the top or bottom: header and panel are side columns of one
@@ -511,6 +551,8 @@
   .mav-dock-panel {
   flex: none;
   width: min-content;
+  /* Plain like the header: a card here would sit alone in the corner. */
+  background: none;
   min-width: var(--mav-dock-side);
   max-height: 100%;
   overflow-y: auto;
@@ -555,17 +597,79 @@
 
 .mav-dock:is([data-placement="top"], [data-placement="bottom"])[data-collapsed]
   .mav-dock-panel {
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-items: center;
+  grid-template-columns: auto auto auto;
   width: auto;
   max-height: none;
   overflow: visible;
 }
 
 .mav-dock:is([data-placement="top"], [data-placement="bottom"])[data-collapsed]
-  .mav-dock-alert {
-  flex-basis: 100%;
+  .mav-dock-panel
+  > .mav-dock-buttons {
+  grid-column: 3;
+}
+
+/* Collapsed on a side: a narrow rail of buttons, the status written
+   down it, so Foundry gets the column back. Warnings come last: one
+   coming and going moves nothing. */
+#camera-views:has(
+  > .mav-dock:is(
+      [data-placement="left"],
+      [data-placement="right"]
+    )[data-collapsed]
+) {
+  /* A button, and the dock's and the panel's padding each side. */
+  width: calc(var(--mav-dock-button) + 4 * var(--mav-dock-gap));
+}
+
+.mav-dock:is(
+    [data-placement="left"],
+    [data-placement="right"]
+  )[data-collapsed] {
+  align-items: center;
+}
+
+.mav-dock:is([data-placement="left"], [data-placement="right"])[data-collapsed]
+  .mav-dock-header {
+  flex-direction: column;
+  flex-wrap: nowrap;
+}
+
+.mav-dock:is([data-placement="left"], [data-placement="right"])[data-collapsed]
+  .mav-dock-status {
+  flex: none;
+  overflow: visible;
+  writing-mode: vertical-rl;
+}
+
+.mav-dock:is([data-placement="left"], [data-placement="right"])[data-collapsed]
+  :is(
+    .mav-dock-count,
+    .mav-dock-layout,
+    .mav-dock-connection-ms,
+    .mav-dock-connection-where,
+    .mav-dock-menu-arrow
+  ) {
+  display: none;
+}
+
+.mav-dock:is([data-placement="left"], [data-placement="right"])[data-collapsed]
+  :is(.mav-dock-tools, .mav-dock-buttons) {
+  flex-direction: column;
+  flex-wrap: nowrap;
+}
+
+.mav-dock:is([data-placement="left"], [data-placement="right"])[data-collapsed]
+  .mav-dock-panel {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+}
+
+.mav-dock:is([data-placement="left"], [data-placement="right"])[data-collapsed]
+  .mav-dock-panel
+  > .mav-dock-warnings {
+  grid-column: 1;
+  order: 1;
 }
 
 .mav-dock-alert {
@@ -830,6 +934,33 @@
   margin: 0 0 8px;
   border: 0;
   font-size: 1.1em;
+}
+
+/* The quick controls' devices: labels in one column, selects filling the
+   other (device names are long). */
+.mav-dock-quick-devices {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 6px 8px;
+  padding-block-end: 6px;
+  border-bottom: 1px solid var(--mav-border);
+}
+
+.mav-dock-quick-devices .mav-control {
+  display: contents;
+}
+
+/* Room for a device's name and the three input modes on one line: the
+   popover would shrink to its labels. */
+.mav-dock-quick-controls {
+  width: min(300px, calc(100vw - 36px));
+}
+
+.mav-dock-quick-devices select {
+  width: 100%;
+  min-width: 0;
+  text-overflow: ellipsis;
 }
 
 .mav-dock-menu,

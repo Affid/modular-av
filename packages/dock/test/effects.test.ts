@@ -8,7 +8,7 @@ import type {
 import { avState, participantState } from "@modular-av/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { renderEffects } from "../src/panel/effects.ts";
-import { openQuickControls } from "../src/panel/quick-controls.ts";
+import { openCameraMenu, openMicMenu } from "../src/panel/device-menus.ts";
 import { settle, type TestDock, testDock } from "./context.ts";
 
 afterEach(() => {
@@ -43,7 +43,9 @@ const off: EffectState = { status: "off", error: null };
 function open(dock: TestDock, group = "noise-suppression") {
   const anchor = document.createElement("button");
   document.body.append(anchor);
-  const popover = openQuickControls(dock.ctx, anchor);
+  // The camera's effects are in its menu, the voice's in the microphone's.
+  const menu = group === "camera-background" ? openCameraMenu : openMicMenu;
+  const popover = menu(dock.ctx, anchor);
   const select = popover.element.querySelector<HTMLSelectElement>(
     `[data-effect-group="${group}"]`,
   );
@@ -181,7 +183,7 @@ describe("the camera background choice", () => {
     dock.api.effects.register(background("background-replace"));
     const anchor = document.createElement("button");
     document.body.append(anchor);
-    const popover = openQuickControls(dock.ctx, anchor);
+    const popover = openCameraMenu(dock.ctx, anchor);
     const select = popover.element.querySelector<HTMLSelectElement>(
       '[data-effect-group="camera-background"]',
     );

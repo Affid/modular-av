@@ -78,6 +78,13 @@
   border: 1px solid var(--mav-border);
 }
 
+/* At the top or bottom the panel is plain, like the header. */
+.mav-theme-vines
+  .mav-dock:is([data-placement="top"], [data-placement="bottom"])
+  .mav-dock-panel {
+  border-color: transparent;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .mav-theme-vines .mav-dock-tile-frame::after {
     transition: none;

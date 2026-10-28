@@ -973,7 +973,8 @@ Principles:
   focused tile is the largest 16:9 that fits, shown with `object-fit:
 contain`.
 - Consistency rules the owner asked for: one name per thing ("Voice & Video
-  Settings" window, "Voice & video settings" popover, "Noise cancellation",
+  Settings" window, "Microphone options" and "Camera options" menus, "More
+  controls" popover, "Noise cancellation",
   "players" not "users"), sentence case, the same control for the same
   setting everywhere, positive wording ("Show other players' video").
 - Keep the voice panel in the dock optional; a horizontal dock's panel is a

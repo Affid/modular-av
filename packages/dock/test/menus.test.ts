@@ -4,6 +4,7 @@ import { avState, participantState } from "@modular-av/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { openConnectionDetails } from "../src/menus/connection.ts";
 import { openParticipantMenu } from "../src/menus/participant-menu.ts";
+import { openMicMenu } from "../src/panel/device-menus.ts";
 import { openQuickControls } from "../src/panel/quick-controls.ts";
 import { playersSurface } from "../src/players/decorate.ts";
 import { settle, testDock } from "./context.ts";
@@ -364,7 +365,7 @@ describe("quick controls", () => {
     expect(strength?.getAttribute("aria-valuetext")).toBe("30%");
   });
 
-  it("show an exclusive group of effects as one choice, with its state", () => {
+  it("show an exclusive group of effects as one choice, with its state (the microphone's menu)", () => {
     const { ctx, api } = testDock({
       state: avState({
         participants: [me],
@@ -383,7 +384,7 @@ describe("quick controls", () => {
         create: () => Promise.reject(new Error("unused")),
       });
 
-    const popover = openQuickControls(ctx, anchor());
+    const popover = openMicMenu(ctx, anchor());
     const group = popover.element.querySelector(
       '[data-effect-group="noise-suppression"]',
     );

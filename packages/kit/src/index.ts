@@ -4,8 +4,8 @@ export { el, icon, iconOf, placeInOrder, setLabel, uniqueId } from "./dom.ts";
 export type { ElementOptions } from "./dom.ts";
 export { dragToMove, dragToResize } from "./drag.ts";
 export type { Edge } from "./drag.ts";
-export { fitFocus, fitGrid } from "./fit.ts";
-export type { GridFit, GridSpace } from "./fit.ts";
+export { fitFocus, fitGrid, fitSpeaker } from "./fit.ts";
+export type { GridFit, GridSpace, SpeakerFit } from "./fit.ts";
 export {
   createMeter,
   levelFraction,

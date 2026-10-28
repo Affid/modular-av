@@ -16,15 +16,21 @@ export interface VoicePanel {
   readonly element: HTMLElement;
   /** The player's own connection, at the top of the panel. */
   readonly connection: ConnectionLine;
+  /** The layout changed what shows (the collapsed rail): one tab stop again. */
+  refresh(): void;
   dispose(): void;
 }
 
 export interface PanelHandlers {
-  /** Opens the quick controls (effects, contributions) by `anchor`. */
+  /** Opens other modules' quick controls by `anchor`. */
   quick(anchor: HTMLElement): void;
+  /** Opens the microphone's or the camera's menu by `anchor`. */
+  menu(kind: DeviceMenu, anchor: HTMLElement): void;
   /** Opens the connection details by `anchor`. */
   connection(anchor: HTMLElement): void;
 }
+
+export type DeviceMenu = "mic" | "camera";
 
 type Go = (command: () => Promise<unknown>) => void;
 
@@ -122,12 +128,37 @@ function sessionButtons(
   return [act, leave];
 }
 
+/** The arrow beside the microphone or the camera that opens its menu. */
+function menuArrow(
+  ctx: DockContext,
+  doc: Document,
+  kind: DeviceMenu,
+  handlers: PanelHandlers,
+): IconButton {
+  const arrow = iconButton(doc, {
+    className: `mav-dock-menu-arrow mav-dock-${kind}-menu`,
+    label: ctx.t(kind === "mic" ? "panel.micMenu" : "panel.cameraMenu"),
+    icon: "fa-chevron-down",
+    onClick: (button) => {
+      handlers.menu(kind, button);
+    },
+  });
+  arrow.element.setAttribute("aria-haspopup", "dialog");
+  return arrow;
+}
+
+/** Other modules' quick controls of their own (not attached to an effect). */
+const hasQuickControls = (ctx: DockContext): boolean =>
+  ctx.api.contributions
+    .list()
+    .some((c) => c.kind === "control" && c.place === "quick" && !c.effect);
+
 /** The quick controls' popover and the settings window. */
 function windowButtons(
   ctx: DockContext,
   doc: Document,
   handlers: PanelHandlers,
-): readonly IconButton[] {
+): readonly [IconButton, IconButton] {
   const quick = iconButton(doc, {
     className: "mav-dock-quick",
     label: ctx.t("panel.quick"),
@@ -173,9 +204,15 @@ export function createVoicePanel(
     run(ctx, alerts, command);
   };
   const t = toggles(ctx, doc, go);
+  const [quick, settings] = windowButtons(ctx, doc, handlers);
   const all = [
-    ...[t.mute, t.deafen, t.video],
-    ...windowButtons(ctx, doc, handlers),
+    t.mute,
+    menuArrow(ctx, doc, "mic", handlers),
+    t.deafen,
+    t.video,
+    menuArrow(ctx, doc, "camera", handlers),
+    quick,
+    settings,
     ...sessionButtons(ctx, doc, go, status),
   ];
   const buttons = el("div", {
@@ -188,6 +225,13 @@ export function createVoicePanel(
   status.onChange(() => {
     keys.refresh();
   });
+  // Only for other modules' controls: devices and effects have their menus.
+  const showQuick = (): void => {
+    quick.element.hidden = !hasQuickControls(ctx);
+    keys.refresh();
+  };
+  showQuick();
+  const offQuick = ctx.api.contributions.onChange(showQuick);
   const off = ctx.api.state.subscribe(
     (s) => s.local,
     () => {
@@ -206,8 +250,12 @@ export function createVoicePanel(
       children: [connection.element, warnings, buttons, alerts],
     }),
     connection,
+    refresh() {
+      keys.refresh();
+    },
     dispose() {
       off();
+      offQuick();
       keys.dispose();
       connection.dispose();
     },

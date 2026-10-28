@@ -216,7 +216,7 @@ function accessibilityTests(driver: ThemeDriver, layout: string): void {
   test("meets WCAG AA: the dock, its popovers and the settings window", async ({
     page,
   }) => {
-    // Four axe scans: slow on a busy machine.
+    // Six axe scans: slow on a busy machine.
     test.slow();
     await call(page, driver, layout);
 
@@ -229,6 +229,11 @@ function accessibilityTests(driver: ThemeDriver, layout: string): void {
     await page.locator(".mav-dock-quick").click();
     await expectAA(page, ".mav-popover");
     await page.keyboard.press("Escape");
+    for (const menu of [".mav-dock-mic-menu", ".mav-dock-camera-menu"]) {
+      await page.locator(menu).click();
+      await expectAA(page, ".mav-popover");
+      await page.keyboard.press("Escape");
+    }
     await page.locator(".mav-dock-settings").click();
     await expect(page.locator(".mav-settings")).toBeVisible();
     await expectAA(page, ".mav-settings");
