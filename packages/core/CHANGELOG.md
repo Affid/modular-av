@@ -1,5 +1,16 @@
 # @modular-av/core
 
+## 0.8.2
+
+### Patch Changes
+
+- a0927e3: "Plan your modules": a step clicked open (Go live, say) no longer keeps
+  Foundry's focus ring around its header, which looked like a card inside
+  the card. The keyboard's focus still shows.
+- Updated dependencies [d8756e8]
+  - @modular-av/kit@0.8.2
+  - @modular-av/api@0.8.2
+
 ## 0.8.1
 
 ### Patch Changes

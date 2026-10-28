@@ -1,5 +1,16 @@
 # @modular-av/dock
 
+## 0.8.2
+
+### Patch Changes
+
+- d8756e8: A menu's button closes it when clicked again (the microphone's and the
+  camera's arrows, a tile's menu, "More controls"); it used to open the
+  menu once more.
+- Updated dependencies [d8756e8]
+  - @modular-av/kit@0.8.2
+  - @modular-av/api@0.8.2
+
 ## 0.8.1
 
 ### Patch Changes

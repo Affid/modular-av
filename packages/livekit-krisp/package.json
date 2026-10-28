@@ -1,6 +1,6 @@
 {
   "name": "@modular-av/livekit-krisp",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "private": true,
   "description": "Modular A/V effect module: LiveKit's Krisp noise filter on LiveKit Cloud, loaded from npm at run time.",
   "license": "MIT",
