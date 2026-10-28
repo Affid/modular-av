@@ -18,7 +18,7 @@
       "requires": [
         {
           "id": "modular-av",
-          "minimum": "0.8.1"
+          "minimum": "0.8.2"
         }
       ],
       "facts": [
@@ -32,7 +32,7 @@
         }
       ],
       "icon": "fa-solid fa-image-portrait",
-      "version": "0.8.1",
+      "version": "0.8.2",
       "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-cam-background/module.json"
     },
     {
