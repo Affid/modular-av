@@ -1,6 +1,6 @@
 {
   "name": "@modular-av/dock-vines",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "private": true,
   "description": "Modular A/V theme module: vine-leaf frames and a green palette for modular-av-dock.",
   "license": "MIT",

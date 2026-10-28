@@ -1,5 +1,11 @@
 # @modular-av/cam-background
 
+## 0.8.0
+
+### Patch Changes
+
+- @modular-av/api@0.8.0
+
 ## 0.7.0
 
 ### Patch Changes

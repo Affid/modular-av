@@ -1,6 +1,6 @@
 {
   "name": "@modular-av/p2p",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "private": true,
   "description": "Modular A/V service module for direct calls between players' browsers (WebRTC mesh, no media server).",
   "license": "MIT",

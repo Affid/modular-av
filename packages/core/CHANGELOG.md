@@ -1,5 +1,13 @@
 # @modular-av/core
 
+## 0.8.0
+
+### Patch Changes
+
+- Updated dependencies [67d5dd3]
+  - @modular-av/kit@0.8.0
+  - @modular-av/api@0.8.0
+
 ## 0.7.0
 
 ### Patch Changes
