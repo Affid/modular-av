@@ -35,17 +35,32 @@
         "type": "module",
         "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av/module.json",
         "compatibility": {
-          "minimum": "0.5.0"
+          "minimum": "0.6.0"
         }
       }
     ]
   },
   "flags": {
     "modular-av": {
-      "kind": "ui"
+      "kind": "ui",
+      "icon": "fa-solid fa-table-cells-large",
+      "facts": [
+        {
+          "label": "Without it",
+          "value": "Foundry's own camera dock"
+        },
+        {
+          "label": "Layout",
+          "value": "Each player arranges their own"
+        },
+        {
+          "label": "Dressed by",
+          "value": "Themes"
+        }
+      ]
     }
   },
-  "version": "0.5.0",
+  "version": "0.6.0",
   "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-dock/module.json",
-  "download": "https://github.com/Affid/modular-av/releases/download/modular-av-dock-v0.5.0/modular-av-dock.zip"
+  "download": "https://github.com/Affid/modular-av/releases/download/modular-av-dock-v0.6.0/modular-av-dock.zip"
 }

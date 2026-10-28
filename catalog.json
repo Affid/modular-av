@@ -32,10 +32,25 @@
       "requires": [
         {
           "id": "modular-av",
-          "minimum": "0.5.0"
+          "minimum": "0.6.0"
         }
       ],
-      "version": "0.5.0",
+      "facts": [
+        {
+          "label": "Without it",
+          "value": "Foundry's own camera dock"
+        },
+        {
+          "label": "Layout",
+          "value": "Each player arranges their own"
+        },
+        {
+          "label": "Dressed by",
+          "value": "Themes"
+        }
+      ],
+      "icon": "fa-solid fa-table-cells-large",
+      "version": "0.6.0",
       "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-dock/module.json"
     },
     {
