@@ -1,6 +1,6 @@
 {
   "name": "@modular-av/livekit",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "private": true,
   "description": "Modular A/V service module for LiveKit (self-hosted and LiveKit Cloud).",
   "license": "MIT",

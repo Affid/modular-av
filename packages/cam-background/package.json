@@ -1,6 +1,6 @@
 {
   "name": "@modular-av/cam-background",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "private": true,
   "description": "Modular A/V effect module: camera background blur and replacement with MediaPipe selfie segmentation.",
   "license": "MIT",

@@ -1,5 +1,11 @@
 # @modular-av/testing
 
+## 0.8.1
+
+### Patch Changes
+
+- @modular-av/api@0.8.1
+
 ## 0.8.0
 
 ### Patch Changes

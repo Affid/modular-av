@@ -1,6 +1,6 @@
 {
   "name": "@modular-av/kit",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "private": true,
   "description": "Pure UI helpers that Modular A/V UI modules bundle: no shared state, any document.",
   "license": "MIT",
