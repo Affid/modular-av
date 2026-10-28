@@ -1,8 +1,8 @@
 {
   "modular-av-cam-background": {
     "effects": {
-      "blur": "Blur background",
-      "replace": "Replace background"
+      "blur": "Blur",
+      "replace": "Replace"
     },
     "section": "Camera background",
     "settings": {

@@ -3,7 +3,6 @@ import { el, icon, type Insets, NO_INSETS, setLabel } from "@modular-av/kit";
 import { type DockContext, MODULE_ID } from "../context.ts";
 import { openParticipantMenu } from "../menus/participant-menu.ts";
 import { type DetailsOpener, detailsOpener } from "../panel/details.ts";
-import { openQuickControls } from "../panel/quick-controls.ts";
 import { createStatus, type Status } from "../panel/status.ts";
 import { createVoicePanel, type VoicePanel } from "../panel/voice-panel.ts";
 import {
@@ -70,7 +69,12 @@ function build(ctx: DockContext, host: CamerasHost): Dock {
   });
   const panel = createVoicePanel(ctx, doc, status, {
     quick: (anchor) => {
-      openQuickControls(ctx, anchor);
+      // The quick controls' code loads on first use; not if the panel went.
+      import("../panel/quick-controls.ts")
+        .then(({ openQuickControls }) => {
+          if (anchor.isConnected) openQuickControls(ctx, anchor);
+        })
+        .catch(ctx.onError);
     },
     connection: () => {
       details.show(null);

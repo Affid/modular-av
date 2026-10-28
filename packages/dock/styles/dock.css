@@ -722,6 +722,59 @@
   color: var(--mav-text-muted);
 }
 
+/*
+ * An effect group: Off and up to two effects as one row of buttons (more
+ * as a list), the chosen effect's own controls indented under it.
+ */
+.mav-effect-choices {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  border: 1px solid var(--mav-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.mav-effect-choice {
+  min-width: 0;
+  padding: 6px 4px;
+  border: 0;
+  background: var(--mav-surface-raised);
+  color: var(--mav-text);
+  font: inherit;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.mav-effect-choice + .mav-effect-choice {
+  border-inline-start: 1px solid var(--mav-border);
+}
+
+.mav-effect-choice[aria-pressed="true"] {
+  background: var(--mav-accent);
+  color: var(--mav-on-accent);
+  font-weight: 600;
+}
+
+.mav-effect-choice:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.mav-effect-choice[hidden],
+.mav-effect-state[hidden],
+.mav-effect-controls[hidden] {
+  display: none;
+}
+
+.mav-effect-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-inline-start: 10px;
+  border-inline-start: 2px solid var(--mav-border);
+}
+
 /* ---- Connection: the panel's line, the details, signal bars ---- */
 
 .mav-sr-only {

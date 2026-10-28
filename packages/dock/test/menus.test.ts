@@ -384,15 +384,17 @@ describe("quick controls", () => {
       });
 
     const popover = openQuickControls(ctx, anchor());
-    const select = popover.element.querySelector<HTMLSelectElement>(
+    const group = popover.element.querySelector(
       '[data-effect-group="noise-suppression"]',
     );
-    if (!select) throw new Error("no group");
-    expect(select.value).toBe("rnnoise");
+    if (!group) throw new Error("no group");
+    // Two effects and Off: buttons, the running one pressed.
+    expect(
+      group.querySelector('[aria-pressed="true"]')?.getAttribute("data-effect"),
+    ).toBe("rnnoise");
     expect(popover.element.textContent).toContain("Noise cancellation");
-    expect(popover.element.textContent).toContain("On · Light");
-    select.value = "";
-    select.dispatchEvent(new Event("change"));
+    expect(popover.element.textContent).not.toContain("On · Light");
+    group.querySelector<HTMLButtonElement>('[data-effect=""]')?.click();
 
     expect(api.calls).toContainEqual({
       command: "setEffectEnabled",

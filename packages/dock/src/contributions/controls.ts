@@ -374,8 +374,9 @@ export function renderContributedControls(
   return ctx.api.contributions
     .list()
     .filter(
+      // Those attached to an effect show with its choice instead.
       (c): c is ControlContribution =>
-        c.kind === "control" && c.place === place,
+        c.kind === "control" && c.place === place && c.effect === undefined,
     )
     .sort(byOrder)
     .map((c) => {
