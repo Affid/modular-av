@@ -2091,3 +2091,34 @@ Verified while building the modules window, the catalog and the notices
   locked) and installed all three; pasting `modular-av-p2p`'s offered the
   core as required and the dock as optional (ticked, with its reason),
   and no other service. Nothing needed installing by hand.
+
+## 21. Findings from the settings window redesign
+
+Verified while rebuilding the Voice & Video Settings window
+(`docs/plans/settings-window.md`; Foundry 14.369):
+
+- **The world's A/V settings** are the world setting
+  `core.rtcWorldSettings` (`{mode, turn: {type, url, username,
+  password}}`, modes 0 off, 1 audio, 2 video, 3 both). The Call tab drafts
+  `mode` and `turn` and saves the whole object back; saving reloads
+  everyone, as Foundry's own window does (`reload` socket event, then
+  `foundry.utils.debouncedReload()`). The testing package's fake Foundry
+  now holds the setting too, backed by its world A/V store; it refuses a
+  player's write as Foundry does.
+- **Push to talk's key** is Foundry's keybinding `core.pushToTalk`:
+  `game.keybindings.set("core", "pushToTalk", [{key, modifiers: []}])`
+  with a `KeyboardEvent.code`. The window sets it in place, so Foundry's
+  Controls window is no longer opened from it.
+- **Previews outside the call** (`api.preview`) open their own capture,
+  so they work with calls off or before joining. A tab's previews run
+  only while it is shown.
+- **The browser harness's GM** logs two errors on every page that no
+  test checks: the daily GitHub check (`boardFoundry` reads
+  `ChatMessage.implementation`) and the no-service notice
+  (`DialogV2.wait`) both reach for globals the fake Foundry lacks. Add
+  them, and turn `checkGitHub` off in the harness as `foundry:setup` does,
+  so the harness never asks GitHub (open).
+- **Under heavy machine load** (another project's tests on the same
+  machine), the camera-background contract's "at 5 fps or more" checks
+  fail; they pass on a quiet machine and alone. `pnpm verify` was run
+  with the load average under 5.
