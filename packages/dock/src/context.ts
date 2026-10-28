@@ -42,6 +42,8 @@ export interface DockGame {
   };
   readonly user: { readonly isGM: boolean };
   readonly userId: string;
+  /** Foundry's tooltips (`game.tooltip`). */
+  readonly tooltip?: { deactivate(): void };
   readonly scenes?: {
     readonly viewed?: FoundryScene | null;
     readonly active?: FoundryScene | null;
@@ -104,6 +106,8 @@ export interface DockContext {
   readonly scenes: Scenes;
   /** The themes registered, and the one shown. */
   readonly themes: Themes;
+  /** Takes down the tooltip Foundry shows, if any. */
+  readonly hideTooltip: () => void;
 }
 
 export interface ContextDeps {
@@ -170,6 +174,9 @@ export function createContext(deps: ContextDeps): DockContext {
     },
     reload: deps.reload ?? (() => undefined),
     now: deps.now ?? (() => Date.now()),
+    hideTooltip: () => {
+      deps.game.tooltip?.deactivate();
+    },
     onError: deps.onError,
     scenes: createScenes(deps),
     themes: deps.themes ?? NO_THEMES,

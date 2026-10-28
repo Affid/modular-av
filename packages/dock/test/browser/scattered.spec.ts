@@ -191,6 +191,25 @@ test("a tile dragged wider stops at its largest width while dragged", async ({
   expect(Math.round((await boxOf(target)).width)).toBe(640);
 });
 
+test("a tile's connection details open by that tile, not by the voice panel", async ({
+  page,
+}) => {
+  await scattered(page);
+  const target = tile(page, "p1");
+  await target.hover();
+  await target.locator(".mav-dock-tile-menu").click();
+
+  await page.getByRole("button", { name: /Connection details for/ }).click();
+
+  const details = page.locator(".mav-dock-connection");
+  await expect(details).toBeVisible();
+  const box = await boxOf(details);
+  const near = await boxOf(target);
+  const panel = await boxOf(page.locator(".mav-dock-panel"));
+  const distance = (a: Box, b: Box): number => Math.hypot(a.x - b.x, a.y - b.y);
+  expect(distance(box, near)).toBeLessThan(distance(box, panel));
+});
+
 test("saves where a tile was moved in the player's setting", async ({
   page,
 }) => {

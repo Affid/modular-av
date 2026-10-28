@@ -1,7 +1,6 @@
 import type { CamerasHost, CamerasSurfaceDefinition } from "@modular-av/api";
 import { el, icon, type Insets, NO_INSETS, setLabel } from "@modular-av/kit";
 import { type DockContext, MODULE_ID } from "../context.ts";
-import { openParticipantMenu } from "../menus/participant-menu.ts";
 import { type DetailsOpener, detailsOpener } from "../panel/details.ts";
 import { createStatus, type Status } from "../panel/status.ts";
 import { createVoicePanel, type VoicePanel } from "../panel/voice-panel.ts";
@@ -18,6 +17,7 @@ import { createHeader, type Header } from "./header.ts";
 import { createPlacement, type Placement, type Where } from "./placement.ts";
 import { openPlacementMenu } from "./placement-menu.ts";
 import { createTileList, type TileList } from "./tiles.ts";
+import { tooltipsAway } from "../ui/tooltips.ts";
 
 interface Dock {
   readonly root: HTMLElement;
@@ -64,9 +64,15 @@ function build(ctx: DockContext, host: CamerasHost): Dock {
   const status = createStatus(ctx, doc);
   const tiles = createTileList(ctx, doc, {
     menu: (id, anchor) => {
-      openParticipantMenu(ctx, id, anchor, (focus) => {
-        details.show(focus, anchor);
-      });
+      // A tile's menu (and other modules' actions in it) loads on first use.
+      import("../menus/participant-menu.ts")
+        .then(({ openParticipantMenu }) => {
+          if (!anchor.isConnected) return;
+          openParticipantMenu(ctx, id, anchor, (focus) => {
+            details.show(focus, anchor);
+          });
+        })
+        .catch(ctx.onError);
     },
   });
   const panel = createVoicePanel(ctx, doc, status, {
@@ -235,6 +241,7 @@ export function camerasSurface(
       const edge = createDockedEdge(ctx, dock.root.ownerDocument);
       dock.root.append(resize, edge.element);
       host.element.append(dock.root);
+      const offTooltips = tooltipsAway(dock.root, ctx.hideTooltip);
       const placement = createPlacement(ctx, host, {
         root: dock.root,
         handle: dock.header.element,
@@ -275,6 +282,7 @@ export function camerasSurface(
           dock.scattered?.dispose();
           placement.dispose();
           offDockedResize();
+          offTooltips();
           dock.tiles.dispose();
           dock.header.dispose();
           dock.panel.dispose();

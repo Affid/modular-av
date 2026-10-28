@@ -5,11 +5,11 @@ import type { ConnectionLine } from "./connection-line.ts";
 
 export interface DetailsOpener {
   /**
-   * Opens the details, on a player or this client, at the panel's
-   * connection line; by `fallback` while the line is hidden (reconnecting
-   * between calls, say).
+   * Opens the details, on a player or this client, by `near` (what was
+   * clicked: a tile's menu, which may be far from the panel when the
+   * tiles are scattered), else at the panel's connection line.
    */
-  show(focus: ParticipantId | null, fallback?: HTMLElement): void;
+  show(focus: ParticipantId | null, near?: HTMLElement): void;
   /** Closes them if open: the dock is going, or moving windows. */
   close(): void;
 }
@@ -25,10 +25,14 @@ export function detailsOpener(
     open = null;
   };
   return {
-    show(focus, fallback) {
+    show(focus, near) {
       import("../menus/connection.ts")
         .then(({ openConnectionDetails }) => {
-          const anchor = line.element.hidden ? fallback : line.element;
+          const anchor = near?.isConnected
+            ? near
+            : line.element.hidden
+              ? undefined
+              : line.element;
           // The dock (its line and tiles) may be gone once the code loaded.
           if (!anchor?.isConnected) return;
           close();

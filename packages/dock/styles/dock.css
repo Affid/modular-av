@@ -498,6 +498,15 @@
   font-size: 0.7em;
 }
 
+.mav-dock-menu-arrow[aria-expanded="true"] {
+  border-color: var(--mav-focus);
+  background: var(--mav-surface);
+}
+
+.mav-dock-menu-arrow[aria-expanded="true"] i {
+  transform: rotate(180deg);
+}
+
 .mav-dock-buttons > .mav-dock-button:has(+ .mav-dock-menu-arrow) {
   border-start-end-radius: 0;
   border-end-end-radius: 0;
@@ -920,7 +929,8 @@
   max-height: var(--mav-popover-room, 70vh);
   margin: 0;
   padding: 10px;
-  overflow: auto;
+  /* Never sideways: a scrollbar there is only a pixel or two of overflow. */
+  overflow: hidden auto;
   border: 1px solid var(--mav-border);
   border-radius: var(--mav-dock-radius);
   color: var(--mav-text);
@@ -954,7 +964,7 @@
 /* Room for a device's name and the three input modes on one line: the
    popover would shrink to its labels. */
 .mav-dock-quick-controls {
-  width: min(300px, calc(100vw - 36px));
+  width: min(296px, calc(100vw - 40px));
 }
 
 .mav-dock-quick-devices select {
@@ -1030,6 +1040,10 @@
 .mav-control-picture {
   display: grid;
   place-items: center;
+  /* Foundry gives buttons a fixed height: a picture follows its width. */
+  width: 100%;
+  height: auto;
+  min-height: 0;
   aspect-ratio: 4 / 3;
   margin: 0;
   padding: 0;

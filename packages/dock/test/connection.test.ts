@@ -195,11 +195,15 @@ describe("the connection details", () => {
     await settle();
     // The dock's own menu: its Details open where the dock opens them.
     tileMenu("p1").click();
-    document
-      .querySelector<HTMLButtonElement>(
+    // The menu's code loads on first use.
+    const open = await vi.waitFor(() => {
+      const button = document.querySelector<HTMLButtonElement>(
         '.mav-dock-menu [data-action="connection"]',
-      )
-      ?.click();
+      );
+      if (!button) throw new Error("no menu yet");
+      return button;
+    });
+    open.click();
 
     await vi.waitFor(() => opened(details()));
     // Anchored to the tile, not to the hidden line at the screen's corner.

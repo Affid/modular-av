@@ -287,7 +287,8 @@ export function openParticipantMenu(
     className: "mav-dock-alert",
     attrs: { role: "alert" },
   });
-  // The details open from the voice panel, the menu closing as they do.
+  // The details open by this tile (its menu button), the menu closing as
+  // they do.
   const details = linkLine(ctx, doc, p, () => {
     showDetails(p.isLocal ? null : participant);
   });
