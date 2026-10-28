@@ -2,7 +2,12 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { checkEntrySize, checkStyleSizes, checkWorkerSizes } from "./check.ts";
+import {
+  checkEntrySize,
+  checkStyleSizes,
+  checkWorkerSizes,
+  hasScript,
+} from "./check.ts";
 
 let dir: string;
 
@@ -86,6 +91,21 @@ describe("checkEntrySize", () => {
     expect(result.bytes).toBe(
       entry.length + 'import "./deep-3.js";\n'.length + 2,
     );
+  });
+
+  it("has no entry to measure in a module without scripts", async () => {
+    await writeFile(
+      join(dir, "module.json"),
+      JSON.stringify({ id: "modular-av-starter-set" }),
+    );
+    const mod = { dir, id: "modular-av-starter-set", version: "1.0.0" };
+
+    expect(await hasScript(mod)).toBe(false);
+    await writeFile(
+      join(dir, "module.json"),
+      JSON.stringify({ id: "modular-av", esmodules: ["modular-av.js"] }),
+    );
+    expect(await hasScript(mod)).toBe(true);
   });
 
   it("requires a budget and a build", async () => {

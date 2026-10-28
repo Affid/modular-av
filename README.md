@@ -8,7 +8,18 @@ isn't running), and keeps your server's secret away from players.
 
 ## Modules
 
-Install the core, one service and the dock; add effects as you like.
+The quickest start is the **starter set**: one install brings the dock,
+LiveKit and noise cancellation, and offers the camera background. Paste
+its manifest URL into Foundry's "Install Module" dialog:
+
+```
+https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-starter-set/module.json
+```
+
+It holds no code of its own; see its [page](packages/starter-set/README.md).
+
+Or pick your own: install the core, one service and the dock; add
+effects as you like.
 Paste a module's manifest URL into Foundry's "Install Module" dialog:
 Foundry offers what it needs with it (installing the dock brings the
 core). Then, as a GM, open **Plan your modules** in the core's module
@@ -80,6 +91,7 @@ The design and the reasons behind it are in
 | `packages/p2p`            | `@modular-av/p2p`            | `modular-av-p2p`            |
 | `packages/jitsi`          | `@modular-av/jitsi`          | `modular-av-jitsi`          |
 | `packages/mic-denoise`    | `@modular-av/mic-denoise`    | `modular-av-mic-denoise`    |
+| `packages/starter-set`    | `@modular-av/starter-set`    | `modular-av-starter-set`    |
 | `packages/cam-background` | `@modular-av/cam-background` | `modular-av-cam-background` |
 | `packages/testing`        | `@modular-av/testing`        | (library)                   |
 

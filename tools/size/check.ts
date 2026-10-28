@@ -54,6 +54,14 @@ async function readBudget(
   return typeof budget === "number" && budget > 0 ? budget : undefined;
 }
 
+/** Whether the module loads a script at all (a starter set loads none). */
+export async function hasScript(mod: ModulePackage): Promise<boolean> {
+  const manifest = JSON.parse(
+    await readFile(join(mod.dir, "module.json"), "utf8"),
+  ) as { esmodules?: unknown };
+  return Array.isArray(manifest.esmodules) && manifest.esmodules.length > 0;
+}
+
 export async function checkEntrySize(mod: ModulePackage): Promise<SizeResult> {
   const budget = await readBudget(mod.dir);
   const entry = `dist/${mod.id}.js`;

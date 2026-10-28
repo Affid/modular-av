@@ -21,6 +21,13 @@ for when GitHub can't be reached.
 
 Until 1.0 every package shares one version (Changesets "fixed" group).
 
+The starter set (`modular-av-starter-set`) has no code: its build writes
+only `module.json`, its language file and the licence
+(`tools/release/manifest-only.ts`), the size check skips it, and its
+`flags["modular-av"].catalog: false` keeps it out of `catalog.json` (the
+board plans modules one by one; a kind the cores don't know would make
+them refuse the catalog). It is released with the others.
+
 A module whose package.json has `modularAV.releaseHold` (the reason, e.g.
 waiting for a third party's permission) is skipped by `pack` and refused
 by `publish` until the hold is removed.

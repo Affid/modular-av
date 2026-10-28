@@ -67,6 +67,22 @@ describe("the catalog of the family", () => {
     expect(parseCatalog(catalog)).toEqual(catalog);
   });
 
+  it("leaves out a module that keeps itself out (a starter set of others)", () => {
+    const starter = released("modular-av-starter-set", {
+      title: "Modular A/V: Starter set",
+      description: "Installs a ready set of modules.",
+      flags: { "modular-av": { catalog: false } },
+      relationships: { requires: [{ id: "modular-av-p2p", type: "module" }] },
+    });
+
+    const catalog = buildCatalog([p2p, core, starter], []);
+
+    expect(catalog.modules.map((m) => m.id)).toEqual([
+      "modular-av",
+      "modular-av-p2p",
+    ]);
+  });
+
   it("carries each module's card facts and icon from its flags", () => {
     const facts = [{ label: "Server", value: "None" }];
     const withFacts = released("modular-av-p2p", {
@@ -113,7 +129,13 @@ describe("the catalog of the family", () => {
     const catalog = await workspaceCatalog();
 
     const ids = [...catalog.modules, ...catalog.soon].map((m) => m.id).sort();
-    expect(ids).toEqual(modules.map((m) => m.id).sort());
+    // The starter set keeps itself out: it only installs others.
+    expect(ids).toEqual(
+      modules
+        .map((m) => m.id)
+        .filter((id) => id !== "modular-av-starter-set")
+        .sort(),
+    );
     expect(catalog.soon.map((m) => m.id)).toContain("modular-av-livekit-krisp");
     expect(parseCatalog(catalog)).toEqual(catalog);
   });

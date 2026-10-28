@@ -63,6 +63,14 @@ const byId = (a: Json, b: Json): number =>
   String(a.id).localeCompare(String(b.id));
 
 /**
+ * A module can keep itself out (`flags["modular-av"].catalog: false`):
+ * the starter set only installs others, and a kind the core doesn't know
+ * would make it refuse the whole catalog.
+ */
+const listed = (manifest: Json): boolean =>
+  field(field(manifest.flags, "modular-av"), "catalog") !== false;
+
+/**
  * The family's catalog: released modules with their stable manifests,
  * held ones as coming soon. Checked with the core's own reader, so a
  * catalog it couldn't read is never published.
@@ -73,8 +81,14 @@ export function buildCatalog(
 ): Catalog {
   const draft = {
     schema: CATALOG_SCHEMA,
-    modules: released.map((m) => entry(m, true)).sort(byId),
-    soon: held.map((m) => entry(m, false)).sort(byId),
+    modules: released
+      .filter(listed)
+      .map((m) => entry(m, true))
+      .sort(byId),
+    soon: held
+      .filter(listed)
+      .map((m) => entry(m, false))
+      .sort(byId),
   };
   const catalog = parseCatalog(draft);
   if (!catalog) {

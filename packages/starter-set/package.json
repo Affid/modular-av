@@ -1,0 +1,11 @@
+{
+  "name": "@modular-av/starter-set",
+  "version": "0.8.2",
+  "private": true,
+  "description": "Modular A/V starter set: installs the dock, LiveKit and noise cancellation, and offers the camera background. No code of its own.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "node ../../tools/release/manifest-only.ts ."
+  }
+}
