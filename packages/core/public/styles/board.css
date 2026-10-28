@@ -146,6 +146,12 @@
   outline-offset: 2px;
   box-shadow: none;
 }
+/* Foundry rings every focused button, a clicked one too: only the
+   keyboard's focus is shown (above). */
+.mav-board :is(button, a.button):focus:not(:focus-visible) {
+  outline: none;
+  box-shadow: none;
+}
 
 /* What the plan means now; updates; where the list came from */
 .mav-board-status {
