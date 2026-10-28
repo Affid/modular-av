@@ -126,6 +126,33 @@ describe("the settings window's Call tab", () => {
 });
 
 describe("the settings window's Voice tab", () => {
+  it("names a tab with unsaved changes as such, for screen readers", () => {
+    const view = open();
+    view.tab("voice");
+
+    view.choose("voiceMode", "ptt");
+
+    expect(view.q('[data-tab="voice"]')?.getAttribute("aria-label")).toBe(
+      "Voice, unsaved changes",
+    );
+    expect(view.q('[data-tab="video"]')?.hasAttribute("aria-label")).toBe(
+      false,
+    );
+  });
+
+  it("keeps the shown tab's previews when the tab is clicked again", async () => {
+    const view = open({
+      state: avState({ participants: [me], local: { voiceMode: "activity" } }),
+    });
+    view.tab("voice");
+    await settle();
+
+    view.tab("voice");
+    await settle();
+
+    expect(view.api.preview.all.map((p) => p.stopped)).toEqual([false]);
+  });
+
   it("changes nothing until saved, and marks its tab", async () => {
     const view = open({
       state: avState({
@@ -195,6 +222,66 @@ describe("the settings window's Voice tab", () => {
     expect(view.pushToTalkSet).toEqual([["KeyV"]]);
   });
 
+  const pttView = () => {
+    const view = open({
+      state: avState({ participants: [me], local: { voiceMode: "ptt" } }),
+      pushToTalk: ["Backquote"],
+    });
+    view.tab("voice");
+    const key = view.q('[data-field="pttKey"]');
+    key?.click();
+    const press = (code: string, keyName = code) => {
+      const event = new KeyboardEvent("keydown", {
+        key: keyName,
+        code,
+        bubbles: true,
+        cancelable: true,
+      });
+      document.dispatchEvent(event);
+      return event;
+    };
+    return { view, key, press };
+  };
+
+  it("lets Tab move on while listening, binding nothing", () => {
+    const { view, key, press } = pttView();
+
+    const tab = press("Tab");
+
+    expect(tab.defaultPrevented).toBe(false);
+    expect(key?.textContent).toBe("Backquote");
+    expect(view.footer()).toBe("No unsaved changes.");
+  });
+
+  it("cancels on Escape, binding nothing", () => {
+    const { view, key, press } = pttView();
+
+    const escape = press("Escape");
+
+    expect(escape.defaultPrevented).toBe(true);
+    expect(key?.textContent).toBe("Backquote");
+    expect(view.footer()).toBe("No unsaved changes.");
+  });
+
+  it("keeps listening through a modifier pressed alone", () => {
+    const { key, press } = pttView();
+
+    press("ShiftLeft", "Shift");
+    press("KeyV", "v");
+
+    expect(key?.textContent).toBe("KeyV");
+  });
+
+  it("stops listening when focus leaves the key", () => {
+    const { key, press } = pttView();
+
+    key?.dispatchEvent(new FocusEvent("blur"));
+    const typed = press("KeyV", "v");
+
+    expect(typed.defaultPrevented).toBe(false);
+    expect(key?.textContent).toBe("Backquote");
+  });
+
   it("previews the microphone's level for voice activity, and stops it when left", async () => {
     const view = open({
       state: avState({ participants: [me], local: { voiceMode: "activity" } }),
@@ -211,6 +298,80 @@ describe("the settings window's Voice tab", () => {
     ).toBe("-20");
     view.tab("video");
     expect(view.api.preview.all[0]?.stopped).toBe(true);
+  });
+
+  const mics = {
+    audioInput: [
+      { id: "default", label: "Default" },
+      { id: "usb", label: "USB mic" },
+    ],
+    videoInput: [],
+    audioOutput: [],
+  };
+
+  it("opens the microphone only while voice activity is chosen", async () => {
+    const view = open({
+      state: avState({
+        participants: [me],
+        local: { voiceMode: "ptt" },
+        devices: mics,
+      }),
+    });
+    view.tab("voice");
+    await settle();
+    const before = view.api.preview.all.length;
+
+    view.choose("voiceMode", "activity");
+    await settle();
+    view.choose("voiceMode", "always");
+    await settle();
+
+    expect(before).toBe(0);
+    expect(view.api.preview.all.map((p) => [p.kind, p.stopped])).toEqual([
+      ["microphone", true],
+    ]);
+  });
+
+  it("keeps only the latest microphone when devices change quickly", async () => {
+    const view = open({
+      state: avState({
+        participants: [me],
+        local: { voiceMode: "activity" },
+        devices: mics,
+      }),
+    });
+    view.tab("voice");
+
+    view.choose("audioInput", "usb");
+    view.choose("audioInput", "default");
+    await settle();
+
+    const running = view.api.preview.all.filter((p) => !p.stopped);
+    expect(running.map((p) => p.device)).toEqual(["default"]);
+  });
+
+  it("clears the refused microphone's note when another one works", async () => {
+    const view = open(
+      {
+        state: avState({
+          participants: [me],
+          local: { voiceMode: "activity" },
+          devices: mics,
+        }),
+      },
+      (dock) => {
+        dock.api.preview.refuseNext("microphone", "NotAllowedError");
+      },
+    );
+    view.tab("voice");
+    await settle();
+    const refused = view.q(".mav-sensitivity .mav-settings-hint")?.hidden;
+
+    view.choose("audioInput", "usb");
+    await settle();
+
+    expect(refused).toBe(false);
+    expect(view.q(".mav-sensitivity .mav-settings-hint")?.hidden).toBe(true);
   });
 
   it("says effects are modules of their own when none is enabled", () => {
@@ -257,6 +418,30 @@ describe("the settings window's Video tab", () => {
     expect(view.q('[data-tab="video"]')?.hasAttribute("data-unsaved")).toBe(
       true,
     );
+  });
+
+  it("keeps only the latest camera when cameras change quickly", async () => {
+    const view = open({
+      state: avState({
+        participants: [me],
+        devices: {
+          audioInput: [],
+          videoInput: [
+            { id: "default", label: "Default" },
+            { id: "hd", label: "HD camera" },
+          ],
+          audioOutput: [],
+        },
+      }),
+    });
+    view.tab("video");
+
+    view.choose("videoInput", "hd");
+    view.choose("videoInput", "default");
+    await settle();
+
+    const running = view.api.preview.all.filter((p) => !p.stopped);
+    expect(running.map((p) => p.device)).toEqual(["default"]);
   });
 
   it("says how to allow a camera the browser refused", async () => {
@@ -361,6 +546,21 @@ describe("the settings window's More tab", () => {
 });
 
 describe("the settings window's footer", () => {
+  it("can't save or reset again while saving", async () => {
+    const view = open({ isGM: true });
+    view.q('[data-mode="audio"]')?.click();
+
+    view.q('[data-action="save"]')?.click();
+    const during = [
+      view.q('[data-action="save"]')?.disabled,
+      view.q('[data-action="reset"]')?.disabled,
+    ];
+    await settle();
+
+    expect(during).toEqual([true, true]);
+    expect(view.reloads).toEqual([true]);
+  });
+
   it("resets what was drafted", () => {
     const view = open({ isGM: true });
     view.q('[data-mode="audio"]')?.click();

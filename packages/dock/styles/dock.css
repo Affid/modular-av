@@ -1156,7 +1156,7 @@
   font-weight: 600;
 }
 
-/* Unsaved changes on this tab: a dot, and its name says so too. */
+/* Unsaved changes on this tab: a dot; its accessible name says so. */
 .mav-settings-tab[data-unsaved]::after {
   content: "";
   width: 8px;

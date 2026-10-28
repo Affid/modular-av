@@ -4,9 +4,13 @@ import type { DockContext } from "../context.ts";
 import type { Draft } from "./draft.ts";
 import { row } from "./fields.ts";
 
+/** Keys that only modify another: pressed alone, capture goes on. */
+const MODIFIERS = new Set(["Shift", "Control", "Alt", "Meta", "AltGraph"]);
+
 /**
- * Push to talk's key, set in place: click, then press the key (Escape
- * cancels). It is Foundry's own binding, the one its Controls show.
+ * Push to talk's key, set in place: click, then press the key. Escape
+ * cancels, as does leaving the button; Tab moves on as usual. It is
+ * Foundry's own binding, the one its Controls show.
  */
 export function pushToTalkKey(
   ctx: DockContext,
@@ -28,20 +32,31 @@ export function pushToTalkKey(
         : el("kbd", { doc, text: key || ctx.t("settings.noKey") }),
     );
   };
-  const take = (event: KeyboardEvent): void => {
+  const stop = (): void => {
+    if (!listening) return;
+    listening = false;
+    doc.removeEventListener("keydown", take, true);
+    render();
+  };
+  function take(event: KeyboardEvent): void {
+    if (event.key === "Tab") {
+      stop();
+      return;
+    }
+    if (MODIFIERS.has(event.key)) return;
     event.preventDefault();
     event.stopPropagation();
-    doc.removeEventListener("keydown", take, true);
-    listening = false;
-    if (event.key === "Escape") render();
-    else draft.set("pttKey", event.code);
-  };
+    const code = event.key === "Escape" ? "" : event.code;
+    stop();
+    if (code && code !== "Unidentified") draft.set("pttKey", code);
+  }
   button.addEventListener("click", () => {
     if (listening) return;
     listening = true;
     render();
     doc.addEventListener("keydown", take, true);
   });
+  button.addEventListener("blur", stop);
   render();
   const off = draft.subscribe(render);
   return {

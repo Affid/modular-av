@@ -172,4 +172,94 @@ describe("the settings window's draft", () => {
     expect(draft.get("threshold")).toBe(-20);
     expect(draft.changed()).toEqual(["threshold"]);
   });
+
+  it("after a failed save, says what is still unsaved and reloads nothing", async () => {
+    const dock = testDock({
+      isGM: true,
+      state: avState({ participants: [me] }),
+      foundrySettings: [WORLD, setting("modular-av", "service", "livekit")],
+    });
+    const draft = createDraft(dock.ctx);
+    draft.set("voiceMode", "ptt");
+    draft.set("receiveVideo", false);
+    draft.set("service", "p2p");
+    let heard: readonly string[] = [];
+    draft.subscribe(() => {
+      heard = draft.changed();
+    });
+    dock.api.failNext("setReceiveVideo", new Error("refused"));
+
+    await expect(draft.save()).rejects.toThrow("refused");
+
+    expect(draft.changed()).toEqual(["receiveVideo", "service"]);
+    // Listeners hear it too: the footer counts what is left.
+    expect(heard).toEqual(["receiveVideo", "service"]);
+    expect(dock.reloads).toEqual([]);
+  });
+
+  it("records what it applied, not what was drafted while saving", async () => {
+    const dock = testDock({ state: avState({ participants: [me] }) });
+    const draft = createDraft(dock.ctx);
+    draft.set("voiceMode", "ptt");
+
+    const saving = draft.save();
+    draft.set("voiceMode", "activity");
+    await saving;
+
+    expect(draft.savedValue("voiceMode")).toBe("ptt");
+    expect(draft.changed()).toEqual(["voiceMode"]);
+  });
+
+  it("saves once while a save is under way", async () => {
+    const dock = testDock({ state: avState({ participants: [me] }) });
+    const draft = createDraft(dock.ctx);
+    draft.set("voiceMode", "ptt");
+
+    const first = draft.save();
+    expect(draft.saving()).toBe(true);
+    await Promise.all([first, draft.save()]);
+
+    expect(dock.api.calls).toEqual([
+      { command: "setVoiceMode", args: ["ptt"] },
+    ]);
+    expect(draft.saving()).toBe(false);
+  });
+
+  it("resets to what changed elsewhere, even in a drafted field", async () => {
+    const dock = testDock({ state: avState({ participants: [me] }) });
+    const draft = createDraft(dock.ctx);
+    draft.set("voiceMode", "ptt");
+
+    dock.api.setState((s) => ({
+      ...s,
+      local: { ...s.local, voiceMode: "always" },
+    }));
+    await settle();
+    draft.sync();
+    draft.reset();
+
+    expect(draft.get("voiceMode")).toBe("always");
+    expect(draft.changed()).toEqual([]);
+  });
+
+  it("holds no relay password for a player", () => {
+    const dock = testDock({
+      state: avState({ participants: [me] }),
+      foundrySettings: [
+        setting("core", "rtcWorldSettings", {
+          mode: 3,
+          turn: {
+            type: "custom",
+            url: "turn:x",
+            username: "u",
+            password: "pw",
+          },
+        }),
+      ],
+    });
+
+    const draft = createDraft(dock.ctx);
+
+    expect(draft.get("relay").password).toBe("");
+  });
 });

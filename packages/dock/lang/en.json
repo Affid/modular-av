@@ -226,7 +226,8 @@
       "voice": "Voice",
       "video": "Video",
       "appearance": "Appearance",
-      "more": "More"
+      "more": "More",
+      "unsaved": "{tab}, unsaved changes"
     },
     "call": {
       "world": "Voice and video in this world",

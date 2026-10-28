@@ -8,6 +8,13 @@ export interface TabSpec {
   render(): readonly Rendered[];
 }
 
+export interface TabLabels {
+  /** The tab list's name. */
+  readonly list: string;
+  /** A tab's name while it holds unsaved changes. */
+  unsaved(tab: string): string;
+}
+
 export interface Tabs {
   readonly element: HTMLElement;
   /** Marks the tabs with unsaved changes. */
@@ -64,23 +71,42 @@ const tabList = (
     children: buttons,
   });
 
+/** A dot on each tab with unsaved changes, and its name says so too. */
+function markTabs(
+  buttons: readonly HTMLElement[],
+  specs: readonly TabSpec[],
+  labels: TabLabels,
+  unsaved: (id: string) => boolean,
+): void {
+  buttons.forEach((b, i) => {
+    const spec = specs[i];
+    const marked = spec !== undefined && unsaved(spec.id);
+    b.toggleAttribute("data-unsaved", marked);
+    if (marked) b.setAttribute("aria-label", labels.unsaved(spec.label));
+    else b.removeAttribute("aria-label");
+  });
+}
+
 /**
  * Tabs down the side, as Foundry's own settings: one panel at a time, so
- * a tab's previews run only while it is shown. Arrow keys move between
- * them; Home and End go to the ends.
+ * a tab's previews run only while it is shown (clicking it again keeps
+ * them running). Arrow keys move between them; Home and End go to the
+ * ends.
  */
 export function createTabs(
   doc: Document,
   specs: readonly TabSpec[],
-  label: string,
+  labels: TabLabels,
 ): Tabs {
   const panelId = uniqueId(doc, "mav-settings-panel");
   const panel = tabPanel(doc, panelId);
   let shown: readonly Rendered[] = [];
+  let current = -1;
   const buttons = specs.map((spec) => tabButton(doc, spec, panelId));
   const show = (index: number): void => {
     const spec = specs[index];
-    if (!spec) return;
+    if (!spec || index === current) return;
+    current = index;
     for (const part of shown) part.dispose();
     buttons.forEach((b, i) => {
       b.setAttribute("aria-selected", String(i === index));
@@ -107,12 +133,10 @@ export function createTabs(
     element: el("div", {
       doc,
       className: "mav-settings-tabbed",
-      children: [tabList(doc, buttons, label), panel],
+      children: [tabList(doc, buttons, labels.list), panel],
     }),
     mark(unsaved) {
-      buttons.forEach((b, i) => {
-        b.toggleAttribute("data-unsaved", unsaved(specs[i]?.id ?? ""));
-      });
+      markTabs(buttons, specs, labels, unsaved);
     },
     dispose() {
       for (const part of shown) part.dispose();

@@ -71,12 +71,16 @@ export function createFooter(
   const render = (): void => {
     const count = draft.changed().length;
     const reloads = draft.reloads();
-    reset.disabled = count === 0;
-    save.disabled = count === 0;
+    const blocked = count === 0 || draft.saving();
+    reset.disabled = blocked;
+    save.disabled = blocked;
     save.textContent = ctx.t(reloads ? "settings.saveReload" : "settings.save");
     if (said === undefined) line.textContent = pendingText(ctx, count, reloads);
   };
+  let disposed = false;
   const say = (text: string): void => {
+    // A save can end after the window closed: nothing to say then.
+    if (disposed) return;
     clearTimeout(said);
     line.textContent = text;
     said = setTimeout(() => {
@@ -99,6 +103,7 @@ export function createFooter(
   return {
     element,
     dispose() {
+      disposed = true;
       off();
       clearTimeout(said);
     },

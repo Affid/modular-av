@@ -109,8 +109,8 @@ export function sensitivityBar(
     });
   };
   const mic = microphonePreview(ctx, meter.element, draft, level, (error) => {
-    note.textContent = ctx.t(reasonKey(error));
-    note.hidden = false;
+    note.hidden = error === null;
+    note.textContent = error === null ? "" : ctx.t(reasonKey(error));
   });
   render();
   const off = draft.subscribe(() => {
@@ -126,31 +126,42 @@ export function sensitivityBar(
   };
 }
 
-/** The draft's microphone, heard for the bar alone, restarted when it changes. */
+/**
+ * The draft's microphone, heard for the bar alone while voice activity is
+ * chosen (the bar shows only then), restarted when it changes. Only the
+ * latest request is kept. `report` gets each failure, and null as a new
+ * request starts.
+ */
 function microphonePreview(
   ctx: DockContext,
   element: Element,
   draft: Draft,
   listener: (db: number) => void,
-  fail: (error: unknown) => void,
+  report: (error: unknown) => void,
 ): { follow(): void; stop(): void } {
   let running: Preview | null = null;
-  let device: string | null = null;
+  let device: string | null | undefined;
+  let request = 0;
   let stopped = false;
   const follow = (): void => {
-    const next = draft.get("audioInput");
+    const next =
+      draft.get("voiceMode") === "activity" ? draft.get("audioInput") : null;
     if (next === device) return;
     device = next;
+    request += 1;
+    const mine = request;
     running?.stop();
     running = null;
+    report(null);
+    if (next === null) return;
     ctx.api.preview
       .microphone(element, { device: next, listener })
       .then((preview) => {
-        if (stopped || device !== next) preview.stop();
+        if (stopped || request !== mine) preview.stop();
         else running = preview;
       })
       .catch((error: unknown) => {
-        if (!stopped && device === next) fail(error);
+        if (!stopped && request === mine) report(error);
       });
   };
   follow();

@@ -62,6 +62,7 @@ export function cameraPreview(
   const { video, note, element } = previewParts(ctx, doc);
   let running: Preview | null = null;
   let shown = "";
+  let request = 0;
   let disposed = false;
   const fail = (error: unknown): void => {
     note.textContent = ctx.t(reasonKey(error));
@@ -73,17 +74,19 @@ export function cameraPreview(
     const key = `${device}|${effect ?? ""}`;
     if (key === shown) return;
     shown = key;
+    request += 1;
+    const mine = request;
     running?.stop();
     running = null;
     note.hidden = true;
     ctx.api.preview
       .camera(video, { device, effect, onFailed: fail })
       .then((preview) => {
-        if (disposed || shown !== key) preview.stop();
+        if (disposed || request !== mine) preview.stop();
         else running = preview;
       })
       .catch((error: unknown) => {
-        if (!disposed && shown === key) fail(error);
+        if (!disposed && request === mine) fail(error);
       });
   };
   start();

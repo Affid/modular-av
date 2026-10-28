@@ -20,9 +20,17 @@ export interface Draft {
   /** What saving now reloads: every page, this one, or none. */
   reloads(): "everyone" | "self" | null;
   reset(): void;
-  /** Applies what changed, in order, then reloads if one of them needs it. */
+  /**
+   * Applies what changed, in order, then reloads if one of them needs it.
+   * Stops at the first that fails, keeping what was applied; one save at a
+   * time (a second while one is under way waits for it).
+   */
   save(): Promise<void>;
-  /** Fields nobody drafted follow what changed elsewhere (the quick controls). */
+  saving(): boolean;
+  /**
+   * Follows what changed elsewhere (the quick controls): fields nobody
+   * drafted take it, and Reset goes back to it.
+   */
   sync(): void;
   subscribe(listener: () => void): () => void;
 }
@@ -49,6 +57,7 @@ const applyOne = (
 export function createDraft(ctx: DockContext): Draft {
   let saved = readAll(ctx);
   let draft = saved;
+  let saving: Promise<void> | null = null;
   let listeners: readonly (() => void)[] = [];
   const notify = (): void => {
     for (const listener of listeners) listener();
@@ -56,6 +65,25 @@ export function createDraft(ctx: DockContext): Draft {
   const mine = (key: DraftKey): boolean => ctx.isGM || !FIELDS[key].gm;
   const changed = (): readonly DraftKey[] =>
     KEYS.filter((key) => mine(key) && !same(draft[key], saved[key]));
+  const reloads = (): "everyone" | "self" | null => {
+    const needs = changed().map((key) => FIELDS[key].reload);
+    if (needs.includes("everyone")) return ctx.isGM ? "everyone" : "self";
+    return needs.includes("self") ? "self" : null;
+  };
+  const apply = async (): Promise<void> => {
+    const reload = reloads();
+    try {
+      for (const key of changed()) {
+        const value = draft[key];
+        await applyOne(ctx, key, value);
+        saved = { ...saved, [key]: value };
+      }
+    } finally {
+      saving = null;
+      notify();
+    }
+    if (reload) ctx.reload(reload === "everyone");
+  };
   return {
     get: (key) => draft[key],
     savedValue: (key) => saved[key],
@@ -64,29 +92,24 @@ export function createDraft(ctx: DockContext): Draft {
       notify();
     },
     changed,
-    reloads() {
-      const reloads = changed().map((key) => FIELDS[key].reload);
-      if (reloads.includes("everyone")) return ctx.isGM ? "everyone" : "self";
-      return reloads.includes("self") ? "self" : null;
-    },
+    reloads,
     reset() {
       draft = saved;
       notify();
     },
-    async save() {
-      const reload = this.reloads();
-      for (const key of changed()) {
-        await applyOne(ctx, key, draft[key]);
-        saved = { ...saved, [key]: draft[key] };
+    save() {
+      if (!saving) {
+        saving = apply();
+        notify();
       }
-      notify();
-      if (reload) ctx.reload(reload === "everyone");
+      return saving;
     },
+    saving: () => saving !== null,
     sync() {
       const now = readAll(ctx);
       const untouched = KEYS.filter((key) => same(draft[key], saved[key]));
       const follow = Object.fromEntries(untouched.map((k) => [k, now[k]]));
-      saved = { ...saved, ...follow };
+      saved = now;
       draft = { ...draft, ...follow };
       notify();
     },

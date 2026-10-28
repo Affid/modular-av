@@ -177,7 +177,8 @@ export const FIELDS: { readonly [K in DraftKey]: Field<K> } = {
   relay: {
     gm: true,
     read: (ctx) => {
-      const turn = rtcWorld(ctx).turn ?? {};
+      // Only a GM sets it: a player's draft holds no password.
+      const turn = ctx.isGM ? (rtcWorld(ctx).turn ?? {}) : {};
       return {
         type: turn.type === "custom" ? "custom" : "server",
         url: turn.url ?? "",

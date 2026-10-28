@@ -143,11 +143,10 @@ export function renderSettings(
     attrs: { role: "alert" },
   });
   const draft = createDraft(ctx);
-  const tabs = createTabs(
-    doc,
-    tabSpecs(ctx, doc, draft, host, alerts),
-    ctx.t("tabs.label"),
-  );
+  const tabs = createTabs(doc, tabSpecs(ctx, doc, draft, host, alerts), {
+    list: ctx.t("tabs.label"),
+    unsaved: (tab) => ctx.t("tabs.unsaved", { tab }),
+  });
   const footer = createFooter(ctx, doc, draft, alerts);
   const mark = (): void => {
     const unsaved = unsavedTabs(ctx, draft);
