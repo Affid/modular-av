@@ -43,7 +43,7 @@
       }
     ]
   },
-  "version": "0.4.0",
+  "version": "0.5.0",
   "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av/module.json",
-  "download": "https://github.com/Affid/modular-av/releases/download/modular-av-v0.4.0/modular-av.zip"
+  "download": "https://github.com/Affid/modular-av/releases/download/modular-av-v0.5.0/modular-av.zip"
 }
