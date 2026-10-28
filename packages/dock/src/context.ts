@@ -48,6 +48,14 @@ export interface DockGame {
   };
   readonly keybindings?: {
     get(namespace: string, action: string): readonly { readonly key: string }[];
+    set?(
+      namespace: string,
+      action: string,
+      bindings: readonly {
+        readonly key: string;
+        readonly modifiers: readonly string[];
+      }[],
+    ): Promise<unknown>;
   };
 }
 
@@ -89,6 +97,10 @@ export interface DockContext {
   readonly pushToTalkKeys: () => readonly string[];
   /** Opens Foundry's controls, where the push to talk key is set. */
   readonly openControls: () => void;
+  /** Binds Foundry's push to talk to this key (a KeyboardEvent code). */
+  readonly setPushToTalkKey: (code: string) => Promise<void>;
+  /** Reloads this page, or every connected one (a GM's). */
+  readonly reload: (everyone: boolean) => void;
   readonly now: () => number;
   readonly onError: (error: unknown) => void;
   readonly scenes: Scenes;
@@ -101,6 +113,7 @@ export interface ContextDeps {
   readonly api: ModularAV;
   readonly openSettings: () => void;
   readonly openControls?: () => void;
+  readonly reload?: (everyone: boolean) => void;
   readonly now?: () => number;
   readonly onError: (error: unknown) => void;
   /** Foundry's hooks for the scene shown and its changes. */
@@ -154,6 +167,12 @@ export function createContext(deps: ContextDeps): DockContext {
     pushToTalkKeys: () =>
       (game.keybindings?.get("core", "pushToTalk") ?? []).map((b) => b.key),
     openControls: deps.openControls ?? (() => undefined),
+    setPushToTalkKey: async (code) => {
+      await game.keybindings?.set?.("core", "pushToTalk", [
+        { key: code, modifiers: [] },
+      ]);
+    },
+    reload: deps.reload ?? (() => undefined),
     now: deps.now ?? (() => Date.now()),
     onError: deps.onError,
     scenes: createScenes(deps),

@@ -54,6 +54,10 @@ export interface TestDock {
   readonly errors: unknown[];
   readonly saved: Map<string, unknown>;
   opened: { settings: number; controls: number };
+  /** Each reload asked for: true for every page, false for this one. */
+  readonly reloads: boolean[];
+  /** Push to talk's bindings as set. */
+  readonly pushToTalkSet: (readonly string[])[];
   /** The viewed scene changed, or its layout did. */
   readonly sceneChanged: () => void;
 }
@@ -83,6 +87,8 @@ export function testDock(options: TestDockOptions = {}): TestDock {
     (options.foundrySettings ?? []).map((s) => [`${s.namespace}.${s.key}`, s]),
   );
   const opened = { settings: 0, controls: 0 };
+  const reloads: boolean[] = [];
+  const pushToTalkSet: (readonly string[])[] = [];
   let sceneListeners: readonly (() => void)[] = [];
   const ctx = createContext({
     api,
@@ -110,6 +116,10 @@ export function testDock(options: TestDockOptions = {}): TestDock {
       keybindings: {
         get: () =>
           (options.pushToTalk ?? ["Backquote"]).map((key) => ({ key })),
+        set: (_namespace, _action, bindings) => {
+          pushToTalkSet.push(bindings.map((b) => b.key));
+          return Promise.resolve();
+        },
       },
     },
     openSettings: () => {
@@ -117,6 +127,9 @@ export function testDock(options: TestDockOptions = {}): TestDock {
     },
     openControls: () => {
       opened.controls += 1;
+    },
+    reload: (everyone) => {
+      reloads.push(everyone);
     },
     now: () => 1_000_000,
     onError: (e) => errors.push(e),
@@ -131,7 +144,10 @@ export function testDock(options: TestDockOptions = {}): TestDock {
   const sceneChanged = (): void => {
     for (const listener of sceneListeners) listener();
   };
-  return { api, ctx, errors, saved, opened, sceneChanged };
+  return {
+    ...{ api, ctx, errors, saved, opened, sceneChanged },
+    ...{ reloads, pushToTalkSet },
+  };
 }
 
 export interface FakeHost extends CamerasHost {

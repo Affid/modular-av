@@ -53,7 +53,7 @@ export function liveEffects(
 }
 
 /** Exclusive groups by name; an effect of its own is a group of one. */
-function groupsOf(
+export function groupsOf(
   definitions: readonly EffectDefinition[],
 ): readonly (readonly [string, readonly EffectDefinition[]])[] {
   const groups = new Map<string, EffectDefinition[]>();

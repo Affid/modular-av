@@ -20,6 +20,7 @@ declare global {
     readonly modules: {
       get(id: string): { api?: unknown } | undefined;
     };
+    readonly socket: { emit(event: string): void };
   };
   var Hooks: {
     once(hook: string, fn: (...args: never[]) => void): number;
@@ -28,7 +29,7 @@ declare global {
     callAll(hook: string, ...args: unknown[]): boolean;
   };
   var foundry: {
-    readonly utils: { getRoute(path: string): string };
+    readonly utils: { getRoute(path: string): string; debouncedReload(): void };
     readonly applications: {
       readonly sidebar: {
         readonly apps: {
@@ -124,6 +125,11 @@ Hooks.once("modularAV.register", (api: ModularAV) => {
     // The core's settings window, or Foundry's if another module's is chosen.
     openSettings: () => {
       game.webrtc?.config.render({ force: true });
+    },
+    // As Foundry's module settings do for a setting that needs it.
+    reload: (everyone) => {
+      if (everyone) game.socket.emit("reload");
+      foundry.utils.debouncedReload();
     },
     // As Foundry's settings sidebar opens it.
     openControls: () => {
