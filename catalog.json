@@ -75,10 +75,25 @@
       "requires": [
         {
           "id": "modular-av",
-          "minimum": "0.5.0"
+          "minimum": "0.6.0"
         }
       ],
-      "version": "0.5.0",
+      "facts": [
+        {
+          "label": "Table size",
+          "value": "What your server handles"
+        },
+        {
+          "label": "Server",
+          "value": "Your own Jitsi Meet"
+        },
+        {
+          "label": "After installing",
+          "value": "Server address and app secret"
+        }
+      ],
+      "icon": "fa-solid fa-server",
+      "version": "0.6.0",
       "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-jitsi/module.json"
     },
     {

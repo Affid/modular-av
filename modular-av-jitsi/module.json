@@ -32,17 +32,32 @@
         "type": "module",
         "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av/module.json",
         "compatibility": {
-          "minimum": "0.5.0"
+          "minimum": "0.6.0"
         }
       }
     ]
   },
   "flags": {
     "modular-av": {
-      "kind": "service"
+      "kind": "service",
+      "icon": "fa-solid fa-server",
+      "facts": [
+        {
+          "label": "Table size",
+          "value": "What your server handles"
+        },
+        {
+          "label": "Server",
+          "value": "Your own Jitsi Meet"
+        },
+        {
+          "label": "After installing",
+          "value": "Server address and app secret"
+        }
+      ]
     }
   },
-  "version": "0.5.0",
+  "version": "0.6.0",
   "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-jitsi/module.json",
-  "download": "https://github.com/Affid/modular-av/releases/download/modular-av-jitsi-v0.5.0/modular-av-jitsi.zip"
+  "download": "https://github.com/Affid/modular-av/releases/download/modular-av-jitsi-v0.6.0/modular-av-jitsi.zip"
 }
