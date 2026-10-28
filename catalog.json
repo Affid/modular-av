@@ -72,7 +72,7 @@
       "requires": [
         {
           "id": "modular-av-dock",
-          "minimum": "0.8.1"
+          "minimum": "0.8.2"
         }
       ],
       "facts": [
@@ -86,7 +86,7 @@
         }
       ],
       "icon": "fa-solid fa-leaf",
-      "version": "0.8.1",
+      "version": "0.8.2",
       "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-dock-vines/module.json"
     },
     {
