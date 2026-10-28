@@ -72,10 +72,21 @@
       "requires": [
         {
           "id": "modular-av-dock",
-          "minimum": "0.5.0"
+          "minimum": "0.6.0"
         }
       ],
-      "version": "0.5.0",
+      "facts": [
+        {
+          "label": "Needs",
+          "value": "The Dock"
+        },
+        {
+          "label": "Who picks it",
+          "value": "The GM, as the table's look, or each player"
+        }
+      ],
+      "icon": "fa-solid fa-leaf",
+      "version": "0.6.0",
       "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-dock-vines/module.json"
     },
     {
