@@ -59,67 +59,103 @@ async function startEffect(
   }
 }
 
+/**
+ * What a preview holds, released in reverse when it stops: when asked, when
+ * its element leaves (watched from the start, so a removal while the
+ * device is still opening counts), or when its effect fails. Anything
+ * acquired after that is released at once.
+ */
+function hold(env: PreviewsDeps["env"], element: Element) {
+  let releases: readonly (() => void)[] = [];
+  let stopped = false;
+  const stop = (): void => {
+    if (stopped) return;
+    stopped = true;
+    for (const release of [...releases].reverse()) release();
+    releases = [];
+  };
+  releases = [env.watchRemoval(element, stop)];
+  return {
+    stop,
+    stopped: (): boolean => stopped,
+    own(release: () => void): void {
+      if (stopped) release();
+      else releases = [...releases, release];
+    },
+  };
+}
+
 function cameraPreview(deps: PreviewsDeps): Previews["camera"] {
   const { env } = deps;
   return async (element, options) => {
     const definition = options.effect
       ? videoEffect(deps.effects, options.effect)
       : null;
-    const { raw } = await captureDevice(env, "video", options.device);
-    const aborted = new AbortController();
-    let effect: VideoEffect | null = null;
-    let stopped = false;
-    const stop = (): void => {
-      if (stopped) return;
-      stopped = true;
-      aborted.abort();
-      unwatch();
-      effect?.dispose();
-      env.showVideo(element, null);
-      raw.stop();
-    };
-    let unwatch = (): void => undefined;
+    const held = hold(env, element);
     try {
+      const { raw } = await captureDevice(env, "video", options.device);
+      held.own(() => {
+        raw.stop();
+      });
+      const aborted = new AbortController();
+      held.own(() => {
+        aborted.abort();
+      });
       const started = definition
         ? await startEffect(definition, raw, aborted.signal, (error) => {
             // Fail closed, as the call does: nothing shows without it.
-            stop();
+            held.stop();
             options.onFailed?.(error);
           })
         : null;
-      effect = started?.effect ?? null;
+      if (started)
+        held.own(() => {
+          started.effect.dispose();
+        });
+      if (held.stopped()) return { stop: held.stop };
       env.showVideo(element, env.createStream([started?.shown ?? raw]));
-      unwatch = env.watchRemoval(element, stop);
+      held.own(() => {
+        env.showVideo(element, null);
+      });
     } catch (error: unknown) {
-      stop();
+      held.stop();
       throw error;
     }
-    return { stop };
+    return { stop: held.stop };
   };
 }
 
 function microphonePreview(deps: PreviewsDeps): Previews["microphone"] {
   const { env } = deps;
   return async (element, options) => {
-    const { raw } = await captureDevice(env, "audio", options.device);
-    const level = await env.createLevelMeter(raw).catch((error: unknown) => {
-      raw.stop();
+    if (typeof options.listener !== "function")
+      throw new TypeError("A microphone preview needs a listener function");
+    const held = hold(env, element);
+    try {
+      const { raw } = await captureDevice(env, "audio", options.device);
+      held.own(() => {
+        raw.stop();
+      });
+      const level = await env.createLevelMeter(raw);
+      held.own(() => {
+        level.dispose();
+      });
+      if (held.stopped()) return { stop: held.stop };
+      held.own(
+        env.every(element, METER_INTERVAL_MS, () => {
+          try {
+            options.listener(level.read());
+          } catch {
+            // A listener that throws would throw on every tick: stop.
+            held.stop();
+          }
+        }),
+      );
+    } catch (error: unknown) {
+      held.stop();
       throw error;
-    });
-    const stopTimer = env.every(element, METER_INTERVAL_MS, () => {
-      options.listener(level.read());
-    });
-    let stopped = false;
-    const stop = (): void => {
-      if (stopped) return;
-      stopped = true;
-      stopTimer();
-      unwatch();
-      level.dispose();
-      raw.stop();
-    };
-    const unwatch = env.watchRemoval(element, stop);
-    return { stop };
+    }
+    return { stop: held.stop };
   };
 }
 

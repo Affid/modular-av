@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import type { EffectDefinition } from "@modular-av/api";
+import type { EffectDefinition, VideoEffectDefinition } from "@modular-av/api";
 import {
   createFakeMediaEnv,
   createFakeVideoEffect,
@@ -95,6 +95,68 @@ describe("a camera preview", () => {
     expect(env.captures).toEqual([]);
   });
 
+  it("lets the camera go when its element leaves while it is still opening", async () => {
+    const { env } = setup();
+    const opened: MediaStreamTrack[] = [];
+    const watched = createPreviews({
+      env: {
+        ...env,
+        captureVideo: (id) =>
+          env.captureVideo(id).then((track) => {
+            opened.push(track);
+            return track;
+          }),
+      },
+      effects: { get: () => undefined },
+    });
+    const element = createFakeVideoElement();
+
+    const pending = watched.camera(element, {
+      device: "default",
+      effect: null,
+    });
+    env.removeElement(element);
+    await pending;
+
+    expect(opened[0]?.readyState).toBe("ended");
+    expect(env.shownOn(element)).toEqual([]);
+  });
+
+  it("lets its effect go, and shows nothing, when the effect fails while starting", async () => {
+    const effect = { disposed: false };
+    const failing: VideoEffectDefinition = {
+      id: "background-blur",
+      kind: "video",
+      label: "Blur",
+      cost: "heavy",
+      isSupported: () => true,
+      create: (context) =>
+        Promise.resolve({
+          start(input) {
+            context.fail(new Error("worker crashed"));
+            return Promise.resolve(input);
+          },
+          replaceInput: () => Promise.resolve(),
+          dispose() {
+            effect.disposed = true;
+          },
+        }),
+    };
+    const { env, previews } = setup(failing);
+    const element = createFakeVideoElement();
+    const failures: unknown[] = [];
+
+    await previews.camera(element, {
+      device: "default",
+      effect: "background-blur",
+      onFailed: (error) => failures.push(error),
+    });
+
+    expect(failures).toHaveLength(1);
+    expect(effect.disposed).toBe(true);
+    expect(env.shownOn(element)).toEqual([]);
+  });
+
   it("rejects as the browser does when the camera is refused", async () => {
     const { env, previews } = setup();
     env.setDenied("video", "NotAllowedError");
@@ -129,6 +191,35 @@ describe("a microphone preview", () => {
     expect(levels).toEqual([-30, -30]);
     expect(meter?.disposed).toBe(true);
     expect(meter?.track.readyState).toBe("ended");
+  });
+});
+
+describe("a microphone preview's options", () => {
+  it("are refused before the microphone opens when the listener isn't a function", async () => {
+    const { env, previews } = setup();
+
+    await expect(
+      previews.microphone(document.createElement("div"), {
+        device: "default",
+        listener: "nope" as unknown as (db: number) => void,
+      }),
+    ).rejects.toThrow(TypeError);
+    expect(env.captures).toEqual([]);
+  });
+
+  it("stop the preview when the listener throws", async () => {
+    vi.useFakeTimers();
+    const { env, previews } = setup();
+
+    await previews.microphone(document.createElement("div"), {
+      device: "default",
+      listener: () => {
+        throw new Error("broken listener");
+      },
+    });
+    vi.advanceTimersByTime(100);
+
+    expect(env.levelMeters[0]?.disposed).toBe(true);
   });
 });
 
