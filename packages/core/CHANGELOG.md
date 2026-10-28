@@ -1,5 +1,18 @@
 # @modular-av/core
 
+## 0.9.1
+
+### Patch Changes
+
+- 7b8b042: "Plan your modules" opens fully on the screen: it was centred while still
+  empty and grew down past the bottom as the board filled in, then jumped
+  back on the first click. It is now centred again as its content grows,
+  until you move it (the settings window shares the same code). Soundcheck
+  names other modules' settings sections ("Camera background") instead of
+  showing their text keys.
+- @modular-av/api@0.9.1
+  - @modular-av/kit@0.9.1
+
 ## 0.9.0
 
 ### Patch Changes

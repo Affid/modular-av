@@ -1,5 +1,11 @@
 # @modular-av/mic-denoise
 
+## 0.9.1
+
+### Patch Changes
+
+- @modular-av/api@0.9.1
+
 ## 0.9.0
 
 ### Patch Changes
