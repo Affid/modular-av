@@ -1,4 +1,9 @@
-import type { SettingsHost, SettingsSurfaceDefinition } from "@modular-av/api";
+import type {
+  SettingsHost,
+  SettingsSurfaceDefinition,
+  SettingsWindowTab,
+} from "@modular-av/api";
+import { TABS } from "../contributions.ts";
 
 type ApplicationBase = abstract new (...args: never[]) => object;
 
@@ -16,6 +21,16 @@ interface ApplicationLike {
 
 export interface Openable {
   render(options?: object): unknown;
+}
+
+/**
+ * The tab a render asks for: `render({ force: true, modularAV: { tab } })`
+ * opens the window on it, closing it first if it is open.
+ */
+function tabIn(options: object | undefined): SettingsWindowTab | undefined {
+  const asked = (options as { modularAV?: { tab?: unknown } } | undefined)
+    ?.modularAV?.tab;
+  return [...TABS, "more" as const].find((tab) => tab === asked);
 }
 
 export interface SettingsWindowDeps {
@@ -44,6 +59,7 @@ export function createSettingsWindow(
   let filled: HTMLElement | null = null;
   let cleanup: (() => void) | null = null;
   let watching: ResizeObserver | null = null;
+  let requested: SettingsWindowTab | undefined;
 
   class ModularAVSettings extends Base {
     static DEFAULT_OPTIONS = {
@@ -57,6 +73,14 @@ export function createSettingsWindow(
       },
       position: { width: 760 },
     };
+
+    override async render(options?: object): Promise<unknown> {
+      const tab = tabIn(options);
+      // The surface draws its tabs once: an open window opens again on it.
+      if (tab && filled) await this.close();
+      requested = tab;
+      return super.render(options);
+    }
 
     override _renderHTML(): Promise<unknown> {
       return Promise.resolve({});
@@ -80,7 +104,9 @@ export function createSettingsWindow(
           deps.foundrySettings.render({ force: true });
         },
         ...(deps.openModules ? { openModules: deps.openModules } : {}),
+        ...(requested ? { tab: requested } : {}),
       });
+      requested = undefined;
       try {
         cleanup = deps.surface.render(host);
       } catch (error: unknown) {

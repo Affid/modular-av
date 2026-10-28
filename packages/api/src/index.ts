@@ -13,6 +13,7 @@ export type {
   RangeControl,
   SettingsSectionContribution,
   SettingsTab,
+  SettingsWindowTab,
   StatusRowContribution,
   ToggleControl,
   ToggleState,

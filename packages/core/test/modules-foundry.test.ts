@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+import type { Contribution } from "@modular-av/api";
 import { describe, expect, it } from "vitest";
 import {
   type BoardFoundry,
@@ -35,6 +36,7 @@ function foundry(
     chats: [] as object[],
     files: [] as string[],
     shutDown: 0,
+    opened: [] as unknown[],
   };
   const module = (id: string, version: string, active: boolean) =>
     [id, { id, version, active }] as const;
@@ -100,6 +102,41 @@ function foundry(
         text: () => Promise.resolve(served[url] ?? ""),
       }),
     onError: () => undefined,
+    settingsWindow: {
+      render: (options?: object) => {
+        calls.opened.push(options);
+      },
+    },
+    openFoundrySettings: (category: string) => {
+      calls.opened.push({ foundry: category });
+    },
+    contributions: (): readonly Contribution[] => [
+      {
+        kind: "settings-section",
+        id: "modular-av-mic-denoise.section",
+        label: "Noise cancellation",
+        settings: ["modular-av-mic-denoise.quality"],
+        tab: "voice",
+      },
+      {
+        kind: "settings-section",
+        id: "other.controls-only",
+        label: "Only controls",
+        settings: [],
+      },
+      {
+        kind: "status-row",
+        id: "modular-av-livekit.region",
+        label: "Region",
+        value: { get: () => null, subscribe: () => () => undefined },
+      },
+    ],
+    configured: () => [
+      { namespace: "modular-av-livekit", config: true },
+      { namespace: "modular-av-livekit", config: false },
+      { namespace: "modular-av-jitsi", config: false },
+      { namespace: "lib-wrapper", config: true },
+    ],
   } satisfies BoardFoundry;
   return { host: createFoundryBoardHost(deps), deps, calls, settings };
 }
@@ -200,6 +237,34 @@ describe("the board in Foundry", () => {
       plan: ["a"],
       trip: null,
     });
+  });
+});
+
+describe("Soundcheck in Foundry", () => {
+  it("lists the family's settings sections and its settings in Foundry's own window", () => {
+    const { host } = foundry();
+
+    expect(host.settingsSections()).toEqual([
+      {
+        id: "modular-av-mic-denoise.section",
+        moduleId: "modular-av-mic-denoise",
+        label: "Noise cancellation",
+        tab: "voice",
+      },
+    ]);
+    expect(host.configuredModules()).toEqual(["modular-av-livekit"]);
+  });
+
+  it("opens the settings window on a tab, or Foundry's own on a module", () => {
+    const { host, calls } = foundry();
+
+    host.openCheck({ tab: "voice" });
+    host.openCheck({ foundry: "modular-av-livekit" });
+
+    expect(calls.opened).toEqual([
+      { force: true, modularAV: { tab: "voice" } },
+      { foundry: "modular-av-livekit" },
+    ]);
   });
 });
 

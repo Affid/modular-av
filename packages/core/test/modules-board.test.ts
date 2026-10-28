@@ -120,6 +120,9 @@ async function open(
       calls.copied.push(text);
       return Promise.resolve();
     },
+    settingsSections: () => [],
+    configuredModules: () => [],
+    openCheck: () => undefined,
     onError: (error) => {
       calls.errors.push(error);
     },

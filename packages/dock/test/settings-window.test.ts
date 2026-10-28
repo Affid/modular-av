@@ -545,6 +545,16 @@ describe("the settings window's More tab", () => {
   });
 });
 
+describe("the settings window's tabs", () => {
+  it("open on the tab the window was opened for", () => {
+    const view = open({}, undefined, { tab: "video" });
+
+    expect(
+      view.q('[role="tab"][aria-selected="true"]')?.getAttribute("data-tab"),
+    ).toBe("video");
+  });
+});
+
 describe("the settings window's footer", () => {
   it("can't save or reset again while saving", async () => {
     const view = open({ isGM: true });

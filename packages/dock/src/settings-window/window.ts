@@ -146,6 +146,7 @@ export function renderSettings(
   const tabs = createTabs(doc, tabSpecs(ctx, doc, draft, host, alerts), {
     list: ctx.t("tabs.label"),
     unsaved: (tab) => ctx.t("tabs.unsaved", { tab }),
+    ...(host.tab ? { first: host.tab } : {}),
   });
   const footer = createFooter(ctx, doc, draft, alerts);
   const mark = (): void => {

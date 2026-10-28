@@ -123,6 +123,9 @@ export interface StatusRowContribution extends ItemBase, ContributionBase {
 /** Where a settings window with tabs shows a section. */
 export type SettingsTab = "call" | "voice" | "video" | "appearance";
 
+/** A settings window's tab: one a section may name, or More for the rest. */
+export type SettingsWindowTab = SettingsTab | "more";
+
 /**
  * A section of the settings window: Foundry settings, by key
  * ("<module-id>.<key>"), rendered from their registration, and controls.

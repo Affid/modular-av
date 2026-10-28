@@ -19,7 +19,8 @@ const CONTRIBUTION_KINDS = [
 ] as const;
 const CONTROL_TYPES = ["toggle", "range", "choice", "button"] as const;
 const PLACES = ["quick", "settings"] as const;
-const TABS = ["call", "voice", "video", "appearance"] as const;
+/** The settings window's tabs a section (or an opening) may name. */
+export const TABS = ["call", "voice", "video", "appearance"] as const;
 
 class Problem extends Error {}
 

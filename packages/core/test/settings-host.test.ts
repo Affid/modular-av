@@ -109,6 +109,27 @@ describe("the core's settings window", () => {
     expect(document.querySelectorAll(".test-settings")).toHaveLength(1);
   });
 
+  it("opens on the tab it is asked for, again if it is open", async () => {
+    const surface = settingsSurface();
+    const table = createTable();
+    const p1 = table.join("p1", { register: withSurface(surface) });
+    await table.settle();
+    const window = master(p1).config as Openable;
+
+    await window.render({ force: true });
+    await window.render({ force: true, modularAV: { tab: "voice" } });
+    await window.render({ force: true, modularAV: { tab: "more" } });
+    await window.render({ force: true, modularAV: { tab: "nope" } });
+
+    expect(surface.probe.hosts.map((h) => h.tab)).toEqual([
+      undefined,
+      "voice",
+      "more",
+    ]);
+    expect(surface.probe.cleanups).toBe(2);
+    expect(document.querySelectorAll(".test-settings")).toHaveLength(1);
+  });
+
   it("fits the screen before Foundry places it: capped, scrolling, resizable", async () => {
     const surface = settingsSurface();
     const table = createTable();

@@ -1,3 +1,7 @@
+import type {
+  Contribution,
+  SettingsSectionContribution,
+} from "@modular-av/api";
 import { type Catalog, parseCatalog } from "../catalog/catalog.ts";
 import {
   type CatalogFetch,
@@ -11,6 +15,7 @@ import {
   CAMERAS_SETTING,
   SETTINGS_WINDOW_SETTING,
 } from "../surfaces/choice.ts";
+import type { SectionInfo } from "./board/objectives.ts";
 import type { BoardHost, LoadedCatalog, SavedPlan } from "./host.ts";
 import { CHECK_SETTING, PLAN_SETTING } from "./menu.ts";
 import type { WorldModules } from "./steps.ts";
@@ -32,6 +37,17 @@ export interface BoardFoundry {
   readonly clipboard: { writeText(text: string): Promise<void> } | undefined;
   readonly fetch: CatalogFetch;
   readonly onError: (error: unknown) => void;
+  /** The Voice & Video Settings window (`game.webrtc.config`), if any. */
+  readonly settingsWindow: { render(options?: object): unknown } | null;
+  /** Foundry's settings window, on a module's category. */
+  openFoundrySettings(category: string): void;
+  /** What modules contributed to the core's API. */
+  contributions(): readonly Contribution[];
+  /** Every setting and menu registered, by namespace. */
+  configured(): Iterable<{
+    readonly namespace: string;
+    readonly config?: boolean;
+  }>;
 }
 
 const isFamily = (id: string): boolean =>
@@ -110,6 +126,28 @@ async function applyChange(
   foundry.utils.debouncedReload();
 }
 
+const isSection = (c: Contribution): c is SettingsSectionContribution =>
+  c.kind === "settings-section";
+
+/** The family's sections, each by the module whose settings it holds. */
+function sectionsOf(foundry: BoardFoundry): readonly SectionInfo[] {
+  return foundry.contributions().flatMap((c) => {
+    if (!isSection(c)) return [];
+    const moduleId = c.settings[0]?.split(".")[0];
+    return moduleId && isFamily(moduleId)
+      ? [{ id: c.id, moduleId, label: c.label, tab: c.tab ?? null }]
+      : [];
+  });
+}
+
+/** Family modules that show settings in Foundry's own window. */
+function configuredOf(foundry: BoardFoundry): readonly string[] {
+  const ids = [...foundry.configured()]
+    .filter((s) => s.config === true && isFamily(s.namespace))
+    .map((s) => s.namespace);
+  return [...new Set(ids)];
+}
+
 export function createFoundryBoardHost(foundry: BoardFoundry): BoardHost {
   const { game, doc } = foundry;
   return {
@@ -149,6 +187,20 @@ export function createFoundryBoardHost(foundry: BoardFoundry): BoardHost {
       foundry.clipboard
         ? foundry.clipboard.writeText(text)
         : Promise.reject(new Error("No clipboard on this page")),
+    settingsSections: () => sectionsOf(foundry),
+    configuredModules: () => configuredOf(foundry),
+    openCheck: (target) => {
+      // Without the core's window (A/V off), the core's own settings.
+      if ("foundry" in target || !foundry.settingsWindow)
+        foundry.openFoundrySettings(
+          "foundry" in target ? target.foundry : MODULE_ID,
+        );
+      else
+        void foundry.settingsWindow.render({
+          force: true,
+          modularAV: { tab: target.tab },
+        });
+    },
     onError: foundry.onError,
   };
 }

@@ -1,4 +1,4 @@
-import type { SettingsTab } from "@modular-av/api";
+import type { SettingsTab, SettingsWindowTab } from "@modular-av/api";
 import { pieceOf } from "../pieces.ts";
 import { applicable, planDiff, runningOf } from "../steps.ts";
 import type { BoardState } from "./state.ts";
@@ -24,17 +24,19 @@ export interface SectionInfo {
   readonly tab: SettingsTab | null;
 }
 
-export type CheckTab = SettingsTab | "more";
+/** Where checking it opens: the settings window on a tab, or Foundry's own on a module. */
+export type CheckTarget =
+  { readonly tab: SettingsWindowTab } | { readonly foundry: string };
 
 /** One thing to check once the modules run. */
 export interface Check {
   readonly id: string;
-  readonly kind: "section" | "theme" | "effects";
-  /** The section's name, or the theme's or effects' module ids. */
+  readonly kind: "foundry" | "section" | "theme" | "effects";
+  /** A section's name; empty for the others, named by their modules. */
   readonly label: string;
   readonly modules: readonly string[];
-  /** Where the settings window opens for it; null: nothing to open. */
-  readonly tab: CheckTab | null;
+  /** What opens for it; null: nothing to open, only to know. */
+  readonly target: CheckTarget | null;
   /** Its module isn't on air yet. */
   readonly locked: boolean;
 }
@@ -42,40 +44,57 @@ export interface Check {
 const hasService = (state: BoardState): boolean =>
   [...state.plan].some((id) => pieceOf(state.pieces, id)?.kind === "service");
 
-/** The planned modules' settings, theme and effects, locked until on air. */
+/**
+ * The planned modules' settings (Foundry's own, set in its settings
+ * window, and their sections in ours), their theme and their effects,
+ * locked until on air.
+ */
 export function checksOf(
   state: BoardState,
   sections: readonly SectionInfo[],
+  configured: readonly string[],
 ): readonly Check[] {
   const running = runningOf(state.world);
-  const kindOf = (id: string) => pieceOf(state.pieces, id)?.kind;
   const planned = [...state.plan];
+  const kindOf = (id: string) => pieceOf(state.pieces, id)?.kind;
+  const one = (
+    id: string,
+    kind: Check["kind"],
+    modules: readonly string[],
+    target: CheckTarget | null,
+    label = "",
+  ): Check => ({
+    id,
+    kind,
+    label,
+    modules,
+    target,
+    locked: !modules.every((m) => running.has(m)),
+  });
+  const foundry = configured
+    .filter((id) => state.plan.has(id))
+    .map((id) => one(`foundry:${id}`, "foundry", [id], { foundry: id }));
   const own = sections
     .filter((s) => state.plan.has(s.moduleId))
-    .map((s): Check => ({
-      id: `section:${s.id}`,
-      kind: "section",
-      label: s.label,
-      modules: [s.moduleId],
-      tab: s.tab ?? "more",
-      locked: !running.has(s.moduleId),
-    }));
+    .map((s) =>
+      one(
+        `section:${s.id}`,
+        "section",
+        [s.moduleId],
+        { tab: s.tab ?? "more" },
+        s.label,
+      ),
+    );
   const themes = planned.filter((id) => kindOf(id) === "theme");
   const effects = planned.filter((id) => kindOf(id) === "effect");
-  const group = (kind: "theme" | "effects", ids: readonly string[]): Check[] =>
-    ids.length === 0
-      ? []
-      : [
-          {
-            id: kind,
-            kind,
-            label: "",
-            modules: ids,
-            tab: kind === "theme" ? "appearance" : null,
-            locked: !ids.every((id) => running.has(id)),
-          },
-        ];
-  return [...own, ...group("theme", themes), ...group("effects", effects)];
+  return [
+    ...foundry,
+    ...own,
+    ...(themes.length
+      ? [one("theme", "theme", themes, { tab: "appearance" })]
+      : []),
+    ...(effects.length ? [one("effects", "effects", effects, null)] : []),
+  ];
 }
 
 function loadState(state: BoardState): ObjectiveState {
@@ -100,7 +119,9 @@ function checkState(
     (id) => pieceOf(state.pieces, id)?.kind === "service",
   );
   if (live !== "done" || !onAir) return "later";
-  const open = checks.filter((c) => c.tab !== null && !state.checked.has(c.id));
+  const open = checks.filter(
+    (c) => c.target !== null && !state.checked.has(c.id),
+  );
   return open.length > 0 ? "todo" : "done";
 }
 

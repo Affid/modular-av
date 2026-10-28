@@ -1,4 +1,5 @@
 import type { Catalog } from "../catalog/catalog.ts";
+import type { CheckTarget, SectionInfo } from "./board/objectives.ts";
 import type { WorldModules } from "./steps.ts";
 
 /** What the board keeps in the world between visits. */
@@ -46,5 +47,11 @@ export interface BoardHost {
   whisper(text: string): Promise<void>;
   saveFile(text: string): void;
   copy(text: string): Promise<void>;
+  /** The family's settings sections, for Soundcheck. */
+  settingsSections(): readonly SectionInfo[];
+  /** Family modules with settings in Foundry's own settings window. */
+  configuredModules(): readonly string[];
+  /** Opens where a Soundcheck item is set. */
+  openCheck(target: CheckTarget): void;
   onError(error: unknown): void;
 }

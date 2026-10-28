@@ -8,11 +8,13 @@ export interface TabSpec {
   render(): readonly Rendered[];
 }
 
-export interface TabLabels {
+export interface TabOptions {
   /** The tab list's name. */
   readonly list: string;
   /** A tab's name while it holds unsaved changes. */
   unsaved(tab: string): string;
+  /** The tab shown first, by id; the first one if absent or unknown. */
+  readonly first?: string;
 }
 
 export interface Tabs {
@@ -75,15 +77,34 @@ const tabList = (
 function markTabs(
   buttons: readonly HTMLElement[],
   specs: readonly TabSpec[],
-  labels: TabLabels,
+  options: TabOptions,
   unsaved: (id: string) => boolean,
 ): void {
   buttons.forEach((b, i) => {
     const spec = specs[i];
     const marked = spec !== undefined && unsaved(spec.id);
     b.toggleAttribute("data-unsaved", marked);
-    if (marked) b.setAttribute("aria-label", labels.unsaved(spec.label));
+    if (marked) b.setAttribute("aria-label", options.unsaved(spec.label));
     else b.removeAttribute("aria-label");
+  });
+}
+
+/** A click shows its tab; arrow keys, Home and End move and show. */
+function wireTabs(
+  buttons: readonly HTMLElement[],
+  show: (index: number) => void,
+): void {
+  buttons.forEach((button, index) => {
+    button.addEventListener("click", () => {
+      show(index);
+    });
+    button.addEventListener("keydown", (event) => {
+      const to = keyTarget(event.key, index, buttons.length);
+      if (to === null) return;
+      event.preventDefault();
+      show(to);
+      buttons[to]?.focus();
+    });
   });
 }
 
@@ -96,7 +117,7 @@ function markTabs(
 export function createTabs(
   doc: Document,
   specs: readonly TabSpec[],
-  labels: TabLabels,
+  options: TabOptions,
 ): Tabs {
   const panelId = uniqueId(doc, "mav-settings-panel");
   const panel = tabPanel(doc, panelId);
@@ -116,27 +137,17 @@ export function createTabs(
     shown = spec.render();
     panel.replaceChildren(...shown.map((p) => p.element));
   };
-  buttons.forEach((button, index) => {
-    button.addEventListener("click", () => {
-      show(index);
-    });
-    button.addEventListener("keydown", (event) => {
-      const to = keyTarget(event.key, index, buttons.length);
-      if (to === null) return;
-      event.preventDefault();
-      show(to);
-      buttons[to]?.focus();
-    });
-  });
-  show(0);
+  wireTabs(buttons, show);
+  const first = specs.findIndex((spec) => spec.id === options.first);
+  show(Math.max(0, first));
   return {
     element: el("div", {
       doc,
       className: "mav-settings-tabbed",
-      children: [tabList(doc, buttons, labels.list), panel],
+      children: [tabList(doc, buttons, options.list), panel],
     }),
     mark(unsaved) {
-      markTabs(buttons, specs, labels, unsaved);
+      markTabs(buttons, specs, options, unsaved);
     },
     dispose() {
       for (const part of shown) part.dispose();

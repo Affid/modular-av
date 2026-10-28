@@ -96,9 +96,10 @@ describe("Load in, Go live, Soundcheck", () => {
 
 describe("Soundcheck's list", () => {
   const sections: readonly SectionInfo[] = [
-    { id: "lk", moduleId: LIVEKIT, label: "LiveKit", tab: null },
     { id: "denoise", moduleId: DENOISE, label: "Noise", tab: "voice" },
+    { id: "other", moduleId: DOCK, label: "Other", tab: null },
   ];
+  const configured = [LIVEKIT];
 
   it("has each running module's settings, its theme, and its effects", () => {
     const state = stateOf({
@@ -108,12 +109,13 @@ describe("Soundcheck's list", () => {
       [DENOISE]: "running",
     });
 
-    const checks = checksOf(state, sections);
+    const checks = checksOf(state, sections, configured);
 
-    expect(checks.map((c) => [c.id, c.tab, c.locked])).toEqual([
-      ["section:lk", "more", false],
-      ["section:denoise", "voice", false],
-      ["theme", "appearance", false],
+    expect(checks.map((c) => [c.id, c.target, c.locked])).toEqual([
+      ["foundry:" + LIVEKIT, { foundry: LIVEKIT }, false],
+      ["section:denoise", { tab: "voice" }, false],
+      ["section:other", { tab: "more" }, false],
+      ["theme", { tab: "appearance" }, false],
       ["effects", null, false],
     ]);
   });
@@ -121,14 +123,13 @@ describe("Soundcheck's list", () => {
   it("locks what isn't on air yet, and is done once each is checked", () => {
     const planned = stateOf({}, [LIVEKIT]);
     const running = stateOf({ [LIVEKIT]: "running" }, undefined, {
-      checked: new Set(["section:lk"]),
+      checked: new Set(["foundry:" + LIVEKIT]),
     });
-
     const unchecked = stateOf({ [LIVEKIT]: "running" });
     const soundcheck = (state: typeof running) =>
-      objectivesOf(state, checksOf(state, sections))[2]?.state;
+      objectivesOf(state, checksOf(state, sections, configured))[2]?.state;
 
-    expect(checksOf(planned, sections)[0]?.locked).toBe(true);
+    expect(checksOf(planned, sections, configured)[0]?.locked).toBe(true);
     expect(soundcheck(running)).toBe("done");
     expect(soundcheck(unchecked)).toBe("todo");
   });

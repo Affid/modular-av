@@ -6,6 +6,8 @@
  * subclass Foundry's classes.
  */
 
+import type { SettingsWindowTab } from "./contributions.ts";
+
 /**
  * Docked on a side of the screen, saved as Foundry's dock position, or
  * `free`: out of the page's flow (floating, or in a window of its own).
@@ -63,6 +65,12 @@ export interface SettingsHost {
    * Modular A/V modules the world runs. Absent for players.
    */
   openModules?(): void;
+  /**
+   * The tab to show first, when the window was opened for something on it
+   * (the core's modules window does, for a module's settings; "more" for
+   * sections that name no tab). Absent: the surface's own first tab.
+   */
+  readonly tab?: SettingsWindowTab;
 }
 
 export interface SettingsSurfaceDefinition extends SurfaceBase {
