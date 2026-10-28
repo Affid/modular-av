@@ -132,10 +132,25 @@
       "requires": [
         {
           "id": "modular-av",
-          "minimum": "0.5.0"
+          "minimum": "0.6.0"
         }
       ],
-      "version": "0.5.0",
+      "facts": [
+        {
+          "label": "Table size",
+          "value": "Up to 6 players"
+        },
+        {
+          "label": "Server",
+          "value": "None"
+        },
+        {
+          "label": "After installing",
+          "value": "Nothing to set"
+        }
+      ],
+      "icon": "fa-solid fa-circle-nodes",
+      "version": "0.6.0",
       "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-p2p/module.json"
     }
   ],
