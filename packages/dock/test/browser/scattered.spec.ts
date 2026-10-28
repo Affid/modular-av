@@ -171,6 +171,26 @@ test("moves and resizes a tile with the keyboard", async ({ page }) => {
   await expect(target.locator(".mav-dock-tile-resize")).toBeFocused();
 });
 
+test("a tile dragged wider stops at its largest width while dragged", async ({
+  page,
+}) => {
+  await scattered(page);
+  const target = tile(page, "p1");
+  const handle = await boxOf(target.locator(".mav-dock-tile-resize"));
+  const x = handle.x + handle.width / 2;
+  const y = handle.y + handle.height / 2;
+
+  await target.hover();
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x + 900, y, { steps: 5 });
+
+  // Mid-drag, before the drop could put it back.
+  expect(Math.round((await boxOf(target)).width)).toBe(640);
+  await page.mouse.up();
+  expect(Math.round((await boxOf(target)).width)).toBe(640);
+});
+
 test("saves where a tile was moved in the player's setting", async ({
   page,
 }) => {

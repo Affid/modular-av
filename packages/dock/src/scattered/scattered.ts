@@ -160,6 +160,7 @@ function draggable(tile: HTMLElement, onEnd: (rect: Rect) => void): () => void {
           dragToResize(resize, tile, {
             edges: () => ["right"],
             min: { width: TILE_WIDTH.min, height: 0 },
+            max: () => ({ width: TILE_WIDTH.max, height: Infinity }),
             onEnd,
           }),
         ]
