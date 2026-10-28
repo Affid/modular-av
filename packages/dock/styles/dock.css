@@ -1133,6 +1133,8 @@
 .mav-settings-tab {
   display: flex;
   align-items: center;
+  /* Foundry centres a button's content: a tab's name starts at its edge. */
+  justify-content: flex-start;
   gap: 8px;
   width: 100%;
   padding: 7px 10px;
