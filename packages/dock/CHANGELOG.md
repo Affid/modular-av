@@ -1,5 +1,42 @@
 # @modular-av/dock
 
+## 0.7.0
+
+### Minor Changes
+
+- e603289: The docked dock resizes. Hovering its inner edge (the one facing the
+  canvas) shows a small three-line grip: drag it, or the edge, to make the
+  dock wider on the left or right, or taller at the top or bottom. The grip
+  also takes the arrow keys, and Home on the grip or a double-click on the
+  edge goes back to the theme's size. Each player's size is their own and
+  lasts across reloads; on another device it shows from that device's next
+  load. The dock is never smaller than 200 × 150 px or more than half
+  the window. Themes still set the default with `--mav-dock-width` and
+  `--mav-dock-height`, and the edge and grip can be restyled with
+  `.mav-dock-edge` and `.mav-dock-edge-grip`.
+
+  Kit: `dragToResize` takes an optional `max()`, read when a drag starts, and
+  an edge a drag didn't move keeps its size even outside the limits.
+
+- a1a6672: Docked at the top or bottom, the dock is laid out anew. The header and the
+  voice panel are side columns of one width (`--mav-dock-side`), so the tiles
+  sit in the middle of the window and stay put; their text and button rows
+  line up, and the panel's buttons stay on one line. The tiles take as many
+  rows as fit, as the grid always computed, instead of one row that spilled
+  sideways at half height; a strip too full to fit scrolls sideways from its
+  first tile (which used to be cut off) and with the mouse wheel. Collapsed,
+  it is one slim bar that gives Foundry the room back, and at the bottom the
+  collapse arrow points down.
+
+### Patch Changes
+
+- 6034109: A scattered tile dragged wider now stops at its largest width (640 px)
+  while it is dragged, instead of stretching further and jumping back when
+  dropped.
+- Updated dependencies [e603289]
+  - @modular-av/kit@0.7.0
+  - @modular-av/api@0.7.0
+
 ## 0.6.0
 
 ### Patch Changes
