@@ -217,16 +217,18 @@ test("saves where a tile was moved in the player's setting", async ({
   await tile(page, "p1").locator(".mav-dock-tile-move").focus();
   await page.keyboard.press("Shift+ArrowDown");
   const moved = await boxOf(tile(page, "p1"));
-  const saved = await page.evaluate(() =>
-    window.harness?.client.game.settings.get(
-      "modular-av-dock",
-      "scatteredLayouts",
-    ),
-  );
+  // The setting is saved asynchronously: wait for it, a busy machine is slow.
+  const saved = () =>
+    page.evaluate(() =>
+      window.harness?.client.game.settings.get(
+        "modular-av-dock",
+        "scatteredLayouts",
+      ),
+    );
 
-  expect(saved).toMatchObject({
-    own: { tiles: { p1: { anchor: expect.any(String) } } },
-  });
+  await expect
+    .poll(saved)
+    .toMatchObject({ own: { tiles: { p1: { anchor: expect.any(String) } } } });
   expect(moved.y).toBeGreaterThan(0);
 });
 
