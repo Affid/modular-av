@@ -99,6 +99,8 @@ test.describe("screenshots of the default theme", () => {
     await page
       .getByRole("menuitemradio", { name: "Docked at the top" })
       .click();
+    // Off the dock: a tile under the pointer would show its menu button.
+    await page.mouse.move(640, 600);
 
     await expect(page.locator(".mav-dock")).toHaveScreenshot("dock-top.png", {
       mask: moving(page),

@@ -28,6 +28,11 @@
   --mav-dock-gap: 6px;
   --mav-dock-width: 300px;
   --mav-dock-height: 225px;
+  /* Docked at the top or bottom: the header's and the panel's width, the
+     panel's six buttons in a row. */
+  --mav-dock-side: calc(
+    6 * var(--mav-dock-button) + 5 * 4px + 2 * var(--mav-dock-gap)
+  );
   --mav-dock-tile-bg: #111214;
   --mav-dock-ring: 3px;
   --mav-dock-button: 32px;
@@ -106,6 +111,8 @@
 .mav-dock[data-placement="top"],
 .mav-dock[data-placement="bottom"] {
   flex-direction: row;
+  align-items: flex-start;
+  column-gap: calc(2 * var(--mav-dock-gap));
 }
 
 .mav-dock[data-collapsed] {
@@ -268,14 +275,32 @@
   list-style: none;
 }
 
-.mav-dock[data-placement="top"] .mav-dock-tiles,
-.mav-dock[data-placement="bottom"] .mav-dock-tiles {
-  grid-auto-flow: column;
+/* Docked at the top or bottom, the grid has the rows the fit chose; one
+   player large is a strip of full-height tiles, the focused one first. */
+.mav-dock:is([data-placement="top"], [data-placement="bottom"])
+  .mav-dock-tiles {
+  align-self: stretch;
+  min-width: 0;
+  justify-content: safe center;
+  align-content: safe center;
+  overflow: auto hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+}
+
+.mav-dock:is([data-placement="top"], [data-placement="bottom"])
+  .mav-dock-tiles[data-tile-layout="focus"] {
   grid-template-columns: none;
+  grid-auto-flow: column;
   grid-auto-columns: calc(
     var(--mav-dock-tile-width) * var(--mav-dock-frame-across, 1)
   );
-  grid-template-rows: 100%;
+}
+
+.mav-dock:is([data-placement="top"], [data-placement="bottom"])
+  .mav-dock-tiles[data-tile-layout="focus"]
+  .mav-dock-tile[data-focused] {
+  grid-column: auto;
 }
 
 .mav-dock-tiles[data-tile-layout="focus"] .mav-dock-tile[data-focused] {
@@ -465,9 +490,82 @@
   background: var(--mav-surface);
 }
 
-.mav-dock[data-placement="top"] .mav-dock-panel,
-.mav-dock[data-placement="bottom"] .mav-dock-panel {
-  max-width: 220px;
+/* Docked at the top or bottom: header and panel are side columns of one
+   width, so the tiles sit in the middle; each keeps its own height. */
+.mav-dock:is([data-placement="top"], [data-placement="bottom"])
+  .mav-dock-header {
+  flex: 0 0 var(--mav-dock-side);
+  align-content: flex-start;
+  padding: var(--mav-dock-gap);
+}
+
+.mav-dock:is([data-placement="top"], [data-placement="bottom"])
+  .mav-dock-status {
+  padding-block: 4px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+.mav-dock:is([data-placement="top"], [data-placement="bottom"])
+  .mav-dock-panel {
+  flex: none;
+  width: min-content;
+  min-width: var(--mav-dock-side);
+  max-height: 100%;
+  overflow-y: auto;
+  margin-inline-start: auto;
+}
+
+.mav-dock:is([data-placement="top"], [data-placement="bottom"])
+  .mav-dock-buttons {
+  flex-wrap: nowrap;
+}
+
+/* Collapsed at the top or bottom: one slim bar, the panel still last. */
+#camera-views:has(
+  > .mav-dock:is(
+      [data-placement="top"],
+      [data-placement="bottom"]
+    )[data-collapsed]
+) {
+  height: auto;
+}
+
+.mav-dock:is(
+    [data-placement="top"],
+    [data-placement="bottom"]
+  )[data-collapsed] {
+  align-items: center;
+}
+
+.mav-dock:is([data-placement="top"], [data-placement="bottom"])[data-collapsed]
+  .mav-dock-header {
+  flex: 1 1 auto;
+  flex-wrap: nowrap;
+  padding-block: 0;
+}
+
+.mav-dock:is([data-placement="top"], [data-placement="bottom"])[data-collapsed]
+  .mav-dock-status {
+  flex: 0 1 auto;
+  padding-block: 0;
+  white-space: nowrap;
+}
+
+.mav-dock:is([data-placement="top"], [data-placement="bottom"])[data-collapsed]
+  .mav-dock-panel {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  width: auto;
+  max-height: none;
+  overflow: visible;
+}
+
+.mav-dock:is([data-placement="top"], [data-placement="bottom"])[data-collapsed]
+  .mav-dock-alert {
+  flex-basis: 100%;
 }
 
 .mav-dock-alert {

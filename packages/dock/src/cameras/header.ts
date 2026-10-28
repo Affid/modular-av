@@ -96,9 +96,11 @@ export function createHeader(
         label: ctx.t(focus ? "dock.layoutGrid" : "dock.layoutFocus"),
         icon: focus ? "fa-table-cells-large" : "fa-square",
       });
+      // The arrow points where the cameras go: down at the bottom.
+      const down = state.collapsed !== (state.where === "bottom");
       b.collapse.set({
         label: ctx.t(state.collapsed ? "dock.expand" : "dock.collapse"),
-        icon: state.collapsed ? "fa-chevron-down" : "fa-chevron-up",
+        icon: down ? "fa-chevron-down" : "fa-chevron-up",
       });
       b.collapse.element.setAttribute(
         "aria-expanded",

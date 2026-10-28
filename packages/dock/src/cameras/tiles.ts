@@ -14,6 +14,7 @@ import {
 import type { DockContext } from "../context.ts";
 import type { TileLayout } from "../settings.ts";
 import { orderTiles, tileView } from "../view/tile-view.ts";
+import { wheelSideways } from "./wheel.ts";
 import {
   type Badge,
   createTile,
@@ -148,13 +149,17 @@ export function createTileList(
       tile.element.toggleAttribute("data-focused", tileId === id);
   };
 
+  /** The strip back to its start, where the focused tile now is. */
+  const focusOn = (participant: ParticipantId): void => {
+    focused = participant;
+    markFocus();
+    if (horizontal) element.scrollLeft = 0;
+  };
+
   const newTile = (id: ParticipantId): Tile => {
     const tile = createTile(ctx, doc, id, {
       menu: handlers.menu,
-      focus: (picked) => {
-        focused = picked;
-        markFocus();
-      },
+      focus: focusOn,
     });
     tile.setScattered(scattered);
     return tile;
@@ -207,6 +212,7 @@ export function createTileList(
     resize?.observe(element);
   };
   observe();
+  const offWheel = wheelSideways(element, () => horizontal && !scattered);
   sync(ctx.api.state.get());
   fit();
 
@@ -230,10 +236,7 @@ export function createTileList(
       keys.refresh();
       fit();
     },
-    focus(participant) {
-      focused = participant;
-      markFocus();
-    },
+    focus: focusOn,
     get count() {
       return tiles.size;
     },
@@ -248,6 +251,7 @@ export function createTileList(
       off();
       for (const offIndicator of offIndicators) offIndicator();
       resize?.disconnect();
+      offWheel();
       keys.dispose();
       for (const tile of tiles.values()) tile.dispose();
       tiles = new Map();

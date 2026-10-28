@@ -105,13 +105,16 @@ Shared by UI modules (`--mav-*`), set on `:root`:
 The dock's own (`--mav-dock-*`): `-radius`, `-gap`, `-width` (docked left
 or right), `-height` (docked top or bottom), `-tile-bg`, `-ring` (the
 speaking ring's width), `-button` (button size), `-font`, `-font-size`,
-`-shadow`. `-width` and `-height` are the default size: a player who drags
-the docked dock's edge sets their own on `#camera-views`, which wins over
-the theme's until they reset it (Home on the grip or a double-click on
-the edge), and the dock never takes more than half the window. Set by the
-dock on elements: `--mav-dock-columns` and `--mav-dock-tile-width` (the
-fitted grid), `--mav-dock-tile-color` (the player's colour),
-`--mav-meter-threshold` (0 to 1), `--mav-popover-room`.
+`-shadow`, `-side` (docked at the top or bottom: the width of the header
+and the voice panel, the side columns around the tiles). `-width` and
+`-height` are the default size: a player who drags the docked dock's edge
+sets their own on `#camera-views`, which wins over the theme's until they
+reset it (Home on the grip or a double-click on the edge), and the dock
+never takes more than half the window. Set by the dock on elements:
+`--mav-dock-columns` and `--mav-dock-tile-width` (the fitted grid, which
+docked at the top or bottom also has as many rows as fit),
+`--mav-dock-tile-color` (the player's colour), `--mav-meter-threshold` (0
+to 1), `--mav-popover-room`.
 
 ## Classes
 
