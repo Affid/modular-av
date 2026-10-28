@@ -12,5 +12,17 @@
   "relationships": {
     "requires": [{ "id": "modular-av", "type": "module" }]
   },
-  "flags": { "modular-av": { "kind": "effect" } }
+  "flags": {
+    "modular-av": {
+      "kind": "effect",
+      "icon": "fa-solid fa-image-portrait",
+      "facts": [
+        {
+          "label": "Who turns it on",
+          "value": "Each player, in Voice & Video Settings"
+        },
+        { "label": "Browsers", "value": "Chrome and Edge" }
+      ]
+    }
+  }
 }

@@ -21,6 +21,12 @@ export interface Requirement {
   readonly minimum: string | null;
 }
 
+/** One line of a module's card: "Table size: Up to 6 players". */
+export interface Fact {
+  readonly label: string;
+  readonly value: string;
+}
+
 /** A module not released yet (held back), listed as coming soon. */
 export interface SoonModule {
   readonly id: string;
@@ -28,6 +34,10 @@ export interface SoonModule {
   readonly description: string;
   readonly kind: CatalogKind;
   readonly requires: readonly Requirement[];
+  /** What its card says about it, if it says. */
+  readonly facts?: readonly Fact[];
+  /** A Font Awesome class for its card, such as `fa-solid fa-users`. */
+  readonly icon?: string;
 }
 
 /** A released module: its latest version and where Foundry installs it. */
@@ -51,7 +61,17 @@ const KINDS: ReadonlySet<unknown> = new Set([
   "ui",
   "theme",
 ]);
-const LIMITS = { title: 120, description: 500, requires: 10, modules: 100 };
+const LIMITS = {
+  title: 120,
+  description: 500,
+  requires: 10,
+  modules: 100,
+  facts: 4,
+  label: 40,
+  value: 80,
+};
+/** One Font Awesome style and one icon: nothing else reaches the class. */
+const ICON = /^fa-(?:solid|regular|brands) fa-[a-z0-9-]{1,40}$/;
 
 type Fields = Readonly<Record<string, unknown>>;
 
@@ -70,6 +90,28 @@ function requirement(value: unknown): Requirement | null {
     : null;
 }
 
+function fact(value: unknown): Fact | null {
+  if (!isFields(value)) return null;
+  const { label, value: said } = value;
+  return text(label, LIMITS.label) && text(said, LIMITS.value)
+    ? { label, value: said }
+    : null;
+}
+
+/** The card's facts and icon: optional, each dropped alone if it's off. */
+function card(value: Fields): Pick<SoonModule, "facts" | "icon"> {
+  const { facts, icon } = value;
+  const read =
+    Array.isArray(facts) && facts.length <= LIMITS.facts
+      ? facts.map(fact)
+      : null;
+  const kept =
+    read && read.length > 0 && read.every((f) => f !== null)
+      ? { facts: read }
+      : {};
+  return typeof icon === "string" && ICON.test(icon) ? { ...kept, icon } : kept;
+}
+
 function soonModule(value: unknown): SoonModule | null {
   if (!isFields(value)) return null;
   const { id, title, description, kind, requires } = value;
@@ -86,6 +128,7 @@ function soonModule(value: unknown): SoonModule | null {
     description,
     kind: kind as CatalogKind,
     requires: needs as Requirement[],
+    ...card(value),
   };
 }
 

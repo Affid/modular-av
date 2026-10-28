@@ -12,5 +12,15 @@
   "relationships": {
     "requires": [{ "id": "modular-av", "type": "module" }]
   },
-  "flags": { "modular-av": { "kind": "service" } }
+  "flags": {
+    "modular-av": {
+      "kind": "service",
+      "icon": "fa-solid fa-tower-broadcast",
+      "facts": [
+        { "label": "Table size", "value": "Any size" },
+        { "label": "Server", "value": "LiveKit Cloud (free tier) or your own" },
+        { "label": "After installing", "value": "Server address and key" }
+      ]
+    }
+  }
 }

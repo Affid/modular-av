@@ -67,6 +67,37 @@ describe("the catalog of the family", () => {
     expect(parseCatalog(catalog)).toEqual(catalog);
   });
 
+  it("carries each module's card facts and icon from its flags", () => {
+    const facts = [{ label: "Server", value: "None" }];
+    const withFacts = released("modular-av-p2p", {
+      title: "Modular A/V — P2P",
+      description: "Calls straight between browsers.",
+      flags: {
+        "modular-av": { kind: "service", facts, icon: "fa-solid fa-users" },
+      },
+      relationships: { requires: [{ id: "modular-av", type: "module" }] },
+    });
+
+    const catalog = buildCatalog([withFacts, core], []);
+
+    expect(catalog.modules[1]).toMatchObject({
+      facts,
+      icon: "fa-solid fa-users",
+    });
+    expect(catalog.modules[0]).not.toHaveProperty("facts");
+  });
+
+  it("refuses card facts or an icon the core would drop", () => {
+    const bad = released("modular-av-p2p", {
+      title: "Modular A/V — P2P",
+      description: "Calls straight between browsers.",
+      flags: { "modular-av": { kind: "service", icon: "fa-users" } },
+      relationships: { requires: [{ id: "modular-av", type: "module" }] },
+    });
+
+    expect(() => buildCatalog([bad, core], [])).toThrow(/modular-av-p2p/);
+  });
+
   it("refuses a module the core couldn't read", () => {
     const untitled = released("modular-av-x", {
       description: "No title.",

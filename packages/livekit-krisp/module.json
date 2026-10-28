@@ -15,5 +15,17 @@
       { "id": "modular-av-livekit", "type": "module" }
     ]
   },
-  "flags": { "modular-av": { "kind": "effect" } }
+  "flags": {
+    "modular-av": {
+      "kind": "effect",
+      "icon": "fa-solid fa-microphone-lines",
+      "facts": [
+        { "label": "Needs", "value": "LiveKit, on LiveKit Cloud" },
+        {
+          "label": "Who turns it on",
+          "value": "Each player, in Voice & Video Settings"
+        }
+      ]
+    }
+  }
 }

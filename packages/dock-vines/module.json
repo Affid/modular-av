@@ -12,5 +12,17 @@
   "relationships": {
     "requires": [{ "id": "modular-av-dock", "type": "module" }]
   },
-  "flags": { "modular-av": { "kind": "theme" } }
+  "flags": {
+    "modular-av": {
+      "kind": "theme",
+      "icon": "fa-solid fa-leaf",
+      "facts": [
+        { "label": "Needs", "value": "The Dock" },
+        {
+          "label": "Who picks it",
+          "value": "The GM, as the table's look, or each player"
+        }
+      ]
+    }
+  }
 }

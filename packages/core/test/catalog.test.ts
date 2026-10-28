@@ -52,6 +52,40 @@ describe("reading a catalog of the family", () => {
     expect(catalog).not.toHaveProperty("extra");
   });
 
+  it("keeps a module's card facts and icon", () => {
+    const facts = [
+      { label: "Table size", value: "Any size" },
+      { label: "After installing", value: "Server address and key" },
+    ];
+
+    const catalog = parseCatalog(
+      mod({ facts, icon: "fa-solid fa-tower-broadcast" }),
+    );
+
+    expect(catalog?.modules[0]).toMatchObject({
+      facts,
+      icon: "fa-solid fa-tower-broadcast",
+    });
+  });
+
+  it.each([
+    ["facts not a list", { facts: "big" }],
+    [
+      "more than four facts",
+      { facts: Array(5).fill({ label: "a", value: "b" }) },
+    ],
+    ["a fact too long", { facts: [{ label: "a", value: "x".repeat(81) }] }],
+    ["a fact with no label", { facts: [{ value: "b" }] }],
+    ["an icon that isn't a Font Awesome class", { icon: 'x" onload="y' }],
+    ["an icon with a class too many", { icon: "fa-solid fa-a fa-b" }],
+  ])("drops %s, keeping the module", (_case, extra) => {
+    const catalog = parseCatalog(mod(extra));
+
+    expect(catalog?.modules[0]?.id).toBe("modular-av-livekit");
+    expect(catalog?.modules[0]).not.toHaveProperty("facts");
+    expect(catalog?.modules[0]).not.toHaveProperty("icon");
+  });
+
   it.each([
     ["not an object", "catalog"],
     ["another schema", { ...valid, schema: 2 }],

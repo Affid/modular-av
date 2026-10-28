@@ -43,16 +43,18 @@ function requirements(manifest: Json): Requirement[] {
 /** A catalog entry from a built `module.json` (with URLs when released). */
 function entry(manifest: Json, isReleased: boolean): Json {
   const { id, title, description, version } = manifest;
-  const kind =
-    id === CORE_ID
-      ? "core"
-      : field(field(manifest.flags, "modular-av"), "kind");
+  const flags = field(manifest.flags, "modular-av");
+  const kind = id === CORE_ID ? "core" : field(flags, "kind");
+  const facts = field(flags, "facts");
+  const icon = field(flags, "icon");
   const base = {
     id,
     title,
     description,
     kind,
     requires: requirements(manifest),
+    ...(facts === undefined ? {} : { facts }),
+    ...(icon === undefined ? {} : { icon }),
   };
   return isReleased ? { ...base, version, manifest: manifest.manifest } : base;
 }
@@ -81,7 +83,29 @@ export function buildCatalog(
       `The catalog doesn't pass the core's checks; look at: ${ids.join(", ")}`,
     );
   }
+  const dropped = cardsDropped(draft, catalog);
+  if (dropped.length > 0)
+    throw new Error(
+      `The core would drop the card facts or icon of: ${dropped.join(", ")}`,
+    );
   return catalog;
+}
+
+/** Modules whose facts or icon the core's reader left out. */
+function cardsDropped(
+  draft: { readonly modules: readonly Json[]; readonly soon: readonly Json[] },
+  catalog: Catalog,
+): readonly string[] {
+  const read = [...catalog.modules, ...catalog.soon];
+  return [...draft.modules, ...draft.soon]
+    .filter((m) => {
+      const kept = read.find((r) => r.id === m.id);
+      return (
+        (m.facts !== undefined && kept?.facts === undefined) ||
+        (m.icon !== undefined && kept?.icon === undefined)
+      );
+    })
+    .map((m) => String(m.id));
 }
 
 interface WorkspaceManifest {

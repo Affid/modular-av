@@ -13,5 +13,15 @@
   "relationships": {
     "requires": [{ "id": "modular-av", "type": "module" }]
   },
-  "flags": { "modular-av": { "kind": "ui" } }
+  "flags": {
+    "modular-av": {
+      "kind": "ui",
+      "icon": "fa-solid fa-table-cells-large",
+      "facts": [
+        { "label": "Without it", "value": "Foundry's own camera dock" },
+        { "label": "Layout", "value": "Each player arranges their own" },
+        { "label": "Dressed by", "value": "Themes" }
+      ]
+    }
+  }
 }

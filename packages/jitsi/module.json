@@ -12,5 +12,18 @@
   "relationships": {
     "requires": [{ "id": "modular-av", "type": "module" }]
   },
-  "flags": { "modular-av": { "kind": "service" } }
+  "flags": {
+    "modular-av": {
+      "kind": "service",
+      "icon": "fa-solid fa-server",
+      "facts": [
+        { "label": "Table size", "value": "What your server handles" },
+        { "label": "Server", "value": "Your own Jitsi Meet" },
+        {
+          "label": "After installing",
+          "value": "Server address and app secret"
+        }
+      ]
+    }
+  }
 }
