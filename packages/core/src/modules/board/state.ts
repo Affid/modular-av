@@ -20,6 +20,8 @@ export interface BoardState {
   /** The helper's answer: a service module's id. */
   readonly answer: string | null;
   readonly chatSent: boolean;
+  /** Soundcheck's items the GM has opened, by id. */
+  readonly checked: ReadonlySet<string>;
 }
 
 /** The saved plan if there is one (pieces the catalog knows), else what runs. */
@@ -46,6 +48,7 @@ export function initialState(
     helperOpen: false,
     answer: null,
     chatSent: false,
+    checked: new Set(),
   };
 }
 

@@ -1,5 +1,5 @@
 import type { ModuleKind } from "@modular-av/api";
-import type { Catalog } from "../catalog/catalog.ts";
+import type { Catalog, Fact } from "../catalog/catalog.ts";
 import { MODULE_ID } from "../constants.ts";
 
 /** A module on the assembly board: everything but the core, which is the board. */
@@ -15,6 +15,10 @@ export interface Piece {
   readonly requires: readonly string[];
   /** The core version it needs, if it says. */
   readonly needsCore: string | null;
+  /** What its card says about it. */
+  readonly facts: readonly Fact[];
+  /** A Font Awesome class for its card, or null for its kind's own. */
+  readonly icon: string | null;
 }
 
 /** Where a piece plugs in. */
@@ -57,6 +61,8 @@ export function piecesOf(catalog: Catalog): readonly Piece[] {
             requires: m.requires.map((r) => r.id),
             needsCore:
               m.requires.find((r) => r.id === MODULE_ID)?.minimum ?? null,
+            facts: m.facts ?? [],
+            icon: m.icon ?? null,
           },
         ],
   );
