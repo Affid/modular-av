@@ -59,6 +59,17 @@ export interface FakeSettings {
   set(namespace: string, key: string, value: unknown): Promise<unknown>;
 }
 
+/**
+ * A setting Foundry registers itself and keeps elsewhere, such as
+ * "core.rtcWorldSettings" (the world's A/V settings).
+ */
+export interface OwnedSetting {
+  readonly config: FakeSettingConfig;
+  read(): unknown;
+  /** Throws as Foundry does, such as for a user who may not write it. */
+  write(value: unknown): void;
+}
+
 export interface FakeSettingsHandle {
   readonly settings: FakeSettings;
   /** Called by the world when a shared value changed; may throw. */
@@ -76,8 +87,11 @@ const fromJson = (json: string): unknown => JSON.parse(json);
 export function createSettings(
   shared: SharedSettingsStore,
   isReady: () => boolean,
+  owned: ReadonlyMap<string, OwnedSetting> = new Map(),
 ): FakeSettingsHandle {
-  let configs = new Map<string, FakeSettingConfig>();
+  let configs = new Map<string, FakeSettingConfig>(
+    [...owned].map(([key, setting]) => [key, setting.config]),
+  );
   let clientValues = new Map<string, string>();
 
   const configFor = (key: string): FakeSettingConfig => {
@@ -152,6 +166,8 @@ export function createSettings(
 
     get(namespace, key) {
       const fullKey = `${namespace}.${key}`;
+      const own = owned.get(fullKey);
+      if (own) return structuredClone(own.read());
       const config = configFor(fullKey);
       const json = storedJson(config.scope, fullKey);
       return json === undefined
@@ -162,6 +178,11 @@ export function createSettings(
     set(namespace, key, value) {
       const fullKey = `${namespace}.${key}`;
       try {
+        const own = owned.get(fullKey);
+        if (own) {
+          own.write(fromJson(toJson(value)));
+          return Promise.resolve(own.read());
+        }
         const config = configFor(fullKey);
         const json = toJson(value);
         // Like Foundry, an unchanged value is not written and fires no onChange.

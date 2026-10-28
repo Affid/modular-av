@@ -13,6 +13,7 @@ import type { Translations } from "./i18n.ts";
 import { expandObject, mergeObject, setProperty } from "./objects.ts";
 import {
   createSettings,
+  type OwnedSetting,
   type FakeSettingsHandle,
   type SharedSettingsStore,
 } from "./settings.ts";
@@ -184,6 +185,21 @@ export function createFakeWorld(options: FakeWorldOptions): FakeWorld {
     for (const c of connections) c.handle.worldAVChanged(path, value);
   };
 
+  /** Foundry keeps the world's A/V settings as this setting. */
+  const worldAVSetting = (userId: string): OwnedSetting => ({
+    config: { scope: "world", default: worldAV, config: false, type: Object },
+    read: () => worldAV,
+    write: (value) => {
+      // Like Foundry, only what changed is written and reported.
+      const changes = Object.entries(value as Partial<AVWorldSettings>).filter(
+        ([path, part]) =>
+          JSON.stringify(part) !==
+          JSON.stringify(worldAV[path as keyof AVWorldSettings]),
+      );
+      for (const [path, part] of changes) writeWorldAV(userId, path, part);
+    },
+  });
+
   const connect = (
     userId: string,
     connectOptions?: ConnectOptions,
@@ -192,7 +208,11 @@ export function createFakeWorld(options: FakeWorldOptions): FakeWorld {
     const wasActive = isActive(userId);
     const { socket, detach } = network.attach(userId);
     let ready = (): boolean => false;
-    const settings = createSettings(sharedStore(userId), () => ready());
+    const settings = createSettings(
+      sharedStore(userId),
+      () => ready(),
+      new Map([["core.rtcWorldSettings", worldAVSetting(userId)]]),
+    );
     const handle = createClient({
       userId,
       readUsers: createUsersView(bindUsers(actionsFor(userId))),

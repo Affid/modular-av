@@ -195,4 +195,27 @@ describe("fake world and clients", () => {
 
     expect(target).toEqual({ game: "old" });
   });
+
+  it("holds the world's A/V settings as core.rtcWorldSettings, which only a GM sets", async () => {
+    // Arrange
+    const world = createFakeWorld({ users: USERS, av: { mode: 3 } });
+    const gm = world.connect("gm1");
+    const player = world.connect("p1");
+    gm.runLifecycle();
+    player.runLifecycle();
+    const was = gm.game.settings.get("core", "rtcWorldSettings") as object;
+
+    // Act
+    await gm.game.settings.set("core", "rtcWorldSettings", { ...was, mode: 1 });
+
+    // Assert
+    expect(player.game.settings.get("core", "rtcWorldSettings")).toMatchObject({
+      mode: 1,
+      turn: { type: "server" },
+    });
+    expect(player.game.webrtc?.settings.world.mode).toBe(1);
+    await expect(
+      player.game.settings.set("core", "rtcWorldSettings", { ...was, mode: 0 }),
+    ).rejects.toThrow(/may not modify/);
+  });
 });
