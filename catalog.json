@@ -97,7 +97,7 @@
       "requires": [
         {
           "id": "modular-av",
-          "minimum": "0.6.0"
+          "minimum": "0.7.0"
         }
       ],
       "facts": [
@@ -115,7 +115,7 @@
         }
       ],
       "icon": "fa-solid fa-server",
-      "version": "0.6.0",
+      "version": "0.7.0",
       "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-jitsi/module.json"
     },
     {
