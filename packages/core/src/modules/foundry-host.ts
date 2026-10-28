@@ -134,8 +134,11 @@ function sectionsOf(foundry: BoardFoundry): readonly SectionInfo[] {
   return foundry.contributions().flatMap((c) => {
     if (!isSection(c)) return [];
     const moduleId = c.settings[0]?.split(".")[0];
+    // A label is a key of its module's language file, or plain text
+    // (which Foundry's localize hands back as it is).
+    const label = foundry.game.i18n.localize(c.label);
     return moduleId && isFamily(moduleId)
-      ? [{ id: c.id, moduleId, label: c.label, tab: c.tab ?? null }]
+      ? [{ id: c.id, moduleId, label, tab: c.tab ?? null }]
       : [];
   });
 }

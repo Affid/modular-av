@@ -4,15 +4,10 @@ import type {
   SettingsWindowTab,
 } from "@modular-av/api";
 import { TABS } from "../contributions.ts";
+import { centreAsContentGrows, type Spot } from "./centring.ts";
 import type { Openable } from "./lazy-settings-window.ts";
 
 type ApplicationBase = abstract new (...args: never[]) => object;
-
-/** Where a window is, as Foundry's ApplicationV2 keeps it. */
-interface Spot {
-  readonly top?: number | undefined;
-  readonly left?: number | undefined;
-}
 
 /** The parts of Foundry's ApplicationV2 the window overrides or calls. */
 interface ApplicationLike {
@@ -36,31 +31,6 @@ function tabIn(options: object | undefined): SettingsWindowTab | undefined {
   const asked = (options as { modularAV?: { tab?: unknown } } | undefined)
     ?.modularAV?.tab;
   return [...TABS, "more" as const].find((tab) => tab === asked);
-}
-
-/**
- * Where to put the window each time its content settles: centred again
- * while it is where it was last put (its content loads in steps), left
- * where the player moved it after that, only kept on screen.
- */
-export function centreUntilMoved(): {
-  next(current: Spot): object;
-  placed(spot: Spot | undefined): void;
-} {
-  let last: Spot | null = null;
-  let moved = false;
-  return {
-    next(current) {
-      moved ||=
-        last !== null &&
-        (current.top !== last.top || current.left !== last.left);
-      return moved ? {} : { top: undefined, left: undefined };
-    },
-    // A copy: Foundry hands back its own position, which it changes later.
-    placed(spot) {
-      last = spot ? { top: spot.top, left: spot.left } : null;
-    },
-  };
 }
 
 export interface SettingsWindowDeps {
@@ -161,15 +131,7 @@ export function createSettingsWindow(
      * moves the window, which then stays put, only kept on screen.
      */
     followContent(content: HTMLElement): ResizeObserver | null {
-      const view = content.ownerDocument.defaultView;
-      if (!view?.ResizeObserver) return null;
-      const follow = centreUntilMoved();
-      const observer = new view.ResizeObserver(() => {
-        const target = follow.next(this.position ?? {});
-        follow.placed(this.setPosition?.(target));
-      });
-      observer.observe(content.firstElementChild ?? content);
-      return observer;
+      return centreAsContentGrows(this, content.firstElementChild ?? content);
     }
 
     override _onClose(options: object): void {

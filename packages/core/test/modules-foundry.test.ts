@@ -68,7 +68,9 @@ function foundry(
       },
     },
     i18n: {
-      localize: (key: string) => key,
+      // One module's words, as its language file has them.
+      localize: (key: string) =>
+        key === "modular-av-cam-background.section" ? "Camera background" : key,
       format: (key: string, data: Record<string, string>) =>
         `${key} ${JSON.stringify(data)}`,
     },
@@ -117,6 +119,13 @@ function foundry(
         label: "Noise cancellation",
         settings: ["modular-av-mic-denoise.quality"],
         tab: "voice",
+      },
+      {
+        kind: "settings-section",
+        id: "modular-av-cam-background.section",
+        label: "modular-av-cam-background.section",
+        settings: ["modular-av-cam-background.quality"],
+        tab: "video",
       },
       {
         kind: "settings-section",
@@ -259,6 +268,13 @@ describe("Soundcheck in Foundry", () => {
         moduleId: "modular-av-mic-denoise",
         label: "Noise cancellation",
         tab: "voice",
+      },
+      // Labelled by a key of its module's language file: its words show.
+      {
+        id: "modular-av-cam-background.section",
+        moduleId: "modular-av-cam-background",
+        label: "Camera background",
+        tab: "video",
       },
     ]);
     expect(host.configuredModules()).toEqual(["modular-av-livekit"]);

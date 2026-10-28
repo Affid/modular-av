@@ -1,5 +1,6 @@
 import { el } from "@modular-av/kit";
 import { MODULE_ID } from "../constants.ts";
+import { centreAsContentGrows, type Spot } from "../foundry/centring.ts";
 import { type MountedBoard, mountBoard } from "./board/board.ts";
 import type { BoardHost } from "./host.ts";
 
@@ -8,9 +9,10 @@ type ApplicationBase = abstract new (...args: never[]) => object;
 /** The parts of Foundry's ApplicationV2 the window overrides or calls. */
 interface ApplicationLike {
   readonly element: HTMLElement | null;
+  readonly position?: Spot;
   render(options?: object): Promise<unknown>;
   /** Foundry keeps the window on screen whenever it is positioned. */
-  setPosition?(position?: object): unknown;
+  setPosition?(position?: object): Spot | undefined;
   _renderHTML(context: object, options: object): Promise<unknown>;
   _replaceHTML(result: unknown, content: HTMLElement, options: object): void;
   _onClose(options: object): void;
@@ -75,6 +77,7 @@ export function createBoardWindow(
   // Not private members: Foundry's constructor may call overridden methods.
   let filled: HTMLElement | null = null;
   let mounted: MountedBoard | null = null;
+  let centring: ResizeObserver | null = null;
 
   class ModularAVModules extends Base {
     static DEFAULT_OPTIONS = windowOptions(deps.title);
@@ -88,21 +91,23 @@ export function createBoardWindow(
       filled = content;
       if (this.element) this.element.style.maxHeight = "calc(100vh - 32px)";
       content.style.overflowY = "auto";
+      // Foundry placed the window while it was empty: centred again as the
+      // board fills it (the catalog loads, sections open), until moved.
+      centring = centreAsContentGrows(this, content);
       loadStyles(content.ownerDocument, deps.stylesheet);
       fill(deps.host, content, {
         // Closed (or opened again) while the catalog loaded: dropped.
         live: () => filled === content,
         mounted: (board) => {
           mounted = board;
-          // Foundry placed the window while it was empty: centre it on
-          // the board it now holds, capped at the screen.
-          this.setPosition?.({ top: undefined, left: undefined });
         },
       });
     }
 
     override _onClose(options: object): void {
       super._onClose(options);
+      centring?.disconnect();
+      centring = null;
       mounted?.dispose();
       mounted = null;
       filled = null;
