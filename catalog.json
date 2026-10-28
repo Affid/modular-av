@@ -7,7 +7,7 @@
       "description": "Voice and video for Foundry VTT, built from modules: pick a service, a look and the effects you want.",
       "kind": "core",
       "requires": [],
-      "version": "0.5.0",
+      "version": "0.6.0",
       "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av/module.json"
     },
     {
@@ -118,13 +118,24 @@
       "requires": [
         {
           "id": "modular-av",
-          "minimum": "0.5.0"
+          "minimum": "0.6.0"
         },
         {
           "id": "modular-av-livekit",
-          "minimum": "0.5.0"
+          "minimum": "0.6.0"
         }
-      ]
+      ],
+      "facts": [
+        {
+          "label": "Needs",
+          "value": "LiveKit, on LiveKit Cloud"
+        },
+        {
+          "label": "Who turns it on",
+          "value": "Each player, in Voice & Video Settings"
+        }
+      ],
+      "icon": "fa-solid fa-microphone-lines"
     }
   ]
 }
