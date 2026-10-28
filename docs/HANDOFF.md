@@ -2122,3 +2122,29 @@ Verified while rebuilding the Voice & Video Settings window
   machine), the camera-background contract's "at 5 fps or more" checks
   fail; they pass on a quiet machine and alone. `pnpm verify` was run
   with the load average under 5.
+
+## 22. Findings from the modules board's chain
+
+Verified while rebuilding "Plan your modules" as a signal chain
+(`docs/plans/board-chain.md`; Foundry 14.369):
+
+- **Foundry's settings window on a module**: `SettingsConfig` is a
+  `CategoryBrowser` whose `initialCategory` option picks the tab
+  (`client/applications/api/category-browser.mjs`); a module's
+  category id is its namespace. Soundcheck opens
+  `new SettingsConfig({ initialCategory: "<module id>" })` for modules
+  whose settings live there (LiveKit's and Jitsi Meet's server details,
+  `config: true`), and the core's Voice & Video Settings on a tab for
+  contributed sections (`render({ modularAV: { tab } })`).
+- **Card facts and icons** travel in each module's
+  `flags["modular-av"]` (`icon`: one Font Awesome class; `facts`: up to
+  four `{ label, value }`), copied into `catalog.json` at release; the
+  generator refuses any the core's reader would drop. A catalog without
+  them (0.5.0's) shows each stage's own icon and no facts.
+- **Several services running** (possible after editing module settings
+  by hand): the board's next setup keeps only the one the world's
+  `modular-av.service` setting names, so going live turns the others
+  off.
+- **The core's entry is at 109,938 of its 110,000-byte budget** after
+  this work (the catalog reader's facts, the settings window's tab):
+  the next change to the entry needs something moved to a lazy chunk.

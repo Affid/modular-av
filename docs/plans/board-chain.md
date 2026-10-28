@@ -51,8 +51,8 @@ starter builds replace it).
 Cards need more than the catalog carries. Each module's `module.json`
 gains, under `flags["modular-av"]`:
 
-- `facts`: up to four `[label, value]` pairs ("Table size", "Up to 6
-  players"), short plain strings;
+- `facts`: up to four `{ label, value }` objects ("Table size", "Up to
+  6 players"), short plain strings;
 - `icon`: a Font Awesome class (`fa-solid fa-tower-broadcast`), which
   Foundry already loads.
 
@@ -71,6 +71,8 @@ build whose modules the catalog doesn't list isn't offered.
 3. Core: the window's views (on air, chain, drawer, builds, objectives,
    setup trip), replacing `board/view-*.ts`; DOM tests.
 4. Soundcheck opens the settings window on a tab (`SettingsHost` gains
-   an optional tab).
+   an optional tab), or Foundry's own settings window on a module's
+   category for settings it keeps there (LiveKit's and Jitsi Meet's
+   server details).
 5. Foundry spec (`modules.spec.ts`), screenshots, docs (HANDOFF),
    changesets, reviews.
