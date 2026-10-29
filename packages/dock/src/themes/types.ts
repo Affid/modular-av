@@ -45,7 +45,10 @@ export interface ThemeDefinition {
    */
   readonly stylesheet: string;
   readonly frames?: FrameDefinition;
-  /** A picture of the theme, from Foundry's root, shown when choosing. */
+  /**
+   * A picture of the theme, from Foundry's root, that the dock may show
+   * when players choose a theme; this version lists themes by name only.
+   */
   readonly preview?: string;
   readonly suggestedLayout?: SuggestedLayout;
 }

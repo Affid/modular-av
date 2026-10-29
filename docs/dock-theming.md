@@ -3,7 +3,12 @@
 The dock's look is its default theme, `packages/dock/styles/dock.css`. A
 theme restyles it; it never changes what it does. Everything below is the
 dock's public API, versioned with the dock: renaming or removing any of it
-is a new major version of the dock.
+is a new major version of the dock. A minor version may add to it: new
+classes, attributes, tokens, values of `data-indicator`, `data-status`
+and `data-placement`, and optional members of `ThemeDefinition`. A theme
+styles what it knows and leaves the rest to the dock's own look; one that
+uses something added in a minor version requires that dock (the release
+build writes the dock version it was built with into its requirement).
 
 ## Registering a theme
 
@@ -19,7 +24,7 @@ Hooks.once("modularAVDock.register", (dock) => {
     label: "my-theme.label", // plain text or an i18n key
     stylesheet: "modules/my-theme/theme.css", // from Foundry's root
     frames: { reach: { top: 0.08, right: 0.08, bottom: 0.08, left: 0.08 } },
-    preview: "modules/my-theme/preview.webp", // optional
+    preview: "modules/my-theme/preview.webp", // optional, see below
     suggestedLayout: "scattered", // optional: docked, floating, scattered
   });
 });
@@ -38,6 +43,9 @@ TypeScript: `@modular-av/dock/themes` in this repository.
   Picture-in-Picture window.
 - `suggestedLayout` is offered in the placement menu ("the theme's
   suggestion"); the dock never moves by itself.
+- `preview` is a picture of the theme (an image from Foundry's root) that
+  the dock may show when players choose one. It is checked when the theme
+  registers; this version of the dock lists themes by name only.
 
 ## Frames
 
