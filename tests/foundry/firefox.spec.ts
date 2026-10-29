@@ -6,7 +6,8 @@
 // What it can't check here (WSL, 2026-10-29): sound. Playwright's Firefox
 // never starts an AudioContext in this environment (headless or not, with
 // a gesture, through WSLg's PulseAudio or a null backend), so levels read
-// as silence both ways; tracks arriving is all it checks of audio. And
+// as silence both ways; tracks arriving is all it checks of audio (sound
+// is checked in an installed Firefox, firefox-installed.spec.ts). And
 // only P2P: this Firefox gathers no loopback ICE candidates, so it can't
 // reach the LiveKit in Docker, which announces 127.0.0.1; with
 // MAV_LIVEKIT=cloud it tries LiveKit Cloud too.

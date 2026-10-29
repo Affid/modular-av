@@ -1168,8 +1168,10 @@ Foundry 14.369, Chromium from Playwright 1.64, livekit-server 1.13.8):
   prefer the sender's gate (it hears quiet microphones) is open.
 - **Autoplay**: in Chromium, the capture context runs without a gesture,
   after joining (the "Join Game" click) and after a reload, even without
-  `--autoplay-policy=no-user-gesture-required`. Not checked in Firefox,
-  Safari or Foundry's Electron app. `resume()` is never awaited, since it
+  `--autoplay-policy=no-user-gesture-required`. Firefox 158 lets it run
+  too (2026-10-29: `getAutoplayPolicy("audiocontext")` is "allowed", and
+  the GM hears the player before any click on `/game`; see §19). Not
+  checked in Safari or Foundry's Electron app. `resume()` is never awaited, since it
   waits for a gesture where one is needed.
 - **The watchdog reads a clone with `MediaStreamTrackProcessor`**, which
   keeps going in a hidden tab (unlike `requestVideoFrameCallback`); it is
@@ -1993,14 +1995,17 @@ when every item below is checked or explicitly dropped by the owner.
       Firefox, partly (2026-10-29, `tests/foundry/firefox.spec.ts`,
       Playwright's Firefox with a GM in Chrome, over P2P): joins, media
       both ways, video both ways, mute, the dock and the settings window
-      work, no console errors. Not checked: sound (Playwright's Firefox
-      never starts an AudioContext under WSL, so no level can be read)
-      and LiveKit (this Firefox gathers no loopback candidates, and the
-      Docker LiveKit announces only 127.0.0.1). Open question for a real
-      Firefox: the core creates its capture context when `/game` loads,
-      without a gesture on that page, and only calls `resume()` once;
-      Firefox may keep it suspended (the player sends silence) until
-      something resumes it after a click.
+      work, no console errors. Playwright's Firefox can't check sound
+      (it never starts an AudioContext under WSL) or the Docker LiveKit
+      (it gathers no loopback candidates, and that LiveKit announces only
+      127.0.0.1). Sound, then, in the installed Firefox 158.0.1 on
+      Windows over LiveKit Cloud (`tests/foundry/firefox-installed.spec.ts`,
+      opt-in, through `scripts/foundry/wsl-firefox.sh`): with its autoplay
+      rules as shipped, the GM hears the player before any click on
+      `/game`, and the player hears the GM. P2P between that Firefox and
+      WSL's Chrome can't be tried from here: they can't meet directly, and
+      Firefox ignores a TURN server on 127.0.0.1. Left: P2P with sound,
+      and Firefox's own device prompt (the tests grant devices by pref).
 
 **The API, reviewed before it is frozen**
 
