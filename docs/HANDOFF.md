@@ -1990,6 +1990,17 @@ when every item below is checked or explicitly dropped by the owner.
       dock, the settings window) and in Foundry's desktop app; what
       degrades is said in the READMEs (camera effects need Chrome or
       Edge; a window of its own needs Document Picture-in-Picture).
+      Firefox, partly (2026-10-29, `tests/foundry/firefox.spec.ts`,
+      Playwright's Firefox with a GM in Chrome, over P2P): joins, media
+      both ways, video both ways, mute, the dock and the settings window
+      work, no console errors. Not checked: sound (Playwright's Firefox
+      never starts an AudioContext under WSL, so no level can be read)
+      and LiveKit (this Firefox gathers no loopback candidates, and the
+      Docker LiveKit announces only 127.0.0.1). Open question for a real
+      Firefox: the core creates its capture context when `/game` loads,
+      without a gesture on that page, and only calls `resume()` once;
+      Firefox may keep it suspended (the player sends silence) until
+      something resumes it after a click.
 
 **The API, reviewed before it is frozen**
 

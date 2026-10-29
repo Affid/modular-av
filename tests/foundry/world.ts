@@ -64,9 +64,14 @@ export async function openPlayer(
   browser: Browser,
   name: string,
 ): Promise<Player> {
-  const page = await joinAs(browser, FOUNDRY_URL, name, {
-    permissions: ["camera", "microphone"],
-  });
+  // Only Chromium takes these; Firefox grants devices by its launch prefs.
+  const chromium = browser.browserType().name() === "chromium";
+  const page = await joinAs(
+    browser,
+    FOUNDRY_URL,
+    name,
+    chromium ? { permissions: ["camera", "microphone"] } : {},
+  );
   return wrap(page, name);
 }
 
