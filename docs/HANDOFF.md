@@ -240,7 +240,8 @@ per module are possible later if others maintain them.
   is meaningful; an API break is a new major of the core. The same holds
   for the dock and its themes.
 - **Release in lockstep until 1.0** (changesets "fixed" group: every module
-  gets the same version), then independently. What 1.0 needs: §19.
+  gets the same version), then independently (`docs/RELEASING.md`,
+  "Versions from 1.0"). What 1.0 needs: §19.
 - The core's `module.json` **recommends** `modular-av-dock` and
   `modular-av-livekit`, and **conflicts** with `avclient-livekit` and other
   A/V client modules. At `setup`, the core also checks that
@@ -1850,10 +1851,10 @@ Verified while building the scattered layout, themes and
 Left open after milestone 10. None of them is part of a milestone unless
 it is picked up explicitly.
 
-- **The core's entry is nearly full**: 109.2 of 110 KB after milestone
-  10 (the modules window, the news check and the no-service notice load
-  only when needed). The next core feature needs lazy loading or a
-  budget decision.
+- **The core's entry is nearly full**: 109.4 of 110 KB after the open-mic
+  choice (the modules window, the news check, the no-service notice, the
+  settings window and the connection details load only when needed). The
+  next core feature needs lazy loading or a budget decision.
 - **The modules window and other GMs**: it reads the installed modules
   when it opens; another GM applying meanwhile isn't seen until it is
   opened again (Apply reloads everyone, so only a window left open across
@@ -1877,10 +1878,6 @@ it is picked up explicitly.
   (191), `createRemoteMedia` (147), `createMicrophone` (145) and
   `createCamera` (124), plus helpers in `packages/testing`. List them with
   ESLint's `max-lines-per-function` at 50.
-- **Fail-closed option for the open mic**: when the voice gate can't run
-  in voice activity mode, the microphone goes out ungated and shows "open
-  mic" (§5). The reviews suggested an option to mute instead; the rule was
-  kept and the option left open.
 - **Coalescing state refreshes**: several changes in one task each
   refresh the state; they could be merged into one.
 - **Firefox 48 kHz capture**: see §11.
@@ -1894,7 +1891,8 @@ it is picked up explicitly.
     milestone 9 either.
   - Visibility pauses renegotiate a P2P link each time (after the 3 s
     grace): measure with a real table before tuning.
-  - `MountedSurface.unmount` isn't called by the core.
+  - `MountedSurface.unmount` isn't called by the core (the 1.0 API says a
+    minor version may).
 - **From milestone 6**:
   - Krisp: the note to LiveKit (does a Foundry module that loads
     `@livekit/krisp-noise-filter` from npm for each table's own Cloud
@@ -1995,18 +1993,22 @@ when every item below is checked or explicitly dropped by the owner.
 
 **The API, reviewed before it is frozen**
 
-- [ ] The public surface of `@modular-av/api` read through once with "can
-      we keep this for a major version?": names, optional members, error
-      codes, what the core guarantees. In particular
-      `MountedSurface.unmount` (the core never calls it) and anything
-      marked as a sketch.
-- [ ] The open-mic decision settled: keep "open mic" when the voice gate
-      can't run, or add the fail-closed option (§18).
-- [ ] The dock's theme API reviewed the same way, with
-      `dock.layouts.register` kept internal or published.
-- [ ] Each plugin's `relationships.requires` carries
-      `compatibility.minimum` for the core (and the dock) features it
-      needs, ready for independent versions.
+- [x] The public surface of `@modular-av/api` read through once with "can
+      we keep this for a major version?" (2026-10-29): what the core never
+      used is gone (`mediaOwnership`, `moderation`, `simulcast`);
+      `MountedSurface.unmount` stays, and a minor version may call it; the
+      promise (what a minor version may add, which unions may gain values,
+      what the core guarantees) is `packages/api/README.md`.
+- [x] The open-mic decision settled (2026-10-29): a player chooses, per
+      device, between an open mic (the default) and holding the
+      microphone off (`gateFallback`, `microphoneHold`).
+- [x] The dock's theme API reviewed the same way (2026-10-29): what a
+      minor version may add is in `docs/dock-theming.md`; a theme's
+      `preview` is a picture the dock may show (it doesn't yet);
+      `dock.layouts.register` stays internal.
+- [x] Each plugin's `relationships.requires` carries
+      `compatibility.minimum`: the build writes the version of the
+      required module it was built with (2026-10-29).
 
 **Finding and installing the modules**
 
@@ -2024,9 +2026,9 @@ when every item below is checked or explicitly dropped by the owner.
 
 - [ ] CI runs the unit and browser tiers on every push (once the GitHub
       Actions quota allows), and releases don't depend on one machine.
-- [ ] The release steps for independent versions written down and tried
-      once (changesets without the `fixed` group; how a change to
-      `@modular-av/api` bumps its dependents).
+- [x] The release steps for independent versions written down and tried
+      once (2026-10-29, in a scratch worktree, nothing published):
+      `docs/RELEASING.md`, "Versions from 1.0", and `pnpm release:pending`.
 
 **Not blocking 1.0**: the Krisp module (released on its own once LiveKit
 answers), the long functions and the flake in §18, JaaS, screen share,
