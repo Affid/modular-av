@@ -10,10 +10,8 @@
     "dev": "vite build --watch",
     "typecheck": "tsc --noEmit && tsc --noEmit -p test/service && tsc --noEmit -p test/browser"
   },
-  "dependencies": {
-    "@modular-av/api": "workspace:*"
-  },
   "devDependencies": {
+    "@modular-av/api": "workspace:*",
     "@modular-av/testing": "workspace:*"
   },
   "modularAV": {

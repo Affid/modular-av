@@ -23,6 +23,7 @@
     "test:foundry": "playwright test -c playwright.foundry.config.ts",
     "test:foundry:cloud": "MAV_LIVEKIT=cloud playwright test -c playwright.foundry.config.ts",
     "bench:camera": "playwright test -c playwright.bench.config.ts",
+    "release:pending": "node tools/release/cli.ts pending",
     "release:pack": "node tools/release/cli.ts pack",
     "release:publish": "node tools/release/cli.ts publish",
     "foundry:start": "scripts/foundry/start.sh",

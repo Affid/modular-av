@@ -1,9 +1,17 @@
 // Manual releases while GitHub Actions is unavailable (docs/RELEASING.md).
+//   node tools/release/cli.ts pending                   list what to publish, in order
 //   node tools/release/cli.ts pack [module-id]          build and zip into release/
 //   node tools/release/cli.ts publish <module-id>       show what would happen
 //   node tools/release/cli.ts publish <module-id> --yes tag, release, update manifests
 import { execFileSync } from "node:child_process";
-import { copyFile, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import {
+  copyFile,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { listModulePackages, type ModulePackage, ROOT } from "../workspace.ts";
@@ -11,6 +19,7 @@ import { publishedCatalog } from "./catalog.ts";
 import { releaseHold } from "./hold.ts";
 import { MANIFESTS_BRANCH, tagFor } from "./manifest.ts";
 import { packModule } from "./pack.ts";
+import { pendingReleases } from "./pending.ts";
 
 const OUT = join(ROOT, "release");
 
@@ -196,6 +205,31 @@ async function publish(mod: ModulePackage, confirmed: boolean): Promise<void> {
     await updateManifestsBranch(mod.id, mod.version, files.manifest);
 }
 
+/** The family modules a module requires, from its source `module.json`. */
+async function familyRequires(mod: ModulePackage): Promise<readonly string[]> {
+  const source = JSON.parse(
+    await readFile(join(mod.dir, "module.json"), "utf8"),
+  ) as { relationships?: { requires?: readonly { id?: unknown }[] } };
+  return (source.relationships?.requires ?? [])
+    .map((r) => r.id)
+    .filter(
+      (r): r is string => typeof r === "string" && /^modular-av(-|$)/.test(r),
+    );
+}
+
+/** Prints the modules whose version has no tag, in the order to publish them. */
+async function listPending(mods: readonly ModulePackage[]): Promise<void> {
+  if (!succeeds("git", ["fetch", "--quiet", "origin", "--tags"]))
+    console.log("Couldn't fetch tags from origin: using the local ones.");
+  const tags = new Set(capture("git", ["tag", "--list"]).split("\n"));
+  const releasable = await Promise.all(
+    mods.map(async (m) => ({ ...m, requires: await familyRequires(m) })),
+  );
+  const pending = pendingReleases(releasable, tags);
+  if (pending.length === 0) console.log("Every module's version is released.");
+  for (const m of pending) console.log(`${m.id} ${m.version}`);
+}
+
 const [command, id] = process.argv.slice(2);
 const modules = await listModulePackages();
 const named = id ? modules.filter((m) => m.id === id) : modules;
@@ -210,11 +244,15 @@ for (const [heldId, reason] of held)
 if (id && held.get(id)) throw new Error(`${id} is held back from releases`);
 const selected = named.filter((m) => !held.get(m.id));
 
-if (command === "pack") {
+if (command === "pending") {
+  await listPending(selected);
+} else if (command === "pack") {
   for (const mod of selected) await pack(mod);
 } else if (command === "publish" && id && selected[0]) {
   await publish(selected[0], process.argv.includes("--yes"));
 } else {
-  console.error("Usage: cli.ts pack [module-id] | publish <module-id> [--yes]");
+  console.error(
+    "Usage: cli.ts pending | pack [module-id] | publish <module-id> [--yes]",
+  );
   process.exitCode = 1;
 }

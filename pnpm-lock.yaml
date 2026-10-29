@@ -225,10 +225,10 @@ importers:
       '@mediapipe/tasks-vision':
         specifier: 1.1.1
         version: 1.1.1
+    devDependencies:
       '@modular-av/api':
         specifier: workspace:*
         version: link:../api
-    devDependencies:
       '@modular-av/testing':
         specifier: workspace:*
         version: link:../testing
@@ -248,13 +248,13 @@ importers:
 
   packages/dock:
     dependencies:
-      '@modular-av/api':
-        specifier: workspace:*
-        version: link:../api
       '@modular-av/kit':
         specifier: workspace:*
         version: link:../kit
     devDependencies:
+      '@modular-av/api':
+        specifier: workspace:*
+        version: link:../api
       '@modular-av/testing':
         specifier: workspace:*
         version: link:../testing
@@ -269,11 +269,10 @@ importers:
         version: link:../testing
 
   packages/jitsi:
-    dependencies:
+    devDependencies:
       '@modular-av/api':
         specifier: workspace:*
         version: link:../api
-    devDependencies:
       '@modular-av/testing':
         specifier: workspace:*
         version: link:../testing
@@ -282,23 +281,22 @@ importers:
 
   packages/livekit:
     dependencies:
-      '@modular-av/api':
-        specifier: workspace:*
-        version: link:../api
       livekit-client:
         specifier: 2.22.4
         version: 2.22.4(@types/dom-mediacapture-record@1.0.22)
     devDependencies:
+      '@modular-av/api':
+        specifier: workspace:*
+        version: link:../api
       '@modular-av/testing':
         specifier: workspace:*
         version: link:../testing
 
   packages/livekit-krisp:
-    dependencies:
+    devDependencies:
       '@modular-av/api':
         specifier: workspace:*
         version: link:../api
-    devDependencies:
       '@modular-av/livekit':
         specifier: workspace:*
         version: link:../livekit
@@ -308,36 +306,36 @@ importers:
 
   packages/mic-denoise:
     dependencies:
-      '@modular-av/api':
-        specifier: workspace:*
-        version: link:../api
       '@sapphi-red/web-noise-suppressor':
         specifier: 0.4.1
         version: 0.4.1
     devDependencies:
+      '@modular-av/api':
+        specifier: workspace:*
+        version: link:../api
       '@modular-av/testing':
         specifier: workspace:*
         version: link:../testing
 
   packages/p2p:
-    dependencies:
+    devDependencies:
       '@modular-av/api':
         specifier: workspace:*
         version: link:../api
-    devDependencies:
       '@modular-av/testing':
         specifier: workspace:*
         version: link:../testing
 
+  packages/starter-set: {}
+
   packages/testing:
-    dependencies:
-      '@modular-av/api':
-        specifier: workspace:*
-        version: link:../api
     devDependencies:
       '@fortawesome/fontawesome-free':
         specifier: 7.2.0
         version: 7.2.0
+      '@modular-av/api':
+        specifier: workspace:*
+        version: link:../api
 
 packages:
 
