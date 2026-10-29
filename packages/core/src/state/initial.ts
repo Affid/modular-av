@@ -18,6 +18,8 @@ export const INITIAL_STATE: AVState = {
     microphoneError: null,
     cameraError: null,
     openMic: false,
+    gateFallback: "send",
+    microphoneHold: null,
     speakingWhileMuted: false,
     effects: {},
     inputSensitivity: { auto: true, threshold: -50 },

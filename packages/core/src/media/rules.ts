@@ -1,4 +1,5 @@
 import type {
+  GateFallback,
   InputSensitivity,
   MediaPermissions,
   ParticipantId,
@@ -16,6 +17,9 @@ export interface OutboundInput {
   readonly deafened: boolean;
   readonly hasMicrophone: boolean;
   readonly hasCamera: boolean;
+  /** The voice gate runs (it can fail to load, or break). */
+  readonly gateRunning: boolean;
+  readonly gateFallback: GateFallback;
 }
 
 /**
@@ -29,16 +33,36 @@ export function computeOutbound(input: OutboundInput): MediaPermissions {
   const { facts } = input;
   const own = facts.entry(facts.selfId);
   const allowed = facts.canBroadcast(facts.selfId);
-  const intent = facts.voiceMode() !== "ptt" || input.intent;
   return {
-    audio:
-      input.hasMicrophone &&
-      allowed.audio &&
-      intent &&
-      !(own.muted ?? false) &&
-      !input.deafened,
+    audio: wouldSendAudio(input) && !isMicrophoneHeld(input),
     video: input.hasCamera && allowed.video && !(own.hidden ?? false),
   };
+}
+
+/** Whether the microphone would go out, the voice gate aside. */
+function wouldSendAudio(input: OutboundInput): boolean {
+  const { facts } = input;
+  const intent = facts.voiceMode() !== "ptt" || input.intent;
+  return (
+    input.hasMicrophone &&
+    facts.canBroadcast(facts.selfId).audio &&
+    intent &&
+    !(facts.entry(facts.selfId).muted ?? false) &&
+    !input.deafened
+  );
+}
+
+/**
+ * Held off: it would go out ungated in voice activity mode, and the
+ * player chose to be muted rather than heard all the time.
+ */
+export function isMicrophoneHeld(input: OutboundInput): boolean {
+  return (
+    input.gateFallback === "mute" &&
+    input.facts.voiceMode() === "activity" &&
+    !input.gateRunning &&
+    wouldSendAudio(input)
+  );
 }
 
 /**

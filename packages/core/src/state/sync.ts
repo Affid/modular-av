@@ -14,6 +14,7 @@ import type { LocalMedia } from "../media/local-media.ts";
 import type { RemoteMedia } from "../media/remote-media.ts";
 import type { WritableStore } from "../store.ts";
 import { readSensitivity } from "../media/sensitivity.ts";
+import { readGateFallback } from "../media/gate-fallback.ts";
 import { project } from "./project.ts";
 
 export interface StateSyncDeps {
@@ -25,6 +26,8 @@ export interface StateSyncDeps {
   readonly remote: RemoteMedia;
   readonly service: () => ServiceDefinition | undefined;
   readonly outbound: () => MediaPermissions;
+  /** The gate can't run and the player chose to be muted, not heard. */
+  readonly microphoneHeld: () => boolean;
   readonly effects: Registry<EffectDefinition>;
   readonly isSupported: (definition: EffectDefinition) => boolean;
   readonly isAvailable: (definition: EffectDefinition) => boolean;
@@ -80,6 +83,8 @@ function localState(deps: StateSyncDeps): LocalState {
     microphoneError: local.errors.audio,
     cameraError: local.errors.video,
     openMic: sending && voiceMode === "activity" && !local.gateRunning,
+    gateFallback: readGateFallback(deps.game),
+    microphoneHold: deps.microphoneHeld() ? "gate-failed" : null,
     speakingWhileMuted:
       deps.rt.sustainedSpeech &&
       local.microphone !== null &&

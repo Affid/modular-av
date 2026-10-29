@@ -18,6 +18,7 @@ export type Indicator =
   | "connection"
   | "not-connected"
   | "open-mic"
+  | "microphone-held"
   | "speaking-while-muted"
   | "camera-held";
 
@@ -53,6 +54,7 @@ const poorLink = (q: ConnectionQuality | null): boolean =>
 function localWarnings(local: LocalState): Indicator[] {
   return [
     ...(local.openMic ? (["open-mic"] as const) : []),
+    ...(local.microphoneHold ? (["microphone-held"] as const) : []),
     ...(local.speakingWhileMuted ? (["speaking-while-muted"] as const) : []),
     ...(local.cameraHold ? (["camera-held"] as const) : []),
   ];

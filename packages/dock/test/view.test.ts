@@ -97,6 +97,14 @@ describe("a player's tile", () => {
     expect(theirs.indicators).toEqual([]);
   });
 
+  it("shows a microphone held off on the local player's tile", () => {
+    const held = localState({ microphoneHold: "gate-failed" });
+
+    const mine = tileView(participantState({ id: "me", isLocal: true }), held);
+
+    expect(mine.indicators).toEqual(["microphone-held"]);
+  });
+
   it("orders the local player first, then the GMs, then by name", () => {
     const tiles = orderTiles([
       participantState({ id: "b", name: "Bea" }),
@@ -177,6 +185,12 @@ describe("the voice panel's buttons", () => {
 
     expect(view.mute).toEqual({ pressed: true, disabled: true });
     expect(view.video).toEqual({ pressed: false, disabled: true });
+  });
+
+  it("warns while the microphone is held off for want of a voice gate", () => {
+    const view = panelView(localState({ microphoneHold: "gate-failed" }));
+
+    expect(view.warnings).toEqual(["microphone-held"]);
   });
 
   it("show video as off while the camera is held for an effect", () => {

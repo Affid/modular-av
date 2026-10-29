@@ -3,6 +3,7 @@ import type { LocalState } from "@modular-av/api";
 /** Warnings the voice panel shows (`data-indicator`, part of the UI contract). */
 export type Warning =
   | "open-mic"
+  | "microphone-held"
   | "speaking-while-muted"
   | "microphone-error"
   | "camera-error"
@@ -30,6 +31,7 @@ function warnings(local: LocalState): Warning[] {
   );
   return [
     ...(local.openMic ? (["open-mic"] as const) : []),
+    ...(local.microphoneHold ? (["microphone-held"] as const) : []),
     ...(local.speakingWhileMuted ? (["speaking-while-muted"] as const) : []),
     ...(local.microphoneError ? (["microphone-error"] as const) : []),
     ...(local.cameraError ? (["camera-error"] as const) : []),

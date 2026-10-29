@@ -98,6 +98,18 @@ export type VoiceMode = "always" | "activity" | "ptt";
  */
 export type CameraHold = "effect-starting" | "effect-stalled" | "effect-failed";
 
+/**
+ * What voice activity mode does when its gate can't run: send everything
+ * (shown as `openMic`), or hold the microphone off (`microphoneHold`).
+ */
+export type GateFallback = "send" | "mute";
+
+/**
+ * Why the microphone is kept off although the player would be heard: the
+ * voice gate can't run, and they chose `GateFallback` "mute".
+ */
+export type MicrophoneHold = "gate-failed";
+
 /** How the voice gate decides to open: following the noise, or a fixed level. */
 export interface InputSensitivity {
   readonly auto: boolean;
@@ -141,6 +153,10 @@ export interface LocalState {
   readonly cameraError: string | null;
   /** Voice activity mode, but the gate can't run: everything is sent. */
   readonly openMic: boolean;
+  /** For this device: what voice activity mode does when its gate can't run. */
+  readonly gateFallback: GateFallback;
+  /** Why the microphone is kept off, if the gate can't run. */
+  readonly microphoneHold: MicrophoneHold | null;
   /** Muted or deafened, and the microphone hears sustained speech. */
   readonly speakingWhileMuted: boolean;
   /** Every registered effect, by id. */

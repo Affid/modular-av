@@ -15,6 +15,7 @@ const ICONS: Readonly<Record<IndicatorName, string>> = {
   connection: "fa-signal",
   "not-connected": "fa-plug-circle-xmark",
   "open-mic": "fa-microphone-lines",
+  "microphone-held": "fa-microphone-lines-slash",
   "speaking-while-muted": "fa-comment-dots",
   "camera-held": "fa-hourglass-half",
   "microphone-error": "fa-triangle-exclamation",

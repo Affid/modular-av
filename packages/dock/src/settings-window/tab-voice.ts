@@ -1,4 +1,4 @@
-import type { SettingsHost, VoiceMode } from "@modular-av/api";
+import type { GateFallback, SettingsHost, VoiceMode } from "@modular-av/api";
 import { el } from "@modular-av/kit";
 import type { Rendered } from "../contributions/controls.ts";
 import type { DockContext } from "../context.ts";
@@ -13,6 +13,7 @@ import { pushToTalkKey } from "./ptt-key.ts";
 import { sensitivityBar } from "./sensitivity.ts";
 
 const MODES: readonly VoiceMode[] = ["always", "activity", "ptt"];
+const FALLBACKS: readonly GateFallback[] = ["send", "mute"];
 
 function devices(ctx: DockContext, doc: Document, draft: Draft): Rendered {
   const mic = draftSelect(doc, draft, "audioInput", () =>
@@ -46,6 +47,12 @@ function input(ctx: DockContext, doc: Document, draft: Draft): Rendered {
     ctx.t("settings.automatic"),
   );
   const bar = sensitivityBar(ctx, doc, draft);
+  const fallback = draftSelect(doc, draft, "gateFallback", () =>
+    FALLBACKS.map((f) => ({
+      value: f,
+      label: ctx.t(`settings.fallback-${f}`),
+    })),
+  );
   const sensitivity = el("div", {
     doc,
     className: "mav-settings-group",
@@ -53,6 +60,7 @@ function input(ctx: DockContext, doc: Document, draft: Draft): Rendered {
       el("h3", { doc, text: ctx.t("settings.sensitivity") }),
       auto.element,
       bar.element,
+      row(doc, ctx.t("settings.gateFallback"), fallback.element),
     ],
   });
   const render = (): void => {
@@ -69,7 +77,7 @@ function input(ctx: DockContext, doc: Document, draft: Draft): Rendered {
     ]),
     dispose() {
       off();
-      for (const part of [mode, key, auto, bar]) part.dispose();
+      for (const part of [mode, key, auto, bar, fallback]) part.dispose();
     },
   };
 }

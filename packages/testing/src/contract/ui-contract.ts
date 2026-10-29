@@ -10,7 +10,7 @@
  * - each state shown as a visible element with `data-indicator` (its name)
  *   and an accessible name, inside the participant's element, or among the
  *   local player's warnings: muted, deafened, blocked-audio, blocked-video,
- *   connection, open-mic, effect-failed;
+ *   connection, open-mic, microphone-held, effect-failed;
  * - the session's status in a visible element with `data-status` (idle,
  *   connecting, connected, waiting, reconnecting, ended) and text;
  * - every command reachable by mouse and keyboard;
@@ -222,6 +222,18 @@ function stateTests(driver: UIDriver): void {
     await as(page, "gm1", "commands.setVoiceMode", ["activity"]);
 
     await expectShown(indicator(driver.warnings(page), "open-mic"));
+  });
+
+  test("shows the microphone held off when the player chose that over an open mic", async ({
+    page,
+  }) => {
+    await open(page, driver, "&gate=broken");
+
+    await as(page, "gm1", "commands.setGateFallback", ["mute"]);
+    await as(page, "gm1", "commands.setVoiceMode", ["activity"]);
+
+    await expectShown(indicator(driver.warnings(page), "microphone-held"));
+    await expect(indicator(driver.warnings(page), "open-mic")).toHaveCount(0);
   });
 
   test("shows an effect that failed", async ({ page }) => {

@@ -1,6 +1,7 @@
 import type {
   AVCommands,
   DeviceKind,
+  GateFallback,
   InputSensitivity,
   MediaPermissions,
   VoiceMode,
@@ -8,6 +9,7 @@ import type {
 import type { Controller } from "./controller.ts";
 import { AVCommandError } from "./errors.ts";
 import type { AVSettingsLike, FoundryGame } from "./foundry/globals.ts";
+import { writeGateFallback } from "./media/gate-fallback.ts";
 import { writeSensitivity } from "./media/sensitivity.ts";
 
 function avSettings(controller: Controller): AVSettingsLike {
@@ -157,6 +159,11 @@ export function createCommands(
 
     async setInputSensitivity(sensitivity: Partial<InputSensitivity>) {
       await writeSensitivity(game, sensitivity);
+      controller().apply();
+    },
+
+    async setGateFallback(fallback: GateFallback) {
+      await writeGateFallback(game, fallback);
       controller().apply();
     },
 

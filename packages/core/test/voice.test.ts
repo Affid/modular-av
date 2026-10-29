@@ -210,6 +210,99 @@ describe("an open mic", () => {
   });
 });
 
+describe("a microphone held when the gate can't run", () => {
+  const HELD_HINT =
+    "Voice and video: voice activity can't run, so your microphone is held off. Use push to talk, or choose to be heard anyway in the voice settings.";
+
+  it("sends by default, as an open mic", async () => {
+    const table = createTable();
+    const p1 = table.join("p1", { av: ACTIVITY });
+    await table.settle();
+
+    expect(p1.api.state.get().local.gateFallback).toBe("send");
+    expect(p1.api.state.get().local.microphoneHold).toBeNull();
+  });
+
+  it("holds the microphone, plainly, when the player chose to be muted", async () => {
+    // Arrange
+    const table = createTable();
+    const gm = table.join("gm", { secret: true });
+    const p1 = table.join("p1", { av: ACTIVITY });
+    await p1.api.commands.setGateFallback("mute");
+    await table.settle();
+
+    // Act
+    gateOf(p1).fail(new Error("processorerror"));
+    await table.settle();
+
+    // Assert
+    const local = p1.api.state.get().local;
+    expect(local.microphoneHold).toBe("gate-failed");
+    expect(local.openMic).toBe(false);
+    expect(local.broadcasting).toBe(false);
+    expect(micEnabled(p1)).toBe(false);
+    expect(gm.api.state.get().participants.p1?.muted).toBe(true);
+    expect(p1.client.notifications.map((n) => n.message)).toContain(HELD_HINT);
+  });
+
+  it("sends again, as an open mic, once the player chooses to be heard", async () => {
+    const table = createTable();
+    table.join("gm", { secret: true });
+    const p1 = table.join("p1", { av: ACTIVITY });
+    await p1.api.commands.setGateFallback("mute");
+    await table.settle();
+    gateOf(p1).fail(new Error("processorerror"));
+    await table.settle();
+
+    await p1.api.commands.setGateFallback("send");
+    await table.settle();
+
+    expect(p1.api.state.get().local.microphoneHold).toBeNull();
+    expect(p1.api.state.get().local.openMic).toBe(true);
+    expect(micEnabled(p1)).toBe(true);
+    expect(p1.client.game.settings.get("modular-av", "gateFallback")).toBe(
+      "send",
+    );
+  });
+
+  it("holds nothing in the other modes or while muted", async () => {
+    const table = createTable();
+    const always = table.join("gm", { secret: true, av: ALWAYS });
+    const muted = table.join("p1", { av: ACTIVITY });
+    await always.api.commands.setGateFallback("mute");
+    await muted.api.commands.setGateFallback("mute");
+    await muted.api.commands.setMuted(true);
+    await table.settle();
+
+    gateOf(always).fail(new Error("processorerror"));
+    gateOf(muted).fail(new Error("processorerror"));
+    await table.settle();
+
+    expect(always.api.state.get().local.microphoneHold).toBeNull();
+    expect(micEnabled(always)).toBe(true);
+    expect(muted.api.state.get().local.microphoneHold).toBeNull();
+  });
+
+  it("refuses anything but send or mute", async () => {
+    const table = createTable();
+    const p1 = table.join("p1");
+    await table.settle();
+
+    await expect(
+      p1.api.commands.setGateFallback("silence" as never),
+    ).rejects.toMatchObject({ code: "invalid-argument" });
+  });
+
+  it("falls back to sending when the setting holds something else", async () => {
+    const table = createTable();
+    const p1 = table.join("p1");
+    await p1.client.game.settings.set("modular-av", "gateFallback", "maybe");
+    await table.settle();
+
+    expect(p1.api.state.get().local.gateFallback).toBe("send");
+  });
+});
+
 describe("speaking while muted", () => {
   const MUTED_HINT =
     "Voice and video: you're muted, so the others can't hear you.";

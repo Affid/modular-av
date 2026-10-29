@@ -310,6 +310,32 @@ describe("the settings window's Voice tab", () => {
     audioOutput: [],
   };
 
+  it("asks what voice activity does when it can't run, in its own mode only", async () => {
+    // Arrange
+    const view = open({
+      state: avState({ participants: [me], local: { voiceMode: "activity" } }),
+    });
+    view.tab("voice");
+    const choice = view.select("gateFallback");
+    const group = choice?.closest(".mav-settings-row");
+
+    // Act
+    view.choose("gateFallback", "mute");
+    await view.save();
+    view.choose("voiceMode", "ptt");
+
+    // Assert
+    expect([...(choice?.options ?? [])].map((o) => o.text)).toEqual([
+      "Send my voice anyway (open mic)",
+      "Mute me",
+    ]);
+    expect(group?.textContent).toContain("If voice activity can't run");
+    expect(view.api.calls).toEqual([
+      { command: "setGateFallback", args: ["mute"] },
+    ]);
+    expect(group?.closest("[hidden]")).not.toBeNull();
+  });
+
   it("opens the microphone only while voice activity is chosen", async () => {
     const view = open({
       state: avState({

@@ -23,6 +23,7 @@ import {
   type EffectChoices,
 } from "./media/effect-choices.ts";
 import { createLocalMedia, type LocalMedia } from "./media/local-media.ts";
+import { readGateFallback } from "./media/gate-fallback.ts";
 import { readSensitivity } from "./media/sensitivity.ts";
 import { createRemoteMedia, type RemoteMedia } from "./media/remote-media.ts";
 import type { DeviceChoice } from "./media/local-media.ts";
@@ -30,6 +31,8 @@ import {
   computeOutbound,
   createPlaybackPolicy,
   gateConfig,
+  isMicrophoneHeld,
+  type OutboundInput,
   wantedDevices,
 } from "./media/rules.ts";
 import type { Session } from "./session/session.ts";
@@ -194,17 +197,20 @@ function buildParts(deps: ControllerDeps): Parts {
     },
     deps.onError,
   );
-  const outbound = (): MediaPermissions =>
-    computeOutbound({
-      facts,
-      intent: rt.intent,
-      deafened: rt.deafened,
-      hasMicrophone: local.microphone !== null,
-      hasCamera: local.camera !== null,
-    });
+  const outboundInput = (): OutboundInput => ({
+    facts,
+    intent: rt.intent,
+    deafened: rt.deafened,
+    hasMicrophone: local.microphone !== null,
+    hasCamera: local.camera !== null,
+    gateRunning: local.gateRunning,
+    gateFallback: readGateFallback(game),
+  });
+  const outbound = (): MediaPermissions => computeOutbound(outboundInput());
+  const microphoneHeld = (): boolean => isMicrophoneHeld(outboundInput());
   const refreshState = createStateSync({
     ...{ store: deps.store, game, facts, rt, local, remote },
-    ...{ service, outbound, effects: deps.effects },
+    ...{ service, outbound, microphoneHeld, effects: deps.effects },
     isSupported: choices.isSupported,
     isAvailable: choices.isAvailable,
   });
@@ -224,7 +230,7 @@ function buildParts(deps: ControllerDeps): Parts {
   });
   // Created after `apply`, which it calls.
   let voice: VoiceActivity | null = null;
-  const announce = createActivityAnnouncer(game, facts, local);
+  const announce = createActivityAnnouncer(game, facts, local, microphoneHeld);
   const apply = (): void => {
     devices.sync();
     local.setGate(gateConfig(facts, readSensitivity(game)));
@@ -267,13 +273,15 @@ function createActivityAnnouncer(
   game: FoundryGame,
   facts: AVFacts,
   local: LocalMedia,
+  microphoneHeld: () => boolean,
 ): () => void {
   let announced: OwnActivity | null = null;
   return () => {
     if (!game.ready) return;
     const own = facts.entry(facts.selfId);
     const next: OwnActivity = {
-      muted: (own.muted ?? false) || local.microphone === null,
+      muted:
+        (own.muted ?? false) || local.microphone === null || microphoneHeld(),
       hidden: (own.hidden ?? false) || local.camera === null,
     };
     if (announced?.muted === next.muted && announced.hidden === next.hidden)

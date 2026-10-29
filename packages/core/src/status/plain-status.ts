@@ -109,10 +109,12 @@ export function startPlainStatus(deps: PlainStatusDeps): () => void {
     },
     { equals: (a, b) => a[0] === b[0] && a[1] === b[1] },
   );
+  // The gate can't run: the microphone is either open or held off.
   const offOpenMic = deps.store.subscribe(
-    (s) => s.local.openMic,
-    (openMic) => {
-      if (openMic) notify({ kind: "warn", key: key("openMic") });
+    (s) =>
+      s.local.openMic ? "openMic" : s.local.microphoneHold && "microphoneHold",
+    (warning) => {
+      if (warning) notify({ kind: "warn", key: key(warning) });
     },
   );
   const offEffects = watchEffects(deps, notify);

@@ -35,6 +35,7 @@
       "cameraEffectFailed": "Voice and video: your camera effect failed, so your camera stays off. Turn the effect off to show your camera.",
       "microphoneEffectFailed": "Voice and video: a microphone effect failed; your microphone goes on without it.",
       "openMic": "Voice and video: voice activity can't run, so your microphone is always on. Mute yourself or use push to talk.",
+      "microphoneHold": "Voice and video: voice activity can't run, so your microphone is held off. Use push to talk, or choose to be heard anyway in the voice settings.",
       "deafened": "Deafened",
       "ended": {
         "joinedElsewhere": "Voice and video continued in another tab or window.",

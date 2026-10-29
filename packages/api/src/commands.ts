@@ -1,5 +1,6 @@
 import type {
   DeviceKind,
+  GateFallback,
   InputSensitivity,
   MediaPermissions,
   VoiceMode,
@@ -54,6 +55,8 @@ export interface AVCommands {
   setEffectEnabled(effect: string, enabled: boolean): Promise<void>;
   /** For this device; what isn't given stays. */
   setInputSensitivity(sensitivity: Partial<InputSensitivity>): Promise<void>;
+  /** For this device: what voice activity mode does when its gate can't run. */
+  setGateFallback(fallback: GateFallback): Promise<void>;
   /** Saved in Foundry's A/V settings; "default" for the system default. */
   setDevice(kind: DeviceKind, deviceId: string): Promise<void>;
   /** GM only: Foundry's `BROADCAST_AUDIO` / `BROADCAST_VIDEO`. */

@@ -1,4 +1,4 @@
-import type { DeviceKind, VoiceMode } from "@modular-av/api";
+import type { DeviceKind, GateFallback, VoiceMode } from "@modular-av/api";
 import type { DockContext } from "../context.ts";
 import { chosenInGroup, groupsOf } from "../panel/effects.ts";
 
@@ -23,6 +23,7 @@ export interface DraftValues {
   readonly pttKey: string;
   readonly sensitivityAuto: boolean;
   readonly threshold: number;
+  readonly gateFallback: GateFallback;
   /** The effect chosen in each group ("" for none), by group name. */
   readonly effects: Readonly<Record<string, string>>;
   readonly receiveVideo: boolean;
@@ -154,6 +155,10 @@ export const FIELDS: { readonly [K in DraftKey]: Field<K> } = {
     read: (ctx) => local(ctx).inputSensitivity.threshold,
     apply: (ctx, threshold) =>
       ctx.api.commands.setInputSensitivity({ threshold }),
+  },
+  gateFallback: {
+    read: (ctx) => local(ctx).gateFallback,
+    apply: (ctx, fallback) => ctx.api.commands.setGateFallback(fallback),
   },
   effects: { read: effectChoices, apply: applyEffects },
   receiveVideo: {

@@ -264,9 +264,9 @@ The rule that keeps the core lean without anyone rewriting anything:
   and nobody writes the same helper twice.
 - **If it is heavy, optional or service-specific, it is a plugin.**
 - **Guarantees live in the core, not in a UI**: mute in every state,
-  fail-closed camera effects, "open mic" when the gate can't run, the GM's
-  blocks, reconnecting. UI modules can't get them wrong, because none of
-  them implements them.
+  fail-closed camera effects, "open mic" (or a held microphone, as the
+  player chose) when the gate can't run, the GM's blocks, reconnecting.
+  UI modules can't get them wrong, because none of them implements them.
 
 **Trust model**: every installed module is same-origin JavaScript with full
 access to Foundry and the browser; the core can't defend against a hostile
@@ -832,7 +832,10 @@ Principles:
   separate playback context only while someone is boosted above 100%.
 - **Fail closed for privacy.** If a video effect isn't running yet, stalls
   or failed, don't publish raw video (keep the camera off and say so). If
-  the voice gate can't run in voice activity mode, show "open mic" plainly.
+  the voice gate can't run in voice activity mode, show "open mic" plainly,
+  or hold the microphone off if the player chose that (`gateFallback`
+  "mute", a setting of this device, decided for 1.0; sending stays the
+  default).
   Mute is applied to the core's own final track, in every connection state.
 - **Never expose secrets to players**: a service's secret lives only on the
   GM's device or a token server.
