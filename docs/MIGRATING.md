@@ -49,7 +49,11 @@ Mute, hide and volume settings were Foundry's own and stay as they were.
 
 ## What doesn't
 
-- Tavern's Patreon server.
+- Tavern's Patreon server. It is a LiveKit server, but you never get its
+  key and secret: tokens come from Tavern's own Patreon sign-in service,
+  while Modular A/V signs them in a GM's browser with a key you hold.
+  Move to LiveKit Cloud or your own LiveKit server, or use
+  `modular-av-p2p`.
 - Breakout rooms, the external A/V client and music mode.
 - Krisp, until its module is released.
 - Volumes above 100% and players muted only for you: set them again in the

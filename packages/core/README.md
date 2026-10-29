@@ -9,13 +9,14 @@ the Discord-like dock, `modular-av-dock`.
   `modular-av-p2p` (no server, small tables) or `modular-av-jitsi` (your
   own Jitsi Meet server). The GM picks one per world.
 - **Plan your modules** (GMs, in the module settings and the Voice &
-  Video Settings window): every Modular A/V module on an assembly board,
-  the core in the middle, a socket for the service, the cameras and the
-  effects. Put the pieces you want on it; the window gives the links to
-  install on Foundry's Setup screen (to copy, save as a file or whisper
-  to yourself), then turns modules on and off for the world, never
-  leaving it without its running service. With no service enabled, a GM
-  is told which exist.
+  Video Settings window): the call as a chain of stages (effects, the
+  service, the cameras and the dock's theme), with what the world runs
+  now on air beside your next setup. Build it stage by stage or start
+  from a ready-made build; the window gives the links to install on
+  Foundry's Setup screen (to copy, save as a file or whisper to
+  yourself), then turns modules on and off for the world, keeping a
+  service on so calls keep working. With no service enabled, a GM is
+  told which exist.
 - **What it guarantees**, whatever the other modules do: mute applies to
   what is sent, in every state of the connection; a GM's block is
   enforced by every player's browser; a camera effect that isn't running
