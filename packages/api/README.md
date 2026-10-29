@@ -37,9 +37,9 @@ it), as a minor version may add one:
 
 A service copes the same way with what the core passes it: it treats a
 `disconnect` reason it doesn't know like `"user"`, and rejects `publish`
-of a `TrackSource` it can't send with a `ServiceError` of code
-`"unsupported"` (screen share may come in a minor version). Every other
-union changes only in a major version.
+of a `TrackSource` it can't send (screen share may come in a minor
+version; P2P and Jitsi reject it today). Every other union changes only
+in a major version.
 
 ### What the core guarantees
 
