@@ -7,7 +7,7 @@ import {
 } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { ROOT } from "../workspace.ts";
+import { familyVersions, ROOT } from "../workspace.ts";
 import { distManifest } from "./manifest.ts";
 
 const isMissing = (error: unknown): boolean =>
@@ -19,7 +19,10 @@ const isMissing = (error: unknown): boolean =>
  * `module.json` with the version and relationship URLs, its language
  * files and the licence, in `dist/`.
  */
-export async function buildManifestOnly(packageDir: string): Promise<void> {
+export async function buildManifestOnly(
+  packageDir: string,
+  root = ROOT,
+): Promise<void> {
   const source = JSON.parse(
     await readFile(join(packageDir, "module.json"), "utf8"),
   ) as Record<string, unknown>;
@@ -32,7 +35,7 @@ export async function buildManifestOnly(packageDir: string): Promise<void> {
   await mkdir(join(dist, "lang"), { recursive: true });
   await writeFile(
     join(dist, "module.json"),
-    `${JSON.stringify(distManifest(source, version), null, 2)}\n`,
+    `${JSON.stringify(distManifest(source, version, await familyVersions(root)), null, 2)}\n`,
   );
   const languages = await readdir(join(packageDir, "lang")).catch(
     (error: unknown) => {

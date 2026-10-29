@@ -132,6 +132,7 @@ async function workspaceManifests(
   root: string,
 ): Promise<readonly WorkspaceManifest[]> {
   const modules = await listModulePackages(root);
+  const family = Object.fromEntries(modules.map((m) => [m.id, m.version]));
   return Promise.all(
     modules.map(async (m) => {
       const source = JSON.parse(
@@ -139,7 +140,7 @@ async function workspaceManifests(
       ) as Json;
       const held = (await releaseHold(m.dir)) !== null;
       const urls = held ? undefined : releaseUrls(m.id, m.version);
-      return { manifest: distManifest(source, m.version, urls), held };
+      return { manifest: distManifest(source, m.version, family, urls), held };
     }),
   );
 }

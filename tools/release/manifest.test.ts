@@ -54,11 +54,11 @@ describe("distManifest", () => {
   it("adds the version, and the URLs for a release", () => {
     const urls = releaseUrls("modular-av", "0.1.0");
 
-    expect(distManifest(source, "0.1.0")).toEqual({
+    expect(distManifest(source, "0.1.0", {})).toEqual({
       ...source,
       version: "0.1.0",
     });
-    expect(distManifest(source, "0.1.0", urls)).toEqual({
+    expect(distManifest(source, "0.1.0", {}, urls)).toEqual({
       ...source,
       version: "0.1.0",
       ...urls,
@@ -67,11 +67,11 @@ describe("distManifest", () => {
 
   it("refuses a source manifest that sets generated fields", () => {
     expect(() =>
-      distManifest({ ...source, version: "9.9.9" }, "0.1.0"),
+      distManifest({ ...source, version: "9.9.9" }, "0.1.0", {}),
     ).toThrow(/"version" is generated/);
   });
 
-  it("requires family modules at this version, and says where to get them", () => {
+  it("requires family modules at the version built with, and says where to get them", () => {
     const livekit = {
       id: "modular-av-livekit",
       relationships: {
@@ -82,16 +82,21 @@ describe("distManifest", () => {
         recommends: [{ id: "modular-av-dock", type: "module" }],
       },
     };
+    const family = { "modular-av": "1.4.2", "modular-av-dock": "1.1.0" };
 
-    // Releases are lockstep, and nothing is on Foundry's package list:
-    // the stable manifest lets Foundry install a dependency by itself.
-    expect(distManifest(livekit, "0.2.0").relationships).toEqual({
+    // Act
+    const built = distManifest(livekit, "1.0.3", family);
+
+    // Assert: what the release was built and tested with, whatever its own
+    // version; nothing is on Foundry's package list, so the stable manifest
+    // lets Foundry install a dependency by itself.
+    expect(built.relationships).toEqual({
       requires: [
         {
           id: "modular-av",
           type: "module",
-          manifest: releaseUrls("modular-av", "0.2.0").manifest,
-          compatibility: { minimum: "0.2.0" },
+          manifest: releaseUrls("modular-av", "1.4.2").manifest,
+          compatibility: { minimum: "1.4.2" },
         },
         { id: "other", type: "module" },
       ],
@@ -99,10 +104,23 @@ describe("distManifest", () => {
         {
           id: "modular-av-dock",
           type: "module",
-          manifest: releaseUrls("modular-av-dock", "0.2.0").manifest,
+          manifest: releaseUrls("modular-av-dock", "1.1.0").manifest,
         },
       ],
     });
+  });
+
+  it("refuses to require a family module the workspace doesn't have", () => {
+    expect(() =>
+      distManifest(
+        {
+          id: "modular-av-livekit",
+          relationships: { requires: [{ id: "modular-av-gone" }] },
+        },
+        "1.0.0",
+        {},
+      ),
+    ).toThrow(/"modular-av-gone" isn't in this workspace/);
   });
 
   it("refuses a family relationship with its own manifest URL", () => {
@@ -117,6 +135,7 @@ describe("distManifest", () => {
           },
         },
         "0.2.0",
+        { "modular-av": "0.2.0", "modular-av-dock": "0.2.0" },
       ),
     ).toThrow(/manifest of "modular-av-dock" is generated/);
   });
@@ -133,6 +152,7 @@ describe("distManifest", () => {
           },
         },
         "0.2.0",
+        { "modular-av": "0.2.0", "modular-av-dock": "0.2.0" },
       ),
     ).toThrow(/compatibility with "modular-av" is generated/);
   });

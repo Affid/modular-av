@@ -7,8 +7,14 @@ import { listModulePackages } from "../workspace.ts";
 import { buildCatalog, publishedCatalog, workspaceCatalog } from "./catalog.ts";
 import { distManifest, releaseUrls } from "./manifest.ts";
 
+const family = {
+  "modular-av": "0.4.0",
+  "modular-av-livekit": "0.4.0",
+  "modular-av-p2p": "0.4.0",
+};
+
 const released = (id: string, source: Record<string, unknown>) =>
-  distManifest({ id, ...source }, "0.4.0", releaseUrls(id, "0.4.0"));
+  distManifest({ id, ...source }, "0.4.0", family, releaseUrls(id, "0.4.0"));
 
 const core = released("modular-av", {
   title: "Modular A/V — voice & video",
@@ -35,6 +41,7 @@ const krisp = distManifest(
     },
   },
   "0.4.0",
+  family,
 );
 
 describe("the catalog of the family", () => {

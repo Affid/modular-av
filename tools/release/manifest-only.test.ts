@@ -12,11 +12,23 @@ afterEach(async () => {
 });
 
 describe("a module without code", () => {
-  it("builds its module.json, language files and licence into dist", async () => {
+  it("builds its module.json (requiring what it was built with), language files and licence into dist", async () => {
     // Arrange
     dir = await mkdtemp(join(tmpdir(), "mav-manifest-only-"));
+    const starter = join(dir, "packages", "starter-set");
+    const dock = join(dir, "packages", "dock");
+    await mkdir(join(starter, "lang"), { recursive: true });
+    await mkdir(dock, { recursive: true });
     await writeFile(
-      join(dir, "module.json"),
+      join(dock, "module.json"),
+      JSON.stringify({ id: "modular-av-dock" }),
+    );
+    await writeFile(
+      join(dock, "package.json"),
+      JSON.stringify({ version: "1.2.0" }),
+    );
+    await writeFile(
+      join(starter, "module.json"),
       JSON.stringify({
         id: "modular-av-starter-set",
         title: "Modular A/V: Starter set",
@@ -26,18 +38,17 @@ describe("a module without code", () => {
       }),
     );
     await writeFile(
-      join(dir, "package.json"),
+      join(starter, "package.json"),
       JSON.stringify({ version: "0.9.0" }),
     );
-    await mkdir(join(dir, "lang"));
-    await writeFile(join(dir, "lang", "en.json"), '{"a":"b"}\n');
+    await writeFile(join(starter, "lang", "en.json"), '{"a":"b"}\n');
 
     // Act
-    await buildManifestOnly(dir);
+    await buildManifestOnly(starter, dir);
 
     // Assert
     const built = JSON.parse(
-      await readFile(join(dir, "dist", "module.json"), "utf8"),
+      await readFile(join(starter, "dist", "module.json"), "utf8"),
     ) as Record<string, unknown>;
     expect(built).toMatchObject({
       id: "modular-av-starter-set",
@@ -47,14 +58,16 @@ describe("a module without code", () => {
           {
             id: "modular-av-dock",
             type: "module",
-            compatibility: { minimum: "0.9.0" },
+            compatibility: { minimum: "1.2.0" },
           },
         ],
       },
     });
-    expect(await readFile(join(dir, "dist", "lang", "en.json"), "utf8")).toBe(
-      '{"a":"b"}\n',
+    expect(
+      await readFile(join(starter, "dist", "lang", "en.json"), "utf8"),
+    ).toBe('{"a":"b"}\n');
+    expect(await readFile(join(starter, "dist", "LICENSE"), "utf8")).toMatch(
+      /MIT/,
     );
-    expect(await readFile(join(dir, "dist", "LICENSE"), "utf8")).toMatch(/MIT/);
   });
 });

@@ -32,9 +32,15 @@ export function parseTag(
     : undefined;
 }
 
+/** A module's stable manifest URL, the same for every version. */
+export function manifestUrl(id: string): string {
+  if (!ID.test(id)) throw new Error(`"${id}" is not a Modular A/V module id`);
+  return `https://raw.githubusercontent.com/${REPOSITORY}/${MANIFESTS_BRANCH}/${id}/module.json`;
+}
+
 export function releaseUrls(id: string, version: string): ReleaseUrls {
   return {
-    manifest: `https://raw.githubusercontent.com/${REPOSITORY}/${MANIFESTS_BRANCH}/${id}/module.json`,
+    manifest: manifestUrl(id),
     download: `https://github.com/${REPOSITORY}/releases/download/${tagFor(id, version)}/${id}.zip`,
   };
 }
@@ -46,16 +52,19 @@ const isJson = (value: unknown): value is Json =>
 
 const RELATION_KINDS = ["requires", "recommends"] as const;
 
+/** Each family module's version in this workspace, by module id. */
+export type FamilyVersions = Readonly<Record<string, string>>;
+
 /**
  * A family module in a relationship gets its stable manifest URL, so
  * Foundry can install it (nothing is on Foundry's package list); one it
- * requires is required at this version, as releases are lockstep until
- * 1.0 and Foundry's dependency check then means something.
+ * requires is required at the version in the workspace, the one this
+ * release is built and tested with, whatever its own version.
  */
 function familyEntry(
   kind: (typeof RELATION_KINDS)[number],
   entry: unknown,
-  version: string,
+  family: FamilyVersions,
 ): unknown {
   if (!isJson(entry) || typeof entry.id !== "string" || !ID.test(entry.id))
     return entry;
@@ -66,13 +75,15 @@ function familyEntry(
           ? `the manifest of "${entry.id}" is generated: remove it from module.json`
           : `compatibility with "${entry.id}" is generated: remove it from module.json`,
       );
-  const { manifest } = releaseUrls(entry.id, version);
-  return kind === "requires"
-    ? { ...entry, manifest, compatibility: { minimum: version } }
-    : { ...entry, manifest };
+  const manifest = manifestUrl(entry.id);
+  if (kind !== "requires") return { ...entry, manifest };
+  const minimum = family[entry.id];
+  if (minimum === undefined)
+    throw new Error(`"${entry.id}" isn't in this workspace`);
+  return { ...entry, manifest, compatibility: { minimum } };
 }
 
-function familyRelationships(source: Json, version: string): Json {
+function familyRelationships(source: Json, family: FamilyVersions): Json {
   const relationships = source.relationships;
   if (!isJson(relationships)) return source;
   const generated = Object.fromEntries(
@@ -80,7 +91,7 @@ function familyRelationships(source: Json, version: string): Json {
       (kind) => [
         kind,
         (relationships[kind] as unknown[]).map((entry) =>
-          familyEntry(kind, entry, version),
+          familyEntry(kind, entry, family),
         ),
       ],
     ),
@@ -92,11 +103,12 @@ function familyRelationships(source: Json, version: string): Json {
 export function distManifest(
   source: Json,
   version: string,
+  family: FamilyVersions,
   urls?: ReleaseUrls,
 ): Record<string, unknown> {
   for (const field of GENERATED_FIELDS) {
     if (field in source)
       throw new Error(`"${field}" is generated: remove it from module.json`);
   }
-  return { ...familyRelationships(source, version), version, ...urls };
+  return { ...familyRelationships(source, family), version, ...urls };
 }

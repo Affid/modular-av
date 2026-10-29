@@ -13,7 +13,7 @@ import {
 } from "../notices/notices.ts";
 import { workspaceCatalog } from "../release/catalog.ts";
 import { distManifest } from "../release/manifest.ts";
-import { ROOT } from "../workspace.ts";
+import { familyVersions, ROOT } from "../workspace.ts";
 
 const readJson = (path: string): Record<string, unknown> =>
   JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown>;
@@ -45,7 +45,7 @@ function foundryFiles(
       };
       emit(
         "module.json",
-        `${JSON.stringify(distManifest(source, version), null, 2)}\n`,
+        `${JSON.stringify(distManifest(source, version, await familyVersions()), null, 2)}\n`,
       );
       for (const name of readdirSync(join(packageDir, "lang"))) {
         emit(

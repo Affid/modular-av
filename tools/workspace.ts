@@ -49,3 +49,11 @@ export async function listModulePackages(
   );
   return found.flat();
 }
+
+/** Each module's version in the workspace, by module id. */
+export async function familyVersions(
+  root = ROOT,
+): Promise<Readonly<Record<string, string>>> {
+  const modules = await listModulePackages(root);
+  return Object.fromEntries(modules.map((m) => [m.id, m.version]));
+}
