@@ -14,9 +14,8 @@ export interface Observable<T> {
 }
 
 export interface ServiceCapabilities {
-  readonly moderation: boolean;
+  /** It reports who is speaking (`speaking` events). */
   readonly speakingDetection: boolean;
-  readonly simulcast: boolean;
   /**
    * What else this connection offers, named by the service and prefixed
    * with its id, e.g. "livekit-cloud". Effects that need one name it in
@@ -152,10 +151,6 @@ export interface ServiceConnection {
     source: TrackSource,
     options: SubscriptionOptions,
   ): void;
-  readonly moderation?: {
-    forceMute(participant: ParticipantId, source: TrackSource): Promise<void>;
-    remove(participant: ParticipantId): Promise<void>;
-  };
   on<E extends keyof ServiceEvents>(
     event: E,
     handler: ServiceEvents[E],
@@ -188,7 +183,6 @@ export interface ServiceDefinition {
   canSignTokens?(): boolean;
   /** Runs on a GM's client, only when `canSignTokens()` is true. */
   signToken?(request: TokenRequest): Promise<string>;
-  readonly mediaOwnership: "core" | "service";
   /** Lazy: import the service SDK here, not at module load. */
   create(context: ServiceContext): Promise<ServiceConnection>;
 }

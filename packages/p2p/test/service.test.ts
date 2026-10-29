@@ -47,7 +47,6 @@ describe("the P2P service definition", () => {
     expect(service).toMatchObject({
       id: "p2p",
       label: "modular-av-p2p.label",
-      mediaOwnership: "core",
     });
     expect(service.needsToken()).toBe(false);
     expect("signToken" in service).toBe(false);
@@ -69,7 +68,7 @@ describe("the P2P service definition", () => {
     const connection = await service.create({ participant: "alice" });
 
     // Assert
-    expect(connection.capabilities.get().moderation).toBe(false);
+    expect(connection.capabilities.get().speakingDetection).toBe(false);
     expect(created).toEqual([]);
   });
 

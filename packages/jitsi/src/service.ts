@@ -33,7 +33,6 @@ export function createJitsiService(deps: JitsiServiceDeps): ServiceDefinition {
   return {
     id: "jitsi",
     label: `${MODULE_ID}.label`,
-    mediaOwnership: "core",
     needsToken: () => true,
     canSignTokens: () => deps.credentials() !== null && canUseWebCrypto(),
     signToken(request) {

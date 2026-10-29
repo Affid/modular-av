@@ -101,9 +101,7 @@ export function avState(
     service: changes.service ?? {
       id: "mock",
       capabilities: {
-        moderation: false,
         speakingDetection: true,
-        simulcast: true,
       },
     },
   };

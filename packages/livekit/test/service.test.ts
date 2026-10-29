@@ -139,7 +139,6 @@ describe("LiveKit service definition", () => {
     expect(service).toMatchObject({
       id: "livekit",
       label: "modular-av-livekit.label",
-      mediaOwnership: "core",
     });
     expect(service.needsToken()).toBe(true);
   });

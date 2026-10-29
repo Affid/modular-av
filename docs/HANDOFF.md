@@ -323,10 +323,12 @@ character), never from what a service reports, and are always set as text
 **GM authority**: "block audio/video" is Foundry's own
 `permissions.BROADCAST_AUDIO/BROADCAST_VIDEO` on the user (server-stored,
 only GMs can change it; Foundry's own dock writes it). The core enforces it
-in three layers: the token grants no publish right, a service with a
-`moderation` capability is told to mute/remove server-side (LiveKit's
-server API, with the GM-held secret), and every receiving core refuses to
-play or attach media from a blocked player (which is how P2P enforces it).
+in two layers: the token grants no publish right, and every receiving core
+refuses to play or attach media from a blocked player (which is how P2P
+enforces it). A third, server-side layer (a service muting or removing a
+player through its server API) was planned as a `moderation` capability;
+no service offered it and the core never used it, so it was left out of
+the 1.0 API (it can return as an optional member in a minor version).
 
 ### Control plane over Foundry
 
@@ -493,7 +495,6 @@ interface ServiceDefinition {
   needsToken(): boolean; // false: no GM relay, connect() gets null (P2P)
   canSignTokens?(): boolean; // this device holds the GM's secret
   signToken?(request: TokenRequest): Promise<string>; // runs on the GM's client
-  mediaOwnership: "core" | "service"; // "service": the service makes its own tracks
   create(context: ServiceContext): Promise<ServiceConnection>; // lazy: import() the SDK here
 }
 
@@ -519,10 +520,6 @@ interface ServiceConnection {
     source: TrackSource,
     options: { enabled: boolean; maxQuality?: "low" | "medium" | "high" },
   ): void;
-  moderation?: {
-    forceMute(p: ParticipantId, source: TrackSource): Promise<void>;
-    remove(p: ParticipantId): Promise<void>;
-  };
   on<E extends keyof ServiceEvents>(
     event: E,
     handler: ServiceEvents[E],
@@ -615,10 +612,10 @@ Rules that come with these interfaces:
   re-acquire** core tracks. Mute is `track.enabled = false` on the core's
   final track (WebRTC sends silence/black), applied in every connection
   state; `setMuted` only tells the service (signalling, bandwidth).
-- **`mediaOwnership: "service"`** (for a service that can't take outside
-  tracks) shows "this service controls your microphone" and disables the
-  gate and effects for it. No service needs it so far (lib-jitsi-meet
-  takes outside tracks, §16), and the core doesn't implement it yet.
+- **Every service takes the core's tracks.** A `mediaOwnership: "service"`
+  mode (a service making its own tracks, with the gate and effects off)
+  was sketched and never needed (lib-jitsi-meet takes outside tracks,
+  §16): it isn't in the 1.0 API.
 - **Reconnect once**: a service reports `resuming` while its own transport
   recovers (LiveKit does for about a minute); the core starts its backoff
   only on `lost`, with a fresh token each attempt.
@@ -804,7 +801,7 @@ Contract suites in `@modular-av/testing`:
 ├──────────────────────────────────────────────────────────────┤
 │ Credentials and identity                                     │
 │  GM token relay / token server / dev mode; user id identity; │
-│  GM blocks (token rights, moderation, receiver refusal)      │
+│  GM blocks (token rights, receiver refusal)                  │
 ├──────────────────────────────────────────────────────────────┤
 │ Session (service-independent)                                │
 │  Connection state machine (waiting for token, connecting,    │

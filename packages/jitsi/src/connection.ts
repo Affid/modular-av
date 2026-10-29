@@ -43,9 +43,7 @@ export interface JitsiConnectionOptions {
  * one dominant speaker only); no moderation (receivers enforce blocks).
  */
 const CAPABILITIES: ServiceCapabilities = {
-  moderation: false,
   speakingDetection: false,
-  simulcast: true,
   features: [],
 };
 

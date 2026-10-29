@@ -30,9 +30,7 @@ export const DISCOVERY_MS = 1_000;
 export const LOST_AFTER_MS = 30_000;
 
 const CAPABILITIES: ServiceCapabilities = {
-  moderation: false,
   speakingDetection: false,
-  simulcast: false,
 };
 
 const FULL: ServiceError = { code: "full", final: true };

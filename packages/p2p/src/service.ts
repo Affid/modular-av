@@ -43,7 +43,6 @@ export function createP2PService(deps: P2PServiceDeps): ServiceDefinition {
   return {
     id: "p2p",
     label: `${MODULE_ID}.label`,
-    mediaOwnership: "core",
     needsToken: () => false,
     async create(context) {
       const createPeerConnection =

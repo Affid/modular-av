@@ -133,9 +133,7 @@ describe("joining", () => {
     expect(alice.events).toContain("participantJoined bob");
     expect(bob.events).toContain("participantJoined alice");
     expect(alice.connection.capabilities.get()).toEqual({
-      moderation: false,
       speakingDetection: false,
-      simulcast: false,
     });
     expect([alice.errors, bob.errors]).toEqual([[], []]);
   });

@@ -27,7 +27,7 @@ describe("the Jitsi service definition", () => {
   it("joins with GM-relayed tokens and the core's own tracks", () => {
     const service = createJitsiService(deps());
 
-    expect(service).toMatchObject({ id: "jitsi", mediaOwnership: "core" });
+    expect(service).toMatchObject({ id: "jitsi" });
     expect(service.needsToken()).toBe(true);
     expect(service.canSignTokens?.()).toBe(true);
   });

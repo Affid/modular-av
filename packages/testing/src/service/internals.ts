@@ -34,7 +34,6 @@ export interface Member {
 /** What a mock connection may ask of the hub. */
 export interface Hub {
   readonly now: () => number;
-  readonly moderation: boolean;
   readonly updatesTokens: boolean;
   readonly features: readonly string[];
   readonly needsToken: boolean;

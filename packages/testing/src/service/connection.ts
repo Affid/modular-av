@@ -41,9 +41,7 @@ export function createMockConnection(
     hub.recordError(error);
   });
   const base: ServiceCapabilities = {
-    moderation: hub.moderation,
     speakingDetection: true,
-    simulcast: false,
   };
   // Like a server's edition, the features are known once joined.
   let capabilities = base;
@@ -195,21 +193,6 @@ export function createMockConnection(
     setSubscription(target, source, options) {
       hub.setSubscription(participant, target, source, options);
     },
-
-    ...(hub.moderation
-      ? {
-          moderation: {
-            async forceMute(target: ParticipantId, source: TrackSource) {
-              await roundTrip();
-              hub.setMuted(target, source, true);
-            },
-            async remove(target: ParticipantId) {
-              await roundTrip();
-              hub.kick(target);
-            },
-          },
-        }
-      : {}),
 
     ...(hub.updatesTokens
       ? {

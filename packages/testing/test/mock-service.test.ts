@@ -349,33 +349,19 @@ describe("mock service", () => {
     expect(states).toEqual([["disconnected"]]);
   });
 
-  it("offers moderation when asked, and reports capabilities and stats", async () => {
-    const hub = createMockServiceHub({ moderation: true });
-    const gm = await join(hub, "gm");
-    const alice = await join(hub, "alice");
-    const states = record(alice, "state");
-    await alice.publish(createFakeTrack("audio"), "microphone");
-
-    await gm.moderation?.forceMute("alice", "microphone");
-    const mutedBeforeRemoval = hub.isMuted("alice", "microphone");
-    await gm.moderation?.remove("alice");
-
-    expect(gm.capabilities.get().moderation).toBe(true);
-    expect(mutedBeforeRemoval).toBe(true);
-    expect(states).toEqual([["failed", { code: "kicked", final: true }]]);
-    expect(await gm.getStats()).toEqual({ roundTripMs: 20, packetLoss: 0 });
-  });
-
-  it("has no moderation by default", async () => {
+  it("reports its capabilities and stats", async () => {
     const hub = createMockServiceHub();
     const connection = await join(hub, "p1");
     const seen = vi.fn();
 
     connection.capabilities.subscribe(seen);
 
-    expect(connection.moderation).toBeUndefined();
-    expect(connection.capabilities.get().moderation).toBe(false);
+    expect(connection.capabilities.get().speakingDetection).toBe(true);
     expect(seen).not.toHaveBeenCalled();
+    expect(await connection.getStats()).toEqual({
+      roundTripMs: 20,
+      packetLoss: 0,
+    });
   });
 });
 

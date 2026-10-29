@@ -32,7 +32,6 @@ export function createLiveKitService(
   return {
     id: "livekit",
     label: `${MODULE_ID}.label`,
-    mediaOwnership: "core",
     needsToken: () => true,
     canSignTokens: () =>
       deps.settings.credentials() !== null && canUseWebCrypto(),

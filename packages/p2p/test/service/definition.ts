@@ -26,7 +26,6 @@ export const createDefinition: CreateDefinition = (params, secrets) => {
   return {
     id: "p2p",
     label: "P2P",
-    mediaOwnership: "core",
     needsToken: () => false,
     create: (context) =>
       createP2PService({

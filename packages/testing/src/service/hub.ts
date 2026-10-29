@@ -16,8 +16,6 @@ export { MockServiceFailure } from "./internals.ts";
 export interface MockServiceOptions {
   /** Clock for token expiry; defaults to `Date.now`. */
   readonly now?: () => number;
-  /** Whether connections offer GM moderation. */
-  readonly moderation?: boolean;
   /** False: joins with no token and full rights, like a P2P service. */
   readonly needsToken?: boolean;
   /** Reported in the capabilities once connected, e.g. "livekit-cloud". */
@@ -102,7 +100,6 @@ export function createMockServiceHub(
 
   const hub: Hub = {
     now,
-    moderation: options.moderation ?? false,
     updatesTokens: options.updatesTokens ?? true,
     features: options.features ?? [],
     needsToken: options.needsToken ?? true,
@@ -168,7 +165,6 @@ export function createMockServiceHub(
     definition: () => ({
       id: "mock",
       label: "Mock service",
-      mediaOwnership: "core",
       needsToken: () => hub.needsToken,
       signToken: (request) => Promise.resolve(signMockToken(request, now())),
       create: (context) =>

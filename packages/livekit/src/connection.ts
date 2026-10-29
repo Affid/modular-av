@@ -41,9 +41,7 @@ export interface LiveKitConnectionOptions {
 }
 
 const CAPABILITIES: ServiceCapabilities = {
-  moderation: false,
   speakingDetection: true,
-  simulcast: true,
 };
 
 const QUALITIES = {
