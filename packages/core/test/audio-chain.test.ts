@@ -128,7 +128,7 @@ describe("audio chain", () => {
     ]);
   });
 
-  it("starts muted, fails closed, and opens and closes at once", () => {
+  it("starts muted, fails closed, and moves within 5 ms so it doesn't click", () => {
     const capture = createFakeCaptureContext();
     const chain = createAudioChain(capture);
 
@@ -136,7 +136,7 @@ describe("audio chain", () => {
 
     chain.setOpen(true);
     expect(capture.level("mute")?.level).toBe(1);
-    expect(capture.level("mute")?.rampMs).toBe(0);
+    expect(capture.level("mute")?.rampMs).toBe(5);
 
     chain.setOpen(false);
     expect(capture.level("mute")?.level).toBe(0);
@@ -320,8 +320,18 @@ describe("audio chain", () => {
       expect(capture.level("dry:radio")?.level).toBeCloseTo(0.8);
     });
 
-    it("connects the dry branch before cutting the plain link, and back", () => {
+    it("joins at the plain link's level, and fades from there", () => {
+      const { capture, chain } = chained();
+
+      chain.setMix("radio", 0.5);
+
+      expect(capture.level("wet:radio")?.levels).toEqual([1, 0.5]);
+      expect(capture.level("dry:radio")?.levels).toEqual([0, 0.5]);
+    });
+
+    it("connects the dry branch before cutting the plain link, and back after its fade", () => {
       // Arrange
+      vi.useFakeTimers();
       const { capture, chain, radio } = chained();
       const before = capture.graph.log.length;
 
@@ -330,8 +340,14 @@ describe("audio chain", () => {
       const added = capture.graph.log.slice(before);
       const reverted = capture.graph.log.length;
       chain.setMix("radio", 1);
+      const fading = capture.graph.log.length;
+      const wet = capture.level("wet:radio")?.level;
+      vi.advanceTimersByTime(20);
+      vi.useRealTimers();
 
       // Assert
+      expect(fading).toBe(reverted);
+      expect(wet).toBe(1);
       const cut = "-post feed->radio.in";
       expect(added.indexOf(cut)).toBeGreaterThan(
         added.indexOf("+post feed->insert:radio"),
@@ -344,6 +360,32 @@ describe("audio chain", () => {
       if (!feed) throw new Error("no feed");
       expect(capture.graph.feeds(feed, radio.input)).toBe(true);
       expect(capture.level("dry:radio")?.disposed).toBe(true);
+    });
+
+    it("keeps the branch if the mix moves again during that fade", () => {
+      vi.useFakeTimers();
+      const { capture, chain } = chained();
+      chain.setMix("radio", 0.5);
+
+      chain.setMix("radio", 1);
+      vi.advanceTimersByTime(10);
+      chain.setMix("radio", 0.7);
+      vi.advanceTimersByTime(50);
+      vi.useRealTimers();
+
+      expect(capture.level("dry:radio")?.disposed).toBe(false);
+      expect(capture.level("wet:radio")?.level).toBeCloseTo(0.7);
+    });
+
+    it("does nothing for a mix that didn't change", () => {
+      const { capture, chain } = chained();
+      chain.setMix("radio", 0.5);
+      const wet = capture.level("wet:radio");
+      const moves = wet?.levels.length;
+
+      chain.setMix("radio", 0.5);
+
+      expect(wet?.levels.length).toBe(moves);
     });
 
     it("keeps an effect that didn't declare its latency at 100% wet", () => {
@@ -586,6 +628,34 @@ describe("audio chain", () => {
         expect(capture.graph.feeds(reverb.output, back.node)).toBe(false);
         expect(back.disposed).toBe(true);
         expect(gone).toHaveBeenCalledOnce();
+      });
+
+      it("lets a second fade of the same effect finish on its own", async () => {
+        // Arrange: off, on and off again, faster than a fade.
+        const capture = createFakeCaptureContext();
+        const { chain } = await gated(capture);
+        const first = effect(capture, "reverb", "send");
+        chain.setEffects([first]);
+        const firstBack = capture.level("return:reverb");
+        void chain.fade("reverb");
+        chain.setEffects([]);
+        await vi.advanceTimersByTimeAsync(30);
+        const second = effect(capture, "reverb", "send");
+        chain.setEffects([second]);
+        const secondBack = capture.level("return:reverb");
+        void chain.fade("reverb");
+        chain.setEffects([]);
+        if (!firstBack || !secondBack) throw new Error("levels missing");
+
+        // Act: the first fade ends while the second still runs.
+        await vi.advanceTimersByTimeAsync(20);
+
+        // Assert
+        expect(firstBack.disposed).toBe(true);
+        expect(capture.graph.feeds(second.output, secondBack.node)).toBe(true);
+
+        await vi.advanceTimersByTimeAsync(30);
+        expect(capture.graph.feeds(second.output, secondBack.node)).toBe(false);
       });
 
       it("has nothing to fade for an insert", async () => {

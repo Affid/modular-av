@@ -159,6 +159,19 @@ describe("effect host worklet", () => {
     expect(renders).toBe(1000);
   });
 
+  it.each([Number.NaN, Infinity, -1])(
+    "treats a tail of %s as none, so it can't run on silence forever",
+    (tail) => {
+      const h = host("doubler", tail);
+      run(h, sound());
+      renders = 0;
+
+      run(h, silence());
+
+      expect(renders).toBe(0);
+    },
+  );
+
   it("feeds zeros through a tail when the input has no channels", () => {
     const h = host("doubler", 1);
     run(h, sound());

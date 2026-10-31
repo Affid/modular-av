@@ -258,6 +258,51 @@ describe("microphone pipeline", () => {
     expect(capture.gates[0]?.configs).toEqual([GATE, detect]);
   });
 
+  it("tells listeners the gate closed when it breaks while open", async () => {
+    const s = setup();
+    const heard: boolean[] = [];
+    s.mic.onGate((open) => heard.push(open));
+    await s.mic.setInput(createFakeTrack("audio", "mic"));
+    s.capture().gates[0]?.emit(true);
+
+    s.capture().gates[0]?.fail(new Error("processorerror"));
+
+    expect(heard).toEqual([true, false]);
+  });
+
+  it("leaves nothing running if disposed while the context loads", async () => {
+    // Arrange
+    const s = setup();
+    const capture = await s.env.createCaptureContext();
+    let loaded = (): void => undefined;
+    const held = new Promise<void>((resolve) => {
+      loaded = resolve;
+    });
+    const mic = createMicrophone({
+      env: {
+        createEffectHost: () => () => Promise.reject(new Error("unused")),
+        createCaptureContext: async () => {
+          await held;
+          return capture;
+        },
+      },
+      gate: GATE,
+      onChange: vi.fn(),
+      onReplaced: vi.fn(),
+      onError: vi.fn(),
+    });
+
+    // Act
+    const connecting = mic.setInput(createFakeTrack("audio", "mic"));
+    await flush();
+    mic.dispose();
+    loaded();
+    await connecting;
+
+    // Assert
+    expect(capture.level("mute")?.disposed).toBe(true);
+  });
+
   it("keeps the sends open while a broken gate can't drive them", async () => {
     const s = setup();
     await s.mic.setInput(createFakeTrack("audio", "mic"));

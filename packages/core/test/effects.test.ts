@@ -263,6 +263,31 @@ describe("turning effects on and off", () => {
     }).not.toThrow();
   });
 
+  it.each([
+    ["tail", Number.NaN],
+    ["tail", -1],
+    ["tail", Infinity],
+    ["latency", -0.01],
+    ["latency", Number.NaN],
+    ["defaultMix", 2],
+  ])("refuses an effect declaring %s as %s", (field, value) => {
+    expect(() => {
+      validateEffect({ kind: "audio", stage: "send", [field]: value });
+    }).toThrow(field);
+  });
+
+  it("accepts what an effect may declare", () => {
+    expect(() => {
+      validateEffect({
+        kind: "audio",
+        stage: "post",
+        tail: 2.5,
+        latency: 0,
+        defaultMix: 0.3,
+      });
+    }).not.toThrow();
+  });
+
   it("refuses unknown and unsupported effects", async () => {
     const table = createTable();
     const krisp = createFakeAudioEffect("krisp", { supported: false });

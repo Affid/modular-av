@@ -37,8 +37,9 @@ export function createInsertSlot(
 ): InsertSlot {
   const { id, latency = 0 } = effect;
   const input = capture.createLevel(`insert:${id}`, 1);
+  // Joins at the level of the plain link it replaces.
   const dry = capture.createLevel(`dry:${id}`, 0);
-  const wet = capture.createLevel(`wet:${id}`, 0);
+  const wet = capture.createLevel(`wet:${id}`, 1);
   const sum = capture.createLevel(`sum:${id}`, 1);
   const delay =
     latency > 0 ? capture.createDelay(`dry delay:${id}`, latency) : null;

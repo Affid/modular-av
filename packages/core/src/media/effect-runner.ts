@@ -24,9 +24,9 @@ export interface EffectRunnerDeps<D extends RunnableDefinition, T> {
    */
   onRunning(running: readonly Started<T>[]): void;
   /**
-   * The player turned a running effect off; called before `onRunning`. A
-   * promise holds its disposal until the effect faded out. A failed effect
-   * isn't retired: it goes at once.
+   * A running effect is leaving by choice: turned off, or replaced in its
+   * group. Called before `onRunning`. A promise holds its disposal until the
+   * effect faded out. A failed effect isn't retired: it goes at once.
    */
   retire?(id: string): Promise<void> | null;
   onStatus(): void;
@@ -112,6 +112,32 @@ export function createEffectRunner<
     }
   };
 
+  /** Asks each leaving effect to fade, before the chain lets go of it. */
+  const retire = (
+    leaving: readonly { readonly id: string; readonly instance: T }[],
+  ): readonly {
+    readonly instance: T;
+    readonly fading: Promise<void> | null;
+  }[] =>
+    leaving.map(({ id, instance }) => ({
+      instance,
+      fading: deps.retire?.(id) ?? null,
+    }));
+
+  /** Disposes what has nothing to fade now, the rest once it faded. */
+  const release = (
+    retired: readonly {
+      readonly instance: T;
+      readonly fading: Promise<void> | null;
+    }[],
+  ): void => {
+    disposeAll(retired.filter((r) => !r.fading).map((r) => r.instance));
+    for (const { instance, fading } of retired)
+      void fading?.then(() => {
+        disposeAll([instance]);
+      });
+  };
+
   const groupOf = (id: string): string | null => {
     const definition = definitions.find((d) => d.id === id);
     return definition ? deps.group(definition) : null;
@@ -158,8 +184,9 @@ export function createEffectRunner<
       }),
     );
     replaced = new Set([...replaced, ...others.map((o) => o.id)]);
+    const retired = retire(others);
     handOver();
-    disposeAll(others.map((o) => o.instance));
+    release(retired);
     if (others.length > 0) deps.onReplaced(others.map((o) => o.id));
     deps.onStatus();
   };
@@ -216,18 +243,13 @@ export function createEffectRunner<
     setSlots(without(leaving.map(([id]) => id)));
     for (const [, slot] of leaving)
       if (slot.kind === "starting") slot.controller.abort();
-    const instances = leaving.flatMap(([id, slot]) =>
-      slot.kind === "running"
-        ? [{ instance: slot.instance, fading: deps.retire?.(id) ?? null }]
-        : [],
+    const running = leaving.flatMap(([id, slot]) =>
+      slot.kind === "running" ? [{ id, instance: slot.instance }] : [],
     );
-    if (instances.length === 0) return;
+    if (running.length === 0) return;
+    const retired = retire(running);
     handOver();
-    disposeAll(instances.filter((i) => !i.fading).map((i) => i.instance));
-    for (const { instance, fading } of instances)
-      void fading?.then(() => {
-        disposeAll([instance]);
-      });
+    release(retired);
   };
 
   return {

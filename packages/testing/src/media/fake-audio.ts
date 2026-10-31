@@ -65,6 +65,8 @@ export interface FakeSignalProbe {
 export interface FakeLevel {
   readonly node: AudioNode;
   readonly level: number;
+  /** Where it started, then every level it was set to. */
+  readonly levels: readonly number[];
   /** The fade of the last change, 0 for at once. */
   readonly rampMs: number;
   set(level: number, rampMs?: number): void;
@@ -268,6 +270,7 @@ function createFakeLevel(
 ): FakeLevel {
   const node = graph.node(name);
   let level = initial;
+  let levels: readonly number[] = [initial];
   let rampMs = 0;
   let disposed = false;
   let following: FakeLevel["following"] = null;
@@ -276,11 +279,15 @@ function createFakeLevel(
     get level() {
       return level;
     },
+    get levels() {
+      return levels;
+    },
     get rampMs() {
       return rampMs;
     },
     set(next, ramp = 0) {
       level = next;
+      levels = [...levels, next];
       rampMs = ramp;
     },
     follow(control, output = 0) {

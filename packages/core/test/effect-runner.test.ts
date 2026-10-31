@@ -121,7 +121,7 @@ describe("retiring", () => {
     const order: string[] = [];
     let disposed = false;
     const runner = createEffectRunner<RunnableDefinition, Instance>({
-      group: () => null,
+      group: (d) => d.exclusiveGroup ?? null,
       start: (d) =>
         Promise.resolve({
           id: d.id,
@@ -180,6 +180,32 @@ describe("retiring", () => {
 
     r.runner.update(definitions, new Set());
 
+    expect(r.order).toEqual(["retire", "handover", "dispose"]);
+  });
+
+  it("fades out an effect its group's newcomer replaces", async () => {
+    // Arrange
+    let faded = (): void => undefined;
+    const fade = new Promise<void>((resolve) => {
+      faded = resolve;
+    });
+    const r = retiring(fade);
+    const definitions = [
+      definition("reverb", { exclusiveGroup: "space" }),
+      definition("hall", { exclusiveGroup: "space" }),
+    ];
+    r.runner.update(definitions, new Set(["reverb"]));
+    await flush();
+    r.order.length = 0;
+
+    // Act
+    r.runner.update(definitions, new Set(["reverb", "hall"]));
+    await flush();
+
+    // Assert
+    expect(r.order).toEqual(["retire", "handover"]);
+    faded();
+    await flush();
     expect(r.order).toEqual(["retire", "handover", "dispose"]);
   });
 

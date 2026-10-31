@@ -185,6 +185,7 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
   const dropGate = (broken: VoiceGateNode): void => {
     if (gate !== broken) return;
     gate = null;
+    tellGate(false);
     parts?.chain.setGate(null);
     broken.dispose();
     deps.onChange();
@@ -229,6 +230,15 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
     parts.capture.output.enabled = enabled && input !== null;
   };
 
+  const teardown = (old: Parts): void => {
+    old.runner.dispose();
+    for (const watchdog of Object.values(old.watchdogs)) watchdog.dispose();
+    old.chain.dispose();
+    gate?.dispose();
+    gate = null;
+    old.capture.suspend().catch(deps.onError);
+  };
+
   const applyMix = (): void => {
     parts?.chain.setChannelLevel(levels.channel);
     for (const [id, mix] of Object.entries(levels.mix))
@@ -244,7 +254,10 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
       parts = createParts(await deps.env.createCaptureContext());
       applyMix();
     }
-    if (disposed) return;
+    if (disposed) {
+      teardown(parts);
+      return;
+    }
     if (!gate) await loadGate(parts);
     input = track;
     applyEnabled();
@@ -331,13 +344,7 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
     dispose() {
       disposed = true;
       input = null;
-      if (!parts) return;
-      parts.runner.dispose();
-      for (const watchdog of Object.values(parts.watchdogs)) watchdog.dispose();
-      parts.chain.dispose();
-      gate?.dispose();
-      gate = null;
-      parts.capture.suspend().catch(deps.onError);
+      if (parts) teardown(parts);
     },
   };
 }

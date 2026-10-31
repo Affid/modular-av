@@ -45,9 +45,11 @@ class EffectHostProcessor extends AudioWorkletProcessor {
       tail = 0,
       options: kernelOptions,
     } = options?.processorOptions ?? {};
-    this.tailFrames = Math.ceil(tail * sampleRate);
+    // Anything but a length of time would run the kernel on silence for ever
+    this.tailFrames =
+      Number.isFinite(tail) && tail > 0 ? Math.ceil(tail * sampleRate) : 0;
     this.framesLeft = 0;
-    this.zeros = new Float32Array(128);
+    this.zeros = new Float32Array(0);
     this.kernel = null;
     try {
       const Kernel = kernels.get(kernel);
@@ -83,6 +85,8 @@ class EffectHostProcessor extends AudioWorkletProcessor {
     const input = inputs[0]?.[0];
     if (!this.kernel || !output || !this.wanted(input, output.length))
       return true;
+    if (!input && this.zeros.length !== output.length)
+      this.zeros = new Float32Array(output.length);
     try {
       this.kernel.render(input ?? this.zeros, output);
       if (!allFinite(output))

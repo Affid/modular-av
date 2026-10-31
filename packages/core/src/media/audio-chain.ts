@@ -63,8 +63,11 @@ export interface AudioChain {
 }
 
 const PRE_GATE: readonly AudioStage[] = ["denoise", "voice"];
+const INSERTS: readonly AudioStage[] = [...PRE_GATE, "post"];
 
 const FADE_MS = 50;
+/** Keeps a mid-word mute from clicking into the tails. */
+const MUTE_RAMP_MS = 5;
 /** As the gate's own ramps, for browsers where a level can't follow it. */
 const SEND_OPEN_MS = 5;
 const SEND_CLOSE_MS = 50;
@@ -79,7 +82,6 @@ export function orderByStage(
 
 /** A `send` effect on its way out. */
 interface Fading {
-  readonly id: string;
   readonly output: AudioNode;
   readonly back: LevelNode;
   finish(): void;
@@ -92,11 +94,14 @@ export function createAudioChain(capture: CaptureContext): AudioChain {
   let effects: readonly ChainEffect[] = [];
   let gate: AudioNode | null = null;
   let edges: readonly Edge[] = [];
+  let open = false;
   let speaking = false;
   let channelLevel = 1;
   let mixes: ReadonlyMap<string, number> = new Map();
   let returns: ReadonlyMap<string, LevelNode> = new Map();
   let slots: ReadonlyMap<string, InsertSlot> = new Map();
+  /** Set while a slot back at 100% wet fades before it leaves. */
+  let settling: ReturnType<typeof setTimeout> | null = null;
   let fading: readonly Fading[] = [];
   const mute = capture.createLevel("mute", 0);
   const feed = capture.createLevel("post feed", 1);
@@ -181,20 +186,41 @@ export function createAudioChain(capture: CaptureContext): AudioChain {
     );
   };
 
-  /** Brings the dry branches in line, the new path first. */
-  const applySlots = (): void => {
+  /** Replaces the dry branches with `next`, the new path first. */
+  const swapSlots = (next: ReadonlyMap<string, InsertSlot>): void => {
     const before = slots;
-    slots = new Map(
-      inStages([...PRE_GATE, "post"]).flatMap((e) => {
-        const mix = levelOf(e.id);
-        if (mix >= 1 || e.latency === undefined) return [];
-        const slot = before.get(e.id) ?? createInsertSlot(capture, e);
-        slot.setMix(mix);
-        return [[e.id, slot] as const];
-      }),
-    );
+    slots = next;
     rewire();
     for (const [id, slot] of before) if (!slots.has(id)) slot.dispose();
+  };
+
+  const isBelowFull = (id: string): boolean => levelOf(id) < 1;
+
+  /** Drops the slots back at 100% wet: they are plain links again. */
+  const settle = (): void => {
+    if (settling !== null) clearTimeout(settling);
+    settling = null;
+    swapSlots(new Map([...slots].filter(([id]) => isBelowFull(id))));
+  };
+
+  /** A slot leaves only after its fade: dropping it mid-fade would step. */
+  const applySlots = (): void => {
+    swapSlots(
+      new Map(
+        inStages(INSERTS).flatMap((e) => {
+          const known = slots.get(e.id);
+          if (e.latency === undefined) return [];
+          if (!known && !isBelowFull(e.id)) return [];
+          const slot = known ?? createInsertSlot(capture, e);
+          slot.setMix(levelOf(e.id));
+          return [[e.id, slot] as const];
+        }),
+      ),
+    );
+    if (settling !== null) clearTimeout(settling);
+    settling = [...slots.keys()].some((id) => !isBelowFull(id))
+      ? setTimeout(settle, LEVEL_RAMP_MS)
+      : null;
   };
 
   const applySend = (): void => {
@@ -203,8 +229,8 @@ export function createAudioChain(capture: CaptureContext): AudioChain {
       send.follow(gate, GATE_SEND_OUTPUT);
       return;
     }
-    const open = gate === null || speaking;
-    send.set(open ? 1 : 0, open ? SEND_OPEN_MS : SEND_CLOSE_MS);
+    const opening = gate === null || speaking;
+    send.set(opening ? 1 : 0, opening ? SEND_OPEN_MS : SEND_CLOSE_MS);
   };
   applySend();
 
@@ -233,18 +259,22 @@ export function createAudioChain(capture: CaptureContext): AudioChain {
       rewire();
       applySend();
     },
-    setOpen(open) {
-      mute.set(open ? 1 : 0);
+    setOpen(next) {
+      if (next === open) return;
+      open = next;
+      mute.set(open ? 1 : 0, MUTE_RAMP_MS);
     },
     setSpeaking(next) {
       speaking = next;
       if (!capture.canFollow) applySend();
     },
     setChannelLevel(level) {
+      if (level === channelLevel) return;
       channelLevel = level;
       applyChannel();
     },
     setMix(id, mix) {
+      if (mix === mixes.get(id)) return;
       mixes = new Map(mixes).set(id, mix);
       returns.get(id)?.set(mix, LEVEL_RAMP_MS);
       applySlots();
@@ -257,21 +287,28 @@ export function createAudioChain(capture: CaptureContext): AudioChain {
       returns = new Map([...returns].filter(([key]) => key !== id));
       back.set(0, FADE_MS);
       return new Promise((resolve) => {
-        const finish = (): void => {
-          clearTimeout(timer);
-          fading = fading.filter((f) => f.id !== id);
-          rewire();
-          back.dispose();
-          resolve();
+        const entry: Fading = {
+          output: effect.output,
+          back,
+          finish() {
+            clearTimeout(timer);
+            fading = fading.filter((f) => f !== entry);
+            rewire();
+            back.dispose();
+            resolve();
+          },
         };
-        const timer = setTimeout(finish, FADE_MS);
-        fading = [...fading, { id, output: effect.output, back, finish }];
+        const timer = setTimeout(() => {
+          entry.finish();
+        }, FADE_MS);
+        fading = [...fading, entry];
       });
     },
     dispose() {
       const previous = source;
       source = null;
       for (const f of fading) f.finish();
+      if (settling !== null) clearTimeout(settling);
       rewire();
       previous?.disconnect();
       for (const back of returns.values()) back.dispose();
