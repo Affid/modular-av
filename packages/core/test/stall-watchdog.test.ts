@@ -79,7 +79,13 @@ async function running(
   await flush();
   const capture = env.captureContexts[0];
   const effect = made[0];
-  const source = capture?.sources[0]?.node;
+  const sources = {
+    denoise: capture?.sources[0]?.node,
+    voice: capture?.sources[0]?.node,
+    post: capture?.level("post feed")?.node,
+    send: capture?.level("send")?.node,
+  };
+  const source = sources[stage];
   if (!capture || !effect || !source) throw new Error("not running");
   await capture.resume();
   // An effect that isn't watched has no tap: stand-ins keep tests uniform.
@@ -187,8 +193,93 @@ describe("the stall watchdog", () => {
     expect(r.mic.effectStatus("rnnoise").status).toBe("running");
   });
 
-  it("watches only the denoise stage", async () => {
+  it.each(["post", "send"] as const)(
+    "takes out a %s effect that goes silent while sound goes in",
+    async (stage) => {
+      // Arrange
+      const r = await running(stage);
+      r.input.setPeak(SPEECH);
+      r.output.setPeak(0);
+
+      // Act
+      await vi.advanceTimersByTimeAsync(STALL_MS + 300);
+      await flush();
+
+      // Assert
+      expect(r.mic.effectStatus("rnnoise")).toEqual({
+        status: "failed",
+        error: "StalledError",
+      });
+      expect(r.capture.level("channel")?.level).toBe(1);
+    },
+  );
+
+  it.each(["post", "send"] as const)(
+    "leaves a %s effect alone while nothing goes in",
+    async (stage) => {
+      const r = await running(stage);
+      r.input.setPeak(0);
+      r.output.setPeak(0);
+
+      await vi.advanceTimersByTimeAsync(STALL_MS * 3);
+      await flush();
+
+      expect(r.mic.effectStatus("rnnoise").status).toBe("running");
+    },
+  );
+
+  it("waits out a declared tail: a long delay is silent before its first echo", async () => {
+    // Arrange
+    const r = await running("send", { tail: 2 });
+    r.input.setPeak(SPEECH);
+    r.output.setPeak(0);
+
+    // Act
+    await vi.advanceTimersByTimeAsync(STALL_MS + 300);
+    await flush();
+    const during = r.mic.effectStatus("rnnoise").status;
+    await vi.advanceTimersByTimeAsync(2000);
+    await flush();
+
+    // Assert
+    expect(during).toBe("running");
+    expect(r.mic.effectStatus("rnnoise").status).toBe("failed");
+  });
+
+  it.each([
+    ["a non-number", Number.NaN],
+    ["an infinite level", Infinity],
+    ["a level far above full scale", 20],
+  ])("takes out an effect sending %s at once", async (_name, peak) => {
+    // Arrange
+    const r = await running("send");
+    r.input.setPeak(0);
+    r.output.setPeak(peak);
+
+    // Act
+    await vi.advanceTimersByTimeAsync(300);
+    await flush();
+
+    // Assert
+    expect(r.mic.effectStatus("rnnoise")).toEqual({
+      status: "failed",
+      error: "RunawayError",
+    });
+  });
+
+  it("leaves a loud but normal effect alone", async () => {
     const r = await running("post");
+    r.input.setPeak(SPEECH);
+    r.output.setPeak(2);
+
+    await vi.advanceTimersByTimeAsync(STALL_MS * 3);
+    await flush();
+
+    expect(r.mic.effectStatus("rnnoise").status).toBe("running");
+  });
+
+  it("leaves the voice stage alone", async () => {
+    const r = await running("voice");
     r.input.setPeak(SPEECH);
 
     await vi.advanceTimersByTimeAsync(STALL_MS * 3);

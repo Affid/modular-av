@@ -28,6 +28,10 @@ export interface AudioChain {
   setSource(track: MediaStreamTrack | null): void;
   /** The raw microphone's node in the chain. */
   readonly source: AudioNode | null;
+  /** What `post` effects get. */
+  readonly postFeed: AudioNode;
+  /** What `send` effects get. */
+  readonly sendBus: AudioNode;
   /** In the order they run; see `orderByStage`. */
   setEffects(effects: readonly ChainEffect[]): void;
   setGate(gate: AudioNode | null): void;
@@ -186,6 +190,8 @@ export function createAudioChain(capture: CaptureContext): AudioChain {
     get source() {
       return source;
     },
+    postFeed: feed.node,
+    sendBus: send.node,
     setSource(track) {
       const previous = source;
       source = track ? capture.createSource(track) : null;

@@ -1,6 +1,7 @@
 import type {
   AudioEffect,
   AudioEffectDefinition,
+  AudioStage,
   EffectState,
   MeterReading,
 } from "@modular-av/api";
@@ -8,9 +9,14 @@ import {
   createAudioChain,
   orderByStage,
   type AudioChain,
+  type ChainEffect,
 } from "./audio-chain.ts";
 import { createEffectRunner, type EffectRunner } from "./effect-runner.ts";
-import { createStallWatchdog, type StallWatchdog } from "./stall-watchdog.ts";
+import {
+  createStallWatchdog,
+  type StallWatchdog,
+  type WatchedEffect,
+} from "./stall-watchdog.ts";
 import type {
   CaptureContext,
   GateConfig,
@@ -58,8 +64,12 @@ interface Parts {
   readonly capture: CaptureContext;
   readonly chain: AudioChain;
   readonly runner: EffectRunner<AudioEffectDefinition>;
-  readonly watchdog: StallWatchdog;
+  readonly watchdogs: Readonly<Record<WatchedStage, StallWatchdog>>;
 }
+
+/** Each is checked against what it hears, so a watchdog per stage. */
+type WatchedStage = Exclude<AudioStage, "voice">;
+const WATCHED_STAGES: readonly WatchedStage[] = ["denoise", "post", "send"];
 
 const OFF: EffectState = { status: "off", error: null };
 
@@ -91,17 +101,37 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
     gate?.setLevels(levelListeners.length > 0);
   };
 
+  /** Those of `stage` that can't stay silent, as the watchdog wants them. */
+  const watched = (
+    effects: readonly ChainEffect[],
+    stage: WatchedStage,
+  ): readonly WatchedEffect[] =>
+    effects.flatMap((e) => {
+      const definition = definitions.find((d) => d.id === e.id);
+      return e.stage === stage && definition?.silencesNoise !== true
+        ? [{ ...e, graceMs: (definition?.tail ?? 0) * 1000 }]
+        : [];
+    });
+
   const createParts = (capture: CaptureContext): Parts => {
     const chain = createAudioChain(capture);
     // Created before the runner, whose effects it watches.
     let runner: EffectRunner<AudioEffectDefinition> | null = null;
-    const watchdog = createStallWatchdog(
-      capture,
-      (id, error) => {
-        runner?.fail(id, error);
-      },
-      deps.onError,
-    );
+    const watchdog = (): StallWatchdog =>
+      createStallWatchdog(
+        capture,
+        (id, error) => {
+          runner?.fail(id, error);
+        },
+        deps.onError,
+      );
+    const watchdogs = {
+      denoise: watchdog(),
+      post: watchdog(),
+      send: watchdog(),
+    };
+    watchdogs.post.setSource(chain.postFeed);
+    watchdogs.send.setSource(chain.sendBus);
     runner = createEffectRunner<AudioEffectDefinition, AudioEffect>({
       group: (d) => d.exclusiveGroup ?? null,
       start: (d, context) =>
@@ -116,20 +146,15 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
           }),
         );
         chain.setEffects(effects);
-        watchdog.setEffects(
-          effects.filter(
-            (e) =>
-              e.stage === "denoise" &&
-              definitions.find((d) => d.id === e.id)?.silencesNoise !== true,
-          ),
-        );
+        for (const stage of WATCHED_STAGES)
+          watchdogs[stage].setEffects(watched(effects, stage));
       },
       retire: (id) => chain.fade(id),
       onStatus: deps.onChange,
       onReplaced: deps.onReplaced,
       onError: deps.onError,
     });
-    return { capture, chain, runner, watchdog };
+    return { capture, chain, runner, watchdogs };
   };
 
   const dropGate = (broken: VoiceGateNode): void => {
@@ -191,7 +216,7 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
     input = track;
     applyEnabled();
     parts.chain.setSource(track);
-    parts.watchdog.setSource(parts.chain.source);
+    parts.watchdogs.denoise.setSource(parts.chain.source);
     applyEffects();
     // Not awaited: under an autoplay policy, resuming waits for a gesture.
     parts.capture.resume().catch(deps.onError);
@@ -203,7 +228,7 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
     if (!parts) return;
     applyEnabled();
     parts.chain.setSource(null);
-    parts.watchdog.setSource(null);
+    parts.watchdogs.denoise.setSource(null);
     applyEffects();
     parts.capture.suspend().catch(deps.onError);
   };
@@ -261,7 +286,7 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
       input = null;
       if (!parts) return;
       parts.runner.dispose();
-      parts.watchdog.dispose();
+      for (const watchdog of Object.values(parts.watchdogs)) watchdog.dispose();
       parts.chain.dispose();
       gate?.dispose();
       gate = null;

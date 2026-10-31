@@ -67,6 +67,12 @@ export interface AudioEffectDefinition extends EffectDefinitionBase {
    * sends digital silence for 1.5 s of sound out as stalled.
    */
   readonly silencesNoise?: boolean;
+  /**
+   * How long it keeps sounding after its input stops, in seconds. Say so for
+   * a reverb or delay: the core gives it that long before taking its silence
+   * for a stall. The contract checks the number.
+   */
+  readonly tail?: number;
   /** Lazy: import heavy code here, not at module load. */
   create(context: AudioEffectContext): Promise<AudioEffect>;
 }

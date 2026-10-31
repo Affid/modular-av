@@ -151,6 +151,7 @@
       "heavyHint": "This model takes more of your computer and may crackle on a slower computer. If your voice breaks up, choose a lighter one.",
       "errors": {
         "StalledError": "it stopped sending sound",
+        "RunawayError": "its level ran out of control",
         "CompileError": "its files couldn't load",
         "TimeoutError": "it didn't start in time",
         "ProcessorError": "it stopped working",
