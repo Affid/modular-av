@@ -3,6 +3,7 @@ import {
   createFakeVideoEffect,
 } from "@modular-av/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { validateEffect } from "../src/media/audio-stages.ts";
 // Loaded lazily by the core; preloaded so its import resolves within settle().
 import "../src/media/camera.ts";
 import { ALWAYS, captureOf, createTable, type Tab } from "./table.ts";
@@ -152,6 +153,18 @@ describe("turning effects on and off", () => {
     await expect(
       p1.api.commands.setDevice("audioInput", "x".repeat(257)),
     ).rejects.toMatchObject({ code: "invalid-argument" });
+  });
+
+  it("refuses an audio effect in a stage it doesn't know, plainly", () => {
+    expect(() => {
+      validateEffect({ kind: "audio", stage: "master" });
+    }).toThrow('Unknown audio stage "master"');
+    expect(() => {
+      validateEffect({ kind: "audio", stage: "send" });
+    }).not.toThrow();
+    expect(() => {
+      validateEffect({ kind: "video" });
+    }).not.toThrow();
   });
 
   it("refuses unknown and unsupported effects", async () => {

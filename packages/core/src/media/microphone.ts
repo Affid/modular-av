@@ -78,6 +78,7 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
   const tellGate = (open: boolean): void => {
     if (open === gateOpen) return;
     gateOpen = open;
+    parts?.chain.setSpeaking(open);
     for (const { listener } of gateListeners) listener(open);
   };
   let queue: Promise<void> = Promise.resolve();
@@ -123,6 +124,7 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
           ),
         );
       },
+      retire: (id) => chain.fade(id),
       onStatus: deps.onChange,
       onReplaced: deps.onReplaced,
       onError: deps.onError,

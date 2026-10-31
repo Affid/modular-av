@@ -23,6 +23,12 @@ export interface EffectRunnerDeps<D extends RunnableDefinition, T> {
    * effects that left are disposed, so the chain switches over first.
    */
   onRunning(running: readonly Started<T>[]): void;
+  /**
+   * The player turned a running effect off; called before `onRunning`. A
+   * promise holds its disposal until the effect faded out. A failed effect
+   * isn't retired: it goes at once.
+   */
+  retire?(id: string): Promise<void> | null;
   onStatus(): void;
   /** Effects stopped because another of their group now runs. */
   onReplaced(ids: readonly string[]): void;
@@ -210,12 +216,18 @@ export function createEffectRunner<
     setSlots(without(leaving.map(([id]) => id)));
     for (const [, slot] of leaving)
       if (slot.kind === "starting") slot.controller.abort();
-    const instances = leaving.flatMap(([, slot]) =>
-      slot.kind === "running" ? [slot.instance] : [],
+    const instances = leaving.flatMap(([id, slot]) =>
+      slot.kind === "running"
+        ? [{ instance: slot.instance, fading: deps.retire?.(id) ?? null }]
+        : [],
     );
     if (instances.length === 0) return;
     handOver();
-    disposeAll(instances);
+    disposeAll(instances.filter((i) => !i.fading).map((i) => i.instance));
+    for (const { instance, fading } of instances)
+      void fading?.then(() => {
+        disposeAll([instance]);
+      });
   };
 
   return {

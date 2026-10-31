@@ -68,6 +68,12 @@ export interface FakeLevel {
   /** The fade of the last change, 0 for at once. */
   readonly rampMs: number;
   set(level: number, rampMs?: number): void;
+  follow(control: AudioNode | null, output?: number): void;
+  /** What drives it on the audio thread, or null. */
+  readonly following: {
+    readonly node: AudioNode;
+    readonly output: number;
+  } | null;
   dispose(): void;
   readonly disposed: boolean;
 }
@@ -80,6 +86,8 @@ export interface FakeCaptureContext {
   createGate(config: FakeGateConfig): Promise<FakeVoiceGate>;
   createProbe(): FakeSignalProbe;
   createLevel(name: string, level: number): FakeLevel;
+  /** False plays a browser without k-rate gains. */
+  readonly canFollow: boolean;
   readonly running: boolean;
   onRunningChange(listener: (running: boolean) => void): () => void;
   resume(): Promise<void>;
@@ -251,6 +259,7 @@ function createFakeLevel(
   let level = initial;
   let rampMs = 0;
   let disposed = false;
+  let following: FakeLevel["following"] = null;
   return {
     node,
     get level() {
@@ -263,6 +272,14 @@ function createFakeLevel(
       level = next;
       rampMs = ramp;
     },
+    follow(control, output = 0) {
+      following = control ? { node: control, output } : null;
+      level = control ? 0 : 1;
+      rampMs = 0;
+    },
+    get following() {
+      return following;
+    },
     dispose() {
       disposed = true;
       node.disconnect();
@@ -273,7 +290,9 @@ function createFakeLevel(
   };
 }
 
-export function createFakeCaptureContext(): FakeCaptureContext {
+export function createFakeCaptureContext(
+  options: { readonly canFollow?: boolean } = {},
+): FakeCaptureContext {
   const graph = createFakeAudioGraph();
   const destination = graph.node("destination");
   const output = createFakeTrack("audio", "capture output");
@@ -321,6 +340,7 @@ export function createFakeCaptureContext(): FakeCaptureContext {
       levels = new Map(levels).set(name, created);
       return created;
     },
+    canFollow: options.canFollow ?? true,
     get running() {
       return running;
     },

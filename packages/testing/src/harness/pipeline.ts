@@ -124,6 +124,33 @@ const humEffect: AudioEffectDefinition = {
   },
 };
 
+/** A wet-only echo of native nodes, with a tail of a few seconds. */
+const echoEffect: AudioEffectDefinition = {
+  id: "test-echo",
+  kind: "audio",
+  label: "Test echo",
+  stage: "send",
+  cost: "light",
+  isSupported: () => true,
+  create({ audioContext }) {
+    const input = audioContext.createGain();
+    const delay = audioContext.createDelay(1);
+    const feedback = audioContext.createGain();
+    delay.delayTime.value = 0.2;
+    feedback.gain.value = 0.8;
+    input.connect(delay);
+    delay.connect(feedback);
+    feedback.connect(delay);
+    return Promise.resolve({
+      input,
+      output: delay,
+      dispose: () => {
+        for (const node of [input, delay, feedback]) node.disconnect();
+      },
+    });
+  },
+};
+
 /** A denoise effect that sends digital silence, as a stalled model does. */
 const silentEffect: AudioEffectDefinition = {
   id: "test-silent",
@@ -280,6 +307,7 @@ export function installPipeline(
     if (params.get("effects") === "test") {
       api.effects.register(gainEffect);
       api.effects.register(humEffect);
+      api.effects.register(echoEffect);
       api.effects.register(passEffect(() => stalled));
       api.effects.register(failingEffect);
       api.effects.register(silentEffect);

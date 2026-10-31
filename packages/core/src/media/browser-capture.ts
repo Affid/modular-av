@@ -47,8 +47,8 @@ function createGateNode(
 ): VoiceGateNode {
   const node = new AudioWorkletNode(context, GATE_PROCESSOR, {
     numberOfInputs: 1,
-    numberOfOutputs: 1,
-    outputChannelCount: [1],
+    numberOfOutputs: 3,
+    outputChannelCount: [1, 1, 1],
     processorOptions: config,
   });
   let transitions: Listeners<boolean> = [];
@@ -126,6 +126,8 @@ function createProbe(context: AudioContext): SignalProbe {
 function createLevel(context: AudioContext, level: number): LevelNode {
   const node = context.createGain();
   node.gain.value = level;
+  let following: { readonly node: AudioNode; readonly output: number } | null =
+    null;
   return {
     node,
     set(next, rampMs = 0) {
@@ -137,6 +139,13 @@ function createLevel(context: AudioContext, level: number): LevelNode {
       }
       node.gain.setValueAtTime(node.gain.value, now);
       node.gain.linearRampToValueAtTime(next, now + rampMs / 1000);
+    },
+    follow(control, output = 0) {
+      following?.node.disconnect(node.gain, following.output);
+      following = control ? { node: control, output } : null;
+      node.gain.automationRate = control ? "k-rate" : "a-rate";
+      node.gain.value = control ? 0 : 1;
+      control?.connect(node.gain, output);
     },
     dispose() {
       node.disconnect();
@@ -182,6 +191,7 @@ export function createBrowserCaptureContext(
     },
     createProbe: () => createProbe(context),
     createLevel: (_name, level) => createLevel(context, level),
+    canFollow: "automationRate" in AudioParam.prototype,
     get running() {
       return context.state === "running";
     },

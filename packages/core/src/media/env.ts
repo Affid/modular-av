@@ -83,6 +83,11 @@ export interface GateConfig {
   readonly threshold: number;
 }
 
+/** The gate's output that is 1 while it passes any sound, else 0. */
+export const GATE_FEED_OUTPUT = 1;
+/** The gate's output for the sends: fades with speech, down to exactly 0. */
+export const GATE_SEND_OUTPUT = 2;
+
 /** The voice gate worklet (public/worklets/voice-gate.js) in the context. */
 export interface VoiceGateNode {
   readonly node: AudioNode;
@@ -111,6 +116,11 @@ export interface LevelNode {
   readonly node: AudioNode;
   /** 0 to 1. With `rampMs` it fades there, landing exactly on `level`. */
   set(level: number, rampMs?: number): void;
+  /**
+   * Takes its level from `control`'s `output` on the audio thread, at 0
+   * otherwise. Null lets go, at full level. Needs `canFollow`.
+   */
+  follow(control: AudioNode | null, output?: number): void;
   dispose(): void;
 }
 
@@ -130,6 +140,11 @@ export interface CaptureContext {
   createProbe(): SignalProbe;
   /** `name` tells the core's gains apart in tests and traces. */
   createLevel(name: string, level: number): LevelNode;
+  /**
+   * Whether a level can follow a signal and still let native nodes after it
+   * sleep (k-rate gains). Firefox can't: a followed gain keeps them running.
+   */
+  readonly canFollow: boolean;
   /** Whether audio flows; browsers may keep a context suspended. */
   readonly running: boolean;
   onRunningChange(listener: (running: boolean) => void): () => void;

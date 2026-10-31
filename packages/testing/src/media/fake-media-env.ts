@@ -31,6 +31,8 @@ export interface FakeMediaEnvOptions {
   readonly deny?: { readonly audio?: string; readonly video?: string };
   /** Whether frames can be watched (MediaStreamTrackProcessor); default true. */
   readonly watchFrames?: boolean;
+  /** False plays a browser without k-rate gains; default true. */
+  readonly canFollow?: boolean;
   /** What `listDevices` reports; one default device of each kind if absent. */
   readonly devices?: DeviceList;
 }
@@ -269,7 +271,9 @@ export function createFakeMediaEnv(
       };
     },
     createCaptureContext() {
-      const context = createFakeCaptureContext();
+      const context = createFakeCaptureContext({
+        canFollow: options.canFollow ?? true,
+      });
       captureContexts = [...captureContexts, context];
       return Promise.resolve(context);
     },

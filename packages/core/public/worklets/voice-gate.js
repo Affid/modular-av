@@ -13,6 +13,12 @@
  * ramping to digital silence. In "detect" mode it passes everything and only
  * reports, for the speaking indicator and "speaking while muted".
  *
+ * Two more outputs drive gains on the audio thread, so a busy page can't
+ * delay them. Output 1 is 1 while the gate passes any sound, for the feed of
+ * the effects after it. Output 2 follows speech, fading down to exactly 0, for
+ * the sends: in "detect" mode too, as sound below the threshold passes
+ * but doesn't enter them.
+ *
  * Messages in:
  *   { type: "configure", mode?: "gate" | "detect", auto?: boolean,
  *     threshold?: number (dBFS) }
@@ -79,6 +85,7 @@ class VoiceGateProcessor extends AudioWorkletProcessor {
     this.open = false;
     this.holdRemaining = 0;
     this.gain = 0;
+    this.sendLevel = 0;
     this.levels = false;
     this.untilLevel = 0;
 
@@ -192,6 +199,21 @@ class VoiceGateProcessor extends AudioWorkletProcessor {
     if (output.length === 0) this.gain = target;
   }
 
+  /** `gainBefore`: the gain as the block began, so opening never lags it. */
+  writeControls(outputs, gainBefore, length) {
+    const feed = outputs[1]?.[0];
+    if (feed) feed.fill(gainBefore > 0 || this.gain > 0 ? 1 : 0);
+    const sends = outputs[2]?.[0];
+    if (!sends) return;
+    const target = this.open ? 1 : 0;
+    const step = length / ((this.open ? ATTACK_S : RELEASE_S) * sampleRate);
+    this.sendLevel =
+      this.sendLevel < target
+        ? Math.min(this.sendLevel + step, target)
+        : Math.max(this.sendLevel - step, target);
+    sends.fill(this.sendLevel);
+  }
+
   report(db, threshold, wasOpen, seconds) {
     if (this.open !== wasOpen)
       this.port.postMessage({ type: "open", open: this.open });
@@ -215,7 +237,9 @@ class VoiceGateProcessor extends AudioWorkletProcessor {
     const threshold = this.threshold;
     const wasOpen = this.open;
     this.decide(db, threshold, seconds);
+    const gainBefore = this.gain;
     this.write(input, output, length);
+    this.writeControls(outputs, gainBefore, length);
     this.report(db, threshold, wasOpen, seconds);
     return true;
   }

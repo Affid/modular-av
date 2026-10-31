@@ -37,6 +37,7 @@ import {
   DEFAULT_GATE_FALLBACK,
   GATE_FALLBACK_SETTING,
 } from "./media/gate-fallback.ts";
+import { validateEffect } from "./media/audio-stages.ts";
 import { createRegistry } from "./registry.ts";
 import { assetUrl, createChannels } from "./socket.ts";
 import { INITIAL_STATE } from "./state/initial.ts";
@@ -92,7 +93,7 @@ export function installCore(deps: CoreDeps): InstalledCore {
 
   const store = createStore<AVState>(INITIAL_STATE, deps.onError);
   const services = createRegistry<ServiceDefinition>("services");
-  const effects = createRegistry<EffectDefinition>("effects");
+  const effects = createRegistry<EffectDefinition>("effects", validateEffect);
   const surfaces = createRegistry<SurfaceDefinition>(
     "surfaces",
     validateSurface,

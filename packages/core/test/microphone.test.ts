@@ -9,6 +9,7 @@ import {
   createFakeTrack,
   type FakeCaptureContext,
   type FakeMediaEnv,
+  type FakeMediaEnvOptions,
 } from "@modular-av/testing";
 import { describe, expect, it, vi } from "vitest";
 import type { GateConfig } from "../src/media/env.ts";
@@ -67,8 +68,8 @@ interface Setup {
   capture(): FakeCaptureContext;
 }
 
-function setup(): Setup {
-  const env = createFakeMediaEnv();
+function setup(options: FakeMediaEnvOptions = {}): Setup {
+  const env = createFakeMediaEnv(options);
   const changes = vi.fn();
   const errors: unknown[] = [];
   const mic = createMicrophone({
@@ -111,7 +112,9 @@ describe("microphone pipeline", () => {
     expect(capture.graph.edges()).toEqual([
       "source:mic->gate",
       "gate->mute",
-      "mute->destination",
+      "mute->post feed",
+      "post feed->channel",
+      "channel->destination",
     ]);
     expect(capture.gates[0]?.configs).toEqual([GATE]);
     expect(s.changes).toHaveBeenCalled();
@@ -127,7 +130,13 @@ describe("microphone pipeline", () => {
     expect(s.mic.output).toBe(output);
     expect(s.env.captureContexts).toHaveLength(1);
     expect(new Set(s.capture().graph.edges())).toEqual(
-      new Set(["gate->mute", "mute->destination", "source:headset->gate"]),
+      new Set([
+        "gate->mute",
+        "mute->post feed",
+        "post feed->channel",
+        "channel->destination",
+        "source:headset->gate",
+      ]),
     );
   });
 
@@ -171,7 +180,12 @@ describe("microphone pipeline", () => {
     await mic.setInput(createFakeTrack("audio", "mic2"));
 
     expect(open).toBe(false);
-    expect(edges).toEqual(["source:mic->mute", "mute->destination"]);
+    expect(edges).toEqual([
+      "source:mic->mute",
+      "mute->post feed",
+      "post feed->channel",
+      "channel->destination",
+    ]);
     expect(s.errors).toHaveLength(1);
     expect(mic.gateRunning).toBe(true);
   });
@@ -186,7 +200,12 @@ describe("microphone pipeline", () => {
     expect(s.mic.gateRunning).toBe(false);
     expect(s.capture().gates[0]?.disposed).toBe(true);
     expect(new Set(s.capture().graph.edges())).toEqual(
-      new Set(["source:mic->mute", "mute->destination"]),
+      new Set([
+        "source:mic->mute",
+        "mute->post feed",
+        "post feed->channel",
+        "channel->destination",
+      ]),
     );
     expect(s.changes).toHaveBeenCalled();
   });
@@ -236,6 +255,66 @@ describe("microphone pipeline", () => {
     await loading;
 
     expect(capture.gates[0]?.configs).toEqual([GATE, detect]);
+  });
+
+  it("keeps the sends open while a broken gate can't drive them", async () => {
+    const s = setup();
+    await s.mic.setInput(createFakeTrack("audio", "mic"));
+
+    s.capture().gates[0]?.fail(new Error("processorerror"));
+
+    expect(s.capture().level("send")?.following).toBeNull();
+    expect(s.capture().level("send")?.level).toBe(1);
+    expect(s.capture().level("post feed")?.level).toBe(1);
+  });
+
+  it("without k-rate gains, moves the sends on the gate's messages", async () => {
+    const s = setup({ canFollow: false });
+    await s.mic.setInput(createFakeTrack("audio", "mic"));
+    const send = s.capture().level("send");
+    const closed = send?.level;
+
+    s.capture().gates[0]?.emit(true);
+    const open = send?.level;
+    s.capture().gates[0]?.emit(false);
+
+    expect([closed, open, send?.level]).toEqual([0, 1, 0]);
+  });
+
+  it("fades a send effect the player turned off, then disposes it", async () => {
+    // Arrange
+    vi.useFakeTimers();
+    const s = setup();
+    const reverb = fakeEffect("reverb", { stage: "send" });
+    await s.mic.setInput(createFakeTrack("audio", "mic"));
+    s.mic.setEffects([reverb.definition], new Set(["reverb"]));
+    await vi.advanceTimersByTimeAsync(0);
+    const instance = reverb.instances[0];
+
+    // Act
+    s.mic.setEffects([reverb.definition], new Set());
+    const during = instance?.disposed;
+    await vi.advanceTimersByTimeAsync(60);
+
+    // Assert
+    expect(s.mic.effectStatus("reverb").status).toBe("off");
+    expect(during).toBe(false);
+    expect(instance?.disposed).toBe(true);
+    vi.useRealTimers();
+  });
+
+  it("cuts a failed send effect at once, and carries the voice on the dry path", async () => {
+    const s = setup();
+    const reverb = fakeEffect("reverb", { stage: "send" });
+    await s.mic.setInput(createFakeTrack("audio", "mic"));
+    s.mic.setEffects([reverb.definition], new Set(["reverb"]));
+    await flush();
+
+    reverb.contexts[0]?.fail(new Error("broken"));
+
+    expect(reverb.instances[0]?.disposed).toBe(true);
+    expect(s.capture().level("return:reverb")?.disposed).toBe(true);
+    expect(s.capture().level("channel")?.level).toBe(1);
   });
 
   it("closes mute along with the output, so effects after the gate hear nothing", async () => {
@@ -371,7 +450,9 @@ describe("microphone pipeline", () => {
     expect(s.capture().graph.edges()).toEqual([
       "source:mic->gate",
       "gate->mute",
-      "mute->destination",
+      "mute->post feed",
+      "post feed->channel",
+      "channel->destination",
     ]);
   });
 

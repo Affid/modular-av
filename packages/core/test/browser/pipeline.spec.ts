@@ -65,15 +65,46 @@ test("a microphone effect joins the chain without changing the sent track", asyn
   expect((await published(page)).microphone?.id).toBe(before);
 });
 
-test("a post effect runs after the voice gate: it keeps sounding while the gate is closed", async ({
-  page,
-}) => {
-  // Arrange: the fake microphone beeps once a second, so the gate closes
-  // between beeps, and only sound after the gate reaches the service.
+const record = (page: Page, ms: number) =>
+  page.evaluate((duration) => {
+    const pipeline = window.harness?.pipeline;
+    if (!pipeline) throw new Error("no pipeline");
+    return pipeline.record("microphone", duration);
+  }, ms);
+
+/** Longer than the gate's hold and fade. */
+const GATE_CLOSES_MS = 500;
+/** Exact zeros for this long mean the chain sent nothing: 200 ms. */
+const SILENCE_SAMPLES = 9600;
+
+/** The fake microphone is always between -60 and 0 dBFS: a test picks. */
+async function setGate(page: Page, threshold: number): Promise<void> {
+  await page.evaluate(async (level) => {
+    const api = window.harness?.client.game.modules.get("modular-av")?.api as
+      | {
+          commands: {
+            setInputSensitivity(sensitivity: {
+              auto: boolean;
+              threshold: number;
+            }): Promise<void>;
+          };
+        }
+      | undefined;
+    await api?.commands.setInputSensitivity({ auto: false, threshold: level });
+  }, threshold);
+}
+const openGate = (page: Page): Promise<void> => setGate(page, -60);
+const closeGate = async (page: Page): Promise<void> => {
+  await setGate(page, 0);
+  await page.waitForTimeout(GATE_CLOSES_MS);
+};
+
+async function openVoiceActivity(page: Page): Promise<void> {
   await openPipeline(page);
   await expect
     .poll(() => published(page).then((p) => p.microphone))
     .toBeTruthy();
+  await openGate(page);
   await page.evaluate(async () => {
     const api = window.harness?.client.game.modules.get("modular-av")?.api as
       | { commands: { setVoiceMode(mode: "activity"): Promise<void> } }
@@ -83,21 +114,62 @@ test("a post effect runs after the voice gate: it keeps sounding while the gate 
   await expect
     .poll(() => state(page).then((s) => s.local.voiceMode))
     .toBe("activity");
+}
+
+const isRunning = (page: Page, id: string) =>
+  expect
+    .poll(() => state(page).then((s) => s.local.effects[id]?.status))
+    .toBe("running");
+
+test("a post effect runs after the voice gate: it keeps sounding while the gate is closed", async ({
+  page,
+}) => {
+  // Arrange
+  await openVoiceActivity(page);
+  await closeGate(page);
+  const dry = await record(page, 1000);
 
   // Act
   await setEffect(page, "test-hum", true);
-  await expect
-    .poll(() => state(page).then((s) => s.local.effects["test-hum"]?.status))
-    .toBe("running");
-  const recording = await page.evaluate(() => {
-    const pipeline = window.harness?.pipeline;
-    if (!pipeline) throw new Error("no pipeline");
-    return pipeline.record("microphone", 2500);
-  });
+  await isRunning(page, "test-hum");
+  const hummed = await record(page, 1000);
 
-  // Assert: the gate's digital silence is gone: the hum fills it.
-  expect(recording.samples).toBeGreaterThan(0);
-  expect(recording.longestZeroRun).toBeLessThan(2048);
+  // Assert: only what comes after the gate fills its digital silence.
+  expect(dry.longestZeroRun).toBeGreaterThan(SILENCE_SAMPLES);
+  expect(hummed.longestZeroRun).toBeLessThan(2048);
+});
+
+test("a send effect's tail outlives the gate, and turning it off leaves the voice", async ({
+  page,
+}) => {
+  // Arrange
+  await openVoiceActivity(page);
+  await closeGate(page);
+  const dry = await record(page, 1000);
+
+  // Act: speech enters the effect, then the gate closes on its tail.
+  await setEffect(page, "test-echo", true);
+  await isRunning(page, "test-echo");
+  await openGate(page);
+  await page.waitForTimeout(1000);
+  await closeGate(page);
+  const tail = await record(page, 1000);
+  await setEffect(page, "test-echo", false);
+  await expect
+    .poll(() => state(page).then((s) => s.local.effects["test-echo"]?.status))
+    .toBe("off");
+  await page.waitForTimeout(100);
+  const after = await record(page, 1000);
+  await openGate(page);
+  await page.waitForTimeout(100);
+  const voice = await record(page, 1000);
+
+  // Assert
+  expect(dry.longestZeroRun).toBeGreaterThan(SILENCE_SAMPLES);
+  expect(tail.longestZeroRun).toBeLessThan(2048);
+  expect(tail.peak).toBeGreaterThan(0.01);
+  expect(after.longestZeroRun).toBeGreaterThan(SILENCE_SAMPLES);
+  expect(voice.peak).toBeGreaterThan(0.01);
 });
 
 test("a camera effect fails closed: only its frames go out, and none while it stalls", async ({

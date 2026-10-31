@@ -565,7 +565,7 @@ interface AudioEffectDefinition {
   id: string; // "rnnoise"
   kind: "audio";
   label: string;
-  stage: "denoise" | "voice" | "post"; // order: denoise → voice → gate → post
+  stage: "denoise" | "voice" | "post" | "send"; // docs/voice-routing.md
   exclusiveGroup?: string; // "noise-suppression": one running per group
   cost: "light" | "medium" | "heavy"; // shown to players
   isSupported(): boolean;
@@ -1137,8 +1137,8 @@ Foundry 14.369, Chromium from Playwright 1.64, livekit-server 1.13.8):
 
 - **The pipeline as built**: microphone → capture context (one 48 kHz
   `AudioContext`, suspended without a microphone) → `denoise`, `voice` →
-  voice gate worklet → mute → `post` (`docs/voice-routing.md`) → one
-  output track, the same for the whole session
+  voice gate worklet → mute → `post` → Channel level, with `send` effects
+  beside it (`docs/voice-routing.md`) → one output track, the same for the whole session
   whatever devices and effects do, so the service never gets
   `replaceTrack` for audio. Swaps connect the new path before cutting the
   old one; a new effect replaces the running one of its group only once it

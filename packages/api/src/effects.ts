@@ -8,8 +8,14 @@
  * Audio order: denoise → voice → the core's voice gate → post. A `post`
  * effect may ring on after the gate closes, but must not make sound of its
  * own: it only hears what the gate passes.
+ *
+ * A `send` effect runs beside the voice, in an FX channel of its own: it
+ * hears a copy taken after `post`, must output wet signal only, and its
+ * output goes straight to the output bus. Use it for what adds to the voice
+ * (reverb, delay); use `post` when later effects must hear the result or
+ * when the effect must be able to replace the voice.
  */
-export type AudioStage = "denoise" | "voice" | "post";
+export type AudioStage = "denoise" | "voice" | "post" | "send";
 
 /** Shown to players, so they can pick what their machine can run. */
 export type EffectCost = "light" | "medium" | "heavy";

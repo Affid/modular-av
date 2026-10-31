@@ -116,6 +116,86 @@ function createHarness(): Harness {
 
 const wanted = (...ids: string[]): ReadonlySet<string> => new Set(ids);
 
+describe("retiring", () => {
+  const retiring = (fade: Promise<void> | null) => {
+    const order: string[] = [];
+    let disposed = false;
+    const runner = createEffectRunner<RunnableDefinition, Instance>({
+      group: () => null,
+      start: (d) =>
+        Promise.resolve({
+          id: d.id,
+          disposed: false,
+          dispose() {
+            order.push("dispose");
+            disposed = true;
+          },
+        }),
+      retire() {
+        order.push("retire");
+        return fade;
+      },
+      onRunning() {
+        order.push("handover");
+      },
+      onStatus: vi.fn(),
+      onReplaced: vi.fn(),
+      onError: vi.fn(),
+    });
+    return { runner, order, isDisposed: () => disposed };
+  };
+  const flush = async (): Promise<void> => {
+    for (let i = 0; i < 5; i += 1) await Promise.resolve();
+  };
+
+  it("holds an effect the player turned off until it faded out", async () => {
+    // Arrange
+    let faded = (): void => undefined;
+    const fade = new Promise<void>((resolve) => {
+      faded = resolve;
+    });
+    const r = retiring(fade);
+    const definitions = [definition("reverb")];
+    r.runner.update(definitions, new Set(["reverb"]));
+    await flush();
+    r.order.length = 0;
+
+    // Act
+    r.runner.update(definitions, new Set());
+
+    // Assert
+    expect(r.order).toEqual(["retire", "handover"]);
+    expect(r.isDisposed()).toBe(false);
+    faded();
+    await flush();
+    expect(r.isDisposed()).toBe(true);
+  });
+
+  it("disposes at once when there is nothing to fade", async () => {
+    const r = retiring(null);
+    const definitions = [definition("radio")];
+    r.runner.update(definitions, new Set(["radio"]));
+    await flush();
+    r.order.length = 0;
+
+    r.runner.update(definitions, new Set());
+
+    expect(r.order).toEqual(["retire", "handover", "dispose"]);
+  });
+
+  it("never retires an effect that failed: it goes at once", async () => {
+    const r = retiring(new Promise(() => undefined));
+    const definitions = [definition("reverb")];
+    r.runner.update(definitions, new Set(["reverb"]));
+    await flush();
+    r.order.length = 0;
+
+    r.runner.fail("reverb", new Error("broken"));
+
+    expect(r.order).toEqual(["handover", "dispose"]);
+  });
+});
+
 describe("effect runner", () => {
   it("starts wanted effects and reports starting, then running", async () => {
     // Arrange
