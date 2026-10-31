@@ -110,7 +110,8 @@ describe("microphone pipeline", () => {
     expect(s.mic.gateRunning).toBe(true);
     expect(capture.graph.edges()).toEqual([
       "source:mic->gate",
-      "gate->destination",
+      "gate->mute",
+      "mute->destination",
     ]);
     expect(capture.gates[0]?.configs).toEqual([GATE]);
     expect(s.changes).toHaveBeenCalled();
@@ -125,10 +126,9 @@ describe("microphone pipeline", () => {
 
     expect(s.mic.output).toBe(output);
     expect(s.env.captureContexts).toHaveLength(1);
-    expect(s.capture().graph.edges()).toEqual([
-      "gate->destination",
-      "source:headset->gate",
-    ]);
+    expect(new Set(s.capture().graph.edges())).toEqual(
+      new Set(["gate->mute", "mute->destination", "source:headset->gate"]),
+    );
   });
 
   it("sends nothing and suspends the context without a device", async () => {
@@ -171,7 +171,7 @@ describe("microphone pipeline", () => {
     await mic.setInput(createFakeTrack("audio", "mic2"));
 
     expect(open).toBe(false);
-    expect(edges).toEqual(["source:mic->destination"]);
+    expect(edges).toEqual(["source:mic->mute", "mute->destination"]);
     expect(s.errors).toHaveLength(1);
     expect(mic.gateRunning).toBe(true);
   });
@@ -185,7 +185,9 @@ describe("microphone pipeline", () => {
 
     expect(s.mic.gateRunning).toBe(false);
     expect(s.capture().gates[0]?.disposed).toBe(true);
-    expect(s.capture().graph.edges()).toEqual(["source:mic->destination"]);
+    expect(new Set(s.capture().graph.edges())).toEqual(
+      new Set(["source:mic->mute", "mute->destination"]),
+    );
     expect(s.changes).toHaveBeenCalled();
   });
 
@@ -234,6 +236,25 @@ describe("microphone pipeline", () => {
     await loading;
 
     expect(capture.gates[0]?.configs).toEqual([GATE, detect]);
+  });
+
+  it("closes mute along with the output, so effects after the gate hear nothing", async () => {
+    // Arrange
+    const s = setup();
+    await s.mic.setInput(createFakeTrack("audio", "mic"));
+    const mute = s.capture().level("mute");
+
+    // Act
+    const before = mute?.level;
+    s.mic.setEnabled(true);
+    const enabled = mute?.level;
+    s.mic.setEnabled(false);
+    const disabled = mute?.level;
+    s.mic.setEnabled(true);
+    await s.mic.setInput(null);
+
+    // Assert
+    expect([before, enabled, disabled, mute?.level]).toEqual([0, 1, 0, 0]);
   });
 
   it("keeps the output disabled until enabled, and without a device", async () => {
@@ -349,7 +370,8 @@ describe("microphone pipeline", () => {
     });
     expect(s.capture().graph.edges()).toEqual([
       "source:mic->gate",
-      "gate->destination",
+      "gate->mute",
+      "mute->destination",
     ]);
   });
 

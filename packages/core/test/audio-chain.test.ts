@@ -23,7 +23,7 @@ function effect(
 }
 
 describe("audio chain", () => {
-  it("wires source, effects and gate to the destination in order", async () => {
+  it("wires source, pre-gate effects, gate and mute to the destination", async () => {
     // Arrange
     const capture = createFakeCaptureContext();
     const chain = createAudioChain(capture);
@@ -39,12 +39,101 @@ describe("audio chain", () => {
     chain.setGate(gate.node);
 
     // Assert
-    expect(capture.graph.edges()).toEqual([
-      "rnnoise.in->rnnoise.out",
-      "source:mic->rnnoise.in",
-      "rnnoise.out->gate",
-      "gate->destination",
+    expect(new Set(capture.graph.edges())).toEqual(
+      new Set([
+        "rnnoise.in->rnnoise.out",
+        "source:mic->rnnoise.in",
+        "rnnoise.out->gate",
+        "gate->mute",
+        "mute->destination",
+      ]),
+    );
+  });
+
+  it("runs denoise and voice effects before the gate, post effects after it and after mute", async () => {
+    // Arrange
+    const capture = createFakeCaptureContext();
+    const chain = createAudioChain(capture);
+    const gate = await capture.createGate({
+      mode: "gate",
+      auto: true,
+      threshold: -50,
+    });
+    const denoise = effect(capture, "rnnoise", "denoise");
+    const voice = effect(capture, "pitch", "voice");
+    const post = effect(capture, "radio", "post");
+
+    // Act
+    chain.setSource(createFakeTrack("audio", "mic"));
+    chain.setGate(gate.node);
+    chain.setEffects(orderByStage([post, voice, denoise]));
+
+    // Assert
+    const { graph, destination, sources } = capture;
+    const source = sources[0]?.node;
+    const mute = capture.level("mute")?.node;
+    if (!source || !mute) throw new Error("no source or mute");
+    expect(graph.feeds(source, denoise.input)).toBe(true);
+    expect(graph.feeds(denoise.output, voice.input)).toBe(true);
+    expect(graph.feeds(voice.output, gate.node)).toBe(true);
+    expect(graph.feeds(gate.node, mute)).toBe(true);
+    expect(graph.feeds(mute, post.input)).toBe(true);
+    expect(graph.feeds(post.output, destination)).toBe(true);
+  });
+
+  it("keeps post effects after mute with no gate running", () => {
+    const capture = createFakeCaptureContext();
+    const chain = createAudioChain(capture);
+
+    chain.setSource(createFakeTrack("audio", "mic"));
+    chain.setEffects([effect(capture, "radio", "post")]);
+
+    expect(new Set(capture.graph.edges())).toEqual(
+      new Set([
+        "radio.in->radio.out",
+        "source:mic->mute",
+        "mute->radio.in",
+        "radio.out->destination",
+      ]),
+    );
+  });
+
+  it("connects the new path first when the gate joins ahead of post effects", async () => {
+    // Arrange
+    const capture = createFakeCaptureContext();
+    const chain = createAudioChain(capture);
+    chain.setSource(createFakeTrack("audio", "mic"));
+    chain.setEffects([effect(capture, "radio", "post")]);
+    const gate = await capture.createGate({
+      mode: "detect",
+      auto: true,
+      threshold: -50,
+    });
+    const before = capture.graph.log.length;
+
+    // Act
+    chain.setGate(gate.node);
+
+    // Assert
+    expect(capture.graph.log.slice(before)).toEqual([
+      "+source:mic->gate",
+      "+gate->mute",
+      "-source:mic->mute",
     ]);
+  });
+
+  it("starts muted, fails closed, and opens and closes at once", () => {
+    const capture = createFakeCaptureContext();
+    const chain = createAudioChain(capture);
+
+    expect(capture.level("mute")?.level).toBe(0);
+
+    chain.setOpen(true);
+    expect(capture.level("mute")?.level).toBe(1);
+    expect(capture.level("mute")?.rampMs).toBe(0);
+
+    chain.setOpen(false);
+    expect(capture.level("mute")?.level).toBe(0);
   });
 
   it("sends nothing without a source", () => {
@@ -56,13 +145,16 @@ describe("audio chain", () => {
     expect(capture.graph.edges()).toEqual([]);
   });
 
-  it("goes straight to the destination with no effect and no gate", () => {
+  it("goes through mute alone with no effect and no gate", () => {
     const capture = createFakeCaptureContext();
     const chain = createAudioChain(capture);
 
     chain.setSource(createFakeTrack("audio", "mic"));
 
-    expect(capture.graph.edges()).toEqual(["source:mic->destination"]);
+    expect(capture.graph.edges()).toEqual([
+      "source:mic->mute",
+      "mute->destination",
+    ]);
   });
 
   it("swaps effects connecting the new path before cutting the old one", () => {
@@ -83,11 +175,11 @@ describe("audio chain", () => {
     expect(steps).toEqual([
       "+b.in->b.out",
       "+source:mic->b.in",
-      "+b.out->destination",
+      "+b.out->mute",
       "-source:mic->a.in",
-      "-a.out->destination",
+      "-a.out->mute",
     ]);
-    expect(capture.graph.edges()).not.toContain("source:mic->destination");
+    expect(capture.graph.edges()).not.toContain("source:mic->mute");
     expect(capture.graph.reaches(source, capture.destination)).toBe(true);
   });
 
@@ -100,12 +192,12 @@ describe("audio chain", () => {
     chain.setSource(createFakeTrack("audio", "headset"));
 
     expect(capture.graph.log.slice(before)).toEqual([
-      "+source:headset->destination",
-      "-source:usb->destination",
+      "+source:headset->mute",
+      "-source:usb->mute",
     ]);
   });
 
-  it("keeps the gate last when effects come and go", async () => {
+  it("keeps the gate after pre-gate effects when they come and go", async () => {
     const capture = createFakeCaptureContext();
     const chain = createAudioChain(capture);
     const gate = await capture.createGate({
@@ -120,11 +212,14 @@ describe("audio chain", () => {
     chain.setEffects([]);
 
     // a.in->a.out is the effect's own wiring.
-    expect(capture.graph.edges()).toEqual([
-      "gate->destination",
-      "a.in->a.out",
-      "source:mic->gate",
-    ]);
+    expect(new Set(capture.graph.edges())).toEqual(
+      new Set([
+        "gate->mute",
+        "mute->destination",
+        "a.in->a.out",
+        "source:mic->gate",
+      ]),
+    );
   });
 
   it("disconnects everything it made once disposed", async () => {

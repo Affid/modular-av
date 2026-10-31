@@ -4,7 +4,11 @@
  * their effect; the core only turns effects on and off and chains them.
  */
 
-/** Audio order: denoise → voice → post → the core's voice gate. */
+/**
+ * Audio order: denoise → voice → the core's voice gate → post. A `post`
+ * effect may ring on after the gate closes, but must not make sound of its
+ * own: it only hears what the gate passes.
+ */
 export type AudioStage = "denoise" | "voice" | "post";
 
 /** Shown to players, so they can pick what their machine can run. */

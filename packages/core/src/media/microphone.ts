@@ -30,8 +30,8 @@ export interface MicrophoneDeps {
 
 /**
  * The microphone's processing: one capture context, created with the first
- * device, whose output track is sent for as long as a device is in. The
- * gate always runs last; if it can't, audio goes through ungated.
+ * device, whose output track is sent for as long as a device is in. If the
+ * gate can't run, audio goes through ungated.
  */
 export interface Microphone {
   /** The raw device track, or null; calls apply in order. */
@@ -172,7 +172,10 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
 
   /** Fail closed: no device, no audio, whatever was enabled before. */
   const applyEnabled = (): void => {
-    if (parts) parts.capture.output.enabled = enabled && input !== null;
+    if (!parts) return;
+    const open = enabled && input !== null;
+    parts.chain.setOpen(open);
+    parts.capture.output.enabled = open;
   };
 
   const applyEffects = (): void => {

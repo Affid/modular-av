@@ -65,6 +65,41 @@ test("a microphone effect joins the chain without changing the sent track", asyn
   expect((await published(page)).microphone?.id).toBe(before);
 });
 
+test("a post effect runs after the voice gate: it keeps sounding while the gate is closed", async ({
+  page,
+}) => {
+  // Arrange: the fake microphone beeps once a second, so the gate closes
+  // between beeps, and only sound after the gate reaches the service.
+  await openPipeline(page);
+  await expect
+    .poll(() => published(page).then((p) => p.microphone))
+    .toBeTruthy();
+  await page.evaluate(async () => {
+    const api = window.harness?.client.game.modules.get("modular-av")?.api as
+      | { commands: { setVoiceMode(mode: "activity"): Promise<void> } }
+      | undefined;
+    await api?.commands.setVoiceMode("activity");
+  });
+  await expect
+    .poll(() => state(page).then((s) => s.local.voiceMode))
+    .toBe("activity");
+
+  // Act
+  await setEffect(page, "test-hum", true);
+  await expect
+    .poll(() => state(page).then((s) => s.local.effects["test-hum"]?.status))
+    .toBe("running");
+  const recording = await page.evaluate(() => {
+    const pipeline = window.harness?.pipeline;
+    if (!pipeline) throw new Error("no pipeline");
+    return pipeline.record("microphone", 2500);
+  });
+
+  // Assert: the gate's digital silence is gone: the hum fills it.
+  expect(recording.samples).toBeGreaterThan(0);
+  expect(recording.longestZeroRun).toBeLessThan(2048);
+});
+
 test("a camera effect fails closed: only its frames go out, and none while it stalls", async ({
   page,
 }) => {

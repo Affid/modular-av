@@ -2,6 +2,7 @@ import type {
   CaptureContext,
   GateConfig,
   GateLevel,
+  LevelNode,
   SignalProbe,
   VoiceGateNode,
 } from "./env.ts";
@@ -122,6 +123,27 @@ function createProbe(context: AudioContext): SignalProbe {
   };
 }
 
+function createLevel(context: AudioContext, level: number): LevelNode {
+  const node = context.createGain();
+  node.gain.value = level;
+  return {
+    node,
+    set(next, rampMs = 0) {
+      const now = context.currentTime;
+      node.gain.cancelScheduledValues(now);
+      if (rampMs === 0) {
+        node.gain.value = next;
+        return;
+      }
+      node.gain.setValueAtTime(node.gain.value, now);
+      node.gain.linearRampToValueAtTime(next, now + rampMs / 1000);
+    },
+    dispose() {
+      node.disconnect();
+    },
+  };
+}
+
 /** The real capture context; `workletUrl` resolves a file in `public/`. */
 export function createBrowserCaptureContext(
   workletUrl: (path: string) => string,
@@ -159,6 +181,7 @@ export function createBrowserCaptureContext(
       return createGateNode(context, config);
     },
     createProbe: () => createProbe(context),
+    createLevel: (_name, level) => createLevel(context, level),
     get running() {
       return context.state === "running";
     },

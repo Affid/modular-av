@@ -10,9 +10,10 @@ export interface ChainEffect {
 }
 
 /**
- * The microphone chain in the capture context: source → effects by stage →
- * gate → destination. Every change connects the new path before cutting the
- * old one, in one task, so audio neither stops nor skips an effect.
+ * The microphone chain in the capture context (docs/voice-routing.md):
+ * source → denoise, voice → gate → mute → post → destination. Every change
+ * connects the new path before cutting the old one, in one task, so audio
+ * neither stops nor skips an effect.
  */
 export interface AudioChain {
   /** The raw microphone, or null for none. */
@@ -22,6 +23,8 @@ export interface AudioChain {
   /** In the order they run; see `orderByStage`. */
   setEffects(effects: readonly ChainEffect[]): void;
   setGate(gate: AudioNode | null): void;
+  /** Whether the voice may go on past the gate; closed until told. */
+  setOpen(open: boolean): void;
   dispose(): void;
 }
 
@@ -40,6 +43,8 @@ interface Link {
   readonly output: AudioNode;
 }
 
+const AFTER_GATE: ReadonlySet<AudioStage> = new Set(["post"]);
+
 const same = (a: Edge, b: Edge): boolean => a[0] === b[0] && a[1] === b[1];
 
 export function createAudioChain(capture: CaptureContext): AudioChain {
@@ -47,14 +52,17 @@ export function createAudioChain(capture: CaptureContext): AudioChain {
   let effects: readonly ChainEffect[] = [];
   let gate: AudioNode | null = null;
   let edges: readonly Edge[] = [];
+  const mute = capture.createLevel("mute", 0);
 
   const wanted = (): readonly Edge[] => {
     if (!source) return [];
     const node = (n: AudioNode): Link => ({ input: n, output: n });
     const links: readonly Link[] = [
       node(source),
-      ...effects,
+      ...effects.filter((e) => !AFTER_GATE.has(e.stage)),
       ...(gate ? [node(gate)] : []),
+      node(mute.node),
+      ...effects.filter((e) => AFTER_GATE.has(e.stage)),
       node(capture.destination),
     ];
     return links.flatMap((link, i) => {
@@ -90,11 +98,15 @@ export function createAudioChain(capture: CaptureContext): AudioChain {
       gate = next;
       rewire();
     },
+    setOpen(open) {
+      mute.set(open ? 1 : 0);
+    },
     dispose() {
       const previous = source;
       source = null;
       rewire();
       previous?.disconnect();
+      mute.dispose();
     },
   };
 }

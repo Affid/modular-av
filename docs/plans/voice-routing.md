@@ -52,7 +52,7 @@ convolver, real time; main thread busy for 0, 80 or 200 ms at a time, with
 | Behind a plain gain at 0                |              | about 0              |
 | NaN through an analyser                 | reads as NaN | reads as NaN         |
 
-A block is 2.7 ms, so 78 blocks is about 2 s of a speech start lost.
+A block is 2.7 ms, so 78 blocks is about 0.2 s of a speech start lost.
 Firefox's whole browser was measured, Chromium's renderer.
 
 What this decides:

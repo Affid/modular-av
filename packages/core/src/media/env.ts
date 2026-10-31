@@ -106,6 +106,14 @@ export interface SignalProbe {
   dispose(): void;
 }
 
+/** A gain the core owns in the capture context. */
+export interface LevelNode {
+  readonly node: AudioNode;
+  /** 0 to 1. With `rampMs` it fades there, landing exactly on `level`. */
+  set(level: number, rampMs?: number): void;
+  dispose(): void;
+}
+
 /**
  * The core's one capture `AudioContext` (48 kHz) and the end of the
  * microphone chain. Its output track is the microphone the service gets:
@@ -120,6 +128,8 @@ export interface CaptureContext {
   createSource(track: MediaStreamTrack): AudioNode;
   createGate(config: GateConfig): Promise<VoiceGateNode>;
   createProbe(): SignalProbe;
+  /** `name` tells the core's gains apart in tests and traces. */
+  createLevel(name: string, level: number): LevelNode;
   /** Whether audio flows; browsers may keep a context suspended. */
   readonly running: boolean;
   onRunningChange(listener: (running: boolean) => void): () => void;

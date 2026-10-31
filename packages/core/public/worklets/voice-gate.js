@@ -1,6 +1,6 @@
 /* global AudioWorkletProcessor, registerProcessor, sampleRate */
 /**
- * The core's voice gate, the last stage of the microphone chain.
+ * The core's voice gate, between the pre-gate and post-gate effects.
  *
  * It decides whether the player is speaking: the level is above a threshold
  * that is either fixed or follows the background noise, sitting a fixed

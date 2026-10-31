@@ -98,6 +98,32 @@ const gainEffect: AudioEffectDefinition = {
   },
 };
 
+/** Adds a hum of its own, so a recording shows where in the chain it sits. */
+const humEffect: AudioEffectDefinition = {
+  id: "test-hum",
+  kind: "audio",
+  label: "Test hum",
+  stage: "post",
+  cost: "light",
+  isSupported: () => true,
+  create({ audioContext }) {
+    const node = audioContext.createGain();
+    const hum = audioContext.createConstantSource();
+    hum.offset.value = 0.1;
+    hum.connect(node);
+    hum.start();
+    return Promise.resolve({
+      input: node,
+      output: node,
+      dispose: () => {
+        hum.stop();
+        hum.disconnect();
+        node.disconnect();
+      },
+    });
+  },
+};
+
 /** A denoise effect that sends digital silence, as a stalled model does. */
 const silentEffect: AudioEffectDefinition = {
   id: "test-silent",
@@ -253,6 +279,7 @@ export function installPipeline(
       api.services.register(recordingService(hub.definition(), published));
     if (params.get("effects") === "test") {
       api.effects.register(gainEffect);
+      api.effects.register(humEffect);
       api.effects.register(passEffect(() => stalled));
       api.effects.register(failingEffect);
       api.effects.register(silentEffect);

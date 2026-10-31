@@ -61,6 +61,17 @@ export interface FakeSignalProbe {
   readonly disposed: boolean;
 }
 
+/** One of the core's own gains; tests read what it was set to. */
+export interface FakeLevel {
+  readonly node: AudioNode;
+  readonly level: number;
+  /** The fade of the last change, 0 for at once. */
+  readonly rampMs: number;
+  set(level: number, rampMs?: number): void;
+  dispose(): void;
+  readonly disposed: boolean;
+}
+
 export interface FakeCaptureContext {
   readonly audioContext: AudioContext;
   readonly output: MediaStreamTrack;
@@ -68,6 +79,7 @@ export interface FakeCaptureContext {
   createSource(track: MediaStreamTrack): AudioNode;
   createGate(config: FakeGateConfig): Promise<FakeVoiceGate>;
   createProbe(): FakeSignalProbe;
+  createLevel(name: string, level: number): FakeLevel;
   readonly running: boolean;
   onRunningChange(listener: (running: boolean) => void): () => void;
   resume(): Promise<void>;
@@ -76,6 +88,8 @@ export interface FakeCaptureContext {
   readonly graph: FakeAudioGraph;
   readonly gates: readonly FakeVoiceGate[];
   readonly probes: readonly FakeSignalProbe[];
+  /** The gain made under `name`, the latest if several were. */
+  level(name: string): FakeLevel | undefined;
   /** The probe `node` is connected to, if any. */
   probeFedBy(node: AudioNode): FakeSignalProbe | undefined;
   /** The source node made for each microphone track, in order. */
@@ -228,6 +242,37 @@ function createFakeProbe(graph: FakeAudioGraph): FakeSignalProbe {
   };
 }
 
+function createFakeLevel(
+  graph: FakeAudioGraph,
+  name: string,
+  initial: number,
+): FakeLevel {
+  const node = graph.node(name);
+  let level = initial;
+  let rampMs = 0;
+  let disposed = false;
+  return {
+    node,
+    get level() {
+      return level;
+    },
+    get rampMs() {
+      return rampMs;
+    },
+    set(next, ramp = 0) {
+      level = next;
+      rampMs = ramp;
+    },
+    dispose() {
+      disposed = true;
+      node.disconnect();
+    },
+    get disposed() {
+      return disposed;
+    },
+  };
+}
+
 export function createFakeCaptureContext(): FakeCaptureContext {
   const graph = createFakeAudioGraph();
   const destination = graph.node("destination");
@@ -238,6 +283,7 @@ export function createFakeCaptureContext(): FakeCaptureContext {
   } as unknown as AudioContext;
   let gates: readonly FakeVoiceGate[] = [];
   let probes: readonly FakeSignalProbe[] = [];
+  let levels: ReadonlyMap<string, FakeLevel> = new Map();
   let sources: readonly { track: MediaStreamTrack; node: AudioNode }[] = [];
   let gateError: Error | null = null;
   let running = false;
@@ -270,6 +316,11 @@ export function createFakeCaptureContext(): FakeCaptureContext {
       probes = [...probes, probe];
       return probe;
     },
+    createLevel(name, level) {
+      const created = createFakeLevel(graph, name, level);
+      levels = new Map(levels).set(name, created);
+      return created;
+    },
     get running() {
       return running;
     },
@@ -294,6 +345,7 @@ export function createFakeCaptureContext(): FakeCaptureContext {
     get probes() {
       return probes;
     },
+    level: (name) => levels.get(name),
     probeFedBy: (node) =>
       probes.find((p) => !p.disposed && graph.feeds(node, p.node)),
     get sources() {

@@ -565,7 +565,7 @@ interface AudioEffectDefinition {
   id: string; // "rnnoise"
   kind: "audio";
   label: string;
-  stage: "denoise" | "voice" | "post"; // order: denoise → voice → post → gate
+  stage: "denoise" | "voice" | "post"; // order: denoise → voice → gate → post
   exclusiveGroup?: string; // "noise-suppression": one running per group
   cost: "light" | "medium" | "heavy"; // shown to players
   isSupported(): boolean;
@@ -811,7 +811,7 @@ Contract suites in `@modular-av/testing`:
 │  reconnect policy                                            │
 ├──────────────────────────────────────────────────────────────┤
 │ Local media pipeline + audio playback (service-independent)  │
-│  mic → denoise → voice → post → gate → final track → service │
+│  mic → denoise → voice → gate → post → final track → service │
 │  camera → video effect (watchdog) → final track → service    │
 │  remote audio → elements (Web Audio only above 100%) → sink  │
 └──────────────────────────────────────────────────────────────┘
@@ -1136,8 +1136,9 @@ Verified while building and testing the media pipeline (core only,
 Foundry 14.369, Chromium from Playwright 1.64, livekit-server 1.13.8):
 
 - **The pipeline as built**: microphone → capture context (one 48 kHz
-  `AudioContext`, suspended without a microphone) → effects by stage →
-  voice gate worklet → one output track, the same for the whole session
+  `AudioContext`, suspended without a microphone) → `denoise`, `voice` →
+  voice gate worklet → mute → `post` (`docs/voice-routing.md`) → one
+  output track, the same for the whole session
   whatever devices and effects do, so the service never gets
   `replaceTrack` for audio. Swaps connect the new path before cutting the
   old one; a new effect replaces the running one of its group only once it
