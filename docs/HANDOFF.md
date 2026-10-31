@@ -2176,3 +2176,31 @@ Verified while rebuilding "Plan your modules" as a signal chain
 - **A tab asked for while the settings window is open** goes to the
   open window (`SettingsHost.onTabRequest`), which switches tabs and
   keeps what is drafted: closing and reopening it would lose the draft.
+
+## 23. Findings from the voice channel routing
+
+Verified while building `docs/voice-routing.md`
+(`docs/plans/voice-routing.md`, which has the measurements; Chromium 156,
+Firefox 157):
+
+- **Gate control**: a message from the worklet to the main thread lost up
+  to 82 blocks (0.2 s) of a speech start on a busy page; a gain following
+  the worklet's output on the audio thread lost none, in both browsers.
+- **Firefox and sleep**: it has no k-rate `automationRate`, and a gain
+  following a signal never lets a native node after it sleep, even at 0.
+  A plain gain at 0 does. So its post feed stays open and its sends follow
+  the gate's message.
+- **`canHear`**: `facts.entry(id).muted` is the listener's own mute of
+  someone. A sender's mute reaches the others as Foundry activity
+  (`project.ts`), and playback doesn't act on it, so a tail after mute
+  needed no change on receivers. Their own `canBroadcast` block does stop
+  playback.
+- **Analysers**: NaN goes through one and reads as NaN, so `peak()` reports
+  it; `peak <= limit` is false for NaN, which is what the watchdog relies
+  on. A probe doesn't keep a native node awake.
+- **Chrome's fake microphone** isn't silent between beeps: a faint noise
+  stays, and the gate's automatic threshold learns to open on it. Browser
+  specs that need a closed gate set a fixed threshold.
+- **The core's entry budget** went from 110,000 to 116,000 bytes for the
+  routing's settings and tail hold, in the entry because state and
+  commands need them; 114,611 used. Nothing large was left to split off.

@@ -131,13 +131,14 @@ const echoEffect: AudioEffectDefinition = {
   label: "Test echo",
   stage: "send",
   cost: "light",
+  tail: 4.5,
   isSupported: () => true,
   create({ audioContext }) {
     const input = audioContext.createGain();
     const delay = audioContext.createDelay(1);
     const feedback = audioContext.createGain();
     delay.delayTime.value = 0.2;
-    feedback.gain.value = 0.8;
+    feedback.gain.value = 0.7;
     input.connect(delay);
     delay.connect(feedback);
     feedback.connect(delay);
@@ -182,11 +183,64 @@ function hostedEffect(id: string, kernel: string): AudioEffectDefinition {
     label: id,
     stage: "send",
     cost: "light",
-    tail: 1,
+    tail: 2,
     isSupported: () => true,
     create: ({ host }) => host({ module: kernelsUrl(), name: kernel }),
   };
 }
+
+/** What a worklet effect looks like when it works on every block. */
+const BUSY_WORKLET = `
+registerProcessor("test-busy", class extends AudioWorkletProcessor {
+  process() {
+    let sum = 0;
+    for (let i = 0; i < 50000; i++) sum += Math.sqrt(i);
+    this.sum = sum;
+    return true;
+  }
+});
+`;
+
+/** Breaks the tail effects contract: costs too much on silence. */
+const busyEffect: AudioEffectDefinition = {
+  id: "test-bad-busy",
+  kind: "audio",
+  label: "Test busy",
+  stage: "send",
+  cost: "light",
+  isSupported: () => true,
+  async create({ audioContext }) {
+    await audioContext.audioWorklet.addModule(
+      URL.createObjectURL(
+        new Blob([BUSY_WORKLET], { type: "text/javascript" }),
+      ),
+    );
+    const node = new AudioWorkletNode(audioContext, "test-busy");
+    return {
+      input: node,
+      output: node,
+      dispose: () => {
+        node.disconnect();
+      },
+    };
+  },
+};
+
+/** Breaks it too: a send effect that passes the voice on, doubling it. */
+const leakyEffect: AudioEffectDefinition = {
+  ...gainEffect,
+  id: "test-bad-leaky",
+  label: "Test leaky",
+  stage: "send",
+};
+
+/** Breaks it too: a long echo that declares no tail. */
+const liarEffect: AudioEffectDefinition = {
+  ...echoEffect,
+  id: "test-bad-liar",
+  label: "Test liar",
+  tail: 0,
+};
 
 /** A denoise effect that sends digital silence, as a stalled model does. */
 const silentEffect: AudioEffectDefinition = {
@@ -347,6 +401,8 @@ export function installPipeline(
       api.effects.register(echoEffect);
       api.effects.register(hostedEffect("test-hosted", "test-comb"));
       api.effects.register(hostedEffect("test-hosted-broken", "test-broken"));
+      for (const effect of [busyEffect, leakyEffect, liarEffect])
+        api.effects.register(effect);
       api.effects.register(passEffect(() => stalled));
       api.effects.register(failingEffect);
       api.effects.register(silentEffect);

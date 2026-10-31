@@ -184,7 +184,7 @@ test("a hosted effect rings on after the gate, then the core stops calling it", 
   // Act
   await closeGate(page);
   const tail = await record(page, 400);
-  await page.waitForTimeout(1200);
+  await page.waitForTimeout(1800);
   const done = await record(page, 1000);
 
   // Assert: past its declared tail it is cut to digital silence.
@@ -209,7 +209,7 @@ test("a tail rings out after mute, then the output closes", async ({
     await api?.commands.setMuted(true);
   });
   const tail = await record(page, 300);
-  await page.waitForTimeout(1200);
+  await page.waitForTimeout(2000);
   const closed = await record(page, 500);
 
   // Assert
