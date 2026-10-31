@@ -221,6 +221,20 @@ describe("effect places", () => {
     ).rejects.toMatchObject({ code });
   });
 
+  it("keeps the state as it is when a refresh finds nothing new", async () => {
+    const table = createTable();
+    table.join("gm", { secret: true });
+    const reverb = createFakeAudioEffect("reverb", { defaultPlace: "send" });
+    const p1 = table.join("p1", { av: ALWAYS, effects: [reverb.definition] });
+    await p1.api.commands.setEffectOrder("send", ["reverb"]);
+    await table.settle();
+    const before = p1.api.state.get();
+
+    p1.core.controller().refresh();
+
+    expect(p1.api.state.get()).toBe(before);
+  });
+
   it("falls back to the defaults for what is saved wrong", async () => {
     const reverb = createFakeAudioEffect("reverb", { defaultPlace: "send" });
     const table = createTable();
