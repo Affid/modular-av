@@ -16,7 +16,9 @@ with `pnpm verify` and at least one commit.
 - Channel level may go to 0. If no FX channel is running with a Return
   level above 0, it acts as full.
 - Mute is a fixed core part right after the gate, not an effect.
-- `send` joins `AudioStage` before the freeze, after the real-time spike.
+- `send` joins the API before the freeze, after the real-time spike.
+- The stage names below are the ones of phases 0 to 7: phase 8 replaced them
+  with places.
 - An effect's `mix` is one number, 0 to 1: dry:wet for an insert, the
   Return level for a send.
 - Tails ring out on mute, deafen and push to talk release, at most 3 s,
@@ -128,6 +130,41 @@ What this decides:
   `send` effects.
 - Test effects covering them, including one that must fail.
 - Final pass over `docs/HANDOFF.md`, READMEs and the diagram page.
+
+### 8. Places
+
+Added on 2026-10-31, after the owner pointed out that `denoise` and `voice`
+are one place and that a slot belongs to the mixer, not to the effect. `voice`
+was reserved for voice changers from the first effects commit, and nothing
+ever shipped in it.
+
+- `AudioPlace`: `pre-gate`, `post-gate`, `send`. It replaces `AudioStage`, and
+  `defaultPlace` replaces `stage`: the effect suggests, the core places. The
+  two pre-gate stages merge, so a breaking rename, cheap only before the
+  freeze.
+- Order inside a place: the player's, and noise suppression first by default.
+
+### 9. The core owns placement
+
+- `commands.setEffectPlace`, `commands.setEffectOrder`, saved per device,
+  `LocalState.effectPlaces`, `LocalState.effectOrder`. No dock controls: a
+  module such as advanced-audio builds that UI on the commands.
+- A running effect moves without restarting, the new path connected first.
+- An effect runs in one place at a time. Two copies stay out of scope.
+- What depended on the declared stage reads the current place: the mix, the
+  tail hold (a tail ahead of Mute can't ring out), the watchdogs.
+- All of pre-gate is watched. An effect behind one that `silencesNoise` isn't,
+  as it may hear exact zeros, and one stall is blamed on the first silent
+  effect of the chain, not on everything behind it.
+- Nothing is refused for sounding bad. A reverb ahead of the gate holds the
+  gate open, and a UI should warn; the core doesn't stop it.
+
+### 10. One rule for every effect
+
+- An effect outputs only its processed signal, and the core adds the dry.
+- The contract's dry check runs on anything with a `tail` as well as on what
+  defaults to `send`, as those are the effects a player will put on a send.
+- Final pass over the docs and the diagram page.
 
 ## Testing
 
