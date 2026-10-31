@@ -27,7 +27,7 @@ const isLevel = (value: unknown): value is number =>
 
 /** A `send` effect has its Return level; an insert needs its latency. */
 export const hasMix = (definition: AudioEffectDefinition): boolean =>
-  definition.stage === "send" || definition.latency !== undefined;
+  definition.defaultPlace === "send" || definition.latency !== undefined;
 
 const savedMix = (game: FoundryGame): Readonly<Record<string, unknown>> => {
   const value: unknown = game.settings.get(MODULE_ID, EFFECT_MIX_SETTING);

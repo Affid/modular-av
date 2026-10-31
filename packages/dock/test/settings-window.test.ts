@@ -132,7 +132,9 @@ describe("the settings window's Call tab", () => {
 });
 
 describe("the settings window's Voice tab", () => {
-  const reverb = createFakeAudioEffect("reverb", { stage: "send" }).definition;
+  const reverb = createFakeAudioEffect("reverb", {
+    defaultPlace: "send",
+  }).definition;
   const withMix = (local: Partial<LocalState>): Parameters<typeof open>[0] => ({
     state: avState({ participants: [me], local }),
   });

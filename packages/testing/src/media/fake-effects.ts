@@ -2,7 +2,7 @@ import type {
   AudioEffect,
   AudioEffectContext,
   AudioEffectDefinition,
-  AudioStage,
+  AudioPlace,
   EffectContext,
   VideoEffect,
   VideoEffectDefinition,
@@ -29,7 +29,7 @@ export interface FakeAudioEffect {
 /** An audio effect made of one gain node of the capture context. */
 export function createFakeAudioEffect(
   id: string,
-  options: FakeEffectOptions & { readonly stage?: AudioStage } = {},
+  options: FakeEffectOptions & { readonly defaultPlace?: AudioPlace } = {},
 ): FakeAudioEffect {
   let instances: readonly FakeAudioEffectInstance[] = [];
   let contexts: readonly AudioEffectContext[] = [];
@@ -37,7 +37,7 @@ export function createFakeAudioEffect(
     id,
     kind: "audio",
     label: id,
-    stage: options.stage ?? "denoise",
+    defaultPlace: options.defaultPlace ?? "pre-gate",
     ...(options.exclusiveGroup
       ? { exclusiveGroup: options.exclusiveGroup }
       : {}),

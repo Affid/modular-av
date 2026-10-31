@@ -9,7 +9,7 @@ import type {} from "../harness/types.ts";
 
 /**
  * What the core can't check at runtime, for effects after the voice gate:
- * the browser tier's contract for `post` and `send` effects, on top of
+ * the browser tier's contract for effects after the gate, on top of
  * `effectContract`. Rendered offline, so a busy machine doesn't decide it.
  */
 export interface TailEffectContractOptions {
@@ -53,7 +53,7 @@ interface Render {
 }
 
 interface Declared {
-  readonly stage: string;
+  readonly place: string;
   readonly tail: number;
   readonly latency: number;
 }
@@ -133,7 +133,7 @@ async function install(page: Page): Promise<void> {
           AudioEffectDefinition | undefined;
         if (!found) throw new Error(`no effect ${id}`);
         return {
-          stage: found.stage,
+          place: found.defaultPlace,
           tail: found.tail ?? 0,
           latency: found.latency ?? 0,
         };
@@ -260,8 +260,8 @@ export function tailEffectContract(options: TailEffectContractOptions): void {
 
       test(`${id} outputs no dry signal if it is a send`, async ({ page }) => {
         await openEffects(page, query);
-        const { stage } = await definitionOf(page, id);
-        test.skip(stage !== "send", "only a send must be wet only");
+        const { place } = await definitionOf(page, id);
+        test.skip(place !== "send", "only a send must be wet only");
 
         expect(await directPeak(page, id)).toBeLessThanOrEqual(DRY_LEAK);
       });

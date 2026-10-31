@@ -1,11 +1,14 @@
-import type { AudioStage } from "@modular-av/api";
+import type { AudioPlace } from "@modular-av/api";
 
-export const AUDIO_STAGES: readonly AudioStage[] = [
-  "denoise",
-  "voice",
-  "post",
+/** In the order they run. */
+export const AUDIO_PLACES: readonly AudioPlace[] = [
+  "pre-gate",
+  "post-gate",
   "send",
 ];
+
+/** Its effects replace the browser's noise suppression and run first. */
+export const NOISE_SUPPRESSION_GROUP = "noise-suppression";
 
 const isDuration = (value: unknown): boolean =>
   value === undefined ||
@@ -16,20 +19,20 @@ const isLevel = (value: unknown): boolean =>
   (typeof value === "number" && value >= 0 && value <= 1);
 
 /**
- * Refuses what would silently never run, or run for ever: a stage this core
+ * Refuses what would silently never run, or run for ever: a place this core
  * doesn't know, or a tail that isn't a length of time.
  */
 export function validateEffect(definition: unknown): void {
-  const { kind, stage, tail, latency, defaultMix } = definition as {
+  const { kind, defaultPlace, tail, latency, defaultMix } = definition as {
     readonly kind?: unknown;
-    readonly stage?: unknown;
+    readonly defaultPlace?: unknown;
     readonly tail?: unknown;
     readonly latency?: unknown;
     readonly defaultMix?: unknown;
   };
   if (kind !== "audio") return;
-  if (!AUDIO_STAGES.includes(stage as AudioStage))
-    throw new Error(`Unknown audio stage "${String(stage)}"`);
+  if (!AUDIO_PLACES.includes(defaultPlace as AudioPlace))
+    throw new Error(`Unknown audio place "${String(defaultPlace)}"`);
   if (!isDuration(tail)) throw new Error("tail must be seconds, 0 or more");
   if (!isDuration(latency))
     throw new Error("latency must be seconds, 0 or more");

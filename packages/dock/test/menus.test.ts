@@ -377,7 +377,7 @@ describe("quick controls", () => {
         id,
         kind: "audio",
         label: id,
-        stage: "denoise",
+        defaultPlace: "pre-gate",
         exclusiveGroup: "noise-suppression",
         cost: "light",
         isSupported: () => true,

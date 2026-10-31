@@ -16,7 +16,7 @@ describe("fake effects", () => {
     // Arrange
     const capture = createFakeCaptureContext();
     const fake = createFakeAudioEffect("rnnoise", {
-      stage: "voice",
+      defaultPlace: "pre-gate",
       exclusiveGroup: "noise-suppression",
     });
 
@@ -32,7 +32,7 @@ describe("fake effects", () => {
     expect(fake.definition).toMatchObject({
       id: "rnnoise",
       kind: "audio",
-      stage: "voice",
+      defaultPlace: "pre-gate",
       exclusiveGroup: "noise-suppression",
     });
     expect(capture.graph.labelOf(effect.input)).toBe("gain");

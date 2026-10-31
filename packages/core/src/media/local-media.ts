@@ -8,6 +8,7 @@ import type {
   VideoEffectDefinition,
 } from "@modular-av/api";
 import { errorName } from "../errors.ts";
+import { NOISE_SUPPRESSION_GROUP } from "./audio-places.ts";
 import {
   type Captured,
   captureDevice,
@@ -18,9 +19,6 @@ import type { GateConfig, MediaEnv } from "./env.ts";
 import type { VoiceLevels } from "./levels.ts";
 import { createLocalVideo } from "./local-video.ts";
 import type { Microphone } from "./microphone.ts";
-
-/** Effects in this group replace the browser's own noise suppression. */
-export const NOISE_SUPPRESSION_GROUP = "noise-suppression";
 
 /** A device id, or null to capture nothing of that kind. */
 export interface DeviceChoice {

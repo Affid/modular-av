@@ -1,5 +1,5 @@
-import type { AudioStage } from "@modular-av/api";
-import { AUDIO_STAGES } from "./audio-stages.ts";
+import type { AudioPlace } from "@modular-av/api";
+import { AUDIO_PLACES } from "./audio-places.ts";
 import {
   createInsertSlot,
   LEVEL_RAMP_MS,
@@ -17,7 +17,7 @@ import {
 /** A running audio effect, as the chain wires it. */
 export interface ChainEffect {
   readonly id: string;
-  readonly stage: AudioStage;
+  readonly place: AudioPlace;
   readonly input: AudioNode;
   readonly output: AudioNode;
   /** Seconds, if declared: an insert may then have a dry branch. */
@@ -26,9 +26,9 @@ export interface ChainEffect {
 
 /**
  * The microphone chain in the capture context (docs/voice-routing.md):
- * source → denoise, voice → gate → mute → post feed → post → Channel level →
- * destination, and after `post` a copy → Send on/off → one FX channel per
- * `send` effect → its Return level → destination. An insert below 100% wet
+ * source → pre-gate → gate → mute → post feed → post-gate → Channel level →
+ * destination, and after post-gate a copy → Send on/off → one FX channel per
+ * effect on a send → its Return level → destination. An insert below 100% wet
  * has a dry branch of its own (`insert-slot.ts`). Every change connects the
  * new path before cutting the old one, in one task, so audio neither stops
  * nor skips an effect.
@@ -38,11 +38,11 @@ export interface AudioChain {
   setSource(track: MediaStreamTrack | null): void;
   /** The raw microphone's node in the chain. */
   readonly source: AudioNode | null;
-  /** What `post` effects get. */
+  /** What post-gate effects get. */
   readonly postFeed: AudioNode;
-  /** What `send` effects get. */
+  /** What effects on a send get. */
   readonly sendBus: AudioNode;
-  /** In the order they run; see `orderByStage`. */
+  /** In the order they run; see `orderByPlace`. */
   setEffects(effects: readonly ChainEffect[]): void;
   setGate(gate: AudioNode | null): void;
   /** Whether the voice may go on past the gate; closed until told. */
@@ -54,7 +54,7 @@ export interface AudioChain {
   /** An effect's wet amount, 0 to 1, also before it runs. */
   setMix(id: string, mix: number): void;
   /**
-   * Fades a `send` effect's Return out, keeping its output connected through
+   * Fades the Return of an effect on a send out, keeping its output connected through
    * the `setEffects` that follows; resolves once it is cut. Null for an
    * effect with nothing to fade.
    */
@@ -62,8 +62,7 @@ export interface AudioChain {
   dispose(): void;
 }
 
-const PRE_GATE: readonly AudioStage[] = ["denoise", "voice"];
-const INSERTS: readonly AudioStage[] = [...PRE_GATE, "post"];
+const INSERTS: readonly AudioPlace[] = ["pre-gate", "post-gate"];
 
 const FADE_MS = 50;
 /** Keeps a mid-word mute from clicking into the tails. */
@@ -72,15 +71,21 @@ const MUTE_RAMP_MS = 5;
 const SEND_OPEN_MS = 5;
 const SEND_CLOSE_MS = 50;
 
-export function orderByStage(
+/** By place; within one, what must come first, then as given. */
+export function orderByPlace(
   effects: readonly ChainEffect[],
+  isFirst: (id: string) => boolean = () => false,
 ): readonly ChainEffect[] {
-  return AUDIO_STAGES.flatMap((stage) =>
-    effects.filter((e) => e.stage === stage),
-  );
+  return AUDIO_PLACES.flatMap((place) => {
+    const here = effects.filter((e) => e.place === place);
+    return [
+      ...here.filter((e) => isFirst(e.id)),
+      ...here.filter((e) => !isFirst(e.id)),
+    ];
+  });
 }
 
-/** A `send` effect on its way out. */
+/** An effect on a send, on its way out. */
 interface Fading {
   readonly output: AudioNode;
   readonly back: LevelNode;
@@ -108,22 +113,22 @@ export function createAudioChain(capture: CaptureContext): AudioChain {
   const channel = capture.createLevel("channel", 1);
   const send = capture.createLevel("send", 1);
 
-  const inStages = (stages: readonly AudioStage[]): readonly ChainEffect[] =>
-    effects.filter((e) => stages.includes(e.stage));
-  const sends = (): readonly ChainEffect[] => inStages(["send"]);
+  const inPlaces = (places: readonly AudioPlace[]): readonly ChainEffect[] =>
+    effects.filter((e) => places.includes(e.place));
+  const sends = (): readonly ChainEffect[] => inPlaces(["send"]);
 
-  const linked = (stages: readonly AudioStage[]): readonly Link[] =>
-    inStages(stages).map((e) => slots.get(e.id)?.link ?? e);
+  const linked = (place: AudioPlace): readonly Link[] =>
+    inPlaces([place]).map((e) => slots.get(e.id)?.link ?? e);
 
   const mainPath = (from: AudioNode): readonly Link[] => {
     const node = (n: AudioNode): Link => ({ input: n, output: n });
     return [
       node(from),
-      ...linked(PRE_GATE),
+      ...linked("pre-gate"),
       ...(gate ? [node(gate)] : []),
       node(mute.node),
       node(feed.node),
-      ...linked(["post"]),
+      ...linked("post-gate"),
       node(channel.node),
       node(capture.destination),
     ];
@@ -207,7 +212,7 @@ export function createAudioChain(capture: CaptureContext): AudioChain {
   const applySlots = (): void => {
     swapSlots(
       new Map(
-        inStages(INSERTS).flatMap((e) => {
+        inPlaces(INSERTS).flatMap((e) => {
           const known = slots.get(e.id);
           if (e.latency === undefined) return [];
           if (!known && !isBelowFull(e.id)) return [];

@@ -39,8 +39,9 @@ export interface WatchedEffect {
  * while sound goes in counts. A level no effect should reach counts too.
  */
 export interface StallWatchdog {
-  /** What the effects hear, or null: the raw microphone, say. */
+  /** What the first effect hears, or null: the raw microphone, say. */
   setSource(source: AudioNode | null): void;
+  /** In chain order. */
   setEffects(effects: readonly WatchedEffect[]): void;
   dispose(): void;
 }
@@ -121,10 +122,13 @@ export function createStallWatchdog(
         { ...w, silentMs: next(peak, w, sound) },
       ]),
     );
-    for (const [id, , peak] of read)
-      if (!(peak <= RUNAWAY_PEAK)) onStalled(id, new RunawayError());
-    for (const [id, w] of watched)
-      if (w.silentMs >= STALL_MS + w.graceMs) onStalled(id, new StalledError());
+    // What is behind a broken insert hears the fault, so the first one only.
+    const runaway = read.find(([, , peak]) => !(peak <= RUNAWAY_PEAK));
+    if (runaway) onStalled(runaway[0], new RunawayError());
+    const stalled = [...watched].find(
+      ([, w]) => w.silentMs >= STALL_MS + w.graceMs,
+    );
+    if (stalled) onStalled(stalled[0], new StalledError());
   };
 
   /** Taps the source and runs the timer only while there is work. */

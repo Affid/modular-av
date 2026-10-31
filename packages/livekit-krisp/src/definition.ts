@@ -33,7 +33,7 @@ export function createKrispDefinition(
     id: "krisp",
     kind: "audio",
     label: `${MODULE_ID}.label`,
-    stage: "denoise",
+    defaultPlace: "pre-gate",
     exclusiveGroup: "noise-suppression",
     cost: "medium",
     requires: [CLOUD_FEATURE],

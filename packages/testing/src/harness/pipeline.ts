@@ -83,7 +83,7 @@ const gainEffect: AudioEffectDefinition = {
   id: "test-gain",
   kind: "audio",
   label: "Test gain",
-  stage: "post",
+  defaultPlace: "post-gate",
   cost: "light",
   isSupported: () => true,
   create({ audioContext }) {
@@ -103,7 +103,7 @@ const humEffect: AudioEffectDefinition = {
   id: "test-hum",
   kind: "audio",
   label: "Test hum",
-  stage: "post",
+  defaultPlace: "post-gate",
   cost: "light",
   isSupported: () => true,
   create({ audioContext }) {
@@ -129,7 +129,7 @@ const echoEffect: AudioEffectDefinition = {
   id: "test-echo",
   kind: "audio",
   label: "Test echo",
-  stage: "send",
+  defaultPlace: "send",
   cost: "light",
   tail: 4.5,
   isSupported: () => true,
@@ -181,7 +181,7 @@ function hostedEffect(id: string, kernel: string): AudioEffectDefinition {
     id,
     kind: "audio",
     label: id,
-    stage: "send",
+    defaultPlace: "send",
     cost: "light",
     tail: 2,
     isSupported: () => true,
@@ -206,7 +206,7 @@ const busyEffect: AudioEffectDefinition = {
   id: "test-bad-busy",
   kind: "audio",
   label: "Test busy",
-  stage: "send",
+  defaultPlace: "send",
   cost: "light",
   isSupported: () => true,
   async create({ audioContext }) {
@@ -231,7 +231,7 @@ const leakyEffect: AudioEffectDefinition = {
   ...gainEffect,
   id: "test-bad-leaky",
   label: "Test leaky",
-  stage: "send",
+  defaultPlace: "send",
 };
 
 /** Breaks it too: a long echo that declares no tail. */
@@ -247,7 +247,7 @@ const silentEffect: AudioEffectDefinition = {
   id: "test-silent",
   kind: "audio",
   label: "Test silent",
-  stage: "denoise",
+  defaultPlace: "pre-gate",
   cost: "light",
   isSupported: () => true,
   create({ audioContext }) {
@@ -268,7 +268,7 @@ const failingEffect: AudioEffectDefinition = {
   id: "test-fail",
   kind: "audio",
   label: "Test failing",
-  stage: "post",
+  defaultPlace: "post-gate",
   cost: "light",
   isSupported: () => true,
   create: () => Promise.reject(new Error("The test effect always fails")),

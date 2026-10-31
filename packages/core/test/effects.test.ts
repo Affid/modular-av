@@ -3,7 +3,7 @@ import {
   createFakeVideoEffect,
 } from "@modular-av/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { validateEffect } from "../src/media/audio-stages.ts";
+import { validateEffect } from "../src/media/audio-places.ts";
 // Loaded lazily by the core; preloaded so its import resolves within settle().
 import "../src/media/camera.ts";
 import { ALWAYS, captureOf, createTable, type Tab } from "./table.ts";
@@ -44,7 +44,7 @@ describe("effects in the state", () => {
 
 describe("levels", () => {
   const send = (): ReturnType<typeof createFakeAudioEffect> =>
-    createFakeAudioEffect("reverb", { stage: "send" });
+    createFakeAudioEffect("reverb", { defaultPlace: "send" });
 
   it("gives a send effect a Return level, from its default, then the player's", async () => {
     // Arrange
@@ -79,7 +79,7 @@ describe("levels", () => {
     // Arrange
     const table = createTable();
     table.join("gm", { secret: true });
-    const radio = createFakeAudioEffect("radio", { stage: "post" });
+    const radio = createFakeAudioEffect("radio", { defaultPlace: "post-gate" });
     const krisp = createFakeAudioEffect("krisp");
     const p1 = table.join("p1", {
       av: ALWAYS,
@@ -251,12 +251,12 @@ describe("turning effects on and off", () => {
     ).rejects.toMatchObject({ code: "invalid-argument" });
   });
 
-  it("refuses an audio effect in a stage it doesn't know, plainly", () => {
+  it("refuses an audio effect in a place it doesn't know, plainly", () => {
     expect(() => {
-      validateEffect({ kind: "audio", stage: "master" });
-    }).toThrow('Unknown audio stage "master"');
+      validateEffect({ kind: "audio", defaultPlace: "master" });
+    }).toThrow('Unknown audio place "master"');
     expect(() => {
-      validateEffect({ kind: "audio", stage: "send" });
+      validateEffect({ kind: "audio", defaultPlace: "send" });
     }).not.toThrow();
     expect(() => {
       validateEffect({ kind: "video" });
@@ -272,7 +272,7 @@ describe("turning effects on and off", () => {
     ["defaultMix", 2],
   ])("refuses an effect declaring %s as %s", (field, value) => {
     expect(() => {
-      validateEffect({ kind: "audio", stage: "send", [field]: value });
+      validateEffect({ kind: "audio", defaultPlace: "send", [field]: value });
     }).toThrow(field);
   });
 
@@ -280,7 +280,7 @@ describe("turning effects on and off", () => {
     expect(() => {
       validateEffect({
         kind: "audio",
-        stage: "post",
+        defaultPlace: "post-gate",
         tail: 2.5,
         latency: 0,
         defaultMix: 0.3,

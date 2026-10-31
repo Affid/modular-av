@@ -23,7 +23,7 @@ export type {
   AudioEffect,
   AudioEffectContext,
   AudioEffectDefinition,
-  AudioStage,
+  AudioPlace,
   EffectHost,
   EffectHostOptions,
   EffectKernel,

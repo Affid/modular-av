@@ -1,4 +1,4 @@
-import type { AudioStage } from "@modular-av/api";
+import type { AudioPlace } from "@modular-av/api";
 import {
   createFakeCaptureContext,
   createFakeTrack,
@@ -8,19 +8,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   type ChainEffect,
   createAudioChain,
-  orderByStage,
+  orderByPlace,
 } from "../src/media/audio-chain.ts";
 import { GATE_FEED_OUTPUT, GATE_SEND_OUTPUT } from "../src/media/env.ts";
 
 function effect(
   capture: FakeCaptureContext,
   id: string,
-  stage: AudioStage = "denoise",
+  place: AudioPlace = "pre-gate",
 ): ChainEffect {
   const input = capture.graph.node(`${id}.in`);
   const output = capture.graph.node(`${id}.out`);
   input.connect(output);
-  return { id, stage, input, output };
+  return { id, place, input, output };
 }
 
 describe("audio chain", () => {
@@ -53,7 +53,7 @@ describe("audio chain", () => {
     );
   });
 
-  it("runs denoise and voice effects before the gate, post effects after it and after mute", async () => {
+  it("runs pre-gate effects before the gate, post-gate effects after it and after mute", async () => {
     // Arrange
     const capture = createFakeCaptureContext();
     const chain = createAudioChain(capture);
@@ -62,14 +62,14 @@ describe("audio chain", () => {
       auto: true,
       threshold: -50,
     });
-    const denoise = effect(capture, "rnnoise", "denoise");
-    const voice = effect(capture, "pitch", "voice");
-    const post = effect(capture, "radio", "post");
+    const denoise = effect(capture, "rnnoise", "pre-gate");
+    const voice = effect(capture, "pitch", "pre-gate");
+    const post = effect(capture, "radio", "post-gate");
 
     // Act
     chain.setSource(createFakeTrack("audio", "mic"));
     chain.setGate(gate.node);
-    chain.setEffects(orderByStage([post, voice, denoise]));
+    chain.setEffects(orderByPlace([post, denoise, voice]));
 
     // Assert
     const { graph, destination, sources } = capture;
@@ -90,7 +90,7 @@ describe("audio chain", () => {
     const chain = createAudioChain(capture);
 
     chain.setSource(createFakeTrack("audio", "mic"));
-    chain.setEffects([effect(capture, "radio", "post")]);
+    chain.setEffects([effect(capture, "radio", "post-gate")]);
 
     expect(new Set(capture.graph.edges())).toEqual(
       new Set([
@@ -109,7 +109,7 @@ describe("audio chain", () => {
     const capture = createFakeCaptureContext();
     const chain = createAudioChain(capture);
     chain.setSource(createFakeTrack("audio", "mic"));
-    chain.setEffects([effect(capture, "radio", "post")]);
+    chain.setEffects([effect(capture, "radio", "post-gate")]);
     const gate = await capture.createGate({
       mode: "detect",
       auto: true,
@@ -254,7 +254,7 @@ describe("audio chain", () => {
       const capture = createFakeCaptureContext();
       const chain = createAudioChain(capture);
       const radio = {
-        ...effect(capture, "radio", "post"),
+        ...effect(capture, "radio", "post-gate"),
         ...(latency === null ? {} : { latency }),
       };
       chain.setSource(createFakeTrack("audio", "mic"));
@@ -403,7 +403,7 @@ describe("audio chain", () => {
       chain.setMix("pitch", 0.4);
 
       chain.setEffects([
-        { ...effect(capture, "pitch", "voice"), latency: 0.02 },
+        { ...effect(capture, "pitch", "pre-gate"), latency: 0.02 },
       ]);
 
       expect(capture.level("wet:pitch")?.level).toBeCloseTo(0.4);
@@ -438,7 +438,7 @@ describe("audio chain", () => {
       // Arrange
       const capture = createFakeCaptureContext();
       const { chain } = await gated(capture);
-      const post = effect(capture, "radio", "post");
+      const post = effect(capture, "radio", "post-gate");
       const reverb = effect(capture, "reverb", "send");
 
       // Act
@@ -661,7 +661,7 @@ describe("audio chain", () => {
       it("has nothing to fade for an insert", async () => {
         const capture = createFakeCaptureContext();
         const { chain } = await gated(capture);
-        chain.setEffects([effect(capture, "radio", "post")]);
+        chain.setEffects([effect(capture, "radio", "post-gate")]);
 
         expect(chain.fade("radio")).toBeNull();
       });
@@ -682,15 +682,15 @@ describe("audio chain", () => {
     });
   });
 
-  it("orders effects by stage, keeping the given order within a stage", () => {
+  it("orders effects by place, keeping the given order within a place", () => {
     const capture = createFakeCaptureContext();
 
-    const ordered = orderByStage([
+    const ordered = orderByPlace([
       effect(capture, "echo", "send"),
-      effect(capture, "reverb", "post"),
-      effect(capture, "pitch", "voice"),
-      effect(capture, "rnnoise", "denoise"),
-      effect(capture, "eq", "post"),
+      effect(capture, "reverb", "post-gate"),
+      effect(capture, "rnnoise", "pre-gate"),
+      effect(capture, "pitch", "pre-gate"),
+      effect(capture, "eq", "post-gate"),
     ]);
 
     expect(ordered.map((e) => e.id)).toEqual([
@@ -700,5 +700,19 @@ describe("audio chain", () => {
       "eq",
       "echo",
     ]);
+  });
+
+  it("puts what must come first ahead of its place", () => {
+    const capture = createFakeCaptureContext();
+
+    const ordered = orderByPlace(
+      [
+        effect(capture, "pitch", "pre-gate"),
+        effect(capture, "rnnoise", "pre-gate"),
+      ],
+      (id) => id === "rnnoise",
+    );
+
+    expect(ordered.map((e) => e.id)).toEqual(["rnnoise", "pitch"]);
   });
 });

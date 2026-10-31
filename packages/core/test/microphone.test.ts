@@ -2,7 +2,7 @@ import type {
   AudioEffect,
   AudioEffectContext,
   AudioEffectDefinition,
-  AudioStage,
+  AudioPlace,
 } from "@modular-av/api";
 import {
   createFakeMediaEnv,
@@ -26,7 +26,7 @@ interface FakeEffect {
 function fakeEffect(
   id: string,
   options: {
-    stage?: AudioStage;
+    defaultPlace?: AudioPlace;
     group?: string;
     fail?: Error;
   } = {},
@@ -37,7 +37,7 @@ function fakeEffect(
     id,
     kind: "audio",
     label: id,
-    stage: options.stage ?? "denoise",
+    defaultPlace: options.defaultPlace ?? "pre-gate",
     ...(options.group ? { exclusiveGroup: options.group } : {}),
     cost: "light",
     isSupported: () => true,
@@ -331,7 +331,7 @@ describe("microphone pipeline", () => {
     // Arrange
     vi.useFakeTimers();
     const s = setup();
-    const reverb = fakeEffect("reverb", { stage: "send" });
+    const reverb = fakeEffect("reverb", { defaultPlace: "send" });
     await s.mic.setInput(createFakeTrack("audio", "mic"));
     s.mic.setEffects([reverb.definition], new Set(["reverb"]));
     await vi.advanceTimersByTimeAsync(0);
@@ -351,7 +351,7 @@ describe("microphone pipeline", () => {
 
   it("cuts a failed send effect at once, and carries the voice on the dry path", async () => {
     const s = setup();
-    const reverb = fakeEffect("reverb", { stage: "send" });
+    const reverb = fakeEffect("reverb", { defaultPlace: "send" });
     await s.mic.setInput(createFakeTrack("audio", "mic"));
     s.mic.setEffects([reverb.definition], new Set(["reverb"]));
     await flush();
@@ -367,7 +367,7 @@ describe("microphone pipeline", () => {
     // Arrange
     const s = setup();
     const definition: AudioEffectDefinition = {
-      ...fakeEffect("reverb", { stage: "send" }).definition,
+      ...fakeEffect("reverb", { defaultPlace: "send" }).definition,
       tail: 2,
       create: ({ host }) => host({ module: "/reverb.js", name: "reverb" }),
     };
@@ -449,10 +449,10 @@ describe("microphone pipeline", () => {
     expect(transitions.mock.calls).toEqual([[true], [false]]);
   });
 
-  it("runs wanted effects in the capture context, by stage, before the gate", async () => {
+  it("runs wanted effects in the capture context, by place, around the gate", async () => {
     const s = setup();
-    const post = fakeEffect("eq", { stage: "post" });
-    const denoise = fakeEffect("rnnoise", { stage: "denoise" });
+    const post = fakeEffect("eq", { defaultPlace: "post-gate" });
+    const denoise = fakeEffect("rnnoise", { defaultPlace: "pre-gate" });
     await s.mic.setInput(createFakeTrack("audio", "mic"));
 
     s.mic.setEffects(
@@ -472,6 +472,24 @@ describe("microphone pipeline", () => {
     expect(capture.graph.reaches(source, rnnoise)).toBe(true);
     expect(capture.graph.reaches(rnnoise, eq)).toBe(true);
     expect(capture.graph.edges()).not.toContain("source:mic->gate");
+  });
+
+  it("runs noise suppression first, whatever started first", async () => {
+    const s = setup();
+    const pitch = fakeEffect("pitch");
+    const denoise = fakeEffect("rnnoise", { group: "noise-suppression" });
+    await s.mic.setInput(createFakeTrack("audio", "mic"));
+
+    s.mic.setEffects(
+      [pitch.definition, denoise.definition],
+      new Set(["pitch", "rnnoise"]),
+    );
+    await flush();
+
+    const rnnoise = denoise.instances[0]?.output;
+    const shifted = pitch.instances[0]?.input;
+    if (!rnnoise || !shifted) throw new Error("not running");
+    expect(s.capture().graph.reaches(rnnoise, shifted)).toBe(true);
   });
 
   it("starts effects wanted before the device, once it is in", async () => {

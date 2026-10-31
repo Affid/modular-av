@@ -38,7 +38,7 @@ import {
   DEFAULT_GATE_FALLBACK,
   GATE_FALLBACK_SETTING,
 } from "./media/gate-fallback.ts";
-import { validateEffect } from "./media/audio-stages.ts";
+import { validateEffect } from "./media/audio-places.ts";
 import { CUT_TAILS_SETTING } from "./media/cut-tails.ts";
 import { CHANNEL_LEVEL_SETTING, EFFECT_MIX_SETTING } from "./media/levels.ts";
 import { createRegistry } from "./registry.ts";

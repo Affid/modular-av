@@ -20,7 +20,7 @@ describe("Krisp as the core sees it", () => {
     expect(definition).toMatchObject({
       id: "krisp",
       kind: "audio",
-      stage: "denoise",
+      defaultPlace: "pre-gate",
       exclusiveGroup: "noise-suppression",
       requires: ["livekit-cloud"],
       label: "modular-av-livekit-krisp.label",

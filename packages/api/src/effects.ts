@@ -5,17 +5,19 @@
  */
 
 /**
- * Audio order: denoise → voice → the core's voice gate → post. A `post`
+ * Where an audio effect runs: `pre-gate` → the core's voice gate →
+ * `post-gate`, and beside them a `send`. Inserts run in series; the gate hears
+ * what `pre-gate` gives it, so a tail there holds it open. A `post-gate`
  * effect may ring on after the gate closes, but must not make sound of its
  * own: it only hears what the gate passes.
  *
- * A `send` effect runs beside the voice, in an FX channel of its own: it
- * hears a copy taken after `post`, must output wet signal only, and its
- * output goes straight to the output bus. Use it for what adds to the voice
- * (reverb, delay); use `post` when later effects must hear the result or
- * when the effect must be able to replace the voice.
+ * A `send` runs beside the voice, in an FX channel of its own: it hears a
+ * copy taken after `post-gate`, and its output goes straight to the output
+ * bus. Use it for what adds to the voice (reverb, delay); use `post-gate`
+ * when later effects must hear the result or when the effect must be able
+ * to replace the voice.
  */
-export type AudioStage = "denoise" | "voice" | "post" | "send";
+export type AudioPlace = "pre-gate" | "post-gate" | "send";
 
 /** Shown to players, so they can pick what their machine can run. */
 export type EffectCost = "light" | "medium" | "heavy";
@@ -37,7 +39,7 @@ export interface AudioEffectContext extends EffectContext {
   readonly audioContext: AudioContext;
   /**
    * Runs a kernel in the core's worklet: the way to write a worklet effect
-   * in `post` or `send`, as the core then skips it on silence. The result
+   * after the gate or on a send, as the core then skips it on silence. The result
    * is a normal `AudioEffect`.
    */
   readonly host: EffectHost;
@@ -93,11 +95,12 @@ interface EffectDefinitionBase {
 
 export interface AudioEffectDefinition extends EffectDefinitionBase {
   readonly kind: "audio";
-  readonly stage: AudioStage;
+  /** Where it runs unless the player moves it. */
+  readonly defaultPlace: AudioPlace;
   /**
    * It may send digital silence while the microphone hears noise (it
-   * gates, as Krisp may). The core otherwise takes a denoise effect that
-   * sends digital silence for 1.5 s of sound out as stalled.
+   * gates, as Krisp may). The core otherwise takes an effect that sends
+   * digital silence for 1.5 s of sound out as stalled.
    */
   readonly silencesNoise?: boolean;
   /**

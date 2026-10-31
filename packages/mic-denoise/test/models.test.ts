@@ -14,11 +14,17 @@ describe("the noise models offered", () => {
     );
 
     expect(
-      definitions.map((d) => [d.id, d.kind, d.stage, d.exclusiveGroup, d.cost]),
+      definitions.map((d) => [
+        d.id,
+        d.kind,
+        d.defaultPlace,
+        d.exclusiveGroup,
+        d.cost,
+      ]),
     ).toEqual([
-      ["rnnoise", "audio", "denoise", "noise-suppression", "light"],
-      ["speex", "audio", "denoise", "noise-suppression", "light"],
-      ["gtcrn", "audio", "denoise", "noise-suppression", "medium"],
+      ["rnnoise", "audio", "pre-gate", "noise-suppression", "light"],
+      ["speex", "audio", "pre-gate", "noise-suppression", "light"],
+      ["gtcrn", "audio", "pre-gate", "noise-suppression", "medium"],
     ]);
     expect(definitions[0]?.label).toBe("modular-av-mic-denoise.models.rnnoise");
   });

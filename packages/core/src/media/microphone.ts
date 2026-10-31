@@ -1,13 +1,14 @@
 import type {
   AudioEffect,
   AudioEffectDefinition,
-  AudioStage,
+  AudioPlace,
   EffectState,
   MeterReading,
 } from "@modular-av/api";
+import { AUDIO_PLACES, NOISE_SUPPRESSION_GROUP } from "./audio-places.ts";
 import {
   createAudioChain,
-  orderByStage,
+  orderByPlace,
   type AudioChain,
   type ChainEffect,
 } from "./audio-chain.ts";
@@ -71,12 +72,9 @@ interface Parts {
   readonly capture: CaptureContext;
   readonly chain: AudioChain;
   readonly runner: EffectRunner<AudioEffectDefinition>;
-  readonly watchdogs: Readonly<Record<WatchedStage, StallWatchdog>>;
+  /** Each is checked against what it hears, so a watchdog per place. */
+  readonly watchdogs: Readonly<Record<AudioPlace, StallWatchdog>>;
 }
-
-/** Each is checked against what it hears, so a watchdog per stage. */
-type WatchedStage = Exclude<AudioStage, "voice">;
-const WATCHED_STAGES: readonly WatchedStage[] = ["denoise", "post", "send"];
 
 const OFF: EffectState = { status: "off", error: null };
 
@@ -110,17 +108,31 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
     gate?.setLevels(levelListeners.length > 0);
   };
 
-  /** Those of `stage` that can't stay silent, as the watchdog wants them. */
+  const definitionOf = (id: string): AudioEffectDefinition | undefined =>
+    definitions.find((d) => d.id === id);
+  const silencesNoise = (e: ChainEffect): boolean =>
+    definitionOf(e.id)?.silencesNoise === true;
+
+  /**
+   * Those of `place` that can't stay silent, as the watchdog wants them.
+   * Sends are parallel; inserts are in series, so what follows an effect
+   * that may send exact zeros may hear them.
+   */
   const watched = (
     effects: readonly ChainEffect[],
-    stage: WatchedStage,
-  ): readonly WatchedEffect[] =>
-    effects.flatMap((e) => {
-      const definition = definitions.find((d) => d.id === e.id);
-      return e.stage === stage && definition?.silencesNoise !== true
-        ? [{ ...e, graceMs: (definition?.tail ?? 0) * 1000 }]
-        : [];
-    });
+    place: AudioPlace,
+  ): readonly WatchedEffect[] => {
+    const here = effects.filter((e) => e.place === place);
+    const silencer = here.findIndex(silencesNoise);
+    const checked =
+      place === "send"
+        ? here.filter((e) => !silencesNoise(e))
+        : here.slice(0, silencer < 0 ? here.length : silencer);
+    return checked.map((e) => ({
+      ...e,
+      graceMs: (definitionOf(e.id)?.tail ?? 0) * 1000,
+    }));
+  };
 
   const createParts = (capture: CaptureContext): Parts => {
     const chain = createAudioChain(capture);
@@ -135,11 +147,11 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
         deps.onError,
       );
     const watchdogs = {
-      denoise: watchdog(),
-      post: watchdog(),
+      "pre-gate": watchdog(),
+      "post-gate": watchdog(),
       send: watchdog(),
     };
-    watchdogs.post.setSource(chain.postFeed);
+    watchdogs["post-gate"].setSource(chain.postFeed);
     watchdogs.send.setSource(chain.sendBus);
     runner = createEffectRunner<AudioEffectDefinition, AudioEffect>({
       group: (d) => d.exclusiveGroup ?? null,
@@ -153,14 +165,14 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
           }),
         }),
       onRunning(running) {
-        const effects = orderByStage(
+        const effects = orderByPlace(
           running.flatMap(({ id, instance }) => {
-            const definition = definitions.find((d) => d.id === id);
+            const definition = definitionOf(id);
             return definition
               ? [
                   {
                     id,
-                    stage: definition.stage,
+                    place: definition.defaultPlace,
                     ...nodesOf(instance),
                     ...(definition.latency === undefined
                       ? {}
@@ -169,10 +181,11 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
                 ]
               : [];
           }),
+          (id) => definitionOf(id)?.exclusiveGroup === NOISE_SUPPRESSION_GROUP,
         );
         chain.setEffects(effects);
-        for (const stage of WATCHED_STAGES)
-          watchdogs[stage].setEffects(watched(effects, stage));
+        for (const place of AUDIO_PLACES)
+          watchdogs[place].setEffects(watched(effects, place));
       },
       retire: (id) => chain.fade(id),
       onStatus: deps.onChange,
@@ -262,7 +275,7 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
     input = track;
     applyEnabled();
     parts.chain.setSource(track);
-    parts.watchdogs.denoise.setSource(parts.chain.source);
+    parts.watchdogs["pre-gate"].setSource(parts.chain.source);
     applyEffects();
     // Not awaited: under an autoplay policy, resuming waits for a gesture.
     parts.capture.resume().catch(deps.onError);
@@ -274,7 +287,7 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
     if (!parts) return;
     applyEnabled();
     parts.chain.setSource(null);
-    parts.watchdogs.denoise.setSource(null);
+    parts.watchdogs["pre-gate"].setSource(null);
     applyEffects();
     parts.capture.suspend().catch(deps.onError);
   };

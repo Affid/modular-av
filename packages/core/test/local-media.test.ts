@@ -387,7 +387,7 @@ describe("the browser's noise suppression", () => {
 
   it("stays on for effects of other groups", async () => {
     const { env, media } = setup();
-    const pitch = createFakeAudioEffect("pitch", { stage: "voice" });
+    const pitch = createFakeAudioEffect("pitch", { defaultPlace: "pre-gate" });
     await media.acquire(BOTH);
 
     media.setEffects([pitch.definition], new Set(["pitch"]));

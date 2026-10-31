@@ -12,7 +12,7 @@ import {
 const PTT = { voice: { ...ALWAYS.voice, mode: "ptt" } } as const;
 
 const reverb = (tail: number) => ({
-  ...createFakeAudioEffect("reverb", { stage: "send" }).definition,
+  ...createFakeAudioEffect("reverb", { defaultPlace: "send" }).definition,
   tail,
 });
 

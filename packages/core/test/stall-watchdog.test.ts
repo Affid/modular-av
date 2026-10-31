@@ -25,7 +25,7 @@ interface Running {
 
 function definition(
   id: string,
-  stage: AudioEffectDefinition["stage"],
+  defaultPlace: AudioEffectDefinition["defaultPlace"],
   made: (AudioEffect & { disposed: boolean })[],
   extra: Partial<AudioEffectDefinition> = {},
 ): AudioEffectDefinition {
@@ -34,7 +34,7 @@ function definition(
     id,
     kind: "audio",
     label: id,
-    stage,
+    defaultPlace,
     cost: "light",
     isSupported: () => true,
     create({ audioContext }) {
@@ -58,7 +58,7 @@ const flush = async (): Promise<void> => {
 };
 
 async function running(
-  stage: AudioEffectDefinition["stage"] = "denoise",
+  place: AudioEffectDefinition["defaultPlace"] = "pre-gate",
   extra: Partial<AudioEffectDefinition> = {},
 ): Promise<Running> {
   const env = createFakeMediaEnv();
@@ -73,19 +73,18 @@ async function running(
   const made: (AudioEffect & { disposed: boolean })[] = [];
   await mic.setInput(createFakeTrack("audio", "mic"));
   mic.setEffects(
-    [definition("rnnoise", stage, made, extra)],
+    [definition("rnnoise", place, made, extra)],
     new Set(["rnnoise"]),
   );
   await flush();
   const capture = env.captureContexts[0];
   const effect = made[0];
   const sources = {
-    denoise: capture?.sources[0]?.node,
-    voice: capture?.sources[0]?.node,
-    post: capture?.level("post feed")?.node,
+    "pre-gate": capture?.sources[0]?.node,
+    "post-gate": capture?.level("post feed")?.node,
     send: capture?.level("send")?.node,
   };
-  const source = sources[stage];
+  const source = sources[place];
   if (!capture || !effect || !source) throw new Error("not running");
   await capture.resume();
   // An effect that isn't watched has no tap: stand-ins keep tests uniform.
@@ -102,8 +101,52 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+/** Two pre-gate effects in a row, in that order. */
+async function inSeries(
+  firstExtra: Partial<AudioEffectDefinition> = {},
+): Promise<{
+  readonly mic: Microphone;
+  readonly input: FakeSignalProbe;
+  readonly first: FakeSignalProbe | undefined;
+  readonly second: FakeSignalProbe | undefined;
+}> {
+  const env = createFakeMediaEnv();
+  const mic = createMicrophone({
+    env,
+    gate: GATE,
+    onChange: vi.fn(),
+    onReplaced: vi.fn(),
+    onError: vi.fn(),
+  });
+  const made: (AudioEffect & { disposed: boolean })[] = [];
+  await mic.setInput(createFakeTrack("audio", "mic"));
+  mic.setEffects(
+    [
+      definition("model", "pre-gate", made, {
+        ...firstExtra,
+        exclusiveGroup: "noise-suppression",
+      }),
+      definition("pitch", "pre-gate", made),
+    ],
+    new Set(["model", "pitch"]),
+  );
+  await flush();
+  const capture = env.captureContexts[0];
+  const source = capture?.sources[0]?.node;
+  const [model, pitch] = made;
+  if (!capture || !source || !model || !pitch) throw new Error("not running");
+  await capture.resume();
+  return {
+    mic,
+    // Without a watched effect there is no tap: a stand-in keeps this uniform.
+    input: capture.probeFedBy(source) ?? capture.createProbe(),
+    first: capture.probeFedBy(model.output),
+    second: capture.probeFedBy(pitch.output),
+  };
+}
+
 describe("the stall watchdog", () => {
-  it("takes out a denoise effect that sends digital silence while the microphone hears sound", async () => {
+  it("takes out a pre-gate effect that sends digital silence while the microphone hears sound", async () => {
     // Arrange
     const r = await running();
     r.input.setPeak(SPEECH);
@@ -193,11 +236,11 @@ describe("the stall watchdog", () => {
     expect(r.mic.effectStatus("rnnoise").status).toBe("running");
   });
 
-  it.each(["post", "send"] as const)(
+  it.each(["post-gate", "send"] as const)(
     "takes out a %s effect that goes silent while sound goes in",
-    async (stage) => {
+    async (place) => {
       // Arrange
-      const r = await running(stage);
+      const r = await running(place);
       r.input.setPeak(SPEECH);
       r.output.setPeak(0);
 
@@ -214,10 +257,10 @@ describe("the stall watchdog", () => {
     },
   );
 
-  it.each(["post", "send"] as const)(
+  it.each(["post-gate", "send"] as const)(
     "leaves a %s effect alone while nothing goes in",
-    async (stage) => {
-      const r = await running(stage);
+    async (place) => {
+      const r = await running(place);
       r.input.setPeak(0);
       r.output.setPeak(0);
 
@@ -268,7 +311,7 @@ describe("the stall watchdog", () => {
   });
 
   it("leaves a loud but normal effect alone", async () => {
-    const r = await running("post");
+    const r = await running("post-gate");
     r.input.setPeak(SPEECH);
     r.output.setPeak(2);
 
@@ -278,18 +321,8 @@ describe("the stall watchdog", () => {
     expect(r.mic.effectStatus("rnnoise").status).toBe("running");
   });
 
-  it("leaves the voice stage alone", async () => {
-    const r = await running("voice");
-    r.input.setPeak(SPEECH);
-
-    await vi.advanceTimersByTimeAsync(STALL_MS * 3);
-    await flush();
-
-    expect(r.mic.effectStatus("rnnoise").status).toBe("running");
-  });
-
   it("leaves alone an effect that says it silences noise", async () => {
-    const r = await running("denoise", { silencesNoise: true });
+    const r = await running("pre-gate", { silencesNoise: true });
     r.input.setPeak(SPEECH);
 
     await vi.advanceTimersByTimeAsync(STALL_MS * 3);
@@ -297,6 +330,42 @@ describe("the stall watchdog", () => {
 
     expect(r.mic.effectStatus("rnnoise").status).toBe("running");
     expect(r.capture.probeFedBy(r.effect.output)).toBeUndefined();
+  });
+
+  it("watches every effect ahead of the gate", async () => {
+    const r = await inSeries();
+    r.input.setPeak(SPEECH);
+    r.first?.setPeak(SPEECH);
+    r.second?.setPeak(0);
+
+    await vi.advanceTimersByTimeAsync(STALL_MS + 300);
+    await flush();
+
+    expect(r.mic.effectStatus("model").status).toBe("running");
+    expect(r.mic.effectStatus("pitch")).toEqual({
+      status: "failed",
+      error: "StalledError",
+    });
+  });
+
+  it("blames a stall on the first silent effect, not on those behind it", async () => {
+    const r = await inSeries();
+    r.input.setPeak(SPEECH);
+    r.first?.setPeak(0);
+    r.second?.setPeak(0);
+
+    await vi.advanceTimersByTimeAsync(STALL_MS + 100);
+    await flush();
+
+    expect(r.mic.effectStatus("model").status).toBe("failed");
+    expect(r.mic.effectStatus("pitch").status).toBe("running");
+  });
+
+  it("leaves alone an effect behind one that silences noise", async () => {
+    const r = await inSeries({ silencesNoise: true });
+
+    expect(r.first).toBeUndefined();
+    expect(r.second).toBeUndefined();
   });
 
   it("reports a tap it can't remove, and goes on", async () => {
