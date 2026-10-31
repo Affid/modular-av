@@ -44,6 +44,20 @@ afterEach(() => {
 });
 
 describe("the tail after mute", () => {
+  it("holds nothing for a tail ahead of Mute: it can't ring out", async () => {
+    // Arrange
+    const { table, p1 } = await ringing(2);
+    await p1.api.commands.setEffectPlace("reverb", "pre-gate");
+    await table.settle();
+
+    // Act
+    await p1.api.commands.setMuted(true);
+    await table.settle();
+
+    // Assert
+    expect(serviceMuted(table, p1)).toBe(true);
+  });
+
   it("stops what goes in at once, and holds the output for the tail", async () => {
     // Arrange
     const { table, p1 } = await ringing(2);

@@ -1,5 +1,6 @@
 import type { AudioPlace } from "@modular-av/api";
 import { AUDIO_PLACES } from "./audio-places.ts";
+import type { EffectOrder } from "./effect-places.ts";
 import {
   createInsertSlot,
   LEVEL_RAMP_MS,
@@ -71,16 +72,23 @@ const MUTE_RAMP_MS = 5;
 const SEND_OPEN_MS = 5;
 const SEND_CLOSE_MS = 50;
 
-/** By place; within one, what must come first, then as given. */
+/**
+ * By place; within one, the player's `order`, with what must come first ahead
+ * of it unless the order lists it, and the rest as given behind it.
+ */
 export function orderByPlace(
   effects: readonly ChainEffect[],
   isFirst: (id: string) => boolean = () => false,
+  order: Partial<EffectOrder> = {},
 ): readonly ChainEffect[] {
   return AUDIO_PLACES.flatMap((place) => {
     const here = effects.filter((e) => e.place === place);
+    const listed = order[place] ?? [];
+    const rest = here.filter((e) => !listed.includes(e.id));
     return [
-      ...here.filter((e) => isFirst(e.id)),
-      ...here.filter((e) => !isFirst(e.id)),
+      ...rest.filter((e) => isFirst(e.id)),
+      ...listed.flatMap((id) => here.filter((e) => e.id === id)),
+      ...rest.filter((e) => !isFirst(e.id)),
     ];
   });
 }

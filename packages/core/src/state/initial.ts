@@ -22,6 +22,8 @@ export const INITIAL_STATE: AVState = {
     microphoneHold: null,
     speakingWhileMuted: false,
     effects: {},
+    effectPlaces: {},
+    effectOrder: { "pre-gate": [], "post-gate": [], send: [] },
     effectMix: {},
     channelLevel: 1,
     cutTails: false,

@@ -40,6 +40,10 @@ import {
 } from "./media/gate-fallback.ts";
 import { validateEffect } from "./media/audio-places.ts";
 import { CUT_TAILS_SETTING } from "./media/cut-tails.ts";
+import {
+  EFFECT_ORDER_SETTING,
+  EFFECT_PLACES_SETTING,
+} from "./media/effect-places.ts";
 import { CHANNEL_LEVEL_SETTING, EFFECT_MIX_SETTING } from "./media/levels.ts";
 import { createRegistry } from "./registry.ts";
 import { assetUrl, createChannels } from "./socket.ts";
@@ -149,6 +153,13 @@ export function installCore(deps: CoreDeps): InstalledCore {
     type: Object,
     default: {},
   });
+  for (const setting of [EFFECT_PLACES_SETTING, EFFECT_ORDER_SETTING])
+    game.settings.register(MODULE_ID, setting, {
+      scope: "client",
+      config: false,
+      type: Object,
+      default: {},
+    });
   game.settings.register(MODULE_ID, EFFECTS_SETTING, {
     scope: "client",
     config: false,
@@ -165,7 +176,7 @@ export function installCore(deps: CoreDeps): InstalledCore {
   const api: ModularAV = Object.freeze({
     version: mod.version,
     state: store.view,
-    commands: createCommands(game, controller),
+    commands: createCommands(game, controller, effects.api),
     media: Object.freeze({
       attach: (...args: Parameters<Controller["attach"]>) =>
         controller().attach(...args),

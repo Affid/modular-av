@@ -26,7 +26,8 @@ import { createLocalMedia, type LocalMedia } from "./media/local-media.ts";
 import { readGateFallback } from "./media/gate-fallback.ts";
 import { readSensitivity } from "./media/sensitivity.ts";
 import { readCutTails } from "./media/cut-tails.ts";
-import { readLevels, writeEffectMix } from "./media/levels.ts";
+import { readPlacement } from "./media/effect-places.ts";
+import { readLevels } from "./media/levels.ts";
 import { createTailHold } from "./media/tail-hold.ts";
 import { createRemoteMedia, type RemoteMedia } from "./media/remote-media.ts";
 import type { DeviceChoice } from "./media/local-media.ts";
@@ -94,7 +95,6 @@ export interface Controller {
   /** Rebuilds the state only, e.g. after others' Foundry activity. */
   refresh(): void;
   setEffectEnabled(id: string, enabled: boolean): Promise<void>;
-  setEffectMix(id: string, mix: number): Promise<void>;
 }
 
 interface Parts {
@@ -253,7 +253,9 @@ function buildParts(deps: ControllerDeps): Parts {
   const apply = (): void => {
     devices.sync();
     local.setGate(gateConfig(facts, readSensitivity(game)));
+    // A moved effect starts at the level it has there.
     local.setLevels(readLevels(game, deps.effects));
+    local.setPlacement(readPlacement(game, deps.effects));
     local.setOutbound(sent(), outbound().audio);
     remote.refresh();
     // Tokens carry the rights; without one, publishing follows them as is.
@@ -361,10 +363,6 @@ export function createController(deps: ControllerDeps): Controller {
     reacquire: parts.reacquire,
     refresh: parts.refresh,
     setEffectEnabled: (id, enabled) => parts.choices.setEnabled(id, enabled),
-    async setEffectMix(id, mix) {
-      await writeEffectMix(deps.game, deps.effects, id, mix);
-      parts.apply();
-    },
     initialize: parts.reacquire,
     foundryConnect() {
       rt.foundryConnected = true;

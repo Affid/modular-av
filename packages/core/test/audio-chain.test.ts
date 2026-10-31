@@ -191,6 +191,36 @@ describe("audio chain", () => {
     expect(capture.graph.reaches(source, capture.destination)).toBe(true);
   });
 
+  it.each([
+    ["from a send to an insert", "send", "post-gate"],
+    ["from an insert to a send", "post-gate", "send"],
+    ["across the gate", "post-gate", "pre-gate"],
+  ] as const)(
+    "moves an effect %s connecting the new path first",
+    (_, from, to) => {
+      // Arrange
+      const capture = createFakeCaptureContext();
+      const chain = createAudioChain(capture);
+      chain.setSource(createFakeTrack("audio", "mic"));
+      const start = effect(capture, "echo", from);
+      chain.setEffects([start]);
+      const before = capture.graph.log.length;
+
+      // Act
+      chain.setEffects([{ ...start, place: to }]);
+
+      // Assert
+      const steps = capture.graph.log.slice(before);
+      const firstCut = steps.findIndex((step) => step.startsWith("-"));
+      const lastJoin = steps.findLastIndex((step) => step.startsWith("+"));
+      expect(firstCut).toBeGreaterThan(-1);
+      expect(lastJoin).toBeLessThan(firstCut);
+      expect(capture.graph.reaches(start.output, capture.destination)).toBe(
+        true,
+      );
+    },
+  );
+
   it("changes the device atomically: the new source joins before the old leaves", () => {
     const capture = createFakeCaptureContext();
     const chain = createAudioChain(capture);
@@ -700,6 +730,22 @@ describe("audio chain", () => {
       "eq",
       "echo",
     ]);
+  });
+
+  it("keeps the player's order ahead of what comes first by default", () => {
+    const capture = createFakeCaptureContext();
+
+    const ordered = orderByPlace(
+      [
+        effect(capture, "rnnoise", "pre-gate"),
+        effect(capture, "pitch", "pre-gate"),
+        effect(capture, "eq", "pre-gate"),
+      ],
+      (id) => id === "rnnoise",
+      { "pre-gate": ["pitch", "rnnoise"] },
+    );
+
+    expect(ordered.map((e) => e.id)).toEqual(["pitch", "rnnoise", "eq"]);
   });
 
   it("puts what must come first ahead of its place", () => {

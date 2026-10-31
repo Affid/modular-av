@@ -16,6 +16,7 @@ import type { WritableStore } from "../store.ts";
 import { readSensitivity } from "../media/sensitivity.ts";
 import { readCutTails } from "../media/cut-tails.ts";
 import { readGateFallback } from "../media/gate-fallback.ts";
+import { readPlacement } from "../media/effect-places.ts";
 import { readLevels } from "../media/levels.ts";
 import { project } from "./project.ts";
 
@@ -69,6 +70,7 @@ function chosenDevices(facts: AVFacts): LocalState["chosenDevices"] {
 function localState(deps: StateSyncDeps): LocalState {
   const { facts, local } = deps;
   const levels = readLevels(deps.game, deps.effects);
+  const placement = readPlacement(deps.game, deps.effects);
   const own = facts.entry(facts.selfId);
   const voiceMode = facts.voiceMode();
   const sending = deps.outbound().audio;
@@ -93,6 +95,8 @@ function localState(deps: StateSyncDeps): LocalState {
       local.microphone !== null &&
       ((own.muted ?? false) || deps.rt.deafened),
     effects: effectStates(deps),
+    effectPlaces: placement.places,
+    effectOrder: placement.order,
     effectMix: levels.mix,
     channelLevel: levels.channel,
     cutTails: readCutTails(deps.game),

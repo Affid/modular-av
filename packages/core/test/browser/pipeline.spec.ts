@@ -139,6 +139,33 @@ test("a post effect runs after the voice gate: it keeps sounding while the gate 
   expect(hummed.longestZeroRun).toBeLessThan(2048);
 });
 
+test("a running effect moved ahead of the gate is gated from then on", async ({
+  page,
+}) => {
+  // Arrange
+  await openVoiceActivity(page);
+  await closeGate(page);
+  await setEffect(page, "test-hum", true);
+  await isRunning(page, "test-hum");
+  const after = await record(page, 1000);
+
+  // Act
+  await page.evaluate(async () => {
+    const api = window.harness?.client.game.modules.get("modular-av")?.api as
+      | {
+          commands: { setEffectPlace(id: string, at: string): Promise<void> };
+        }
+      | undefined;
+    await api?.commands.setEffectPlace("test-hum", "pre-gate");
+  });
+  const before = await record(page, 1000);
+
+  // Assert: the same hum, now stopped by the closed gate.
+  expect(after.longestZeroRun).toBeLessThan(2048);
+  expect(before.longestZeroRun).toBeGreaterThan(SILENCE_SAMPLES);
+  expect((await state(page)).local.effects["test-hum"]?.status).toBe("running");
+});
+
 test("a send effect's tail outlives the gate, and turning it off leaves the voice", async ({
   page,
 }) => {

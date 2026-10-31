@@ -16,6 +16,7 @@ import {
   type DeviceKindOf,
 } from "./device-capture.ts";
 import type { GateConfig, MediaEnv } from "./env.ts";
+import { NO_PLACEMENT, type EffectPlacement } from "./effect-places.ts";
 import type { VoiceLevels } from "./levels.ts";
 import { createLocalVideo } from "./local-video.ts";
 import type { Microphone } from "./microphone.ts";
@@ -67,6 +68,8 @@ export interface LocalMedia {
   effectStatus(id: string): EffectState | null;
   /** Applied at once and to the microphone captured later. */
   setLevels(levels: VoiceLevels): void;
+  /** Applied at once and to the microphone captured later. */
+  setPlacement(placement: EffectPlacement): void;
   /**
    * Applied at once and to every track captured later. `voice` is what
    * enters the effects after the gate; it stays closed while a tail rings
@@ -93,6 +96,7 @@ export function createLocalMedia(
   let audioEffects: readonly AudioEffectDefinition[] = [];
   let wantedEffects: ReadonlySet<string> = new Set();
   let levels: VoiceLevels = { channel: 1, mix: {} };
+  let placement = NO_PLACEMENT;
   let errors: CaptureErrors = { audio: null, video: null };
   let outbound: MediaPermissions = { audio: false, video: false };
   let voice = false;
@@ -144,6 +148,7 @@ export function createLocalMedia(
       onReplaced: deps.onReplaced,
       onError: deps.onError,
     });
+    created.setPlacement(placement);
     created.setEffects(audioEffects, wantedEffects);
     created.setLevels(levels);
     created.onGate((open) => {
@@ -372,6 +377,10 @@ export function createLocalMedia(
     setLevels(next) {
       levels = next;
       mic?.setLevels(next);
+    },
+    setPlacement(next) {
+      placement = next;
+      mic?.setPlacement(next);
     },
     setOutbound(next, nextVoice = next.audio) {
       outbound = next;

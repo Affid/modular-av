@@ -1,6 +1,5 @@
 import type { InputSensitivity } from "@modular-av/api";
 import { MODULE_ID } from "../constants.ts";
-import { AVCommandError } from "../errors.ts";
 import type { FoundryGame } from "../foundry/globals.ts";
 
 /** How the voice gate opens on this device: a client setting. */
@@ -14,7 +13,7 @@ export const DEFAULT_SENSITIVITY: InputSensitivity = {
 const MIN_THRESHOLD = -100;
 const MAX_THRESHOLD = 0;
 
-const isThreshold = (value: unknown): value is number =>
+export const isThreshold = (value: unknown): value is number =>
   typeof value === "number" &&
   Number.isFinite(value) &&
   value >= MIN_THRESHOLD &&
@@ -34,24 +33,4 @@ export function readSensitivity(game: FoundryGame): InputSensitivity {
       ? saved.threshold
       : DEFAULT_SENSITIVITY.threshold,
   };
-}
-
-/** Merges a change into the saved sensitivity; throws for bad input. */
-export async function writeSensitivity(
-  game: FoundryGame,
-  change: Partial<InputSensitivity>,
-): Promise<void> {
-  if (change.auto !== undefined && typeof change.auto !== "boolean")
-    throw new AVCommandError("invalid-argument", "auto must be true or false");
-  if (change.threshold !== undefined && !isThreshold(change.threshold))
-    throw new AVCommandError(
-      "invalid-argument",
-      "The threshold must be between -100 and 0 dBFS",
-      { threshold: String(change.threshold) },
-    );
-  const current = readSensitivity(game);
-  await game.settings.set(MODULE_ID, SENSITIVITY_SETTING, {
-    auto: change.auto ?? current.auto,
-    threshold: change.threshold ?? current.threshold,
-  });
 }
