@@ -35,6 +35,39 @@ export interface EffectContext {
 export interface AudioEffectContext extends EffectContext {
   /** The core's one capture context, at 48 kHz. */
   readonly audioContext: AudioContext;
+  /**
+   * Runs a kernel in the core's worklet: the way to write a worklet effect
+   * in `post` or `send`, as the core then skips it on silence. The result
+   * is a normal `AudioEffect`.
+   */
+  readonly host: EffectHost;
+}
+
+/** An effect's sound code, run by the core's worklet. */
+export interface EffectKernel {
+  /**
+   * A worklet module's URL, which calls
+   * `modularAV.registerKernel(name, class { render(input, output) {} })`.
+   * Kernels can't be imported: a worklet loads no bundled code.
+   */
+  readonly module: string;
+  readonly name: string;
+  /** Given to the kernel's constructor; must survive structured clone. */
+  readonly options?: unknown;
+}
+
+export interface HostedEffect extends AudioEffect {
+  /** Hands `value` to the kernel's `configure`. */
+  configure(value: unknown): void;
+}
+
+export type EffectHost = (kernel: EffectKernel) => Promise<HostedEffect>;
+
+export interface EffectHostOptions {
+  /** The effect's `tail`: how long to keep rendering after sound stops. */
+  readonly tail?: number;
+  /** Told when the kernel throws, or outputs a non-number. */
+  readonly fail: (error: unknown) => void;
 }
 
 interface EffectDefinitionBase {

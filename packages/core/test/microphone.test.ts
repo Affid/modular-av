@@ -232,6 +232,7 @@ describe("microphone pipeline", () => {
     });
     const mic = createMicrophone({
       env: {
+        createEffectHost: () => () => Promise.reject(new Error("unused")),
         createCaptureContext: () =>
           Promise.resolve({
             ...capture,
@@ -315,6 +316,31 @@ describe("microphone pipeline", () => {
     expect(reverb.instances[0]?.disposed).toBe(true);
     expect(s.capture().level("return:reverb")?.disposed).toBe(true);
     expect(s.capture().level("channel")?.level).toBe(1);
+  });
+
+  it("hosts a kernel for an effect, with its tail and its failure path", async () => {
+    // Arrange
+    const s = setup();
+    const definition: AudioEffectDefinition = {
+      ...fakeEffect("reverb", { stage: "send" }).definition,
+      tail: 2,
+      create: ({ host }) => host({ module: "/reverb.js", name: "reverb" }),
+    };
+    await s.mic.setInput(createFakeTrack("audio", "mic"));
+
+    // Act
+    s.mic.setEffects([definition], new Set(["reverb"]));
+    await flush();
+
+    // Assert
+    const hosted = s.env.hosted[0];
+    expect(s.mic.effectStatus("reverb").status).toBe("running");
+    expect(hosted?.kernel).toEqual({ module: "/reverb.js", name: "reverb" });
+    expect(hosted?.options.tail).toBe(2);
+
+    hosted?.options.fail(new Error("kernel broke"));
+    expect(s.mic.effectStatus("reverb").status).toBe("failed");
+    expect(hosted?.disposed).toBe(true);
   });
 
   it("closes mute along with the output, so effects after the gate hear nothing", async () => {

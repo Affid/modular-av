@@ -104,6 +104,7 @@ export function fakeContext(options: { addModuleFails?: boolean } = {}) {
     audioContext,
     signal: controller.signal,
     fail,
+    host: () => Promise.reject(new Error("unused")),
   };
   return { context, controller, addModule, fail };
 }

@@ -3,7 +3,11 @@
  * this, so the session and media logic run in unit tests without a browser.
  * `browser-env.ts` is the real one; @modular-av/testing has a fake.
  */
-import type { DeviceList } from "@modular-av/api";
+import type {
+  DeviceList,
+  EffectHost,
+  EffectHostOptions,
+} from "@modular-av/api";
 
 export interface MediaEnv {
   /**
@@ -45,6 +49,11 @@ export interface MediaEnv {
   onDeviceChange(listener: () => void): () => void;
   /** The one capture context; call once and keep it. Loads its code lazily. */
   createCaptureContext(): Promise<CaptureContext>;
+  /** Runs effect kernels in `context`. Loads its code lazily. */
+  createEffectHost(
+    context: BaseAudioContext,
+    options: EffectHostOptions,
+  ): EffectHost;
   /** Whether `watchFrames` works here (MediaStreamTrackProcessor). */
   canWatchFrames(): boolean;
   /**

@@ -147,6 +147,44 @@ Thrown errors aren't enough, so the core also watches the sound.
   at once for an effect that is off or starting, and within the stall time
   for one that went quiet.
 
+## Writing a reverb
+
+A hosted effect is a kernel in a worklet file of its own, and a definition:
+
+```js
+// worklet.js: loaded into the audio thread, so it can't import anything.
+modularAV.registerKernel(
+  "my-reverb",
+  class {
+    constructor({ sampleRate, options }) {}
+    render(input, output) {} // mono Float32Arrays, one block each
+    configure(value) {} // optional
+  },
+);
+```
+
+```ts
+api.effects.register({
+  id: "my-reverb",
+  kind: "audio",
+  label: "Reverb",
+  stage: "send",
+  cost: "medium",
+  tail: 2.5, // seconds it keeps sounding: the core keeps rendering that long
+  defaultMix: 0.3, // where its wet amount starts
+  isSupported: () => "audioWorklet" in AudioContext.prototype,
+  create: ({ host }) =>
+    host({
+      module: api.assetUrl("my-module", "worklet.js"),
+      name: "my-reverb",
+    }),
+});
+```
+
+Output only the processed signal: the core adds the dry one. Don't add a
+dry:wet control, and don't write an early return. Native nodes work too:
+`create` returns their `{ input, output, dispose }`.
+
 ## Limits
 
 - Only digital silence, a runaway level and a non-number can be detected.
@@ -157,6 +195,5 @@ Thrown errors aren't enough, so the core also watches the sound.
 - A hung `render()` can't be stopped: it holds the audio thread.
 - In Firefox, with Channel level at 0, a busy page can clip the start of
   speech, because the voice then depends on a late Send on/off.
-- Nothing here is shared between effects yet: a hosted effect has a worklet
-  node of its own. Sharing one node would save a little more, and the API
-  doesn't show the difference.
+- Each hosted effect has a worklet node of its own. One node for all of
+  them would save a little more, and the API doesn't show the difference.

@@ -263,6 +263,8 @@ export function createFakeApi(options: FakeApiOptions = {}): FakeApi {
     contributions,
     socket: () => ({ send: () => undefined, on: () => () => undefined }),
     assetUrl: (moduleId, path) => `/modules/${moduleId}/${path}`,
+    createEffectHost: () => () =>
+      Promise.reject(new Error("The fake API runs no effects")),
     setState: set,
     get calls() {
       return calls;

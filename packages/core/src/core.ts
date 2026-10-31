@@ -2,6 +2,7 @@ import type {
   AVState,
   Contribution,
   EffectDefinition,
+  EffectHostOptions,
   ModularAV,
   ServiceDefinition,
   SurfaceDefinition,
@@ -185,6 +186,8 @@ export function installCore(deps: CoreDeps): InstalledCore {
     socket: (name: string) => channels.channel(name),
     assetUrl: (moduleId: string, path: string) =>
       assetUrl((p) => deps.foundry.utils.getRoute(p), moduleId, path),
+    createEffectHost: (context: BaseAudioContext, options: EffectHostOptions) =>
+      deps.env.createEffectHost(context, options),
   });
   mod.api = api;
 

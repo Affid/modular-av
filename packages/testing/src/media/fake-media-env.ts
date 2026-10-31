@@ -1,4 +1,10 @@
-import type { DeviceList } from "@modular-av/api";
+import type {
+  DeviceList,
+  EffectHost,
+  EffectHostOptions,
+  EffectKernel,
+  HostedEffect,
+} from "@modular-av/api";
 import { createFakeTrack } from "../service/fake-track.ts";
 import {
   createFakeCaptureContext,
@@ -24,6 +30,15 @@ export interface FakeAudioOutput {
   setSinkId(sinkId: string): Promise<void>;
   dispose(): void;
   readonly state: FakeAudioOutputState;
+}
+
+/** A kernel the core was asked to run; nothing renders. */
+export interface FakeHostedEffect extends HostedEffect {
+  readonly kernel: EffectKernel;
+  readonly options: EffectHostOptions;
+  /** What `configure` was given, in order. */
+  readonly configured: readonly unknown[];
+  readonly disposed: boolean;
 }
 
 export interface FakeMediaEnvOptions {
@@ -86,6 +101,12 @@ export interface FakeMediaEnv {
   setOnScreen(element: Element, view: FakeOnScreen): void;
   onOnline(listener: () => void): () => void;
   createCaptureContext(): Promise<FakeCaptureContext>;
+  createEffectHost(
+    context: BaseAudioContext,
+    options: EffectHostOptions,
+  ): EffectHost;
+  /** Each kernel hosted, with what it was hosted with. */
+  readonly hosted: readonly FakeHostedEffect[];
   canWatchFrames(): boolean;
   listDevices(): Promise<DeviceList>;
   onDeviceChange(listener: () => void): () => void;
@@ -174,6 +195,7 @@ export function createFakeMediaEnv(
     readonly listener: (view: FakeOnScreen) => void;
   }[] = [];
   let captureContexts: readonly FakeCaptureContext[] = [];
+  let hosted: readonly FakeHostedEffect[] = [];
   let devices = options.devices ?? FAKE_DEVICES;
   let deviceListeners: readonly (() => void)[] = [];
   let frameWatchers: readonly {
@@ -276,6 +298,34 @@ export function createFakeMediaEnv(
       });
       captureContexts = [...captureContexts, context];
       return Promise.resolve(context);
+    },
+    createEffectHost: (context, hostOptions) => (kernel) => {
+      const node = context.createGain();
+      let configured: readonly unknown[] = [];
+      let disposed = false;
+      const effect: FakeHostedEffect = {
+        kernel,
+        options: hostOptions,
+        input: node,
+        output: node,
+        get configured() {
+          return configured;
+        },
+        get disposed() {
+          return disposed;
+        },
+        configure(value) {
+          configured = [...configured, value];
+        },
+        dispose() {
+          disposed = true;
+        },
+      };
+      hosted = [...hosted, effect];
+      return Promise.resolve(effect);
+    },
+    get hosted() {
+      return hosted;
     },
     get captureContexts() {
       return captureContexts;

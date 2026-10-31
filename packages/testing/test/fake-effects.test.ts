@@ -24,6 +24,7 @@ describe("fake effects", () => {
     const effect = await fake.definition.create({
       ...context(),
       audioContext: capture.audioContext,
+      host: () => Promise.reject(new Error("unused")),
     });
     effect.dispose();
 
@@ -67,6 +68,7 @@ describe("fake effects", () => {
       audio.definition.create({
         ...context(),
         audioContext: capture.audioContext,
+        host: () => Promise.reject(new Error("unused")),
       }),
     ).rejects.toBe(error);
     await expect(video.definition.create(context())).rejects.toBe(error);

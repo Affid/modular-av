@@ -151,6 +151,43 @@ const echoEffect: AudioEffectDefinition = {
   },
 };
 
+/** Kernels for the hosted test effects: a worklet file can't be bundled. */
+const KERNELS = `
+modularAV.registerKernel("test-comb", class {
+  constructor({ sampleRate }) {
+    this.line = new Float32Array(Math.round(sampleRate * 0.1));
+    this.at = 0;
+  }
+  render(input, output) {
+    for (let i = 0; i < output.length; i++) {
+      const wet = this.line[this.at];
+      this.line[this.at] = input[i] + wet * 0.7;
+      this.at = (this.at + 1) % this.line.length;
+      output[i] = wet;
+    }
+  }
+});
+modularAV.registerKernel("test-broken", class {
+  render() { throw new Error("The test kernel always fails"); }
+});
+`;
+
+const kernelsUrl = (): string =>
+  URL.createObjectURL(new Blob([KERNELS], { type: "text/javascript" }));
+
+function hostedEffect(id: string, kernel: string): AudioEffectDefinition {
+  return {
+    id,
+    kind: "audio",
+    label: id,
+    stage: "send",
+    cost: "light",
+    tail: 1,
+    isSupported: () => true,
+    create: ({ host }) => host({ module: kernelsUrl(), name: kernel }),
+  };
+}
+
 /** A denoise effect that sends digital silence, as a stalled model does. */
 const silentEffect: AudioEffectDefinition = {
   id: "test-silent",
@@ -308,6 +345,8 @@ export function installPipeline(
       api.effects.register(gainEffect);
       api.effects.register(humEffect);
       api.effects.register(echoEffect);
+      api.effects.register(hostedEffect("test-hosted", "test-comb"));
+      api.effects.register(hostedEffect("test-hosted-broken", "test-broken"));
       api.effects.register(passEffect(() => stalled));
       api.effects.register(failingEffect);
       api.effects.register(silentEffect);

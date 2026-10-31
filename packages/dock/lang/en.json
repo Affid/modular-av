@@ -152,6 +152,7 @@
       "errors": {
         "StalledError": "it stopped sending sound",
         "RunawayError": "its level ran out of control",
+        "KernelError": "its code stopped working",
         "CompileError": "its files couldn't load",
         "TimeoutError": "it didn't start in time",
         "ProcessorError": "it stopped working",

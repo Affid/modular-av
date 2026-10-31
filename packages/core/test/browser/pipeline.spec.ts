@@ -172,6 +172,41 @@ test("a send effect's tail outlives the gate, and turning it off leaves the voic
   expect(voice.peak).toBeGreaterThan(0.01);
 });
 
+test("a hosted effect rings on after the gate, then the core stops calling it", async ({
+  page,
+}) => {
+  // Arrange
+  await openVoiceActivity(page);
+  await setEffect(page, "test-hosted", true);
+  await isRunning(page, "test-hosted");
+  await page.waitForTimeout(1000);
+
+  // Act
+  await closeGate(page);
+  const tail = await record(page, 400);
+  await page.waitForTimeout(1200);
+  const done = await record(page, 1000);
+
+  // Assert: past its declared tail it is cut to digital silence.
+  expect(tail.peak).toBeGreaterThan(0.01);
+  expect(done.peak).toBe(0);
+});
+
+test("a hosted effect that throws fails plainly, and the voice goes on", async ({
+  page,
+}) => {
+  await openVoiceActivity(page);
+
+  await setEffect(page, "test-hosted-broken", true);
+
+  await expect
+    .poll(() =>
+      state(page).then((s) => s.local.effects["test-hosted-broken"]?.error),
+    )
+    .toBe("KernelError");
+  expect((await record(page, 500)).peak).toBeGreaterThan(0.01);
+});
+
 test("Channel level drops the dry voice only while a send carries it", async ({
   page,
 }) => {
