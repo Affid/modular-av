@@ -156,6 +156,17 @@ describe("effect places", () => {
     });
   });
 
+  it("shows an effect only in the order of the place it runs in", async () => {
+    const reverb = createFakeAudioEffect("reverb", { defaultPlace: "send" });
+    const { table, p1 } = await moved(reverb.definition);
+    await p1.api.commands.setEffectOrder("send", ["reverb"]);
+
+    await p1.api.commands.setEffectPlace("reverb", "post-gate");
+    await table.settle();
+
+    expect(p1.api.state.get().local.effectOrder.send).toEqual([]);
+  });
+
   it("offers a mix where the effect has one, wherever it is now", async () => {
     // Arrange
     const reverb = createFakeAudioEffect("reverb", { defaultPlace: "send" });

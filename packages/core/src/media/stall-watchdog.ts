@@ -122,13 +122,19 @@ export function createStallWatchdog(
         { ...w, silentMs: next(peak, w, sound) },
       ]),
     );
-    // What is behind a broken insert hears the fault, so the first one only.
+    // In a place, what is behind a broken insert hears the fault: the first
+    // one only, and the others start over, as they may still hear nothing.
     const runaway = read.find(([, , peak]) => !(peak <= RUNAWAY_PEAK));
     if (runaway) onStalled(runaway[0], new RunawayError());
     const stalled = [...watched].find(
       ([, w]) => w.silentMs >= STALL_MS + w.graceMs,
     );
-    if (stalled) onStalled(stalled[0], new StalledError());
+    if (stalled) {
+      watched = new Map(
+        [...watched].map(([id, w]) => [id, { ...w, silentMs: 0 }]),
+      );
+      onStalled(stalled[0], new StalledError());
+    }
   };
 
   /** Taps the source and runs the timer only while there is work. */

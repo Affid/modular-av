@@ -361,6 +361,22 @@ describe("the stall watchdog", () => {
     expect(r.mic.effectStatus("pitch").status).toBe("running");
   });
 
+  it("gives what was behind a stall its full time again", async () => {
+    // Arrange: it still hears nothing as the blamed effect leaves.
+    const r = await inSeries();
+    r.input.setPeak(SPEECH);
+    r.first?.setPeak(0);
+    r.second?.setPeak(0);
+
+    // Act
+    await vi.advanceTimersByTimeAsync(STALL_MS + 300);
+    await flush();
+
+    // Assert
+    expect(r.mic.effectStatus("model").status).toBe("failed");
+    expect(r.mic.effectStatus("pitch").status).toBe("running");
+  });
+
   it("leaves alone an effect behind one that silences noise", async () => {
     const r = await inSeries({ silencesNoise: true });
 

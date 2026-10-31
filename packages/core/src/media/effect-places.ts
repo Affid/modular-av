@@ -51,22 +51,23 @@ export function readPlacement(
   effects: Registry<EffectDefinition>,
 ): EffectPlacement {
   const audio = audioEffects(effects);
-  const places = savedRecord(game, EFFECT_PLACES_SETTING);
+  const saved = savedRecord(game, EFFECT_PLACES_SETTING);
   const order = savedRecord(game, EFFECT_ORDER_SETTING);
+  const places = Object.fromEntries(
+    audio.map((d): [string, AudioPlace] => {
+      const place = saved[d.id];
+      return [d.id, isPlace(place) ? place : d.defaultPlace];
+    }),
+  );
   const known = (place: AudioPlace): readonly string[] => {
     const ids = order[place];
     if (!Array.isArray(ids)) return [];
-    return (ids as readonly unknown[]).filter((id): id is string =>
-      audio.some((d) => d.id === id),
+    return (ids as readonly unknown[]).filter(
+      (id): id is string => typeof id === "string" && places[id] === place,
     );
   };
   return {
-    places: Object.fromEntries(
-      audio.map((d) => {
-        const place = places[d.id];
-        return [d.id, isPlace(place) ? place : d.defaultPlace];
-      }),
-    ),
+    places,
     order: {
       "pre-gate": known("pre-gate"),
       "post-gate": known("post-gate"),
