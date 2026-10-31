@@ -137,6 +137,7 @@ const COMMANDS: readonly (keyof AVCommands)[] = [
   "setEffectEnabled",
   "setEffectMix",
   "setChannelLevel",
+  "setCutTails",
   "setInputSensitivity",
   "setGateFallback",
   "setDevice",

@@ -47,8 +47,12 @@ export interface Microphone {
   readonly output: MediaStreamTrack | null;
   /** False while the gate failed to load or broke: nothing is gated. */
   readonly gateRunning: boolean;
-  /** The mute: disabled until enabled, and always without a device. */
+  /** The output: disabled until enabled, and always without a device. */
   setEnabled(enabled: boolean): void;
+  /** The mute after the gate, closed until opened and without a device. */
+  setVoiceOpen(open: boolean): void;
+  /** How long what runs now rings after sound stops. */
+  readonly tailMs: number;
   setGate(config: GateConfig): void;
   onGate(listener: (open: boolean) => void): () => void;
   /** The gate's level reports, on only while someone listens. */
@@ -82,6 +86,7 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
   let input: MediaStreamTrack | null = null;
   let config = deps.gate;
   let enabled = false;
+  let voiceOpen = false;
   let definitions: readonly AudioEffectDefinition[] = [];
   let wanted: ReadonlySet<string> = new Set();
   let levels: VoiceLevels = { channel: 1, mix: {} };
@@ -220,9 +225,8 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
   /** Fail closed: no device, no audio, whatever was enabled before. */
   const applyEnabled = (): void => {
     if (!parts) return;
-    const open = enabled && input !== null;
-    parts.chain.setOpen(open);
-    parts.capture.output.enabled = open;
+    parts.chain.setOpen(voiceOpen && input !== null);
+    parts.capture.output.enabled = enabled && input !== null;
   };
 
   const applyMix = (): void => {
@@ -282,6 +286,16 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
     setEnabled(next) {
       enabled = next;
       applyEnabled();
+    },
+    setVoiceOpen(next) {
+      voiceOpen = next;
+      applyEnabled();
+    },
+    get tailMs() {
+      const running = definitions.filter(
+        (d) => parts?.runner.status(d.id).status === "running",
+      );
+      return Math.max(0, ...running.map((d) => (d.tail ?? 0) * 1000));
     },
     setGate(next) {
       if (sameGate(config, next)) return;

@@ -343,7 +343,7 @@ describe("microphone pipeline", () => {
     expect(hosted?.disposed).toBe(true);
   });
 
-  it("closes mute along with the output, so effects after the gate hear nothing", async () => {
+  it("opens and closes mute on its own, and never without a device", async () => {
     // Arrange
     const s = setup();
     await s.mic.setInput(createFakeTrack("audio", "mic"));
@@ -351,15 +351,15 @@ describe("microphone pipeline", () => {
 
     // Act
     const before = mute?.level;
-    s.mic.setEnabled(true);
-    const enabled = mute?.level;
-    s.mic.setEnabled(false);
-    const disabled = mute?.level;
-    s.mic.setEnabled(true);
+    s.mic.setVoiceOpen(true);
+    const open = mute?.level;
+    s.mic.setVoiceOpen(false);
+    const closed = mute?.level;
+    s.mic.setVoiceOpen(true);
     await s.mic.setInput(null);
 
     // Assert
-    expect([before, enabled, disabled, mute?.level]).toEqual([0, 1, 0, 0]);
+    expect([before, open, closed, mute?.level]).toEqual([0, 1, 0, 0]);
   });
 
   it("keeps the output disabled until enabled, and without a device", async () => {

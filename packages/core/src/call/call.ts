@@ -33,7 +33,10 @@ export interface CallDeps {
   readonly local: LocalMedia;
   readonly remote: RemoteMedia;
   readonly service: () => ServiceDefinition | undefined;
+  /** What goes out, a ringing tail included. */
   readonly outbound: () => MediaPermissions;
+  /** Whether the voice itself goes on past the gate. */
+  readonly voiceOpen: () => boolean;
   readonly refreshState: () => void;
   /** `rt.features` changed. */
   readonly onFeatures: () => void;
@@ -147,7 +150,7 @@ export function createCall(deps: CallDeps): Session {
     canPublish: () => facts.canBroadcast(facts.selfId),
     outbound: deps.outbound,
     afterMediaSync: () => {
-      local.setOutbound(deps.outbound());
+      local.setOutbound(deps.outbound(), deps.voiceOpen());
     },
     onState: (state) => {
       rt.session = state;

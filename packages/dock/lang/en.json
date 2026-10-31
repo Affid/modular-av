@@ -187,6 +187,7 @@
       "fallback-send": "Send my voice anyway (open mic)",
       "fallback-mute": "Mute me",
       "mix": "Mix",
+      "cutTails": "Cut reverb and delay when my microphone closes",
       "channelLevel": "My voice",
       "channelLevelHint": "Turn it down to hear more of the effects below. With none running, your voice goes out at full level.",
       "threshold": "Threshold",

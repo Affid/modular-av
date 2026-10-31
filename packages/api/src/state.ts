@@ -138,8 +138,8 @@ export interface LocalState {
   /** The others' video is shown on this client (Foundry's `disableVideo` off). */
   readonly receiveVideo: boolean;
   /**
-   * Whether the microphone is sent right now: in voice activity mode, while
-   * the gate is open.
+   * Whether the voice is sent right now: in voice activity mode, while the
+   * gate is open. A tail may still go out after this turns false.
    */
   readonly broadcasting: boolean;
   readonly voiceMode: VoiceMode;
@@ -165,6 +165,8 @@ export interface LocalState {
   readonly effectMix: Readonly<Record<string, number>>;
   /** How much of the voice goes out dry, as the player set it, 0 to 1. */
   readonly channelLevel: number;
+  /** A reverb's or delay's tail stops with the microphone, not after it. */
+  readonly cutTails: boolean;
   readonly inputSensitivity: InputSensitivity;
   /** Why the camera is kept off, if a video effect isn't sending. */
   readonly cameraHold: CameraHold | null;

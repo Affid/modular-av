@@ -69,8 +69,14 @@ export interface LocalMedia {
   effectStatus(id: string): EffectState | null;
   /** Applied at once and to the microphone captured later. */
   setLevels(levels: VoiceLevels): void;
-  /** Applied at once and to every track captured later. */
-  setOutbound(outbound: MediaPermissions): void;
+  /**
+   * Applied at once and to every track captured later. `voice` is what
+   * enters the effects after the gate; it stays closed while a tail rings
+   * out through a microphone still in `outbound`.
+   */
+  setOutbound(outbound: MediaPermissions, voice?: boolean): void;
+  /** How long what runs now rings after sound stops. */
+  readonly tailMs: number;
   release(): void;
   /** Tracks were replaced or removed, or the gate stopped or started. */
   onChange(listener: () => void): () => void;
@@ -91,6 +97,7 @@ export function createLocalMedia(
   let levels: VoiceLevels = { channel: 1, mix: {} };
   let errors: CaptureErrors = { audio: null, video: null };
   let outbound: MediaPermissions = { audio: false, video: false };
+  let voice = false;
   let listeners: Listeners<void> = [];
   let gateListeners: Listeners<boolean> = [];
   let levelListeners: Listeners<MeterReading> = [];
@@ -122,6 +129,7 @@ export function createLocalMedia(
   });
 
   const applyOutbound = (): void => {
+    mic?.setVoiceOpen(voice);
     mic?.setEnabled(outbound.audio);
     camera.setEnabled(outbound.video);
   };
@@ -143,6 +151,7 @@ export function createLocalMedia(
     created.onGate((open) => {
       for (const { listener } of gateListeners) listener(open);
     });
+    created.setVoiceOpen(voice);
     created.setEnabled(outbound.audio);
     mic = created;
     syncLevels();
@@ -366,9 +375,13 @@ export function createLocalMedia(
       levels = next;
       mic?.setLevels(next);
     },
-    setOutbound(next) {
+    setOutbound(next, nextVoice = next.audio) {
       outbound = next;
+      voice = nextVoice;
       applyOutbound();
+    },
+    get tailMs() {
+      return mic?.tailMs ?? 0;
     },
     release() {
       epoch += 1;

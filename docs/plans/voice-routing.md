@@ -116,7 +116,9 @@ What this decides:
   Mute follows the first, the output bus and the service follow the
   second.
 - Sender hold, at most 3 s, for the player's own release only.
-- Receivers keep playing a muted sender for the same 3 s.
+- Receivers need nothing: playback doesn't act on a sender's mute (their
+  `muted` in `canHear` is the listener's own choice). The design discussion
+  had this wrong.
 - The "cut sound tails" setting, command, state and dock switch.
 - `packages/api/README.md`: the mute guarantee reworded.
 

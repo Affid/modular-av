@@ -28,6 +28,7 @@ export interface DraftValues {
   readonly channelLevel: number;
   /** Each effect with a dry:wet or wet control, by id, 0 to 1. */
   readonly effectMix: Readonly<Record<string, number>>;
+  readonly cutTails: boolean;
   /** The effect chosen in each group ("" for none), by group name. */
   readonly effects: Readonly<Record<string, string>>;
   readonly receiveVideo: boolean;
@@ -179,6 +180,10 @@ export const FIELDS: { readonly [K in DraftKey]: Field<K> } = {
     apply: (ctx, level) => ctx.api.commands.setChannelLevel(level),
   },
   effectMix: { read: (ctx) => local(ctx).effectMix, apply: applyMix },
+  cutTails: {
+    read: (ctx) => local(ctx).cutTails,
+    apply: (ctx, cut) => ctx.api.commands.setCutTails(cut),
+  },
   effects: { read: effectChoices, apply: applyEffects },
   receiveVideo: {
     read: (ctx) => local(ctx).receiveVideo,

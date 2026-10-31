@@ -192,6 +192,31 @@ test("a hosted effect rings on after the gate, then the core stops calling it", 
   expect(done.peak).toBe(0);
 });
 
+test("a tail rings out after mute, then the output closes", async ({
+  page,
+}) => {
+  // Arrange
+  await openVoiceActivity(page);
+  await setEffect(page, "test-hosted", true);
+  await isRunning(page, "test-hosted");
+  await page.waitForTimeout(1000);
+  await setGate(page, -60);
+
+  // Act
+  await page.evaluate(async () => {
+    const api = window.harness?.client.game.modules.get("modular-av")?.api as
+      { commands: { setMuted(muted: boolean): Promise<void> } } | undefined;
+    await api?.commands.setMuted(true);
+  });
+  const tail = await record(page, 300);
+  await page.waitForTimeout(1200);
+  const closed = await record(page, 500);
+
+  // Assert
+  expect(tail.peak).toBeGreaterThan(0.01);
+  expect(closed.peak).toBe(0);
+});
+
 test("a hosted effect that throws fails plainly, and the voice goes on", async ({
   page,
 }) => {

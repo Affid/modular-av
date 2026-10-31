@@ -59,6 +59,7 @@ export function localState(changes: Partial<LocalState> = {}): LocalState {
     effects: {},
     effectMix: {},
     channelLevel: 1,
+    cutTails: false,
     inputSensitivity: { auto: true, threshold: -50 },
     cameraHold: null,
     chosenDevices: {

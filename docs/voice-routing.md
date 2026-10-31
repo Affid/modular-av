@@ -104,11 +104,6 @@ settings makes every release close at once. Nothing said after the Mute
 closes can reach an effect, so a tail only carries speech that already went
 out.
 
-Receivers keep playing a muted sender for the same 3 s, because they stop
-on Foundry's `muted` flag, which arrives before the tail ends. The sender's
-track still closes on time. A GM block ends playback at once on every
-client.
-
 ## When effects run
 
 The browser calls a worklet on every block, so an effect can only skip work
@@ -191,7 +186,6 @@ dry:wet control, and don't write an early return. Native nodes work too:
   An effect that sounds wrong but keeps sounding passes.
 - While a tail rings after mute, the player shows as muted. A service's own
   speaking detection may show them speaking for that moment.
-- A player on an older core stops a tail at their end.
 - A hung `render()` can't be stopped: it holds the audio thread.
 - In Firefox, with Channel level at 0, a busy page can clip the start of
   speech, because the voice then depends on a late Send on/off.

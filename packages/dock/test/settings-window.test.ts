@@ -177,6 +177,18 @@ describe("the settings window's Voice tab", () => {
     ]);
   });
 
+  it("offers to cut tails, drafted until Save", async () => {
+    const view = open(withMix({ effectMix: { reverb: 1 } }), (dock) => {
+      dock.api.effects.register(reverb);
+    });
+    view.tab("voice");
+
+    view.q('[data-field="cutTails"]')?.click();
+    await view.save();
+
+    expect(view.api.calls).toEqual([{ command: "setCutTails", args: [true] }]);
+  });
+
   it("names a tab with unsaved changes as such, for screen readers", () => {
     const view = open();
     view.tab("voice");

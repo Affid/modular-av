@@ -837,7 +837,9 @@ Principles:
   or hold the microphone off if the player chose that (`gateFallback`
   "mute", a setting of this device, decided for 1.0; sending stays the
   default).
-  Mute is applied to the core's own final track, in every connection state.
+  Mute is applied right after the gate and to the core's own final track, in
+  every connection state; a tail of what was said before may ring on for up
+  to 3 s (`docs/voice-routing.md`).
 - **Never expose secrets to players**: a service's secret lives only on the
   GM's device or a token server.
 - **Swap effects atomically** (start the new one, then replace), never

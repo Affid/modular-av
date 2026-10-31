@@ -2,6 +2,7 @@ import { el } from "@modular-av/kit";
 import type { Rendered } from "../contributions/controls.ts";
 import type { DockContext } from "../context.ts";
 import type { Draft } from "./draft.ts";
+import { draftSwitch } from "./draft-inputs.ts";
 import { row, section } from "./fields.ts";
 
 const PERCENT = 100;
@@ -59,6 +60,7 @@ export function mixSection(
     .list()
     .filter((d) => draft.get("effectMix")[d.id] !== undefined);
   if (mixed.length === 0) return [];
+  const cut = draftSwitch(doc, draft, "cutTails", ctx.t("settings.cutTails"));
   const channelLabel = ctx.t("settings.channelLevel");
   const channel = levelSlider(doc, draft, {
     field: "channelLevel",
@@ -89,8 +91,10 @@ export function mixSection(
           ctx.t("settings.channelLevelHint"),
         ),
         ...effects.map((e) => row(doc, e.label, e.slider.element)),
+        cut.element,
       ]),
       dispose() {
+        cut.dispose();
         channel.dispose();
         for (const e of effects) e.slider.dispose();
       },
