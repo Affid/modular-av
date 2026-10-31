@@ -565,7 +565,7 @@ interface AudioEffectDefinition {
   id: string; // "rnnoise"
   kind: "audio";
   label: string;
-  stage: "denoise" | "voice" | "post" | "send"; // docs/voice-routing.md
+  defaultPlace: "pre-gate" | "post-gate" | "send"; // docs/voice-routing.md
   exclusiveGroup?: string; // "noise-suppression": one running per group
   cost: "light" | "medium" | "heavy"; // shown to players
   isSupported(): boolean;
@@ -811,7 +811,7 @@ Contract suites in `@modular-av/testing`:
 │  reconnect policy                                            │
 ├──────────────────────────────────────────────────────────────┤
 │ Local media pipeline + audio playback (service-independent)  │
-│  mic → denoise → voice → gate → post → final track → service │
+│  mic → pre-gate → gate → post-gate, sends → track → service  │
 │  camera → video effect (watchdog) → final track → service    │
 │  remote audio → elements (Web Audio only above 100%) → sink  │
 └──────────────────────────────────────────────────────────────┘
@@ -1138,8 +1138,8 @@ Verified while building and testing the media pipeline (core only,
 Foundry 14.369, Chromium from Playwright 1.64, livekit-server 1.13.8):
 
 - **The pipeline as built**: microphone → capture context (one 48 kHz
-  `AudioContext`, suspended without a microphone) → `denoise`, `voice` →
-  voice gate worklet → mute → `post` → Channel level, with `send` effects
+  `AudioContext`, suspended without a microphone) → `pre-gate` →
+  voice gate worklet → mute → `post-gate` → Channel level, with sends
   beside it (`docs/voice-routing.md`) → one output track, the same for the whole session
   whatever devices and effects do, so the service never gets
   `replaceTrack` for audio. Swaps connect the new path before cutting the
@@ -2203,4 +2203,25 @@ Firefox 157):
   specs that need a closed gate set a fixed threshold.
 - **The core's entry budget** went from 110,000 to 116,000 bytes for the
   routing's settings and tail hold, in the entry because state and
-  commands need them; 114,611 used. Nothing large was left to split off.
+  commands need them. Places would have passed it too, so what writes this
+  device's settings now loads on first use (`media/setting-writes.ts`):
+  115,651 used. The entry reads those settings at start, so that stays. The
+  picture-in-picture code looks like the next candidate but isn't: a request
+  must come from a click, and loading first can outlive the activation.
+- **`sameData` compares arrays now** (`state/project.ts`). It used to take
+  every array as changed, so `LocalState.effectOrder`, the first array in the
+  local state, made every refresh a change for all subscribers.
+- **The docked grid is bistable, open**: with frames that reach past tiles,
+  `setLayout` refits on every `show`, and each refit flips the tile width
+  between 120 and 121 px, as the list's height follows. The fit in
+  `cameras/tiles.ts` damps this for resizes only. The parity of `show` calls
+  decides the width, so one more state update can move every tile by a pixel;
+  the vines spec "the docked grid settles" fails when that lands in its
+  window.
+- **Places**: the `denoise`, `voice`, `post` stages became `pre-gate` and
+  `post-gate` (phase 8 of `docs/plans/voice-routing.md`). `voice` was reserved
+  for voice changers from the first effects commit and nothing shipped in it;
+  it differed from `denoise` by running second and, by accident, by having no
+  stall watchdog. Watching it showed two old faults of a series: an effect
+  behind one that gates to zero looks stalled, and everything behind a stall
+  looks stalled too.

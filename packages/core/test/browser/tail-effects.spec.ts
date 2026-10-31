@@ -7,6 +7,7 @@ import {
   openEffects,
   TAIL_END,
   tailEffectContract,
+  wetOnly,
 } from "@modular-av/testing/contract/tail-effects";
 import { expect, test } from "@playwright/test";
 
@@ -16,6 +17,14 @@ tailEffectContract({
   modules: "core",
   query: "&effects=test",
   effects: ["test-echo", "test-hosted"],
+});
+
+test("the contract wants wet only of what a player would put on a send", () => {
+  const declared = { tail: 0, latency: 0 };
+
+  expect(wetOnly({ ...declared, place: "send" })).toBe(true);
+  expect(wetOnly({ ...declared, place: "post-gate", tail: 2 })).toBe(true);
+  expect(wetOnly({ ...declared, place: "post-gate" })).toBe(false);
 });
 
 test("the contract fails an effect that works on silence", async ({ page }) => {

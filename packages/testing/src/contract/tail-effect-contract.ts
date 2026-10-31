@@ -30,7 +30,7 @@ export const IDLE_BUDGET = 0.002;
 export const TAIL_END = 0.001;
 /** Still this loud as its tail ends, it was cut short: -20 dB. */
 export const TAIL_CUT_SHORT = 0.1;
-/** The impulse a `send` effect may pass on at once: a reverb's first echo. */
+/** The impulse a wet-only effect may pass on at once: a first echo. */
 export const DRY_LEAK = 0.25;
 
 const IDLE_SECONDS = 10;
@@ -52,7 +52,7 @@ interface Render {
   readonly failures: readonly string[];
 }
 
-interface Declared {
+export interface Declared {
   readonly place: string;
   readonly tail: number;
   readonly latency: number;
@@ -232,6 +232,14 @@ export async function directPeak(page: Page, id: string): Promise<number> {
   return peaks[Math.floor(at / PEAK_S)] ?? 0;
 }
 
+/**
+ * Any effect may be moved to a send, where dry signal doubles the voice. That
+ * is what a voice changer does and a player can hear it; what rings is what
+ * ends up there, so it must leave the dry signal to the core.
+ */
+export const wetOnly = ({ place, tail }: Declared): boolean =>
+  place === "send" || tail > 0;
+
 export function tailEffectContract(options: TailEffectContractOptions): void {
   const query = `module=${options.modules}&service=mock${options.query ?? ""}`;
   test.describe(`tail effects contract: ${options.modules}`, () => {
@@ -258,10 +266,12 @@ export function tailEffectContract(options: TailEffectContractOptions): void {
         expect(endOfTail).toBeLessThanOrEqual(peak * TAIL_CUT_SHORT);
       });
 
-      test(`${id} outputs no dry signal if it is a send`, async ({ page }) => {
+      test(`${id} outputs no dry signal if it rings or is a send`, async ({
+        page,
+      }) => {
         await openEffects(page, query);
-        const { place } = await definitionOf(page, id);
-        test.skip(place !== "send", "only a send must be wet only");
+        const declared = await definitionOf(page, id);
+        test.skip(!wetOnly(declared), "only these must be wet only");
 
         expect(await directPeak(page, id)).toBeLessThanOrEqual(DRY_LEAK);
       });

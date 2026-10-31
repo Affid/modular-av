@@ -114,7 +114,7 @@ export interface AudioEffectDefinition extends EffectDefinitionBase {
    * gives the effect a dry:wet control: the core delays the dry signal to
    * match and mixes the two, so the effect outputs only its processed
    * signal. Without it, the effect stays at 100% wet, as mixing would
-   * comb-filter the voice. A `send` effect has a wet control either way.
+   * comb-filter the voice. On a send it has a wet control either way.
    */
   readonly latency?: number;
   /** Where its dry:wet or wet amount starts, 0 to 1; 1 if not given. */

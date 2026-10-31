@@ -184,3 +184,5 @@ in time.
   effects until one does.
 - `pnpm test:foundry` needs a running Foundry and isn't part of verify; run
   it before the PR.
+- Moving a running effect isn't smoothed, so it can click. No UI moves effects
+  during speech yet.

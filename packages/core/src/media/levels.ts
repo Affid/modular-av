@@ -26,7 +26,7 @@ export const isLevel = (value: unknown): value is number =>
   value >= 0 &&
   value <= 1;
 
-/** A `send` effect has its Return level; an insert needs its latency. */
+/** On a send it has its Return level; an insert needs its latency. */
 export const hasMix = (
   definition: AudioEffectDefinition,
   place: AudioPlace,

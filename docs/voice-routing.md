@@ -9,7 +9,7 @@ voice gate, and held it open.
 
 ```mermaid
 flowchart LR
-  mic[Microphone] --> pre["Pre-gate inserts<br/>denoise, voice"]
+  mic[Microphone] --> pre["Pre-gate inserts<br/>noise suppression first"]
   pre --> gate[Voice gate]
   gate --> mute[Mute]
   mute --> feed[Post feed]
@@ -44,7 +44,7 @@ flowchart LR
   effect --> wet[Wet level]
   dry --> sum((+))
   wet --> sum
-  sum --> next[Next stage]
+  sum --> next[Next insert]
 ```
 
 At 100% wet there is no dry branch and no extra node: the insert is a
@@ -61,28 +61,46 @@ a dry branch inside it would double the voice.
 | Term                           | In our chain                                                 | Difference from Cubase                                            |
 | ------------------------------ | ------------------------------------------------------------ | ----------------------------------------------------------------- |
 | Channel                        | The microphone's path, capture to output                     | In code, not `Channel`: that is the socket API type               |
-| Pre-gate and post-gate inserts | `denoise`, `voice` and `post`                                | Our fader comes after all inserts, so the gate marks the boundary |
+| Pre-gate and post-gate inserts | The `pre-gate` and `post-gate` places, in series             | Our fader comes after all inserts, so the gate marks the boundary |
 | Voice gate                     | The core's automatic on/off for speech                       | A fixed part, not a plug-in in a slot                             |
 | Mute                           | The core's switch right after the gate                       | Stops what goes in; closing the output bus stops what comes out   |
 | Post feed                      | A gain before the post-gate inserts, shut once the gate is   | Exists so native effects can sleep                                |
 | Channel level                  | The dry amount, a core setting after the post-gate inserts   | Cubase's channel fader                                            |
 | Send                           | A copy taken before Channel level, one per FX channel        | Always pre-fader; network audio is called outbound                |
 | Send on/off                    | A gain at exactly 0 or 1 ahead of all sends, set by the gate | Exists so FX channels can sleep                                   |
-| FX channel                     | Where a `send` effect runs, wet only                         | Our one channel feeds it; stacking effects in one is not built    |
+| FX channel                     | Where an effect on a send runs, wet only                     | Our one channel feeds it; stacking effects in one is not built    |
 | Return level                   | The wet amount of an FX channel, a core setting              | Cubase's FX channel fader                                         |
 | Output bus                     | `capture.output.enabled`                                     | On or off, with no level                                          |
 
-## `post` or `send`
+## Places
 
-Both run after the gate. Choose by what the effect has to do.
+A slot belongs to the mixer, as in Cubase. An effect names a `defaultPlace`,
+and `commands.setEffectPlace` moves it, running or not, without restarting
+it. Every plug is the same `{ input, output, dispose }`, so any effect can go
+anywhere, in one place at a time. `commands.setEffectOrder` sets the order
+within a place; noise suppression runs first unless the order lists it.
 
-- `post`: later effects must hear the result, the effect must be able to
-  replace the voice, or dry and wet must stay aligned. A radio, an EQ, a
-  compressor, a pitch shift, a demon voice.
-- `send`: none of those apply, so it adds to the voice. Reverb, delay, echo.
-  The voice never passes through it, so a failure or a slow wake can't
-  touch speech while Channel level is up, and its tail goes straight to the
-  output bus.
+Every effect outputs only its processed signal, and the core adds the dry.
+That is what makes a move safe: the same effect gets a dry branch in an insert
+(with a declared `latency`) and the dry channel beside it on a send.
+
+| Place       | How it runs                                       | Fits                                  | Sounds wrong                                          |
+| ----------- | ------------------------------------------------- | ------------------------------------- | ----------------------------------------------------- |
+| `pre-gate`  | In series; the gate hears the result              | Noise suppression, EQ, compression    | A tail: it holds the gate open, then the gate cuts it |
+| `post-gate` | In series; replaces the voice, later effects hear | A radio, a pitch shift, a demon voice |                                                       |
+| `send`      | Beside the voice, on a copy; adds to it           | Reverb, delay, echo                   | Whatever changes the voice: both voices are heard     |
+
+The last column is a warning for a UI to show, not a rule. The core refuses
+nothing that merely sounds bad. A definition's `tail` is what a UI needs to
+warn about the first row.
+
+On a send, the voice never passes through the effect, so a failure or a slow
+wake can't touch speech while Channel level is up, and its tail goes straight
+to the output bus.
+
+What depends on the place follows it: a `send` always has a wet amount, an
+insert only with a declared `latency`; a tail ahead of Mute doesn't hold the
+output bus, as Mute cuts it; each place has its own watchdog.
 
 ## What each event does
 
@@ -111,15 +129,16 @@ if something decides for it.
 
 - **Hosted effects**: the author writes `render()` and declares a `tail`.
   The core's worklet calls `render()` only while there is sound or a tail
-  still ringing. This is the default for worklet effects in `post` and
-  `send`, and the early return is built in.
+  still ringing. This is the way to write a worklet effect, and the early
+  return is built in. It only pays after the gate: ahead of it, a microphone
+  is rarely at digital silence.
 - **Native nodes**: the browser skips them once their input is silent and
   their tail has passed. The post feed and Send on/off give them that
   silence, driven by the gate on the audio thread, so a busy page can't
   delay it.
   Firefox has no k-rate gains, and a gain following a signal never lets a
   native node sleep there. So in Firefox the post feed stays open and
-  native `post` effects keep running, while Send on/off follows a message
+  native post-gate effects keep running, while Send on/off follows a message
   from the gate: it sleeps, but a busy page can start a reverb late.
 - **Worklets an author brings**: these can't be blocked or measured at
   runtime. The effect contract fails one that works on silence, for modules
@@ -163,7 +182,7 @@ api.effects.register({
   id: "my-reverb",
   kind: "audio",
   label: "Reverb",
-  stage: "send",
+  defaultPlace: "send",
   cost: "medium",
   tail: 2.5, // seconds it keeps sounding: the core keeps rendering that long
   defaultMix: 0.3, // where its wet amount starts
@@ -184,6 +203,13 @@ dry:wet control, and don't write an early return. Native nodes work too:
 
 - Only digital silence, a runaway level and a non-number can be detected.
   An effect that sounds wrong but keeps sounding passes.
+- A stall is blamed on the first silent effect of a series, once its time is
+  up. If that effect still has a declared tail to wait out, one behind it can
+  be blamed first. Effects behind one that `silencesNoise` aren't watched, as
+  they may hear exact zeros.
+- An effect runs once. Two reverbs at once are two definitions.
+- Moving a running effect isn't smoothed: the path changes between two blocks,
+  which can click.
 - While a tail rings after mute, the player shows as muted. A service's own
   speaking detection may show them speaking for that moment.
 - A hung `render()` can't be stopped: it holds the audio thread.
