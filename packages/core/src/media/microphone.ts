@@ -12,6 +12,7 @@ import {
   type ChainEffect,
 } from "./audio-chain.ts";
 import { createEffectRunner, type EffectRunner } from "./effect-runner.ts";
+import type { VoiceLevels } from "./levels.ts";
 import {
   createStallWatchdog,
   type StallWatchdog,
@@ -57,6 +58,8 @@ export interface Microphone {
     wanted: ReadonlySet<string>,
   ): void;
   effectStatus(id: string): EffectState;
+  /** Applied at once, and when the chain is built. */
+  setLevels(levels: VoiceLevels): void;
   dispose(): void;
 }
 
@@ -81,6 +84,7 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
   let enabled = false;
   let definitions: readonly AudioEffectDefinition[] = [];
   let wanted: ReadonlySet<string> = new Set();
+  let levels: VoiceLevels = { channel: 1, mix: {} };
   let gateListeners: readonly { readonly listener: (open: boolean) => void }[] =
     [];
   /** What the gate last said: it can't say "closed" once suspended. */
@@ -141,7 +145,16 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
           running.flatMap(({ id, instance }) => {
             const definition = definitions.find((d) => d.id === id);
             return definition
-              ? [{ id, stage: definition.stage, ...nodesOf(instance) }]
+              ? [
+                  {
+                    id,
+                    stage: definition.stage,
+                    ...nodesOf(instance),
+                    ...(definition.latency === undefined
+                      ? {}
+                      : { latency: definition.latency }),
+                  },
+                ]
               : [];
           }),
         );
@@ -205,12 +218,21 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
     parts.capture.output.enabled = open;
   };
 
+  const applyMix = (): void => {
+    parts?.chain.setChannelLevel(levels.channel);
+    for (const [id, mix] of Object.entries(levels.mix))
+      parts?.chain.setMix(id, mix);
+  };
+
   const applyEffects = (): void => {
     parts?.runner.update(input ? definitions : [], wanted);
   };
 
   const connect = async (track: MediaStreamTrack): Promise<void> => {
-    parts ??= createParts(await deps.env.createCaptureContext());
+    if (!parts) {
+      parts = createParts(await deps.env.createCaptureContext());
+      applyMix();
+    }
     if (disposed) return;
     if (!gate) await loadGate(parts);
     input = track;
@@ -281,6 +303,10 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
       applyEffects();
     },
     effectStatus: (id) => parts?.runner.status(id) ?? OFF,
+    setLevels(next) {
+      levels = next;
+      applyMix();
+    },
     dispose() {
       disposed = true;
       input = null;

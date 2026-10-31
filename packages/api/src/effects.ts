@@ -73,6 +73,16 @@ export interface AudioEffectDefinition extends EffectDefinitionBase {
    * for a stall. The contract checks the number.
    */
   readonly tail?: number;
+  /**
+   * How much it delays its output, in seconds, 0 for none. Declaring it
+   * gives the effect a dry:wet control: the core delays the dry signal to
+   * match and mixes the two, so the effect outputs only its processed
+   * signal. Without it, the effect stays at 100% wet, as mixing would
+   * comb-filter the voice. A `send` effect has a wet control either way.
+   */
+  readonly latency?: number;
+  /** Where its dry:wet or wet amount starts, 0 to 1; 1 if not given. */
+  readonly defaultMix?: number;
   /** Lazy: import heavy code here, not at module load. */
   create(context: AudioEffectContext): Promise<AudioEffect>;
 }

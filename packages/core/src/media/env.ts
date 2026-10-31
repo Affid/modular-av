@@ -124,6 +124,12 @@ export interface LevelNode {
   dispose(): void;
 }
 
+/** A fixed delay the core owns in the capture context. */
+export interface DelayLine {
+  readonly node: AudioNode;
+  dispose(): void;
+}
+
 /**
  * The core's one capture `AudioContext` (48 kHz) and the end of the
  * microphone chain. Its output track is the microphone the service gets:
@@ -140,6 +146,7 @@ export interface CaptureContext {
   createProbe(): SignalProbe;
   /** `name` tells the core's gains apart in tests and traces. */
   createLevel(name: string, level: number): LevelNode;
+  createDelay(name: string, seconds: number): DelayLine;
   /**
    * Whether a level can follow a signal and still let native nodes after it
    * sleep (k-rate gains). Firefox can't: a followed gain keeps them running.

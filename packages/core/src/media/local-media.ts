@@ -15,6 +15,7 @@ import {
   type DeviceKindOf,
 } from "./device-capture.ts";
 import type { GateConfig, MediaEnv } from "./env.ts";
+import type { VoiceLevels } from "./levels.ts";
 import { createLocalVideo } from "./local-video.ts";
 import type { Microphone } from "./microphone.ts";
 
@@ -66,6 +67,8 @@ export interface LocalMedia {
   ): void;
   /** Null for an effect that never started here. */
   effectStatus(id: string): EffectState | null;
+  /** Applied at once and to the microphone captured later. */
+  setLevels(levels: VoiceLevels): void;
   /** Applied at once and to every track captured later. */
   setOutbound(outbound: MediaPermissions): void;
   release(): void;
@@ -85,6 +88,7 @@ export function createLocalMedia(
   let gate = deps.gate;
   let audioEffects: readonly AudioEffectDefinition[] = [];
   let wantedEffects: ReadonlySet<string> = new Set();
+  let levels: VoiceLevels = { channel: 1, mix: {} };
   let errors: CaptureErrors = { audio: null, video: null };
   let outbound: MediaPermissions = { audio: false, video: false };
   let listeners: Listeners<void> = [];
@@ -135,6 +139,7 @@ export function createLocalMedia(
       onError: deps.onError,
     });
     created.setEffects(audioEffects, wantedEffects);
+    created.setLevels(levels);
     created.onGate((open) => {
       for (const { listener } of gateListeners) listener(open);
     });
@@ -356,6 +361,10 @@ export function createLocalMedia(
         ? mic?.effectStatus(id)
         : camera.effectStatus(id);
       return status ?? null;
+    },
+    setLevels(next) {
+      levels = next;
+      mic?.setLevels(next);
     },
     setOutbound(next) {
       outbound = next;

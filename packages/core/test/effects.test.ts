@@ -42,6 +42,102 @@ describe("effects in the state", () => {
   });
 });
 
+describe("levels", () => {
+  const send = (): ReturnType<typeof createFakeAudioEffect> =>
+    createFakeAudioEffect("reverb", { stage: "send" });
+
+  it("gives a send effect a Return level, from its default, then the player's", async () => {
+    // Arrange
+    const table = createTable();
+    table.join("gm", { secret: true });
+    const reverb = send();
+    const p1 = table.join("p1", {
+      av: ALWAYS,
+      effects: [{ ...reverb.definition, defaultMix: 0.3 }],
+    });
+    await table.settle();
+    await p1.api.commands.setEffectEnabled("reverb", true);
+    await table.settle();
+
+    // Assert
+    expect(p1.api.state.get().local.effectMix).toEqual({ reverb: 0.3 });
+    expect(captureOf(p1).level("return:reverb")?.level).toBe(0.3);
+
+    // Act
+    await p1.api.commands.setEffectMix("reverb", 0.6);
+    await table.settle();
+
+    // Assert
+    expect(p1.api.state.get().local.effectMix).toEqual({ reverb: 0.6 });
+    expect(captureOf(p1).level("return:reverb")?.level).toBe(0.6);
+    expect(p1.client.game.settings.get("modular-av", "effectMix")).toEqual({
+      reverb: 0.6,
+    });
+  });
+
+  it("gives an insert a dry:wet control only if it declares its latency", async () => {
+    // Arrange
+    const table = createTable();
+    table.join("gm", { secret: true });
+    const radio = createFakeAudioEffect("radio", { stage: "post" });
+    const krisp = createFakeAudioEffect("krisp");
+    const p1 = table.join("p1", {
+      av: ALWAYS,
+      effects: [{ ...radio.definition, latency: 0.005 }, krisp.definition],
+    });
+    await table.settle();
+    await p1.api.commands.setEffectEnabled("radio", true);
+    await table.settle();
+
+    // Act
+    await p1.api.commands.setEffectMix("radio", 0.4);
+    await table.settle();
+
+    // Assert
+    expect(p1.api.state.get().local.effectMix).toEqual({ radio: 0.4 });
+    expect(captureOf(p1).level("wet:radio")?.level).toBeCloseTo(0.4);
+    expect(captureOf(p1).delay("dry delay:radio")?.seconds).toBe(0.005);
+    await expect(
+      p1.api.commands.setEffectMix("krisp", 0.4),
+    ).rejects.toMatchObject({ code: "invalid-argument" });
+  });
+
+  it("sets Channel level, kept for the next microphone", async () => {
+    const table = createTable();
+    table.join("gm", { secret: true });
+    const p1 = table.join("p1", { av: ALWAYS, effects: [send().definition] });
+    await p1.api.commands.setChannelLevel(0.25);
+    await p1.api.commands.setEffectEnabled("reverb", true);
+    await table.settle();
+
+    expect(p1.api.state.get().local.channelLevel).toBe(0.25);
+    expect(captureOf(p1).level("channel")?.level).toBe(0.25);
+  });
+
+  it.each([-0.1, 1.5, Number.NaN])("refuses a level of %s", async (level) => {
+    const table = createTable();
+    const p1 = table.join("p1", { effects: [send().definition] });
+    await table.settle();
+
+    await expect(p1.api.commands.setChannelLevel(level)).rejects.toMatchObject({
+      code: "invalid-argument",
+    });
+    await expect(
+      p1.api.commands.setEffectMix("reverb", level),
+    ).rejects.toMatchObject({ code: "invalid-argument" });
+  });
+
+  it("refuses an effect it doesn't know", async () => {
+    const table = createTable();
+    const p1 = table.join("p1");
+    await table.settle();
+
+    await expect(
+      p1.api.commands.setEffectMix("nothing", 0.5),
+    ).rejects.toMatchObject({ code: "unknown-effect" });
+  });
+});
+
 describe("turning effects on and off", () => {
   it("runs a microphone effect in the chain and saves the choice", async () => {
     // Arrange

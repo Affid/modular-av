@@ -24,6 +24,10 @@ export interface DraftValues {
   readonly sensitivityAuto: boolean;
   readonly threshold: number;
   readonly gateFallback: GateFallback;
+  /** How much of the voice goes out dry, 0 to 1. */
+  readonly channelLevel: number;
+  /** Each effect with a dry:wet or wet control, by id, 0 to 1. */
+  readonly effectMix: Readonly<Record<string, number>>;
   /** The effect chosen in each group ("" for none), by group name. */
   readonly effects: Readonly<Record<string, string>>;
   readonly receiveVideo: boolean;
@@ -125,6 +129,16 @@ async function applyEffects(
   }
 }
 
+/** Each mix that changed. */
+async function applyMix(
+  ctx: DockContext,
+  drafted: Readonly<Record<string, number>>,
+): Promise<void> {
+  const now = local(ctx).effectMix;
+  for (const [id, mix] of Object.entries(drafted))
+    if (mix !== now[id]) await ctx.api.commands.setEffectMix(id, mix);
+}
+
 /** A GM picks everyone's theme, and sees it; a player picks their own. */
 const theme: Field<"theme"> = {
   read: (ctx) => (ctx.isGM ? ctx.themes.worldDefault() : ctx.themes.own()),
@@ -160,6 +174,11 @@ export const FIELDS: { readonly [K in DraftKey]: Field<K> } = {
     read: (ctx) => local(ctx).gateFallback,
     apply: (ctx, fallback) => ctx.api.commands.setGateFallback(fallback),
   },
+  channelLevel: {
+    read: (ctx) => local(ctx).channelLevel,
+    apply: (ctx, level) => ctx.api.commands.setChannelLevel(level),
+  },
+  effectMix: { read: (ctx) => local(ctx).effectMix, apply: applyMix },
   effects: { read: effectChoices, apply: applyEffects },
   receiveVideo: {
     read: (ctx) => local(ctx).receiveVideo,

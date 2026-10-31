@@ -1,6 +1,13 @@
 import type { AudioStage } from "@modular-av/api";
 import { AUDIO_STAGES } from "./audio-stages.ts";
 import {
+  createInsertSlot,
+  LEVEL_RAMP_MS,
+  type Edge,
+  type InsertSlot,
+  type Link,
+} from "./insert-slot.ts";
+import {
   GATE_FEED_OUTPUT,
   GATE_SEND_OUTPUT,
   type CaptureContext,
@@ -13,13 +20,16 @@ export interface ChainEffect {
   readonly stage: AudioStage;
   readonly input: AudioNode;
   readonly output: AudioNode;
+  /** Seconds, if declared: an insert may then have a dry branch. */
+  readonly latency?: number;
 }
 
 /**
  * The microphone chain in the capture context (docs/voice-routing.md):
  * source → denoise, voice → gate → mute → post feed → post → Channel level →
  * destination, and after `post` a copy → Send on/off → one FX channel per
- * `send` effect → its Return level → destination. Every change connects the
+ * `send` effect → its Return level → destination. An insert below 100% wet
+ * has a dry branch of its own (`insert-slot.ts`). Every change connects the
  * new path before cutting the old one, in one task, so audio neither stops
  * nor skips an effect.
  */
@@ -41,8 +51,8 @@ export interface AudioChain {
   setSpeaking(speaking: boolean): void;
   /** The dry amount, 0 to 1. */
   setChannelLevel(level: number): void;
-  /** A `send` effect's wet amount, 0 to 1, also before it runs. */
-  setReturnLevel(id: string, level: number): void;
+  /** An effect's wet amount, 0 to 1, also before it runs. */
+  setMix(id: string, mix: number): void;
   /**
    * Fades a `send` effect's Return out, keeping its output connected through
    * the `setEffects` that follows; resolves once it is cut. Null for an
@@ -54,8 +64,6 @@ export interface AudioChain {
 
 const PRE_GATE: readonly AudioStage[] = ["denoise", "voice"];
 
-/** Short enough to feel at once, long enough not to click. */
-const LEVEL_RAMP_MS = 20;
 const FADE_MS = 50;
 /** As the gate's own ramps, for browsers where a level can't follow it. */
 const SEND_OPEN_MS = 5;
@@ -67,13 +75,6 @@ export function orderByStage(
   return AUDIO_STAGES.flatMap((stage) =>
     effects.filter((e) => e.stage === stage),
   );
-}
-
-type Edge = readonly [AudioNode, AudioNode];
-
-interface Link {
-  readonly input: AudioNode;
-  readonly output: AudioNode;
 }
 
 /** A `send` effect on its way out. */
@@ -93,8 +94,9 @@ export function createAudioChain(capture: CaptureContext): AudioChain {
   let edges: readonly Edge[] = [];
   let speaking = false;
   let channelLevel = 1;
-  let returnLevels: ReadonlyMap<string, number> = new Map();
+  let mixes: ReadonlyMap<string, number> = new Map();
   let returns: ReadonlyMap<string, LevelNode> = new Map();
+  let slots: ReadonlyMap<string, InsertSlot> = new Map();
   let fading: readonly Fading[] = [];
   const mute = capture.createLevel("mute", 0);
   const feed = capture.createLevel("post feed", 1);
@@ -105,15 +107,18 @@ export function createAudioChain(capture: CaptureContext): AudioChain {
     effects.filter((e) => stages.includes(e.stage));
   const sends = (): readonly ChainEffect[] => inStages(["send"]);
 
+  const linked = (stages: readonly AudioStage[]): readonly Link[] =>
+    inStages(stages).map((e) => slots.get(e.id)?.link ?? e);
+
   const mainPath = (from: AudioNode): readonly Link[] => {
     const node = (n: AudioNode): Link => ({ input: n, output: n });
     return [
       node(from),
-      ...inStages(PRE_GATE),
+      ...linked(PRE_GATE),
       ...(gate ? [node(gate)] : []),
       node(mute.node),
       node(feed.node),
-      ...inStages(["post"]),
+      ...linked(["post"]),
       node(channel.node),
       node(capture.destination),
     ];
@@ -146,7 +151,8 @@ export function createAudioChain(capture: CaptureContext): AudioChain {
       [f.output, f.back.node] as const,
       [f.back.node, capture.destination] as const,
     ]);
-    return [...main, ...sendEdges(tap), ...leaving];
+    const branches = [...slots.values()].flatMap((slot) => slot.edges);
+    return [...main, ...branches, ...sendEdges(tap), ...leaving];
   };
 
   const rewire = (): void => {
@@ -158,7 +164,7 @@ export function createAudioChain(capture: CaptureContext): AudioChain {
     edges = next;
   };
 
-  const levelOf = (id: string): number => returnLevels.get(id) ?? 1;
+  const levelOf = (id: string): number => mixes.get(id) ?? 1;
 
   /** Without a live send, only the dry path can carry the voice. */
   const applyChannel = (): void => {
@@ -173,6 +179,22 @@ export function createAudioChain(capture: CaptureContext): AudioChain {
         returns.get(id) ?? capture.createLevel(`return:${id}`, levelOf(id)),
       ]),
     );
+  };
+
+  /** Brings the dry branches in line, the new path first. */
+  const applySlots = (): void => {
+    const before = slots;
+    slots = new Map(
+      inStages([...PRE_GATE, "post"]).flatMap((e) => {
+        const mix = levelOf(e.id);
+        if (mix >= 1 || e.latency === undefined) return [];
+        const slot = before.get(e.id) ?? createInsertSlot(capture, e);
+        slot.setMix(mix);
+        return [[e.id, slot] as const];
+      }),
+    );
+    rewire();
+    for (const [id, slot] of before) if (!slots.has(id)) slot.dispose();
   };
 
   const applySend = (): void => {
@@ -202,7 +224,7 @@ export function createAudioChain(capture: CaptureContext): AudioChain {
       effects = next;
       const before = returns;
       addReturns();
-      rewire();
+      applySlots();
       for (const [id, back] of before) if (!returns.has(id)) back.dispose();
       applyChannel();
     },
@@ -222,9 +244,10 @@ export function createAudioChain(capture: CaptureContext): AudioChain {
       channelLevel = level;
       applyChannel();
     },
-    setReturnLevel(id, level) {
-      returnLevels = new Map(returnLevels).set(id, level);
-      returns.get(id)?.set(level, LEVEL_RAMP_MS);
+    setMix(id, mix) {
+      mixes = new Map(mixes).set(id, mix);
+      returns.get(id)?.set(mix, LEVEL_RAMP_MS);
+      applySlots();
       applyChannel();
     },
     fade(id) {
@@ -252,6 +275,7 @@ export function createAudioChain(capture: CaptureContext): AudioChain {
       rewire();
       previous?.disconnect();
       for (const back of returns.values()) back.dispose();
+      for (const slot of slots.values()) slot.dispose();
       for (const level of [mute, feed, channel, send]) level.dispose();
     },
   };

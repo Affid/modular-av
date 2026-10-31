@@ -10,6 +10,7 @@ import type { Controller } from "./controller.ts";
 import { AVCommandError } from "./errors.ts";
 import type { AVSettingsLike, FoundryGame } from "./foundry/globals.ts";
 import { writeGateFallback } from "./media/gate-fallback.ts";
+import { writeChannelLevel } from "./media/levels.ts";
 import { writeSensitivity } from "./media/sensitivity.ts";
 
 function avSettings(controller: Controller): AVSettingsLike {
@@ -161,6 +162,14 @@ export function createCommands(
       await writeSensitivity(game, sensitivity);
       controller().apply();
     },
+
+    async setChannelLevel(level: number) {
+      await writeChannelLevel(game, level);
+      controller().apply();
+    },
+
+    setEffectMix: (effect: string, mix: number) =>
+      controller().setEffectMix(effect, mix),
 
     async setGateFallback(fallback: GateFallback) {
       await writeGateFallback(game, fallback);

@@ -1,11 +1,16 @@
 // @vitest-environment happy-dom
 import type {
+  LocalState,
   SettingsHost,
   SettingsSectionContribution,
   SettingsWindowTab,
   VideoEffectDefinition,
 } from "@modular-av/api";
-import { avState, participantState } from "@modular-av/testing";
+import {
+  avState,
+  createFakeAudioEffect,
+  participantState,
+} from "@modular-av/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { renderSettings } from "../src/settings-window/window.ts";
 import type { Themes } from "../src/themes/choice.ts";
@@ -127,6 +132,51 @@ describe("the settings window's Call tab", () => {
 });
 
 describe("the settings window's Voice tab", () => {
+  const reverb = createFakeAudioEffect("reverb", { stage: "send" }).definition;
+  const withMix = (local: Partial<LocalState>): Parameters<typeof open>[0] => ({
+    state: avState({ participants: [me], local }),
+  });
+  const slide = (input: HTMLInputElement | null, percent: number): void => {
+    if (!input) throw new Error("no slider");
+    input.value = String(percent);
+    input.dispatchEvent(new Event("input"));
+  };
+
+  it("shows no mix without an effect the core can mix", () => {
+    const view = open();
+    view.tab("voice");
+
+    expect(view.q('[data-field="channelLevel"]')).toBeNull();
+  });
+
+  it("drafts Channel level and an effect's wet amount until Save", async () => {
+    // Arrange
+    const view = open(
+      withMix({ effectMix: { reverb: 0.5 }, channelLevel: 1 }),
+      (dock) => {
+        dock.api.effects.register(reverb);
+      },
+    );
+    view.tab("voice");
+    const channel = view.q('[data-field="channelLevel"]');
+    const wet = view.q('[data-field="effectMix.reverb"]');
+
+    // Act
+    slide(channel, 40);
+    slide(wet, 25);
+    const before = [...view.api.calls];
+    await view.save();
+
+    // Assert
+    expect(wet?.closest(".mav-settings-row")?.textContent).toContain("reverb");
+    expect(wet?.getAttribute("aria-label")).toBe("reverb");
+    expect(before).toEqual([]);
+    expect(view.api.calls).toEqual([
+      { command: "setChannelLevel", args: [0.4] },
+      { command: "setEffectMix", args: ["reverb", 0.25] },
+    ]);
+  });
+
   it("names a tab with unsaved changes as such, for screen readers", () => {
     const view = open();
     view.tab("voice");

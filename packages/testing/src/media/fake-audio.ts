@@ -78,6 +78,14 @@ export interface FakeLevel {
   readonly disposed: boolean;
 }
 
+/** A fixed delay of the core's. */
+export interface FakeDelay {
+  readonly node: AudioNode;
+  readonly seconds: number;
+  dispose(): void;
+  readonly disposed: boolean;
+}
+
 export interface FakeCaptureContext {
   readonly audioContext: AudioContext;
   readonly output: MediaStreamTrack;
@@ -86,6 +94,7 @@ export interface FakeCaptureContext {
   createGate(config: FakeGateConfig): Promise<FakeVoiceGate>;
   createProbe(): FakeSignalProbe;
   createLevel(name: string, level: number): FakeLevel;
+  createDelay(name: string, seconds: number): FakeDelay;
   /** False plays a browser without k-rate gains. */
   readonly canFollow: boolean;
   readonly running: boolean;
@@ -98,6 +107,8 @@ export interface FakeCaptureContext {
   readonly probes: readonly FakeSignalProbe[];
   /** The gain made under `name`, the latest if several were. */
   level(name: string): FakeLevel | undefined;
+  /** The delay made under `name`, the latest if several were. */
+  delay(name: string): FakeDelay | undefined;
   /** The probe `node` is connected to, if any. */
   probeFedBy(node: AudioNode): FakeSignalProbe | undefined;
   /** The source node made for each microphone track, in order. */
@@ -303,6 +314,7 @@ export function createFakeCaptureContext(
   let gates: readonly FakeVoiceGate[] = [];
   let probes: readonly FakeSignalProbe[] = [];
   let levels: ReadonlyMap<string, FakeLevel> = new Map();
+  let delays: ReadonlyMap<string, FakeDelay> = new Map();
   let sources: readonly { track: MediaStreamTrack; node: AudioNode }[] = [];
   let gateError: Error | null = null;
   let running = false;
@@ -340,6 +352,23 @@ export function createFakeCaptureContext(
       levels = new Map(levels).set(name, created);
       return created;
     },
+    createDelay(name, seconds) {
+      const node = graph.node(name);
+      let disposed = false;
+      const created: FakeDelay = {
+        node,
+        seconds,
+        dispose() {
+          disposed = true;
+          node.disconnect();
+        },
+        get disposed() {
+          return disposed;
+        },
+      };
+      delays = new Map(delays).set(name, created);
+      return created;
+    },
     canFollow: options.canFollow ?? true,
     get running() {
       return running;
@@ -366,6 +395,7 @@ export function createFakeCaptureContext(
       return probes;
     },
     level: (name) => levels.get(name),
+    delay: (name) => delays.get(name),
     probeFedBy: (node) =>
       probes.find((p) => !p.disposed && graph.feeds(node, p.node)),
     get sources() {

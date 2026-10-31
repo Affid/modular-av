@@ -249,6 +249,136 @@ describe("audio chain", () => {
     expect(capture.graph.edges()).toEqual(["a.in->a.out"]);
   });
 
+  describe("dry:wet on an insert", () => {
+    function chained(latency: number | null = 0.01) {
+      const capture = createFakeCaptureContext();
+      const chain = createAudioChain(capture);
+      const radio = {
+        ...effect(capture, "radio", "post"),
+        ...(latency === null ? {} : { latency }),
+      };
+      chain.setSource(createFakeTrack("audio", "mic"));
+      chain.setEffects([radio]);
+      return { capture, chain, radio };
+    }
+
+    it("stays a plain link at 100% wet: no dry branch, no extra node", () => {
+      const { capture, radio } = chained();
+
+      expect(capture.level("wet:radio")).toBeUndefined();
+      const feed = capture.level("post feed")?.node;
+      if (!feed) throw new Error("no feed");
+      expect(capture.graph.feeds(feed, radio.input)).toBe(true);
+    });
+
+    it("mixes the effect with a dry signal delayed by its latency", () => {
+      // Arrange
+      const { capture, chain, radio } = chained(0.01);
+
+      // Act
+      chain.setMix("radio", 0.3);
+
+      // Assert
+      const { graph } = capture;
+      const dry = capture.level("dry:radio");
+      const wet = capture.level("wet:radio");
+      const delay = capture.delay("dry delay:radio");
+      const feed = capture.level("post feed")?.node;
+      const channel = capture.level("channel")?.node;
+      if (!dry || !wet || !delay || !feed || !channel)
+        throw new Error("slot missing");
+      expect(dry.level).toBeCloseTo(0.7);
+      expect(wet.level).toBeCloseTo(0.3);
+      expect(delay.seconds).toBe(0.01);
+      expect(graph.reaches(feed, delay.node)).toBe(true);
+      expect(graph.reaches(delay.node, dry.node)).toBe(true);
+      expect(graph.reaches(dry.node, channel)).toBe(true);
+      expect(graph.feeds(radio.output, wet.node)).toBe(true);
+      expect(graph.reaches(wet.node, channel)).toBe(true);
+      expect(graph.feeds(radio.output, channel)).toBe(false);
+    });
+
+    it("needs no delay for an effect without latency", () => {
+      const { capture, chain } = chained(0);
+
+      chain.setMix("radio", 0.5);
+
+      expect(capture.delay("dry delay:radio")).toBeUndefined();
+      const dry = capture.level("dry:radio");
+      if (!dry) throw new Error("no dry level");
+      expect(capture.graph.reaches(dry.node, capture.destination)).toBe(true);
+    });
+
+    it("moves the mix with a short fade, once the branch exists", () => {
+      const { capture, chain } = chained();
+      chain.setMix("radio", 0.5);
+
+      chain.setMix("radio", 0.2);
+
+      expect(capture.level("wet:radio")?.level).toBeCloseTo(0.2);
+      expect(capture.level("wet:radio")?.rampMs).toBe(20);
+      expect(capture.level("dry:radio")?.level).toBeCloseTo(0.8);
+    });
+
+    it("connects the dry branch before cutting the plain link, and back", () => {
+      // Arrange
+      const { capture, chain, radio } = chained();
+      const before = capture.graph.log.length;
+
+      // Act
+      chain.setMix("radio", 0.5);
+      const added = capture.graph.log.slice(before);
+      const reverted = capture.graph.log.length;
+      chain.setMix("radio", 1);
+
+      // Assert
+      const cut = "-post feed->radio.in";
+      expect(added.indexOf(cut)).toBeGreaterThan(
+        added.indexOf("+post feed->insert:radio"),
+      );
+      const back = capture.graph.log.slice(reverted);
+      expect(back.indexOf("+post feed->radio.in")).toBeLessThan(
+        back.indexOf("-post feed->insert:radio"),
+      );
+      const feed = capture.level("post feed")?.node;
+      if (!feed) throw new Error("no feed");
+      expect(capture.graph.feeds(feed, radio.input)).toBe(true);
+      expect(capture.level("dry:radio")?.disposed).toBe(true);
+    });
+
+    it("keeps an effect that didn't declare its latency at 100% wet", () => {
+      const { capture, chain } = chained(null);
+
+      chain.setMix("radio", 0.5);
+
+      expect(capture.level("dry:radio")).toBeUndefined();
+    });
+
+    it("applies a mix set before the effect runs, and works before the gate too", () => {
+      const capture = createFakeCaptureContext();
+      const chain = createAudioChain(capture);
+      chain.setSource(createFakeTrack("audio", "mic"));
+      chain.setMix("pitch", 0.4);
+
+      chain.setEffects([
+        { ...effect(capture, "pitch", "voice"), latency: 0.02 },
+      ]);
+
+      expect(capture.level("wet:pitch")?.level).toBeCloseTo(0.4);
+      expect(capture.delay("dry delay:pitch")?.seconds).toBe(0.02);
+    });
+
+    it("takes the branch away with the effect", () => {
+      const { capture, chain } = chained();
+      chain.setMix("radio", 0.5);
+
+      chain.setEffects([]);
+
+      expect(capture.level("dry:radio")?.disposed).toBe(true);
+      expect(capture.delay("dry delay:radio")?.disposed).toBe(true);
+    });
+  });
+
   describe("sends", () => {
     async function gated(capture: FakeCaptureContext) {
       const chain = createAudioChain(capture);
@@ -377,7 +507,7 @@ describe("audio chain", () => {
       chain.setEffects([effect(capture, "reverb", "send")]);
 
       chain.setChannelLevel(0.4);
-      chain.setReturnLevel("reverb", 0.3);
+      chain.setMix("reverb", 0.3);
 
       expect(capture.level("channel")?.level).toBe(0.4);
       expect(capture.level("channel")?.rampMs).toBe(20);
@@ -389,7 +519,7 @@ describe("audio chain", () => {
       const capture = createFakeCaptureContext();
       const { chain } = await gated(capture);
 
-      chain.setReturnLevel("reverb", 0.25);
+      chain.setMix("reverb", 0.25);
       chain.setEffects([effect(capture, "reverb", "send")]);
 
       expect(capture.level("return:reverb")?.level).toBe(0.25);
@@ -411,9 +541,9 @@ describe("audio chain", () => {
       expect(channel?.level).toBe(0);
 
       // A Return at 0 doesn't.
-      chain.setReturnLevel("reverb", 0);
+      chain.setMix("reverb", 0);
       expect(channel?.level).toBe(1);
-      chain.setReturnLevel("reverb", 0.5);
+      chain.setMix("reverb", 0.5);
       expect(channel?.level).toBe(0);
 
       // Nor does an effect that left, as a failed one does.

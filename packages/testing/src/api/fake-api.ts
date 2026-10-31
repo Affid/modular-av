@@ -135,6 +135,8 @@ const COMMANDS: readonly (keyof AVCommands)[] = [
   "rejoin",
   "reconnectNow",
   "setEffectEnabled",
+  "setEffectMix",
+  "setChannelLevel",
   "setInputSensitivity",
   "setGateFallback",
   "setDevice",

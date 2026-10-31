@@ -22,6 +22,8 @@ export const INITIAL_STATE: AVState = {
     microphoneHold: null,
     speakingWhileMuted: false,
     effects: {},
+    effectMix: {},
+    channelLevel: 1,
     inputSensitivity: { auto: true, threshold: -50 },
     cameraHold: null,
     chosenDevices: {

@@ -172,6 +172,45 @@ test("a send effect's tail outlives the gate, and turning it off leaves the voic
   expect(voice.peak).toBeGreaterThan(0.01);
 });
 
+test("Channel level drops the dry voice only while a send carries it", async ({
+  page,
+}) => {
+  // Arrange
+  const command = (
+    name: "setChannelLevel" | "setEffectMix",
+    ...args: unknown[]
+  ) =>
+    page.evaluate(
+      async ([method, values]) => {
+        const api = window.harness?.client.game.modules.get("modular-av")
+          ?.api as
+          | { commands: Record<string, (...a: unknown[]) => Promise<void>> }
+          | undefined;
+        await api?.commands[method]?.(...values);
+      },
+      [name, args] as const,
+    );
+  await openVoiceActivity(page);
+  await command("setChannelLevel", 0);
+  await page.waitForTimeout(100);
+
+  // Act: no send yet, so the dry path still carries the voice.
+  const alone = await record(page, 1000);
+  await setEffect(page, "test-echo", true);
+  await isRunning(page, "test-echo");
+  await command("setEffectMix", "test-echo", 0.01);
+  await page.waitForTimeout(100);
+  const carried = await record(page, 1000);
+  await command("setEffectMix", "test-echo", 0);
+  await page.waitForTimeout(100);
+  const unreturned = await record(page, 1000);
+
+  // Assert
+  expect(alone.peak).toBeGreaterThan(0.5);
+  expect(carried.peak).toBeLessThan(0.1);
+  expect(unreturned.peak).toBeGreaterThan(0.5);
+});
+
 test("a camera effect fails closed: only its frames go out, and none while it stalls", async ({
   page,
 }) => {

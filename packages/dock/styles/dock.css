@@ -1359,6 +1359,17 @@
   gap: 4px 8px;
 }
 
+.mav-settings-level {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mav-settings-level input {
+  flex: 1;
+  min-width: 0;
+}
+
 .mav-settings-row .mav-settings-hint {
   grid-column: 1 / -1;
   margin: 0;

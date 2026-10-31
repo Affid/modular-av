@@ -103,6 +103,8 @@ function createGateNode(
 }
 
 const PROBE_SAMPLES = 2048;
+/** `createDelay` refuses a maximum of 0. */
+const MIN_DELAY_S = 0.001;
 
 /** An analyser, pulled by the context even with nothing connected after it. */
 function createProbe(context: AudioContext): SignalProbe {
@@ -191,6 +193,16 @@ export function createBrowserCaptureContext(
     },
     createProbe: () => createProbe(context),
     createLevel: (_name, level) => createLevel(context, level),
+    createDelay(_name, seconds) {
+      const node = context.createDelay(Math.max(seconds, MIN_DELAY_S));
+      node.delayTime.value = seconds;
+      return {
+        node,
+        dispose() {
+          node.disconnect();
+        },
+      };
+    },
     canFollow: "automationRate" in AudioParam.prototype,
     get running() {
       return context.state === "running";

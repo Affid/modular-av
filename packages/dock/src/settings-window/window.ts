@@ -28,6 +28,8 @@ const TAB_OF: Readonly<Record<Exclude<DraftKey, "effects">, string>> = {
   sensitivityAuto: "voice",
   threshold: "voice",
   gateFallback: "voice",
+  channelLevel: "voice",
+  effectMix: "voice",
   videoInput: "video",
   receiveVideo: "video",
   theme: "appearance",

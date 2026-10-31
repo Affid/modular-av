@@ -9,6 +9,7 @@ import type { Draft } from "./draft.ts";
 import { draftSelect, draftSwitch } from "./draft-inputs.ts";
 import { draftEffects } from "./effect-draft.ts";
 import { row, section } from "./fields.ts";
+import { mixSection } from "./mix.ts";
 import { pushToTalkKey } from "./ptt-key.ts";
 import { sensitivityBar } from "./sensitivity.ts";
 
@@ -104,7 +105,7 @@ function effectModules(
   return [hint, plan];
 }
 
-/** The Voice tab: devices, input mode, sensitivity, the voice's effects. */
+/** The Voice tab: devices, input mode, sensitivity, effects and their mix. */
 export function voiceTab(
   ctx: DockContext,
   doc: Document,
@@ -130,6 +131,7 @@ export function voiceTab(
         effects.dispose();
       },
     },
+    ...mixSection(ctx, doc, draft),
     ...contributedSections(ctx, doc, alerts, "voice"),
   ];
 }

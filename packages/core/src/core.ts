@@ -38,6 +38,7 @@ import {
   GATE_FALLBACK_SETTING,
 } from "./media/gate-fallback.ts";
 import { validateEffect } from "./media/audio-stages.ts";
+import { CHANNEL_LEVEL_SETTING, EFFECT_MIX_SETTING } from "./media/levels.ts";
 import { createRegistry } from "./registry.ts";
 import { assetUrl, createChannels } from "./socket.ts";
 import { INITIAL_STATE } from "./state/initial.ts";
@@ -127,6 +128,18 @@ export function installCore(deps: CoreDeps): InstalledCore {
     config: false,
     type: String,
     default: DEFAULT_GATE_FALLBACK,
+  });
+  game.settings.register(MODULE_ID, CHANNEL_LEVEL_SETTING, {
+    scope: "client",
+    config: false,
+    type: Number,
+    default: 1,
+  });
+  game.settings.register(MODULE_ID, EFFECT_MIX_SETTING, {
+    scope: "client",
+    config: false,
+    type: Object,
+    default: {},
   });
   game.settings.register(MODULE_ID, EFFECTS_SETTING, {
     scope: "client",

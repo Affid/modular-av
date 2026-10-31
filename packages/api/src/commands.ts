@@ -53,6 +53,16 @@ export interface AVCommands {
    * starting went.
    */
   setEffectEnabled(effect: string, enabled: boolean): Promise<void>;
+  /**
+   * For this device: an effect's dry:wet (`latency` declared) or a `send`
+   * effect's wet amount, 0 to 1. Rejects for any other effect.
+   */
+  setEffectMix(effect: string, mix: number): Promise<void>;
+  /**
+   * For this device: how much of the voice goes out dry, 0 to 1, beside
+   * what `send` effects add. Acts as 1 while no `send` effect carries it.
+   */
+  setChannelLevel(level: number): Promise<void>;
   /** For this device; what isn't given stays. */
   setInputSensitivity(sensitivity: Partial<InputSensitivity>): Promise<void>;
   /** For this device: what voice activity mode does when its gate can't run. */
