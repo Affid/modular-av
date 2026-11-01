@@ -112,6 +112,8 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
   };
   let queue: Promise<void> = Promise.resolve();
   let disposed = false;
+  /** For after an await, where a plain read looks already narrowed to false. */
+  const isDisposed = (): boolean => disposed;
   let levelListeners: readonly {
     readonly listener: (reading: MeterReading) => void;
   }[] = [];
@@ -296,6 +298,7 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
       return;
     }
     if (!gate) await loadGate(parts);
+    if (isDisposed()) return;
     input = track;
     applyEnabled();
     parts.chain.setSource(track);

@@ -303,6 +303,42 @@ describe("microphone pipeline", () => {
     expect(capture.level("mute")?.disposed).toBe(true);
   });
 
+  it("leaves nothing running if disposed while the gate loads", async () => {
+    // Arrange
+    const s = setup();
+    const capture = await s.env.createCaptureContext();
+    const createGate = capture.createGate.bind(capture);
+    let loaded = (): void => undefined;
+    const held = new Promise<void>((resolve) => {
+      loaded = resolve;
+    });
+    vi.spyOn(capture, "createGate").mockImplementation(async (config) => {
+      await held;
+      return createGate(config);
+    });
+    const mic = createMicrophone({
+      env: {
+        createAudioEffectHost: () => () => Promise.reject(new Error("unused")),
+        createCaptureContext: () => Promise.resolve(capture),
+      },
+      gate: GATE,
+      onChange: vi.fn(),
+      onReplaced: vi.fn(),
+      onError: vi.fn(),
+    });
+
+    // Act
+    const connecting = mic.setInput(createFakeTrack("audio", "mic"));
+    await flush();
+    mic.dispose();
+    loaded();
+    await connecting;
+
+    // Assert
+    expect(capture.running).toBe(false);
+    expect(capture.graph.edges().join()).not.toContain("source:mic");
+  });
+
   it("keeps the sends open while a broken gate can't drive them", async () => {
     const s = setup();
     await s.mic.setInput(createFakeTrack("audio", "mic"));
