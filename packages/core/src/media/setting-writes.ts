@@ -1,4 +1,5 @@
 import type {
+  AudioPipelineChange,
   AudioPlace,
   DeviceKind,
   EffectDefinition,
@@ -11,6 +12,7 @@ import { MODULE_ID } from "../constants.ts";
 import { AVCommandError } from "../errors.ts";
 import type { FoundryGame } from "../foundry/globals.ts";
 import { CUT_TAILS_SETTING } from "./cut-tails.ts";
+import type { EffectChoices } from "./effect-choices.ts";
 import {
   EFFECT_ORDER_SETTING,
   EFFECT_PLACES_SETTING,
@@ -26,6 +28,7 @@ import {
   isLevel,
   savedMix,
 } from "./levels.ts";
+import type { LocalMedia } from "./local-media.ts";
 import {
   isThreshold,
   readSensitivity,
@@ -70,16 +73,29 @@ export async function writeEffectPlace(
   });
 }
 
+const isList = (value: unknown): value is readonly string[] =>
+  Array.isArray(value);
+
+const checkOrder = (
+  effects: Registry<EffectDefinition>,
+  place: AudioPlace,
+  ids: readonly string[],
+): void => {
+  checkPlace(place);
+  if (!isList(ids))
+    throw new AVCommandError("invalid-argument", "An order is a list");
+  for (const id of ids) checkAudio(effects, id);
+  if (new Set(ids).size !== ids.length)
+    throw new AVCommandError("invalid-argument", "An effect is listed twice");
+};
+
 export async function writeEffectOrder(
   game: FoundryGame,
   effects: Registry<EffectDefinition>,
   place: AudioPlace,
   ids: readonly string[],
 ): Promise<void> {
-  checkPlace(place);
-  for (const id of ids) checkAudio(effects, id);
-  if (new Set(ids).size !== ids.length)
-    throw new AVCommandError("invalid-argument", "An effect is listed twice");
+  checkOrder(effects, place, ids);
   await game.settings.set(MODULE_ID, EFFECT_ORDER_SETTING, {
     ...savedRecord(game, EFFECT_ORDER_SETTING),
     [place]: [...ids],
@@ -103,29 +119,128 @@ export async function writeChannelLevel(
   await game.settings.set(MODULE_ID, CHANNEL_LEVEL_SETTING, level);
 }
 
-export async function writeEffectMix(
-  game: FoundryGame,
+const checkMix = (
   effects: Registry<EffectDefinition>,
   id: string,
   mix: number,
-): Promise<void> {
+  place: AudioPlace | undefined,
+): void => {
   checked(mix, "mix");
   const definition = effects.get(id);
   if (!definition)
     throw new AVCommandError("unknown-effect", "No such effect", {
       effect: id,
     });
-  const place = readPlacement(game, effects).places[id];
   if (definition.kind !== "audio" || !place || !hasMix(definition, place))
     throw new AVCommandError(
       "invalid-argument",
       "This effect has no dry:wet control",
       { effect: id },
     );
+};
+
+export async function writeEffectMix(
+  game: FoundryGame,
+  effects: Registry<EffectDefinition>,
+  id: string,
+  mix: number,
+): Promise<void> {
+  checkMix(effects, id, mix, readPlacement(game, effects).places[id]);
   await game.settings.set(MODULE_ID, EFFECT_MIX_SETTING, {
     ...savedMix(game),
     [id]: mix,
   });
+}
+
+/** Nothing is saved until all of it passed; the saves don't wait in between. */
+export async function writeAudioPipeline(
+  game: FoundryGame,
+  effects: Registry<EffectDefinition>,
+  change: AudioPipelineChange,
+): Promise<void> {
+  const given: unknown = change;
+  if (typeof given !== "object" || given === null)
+    throw new AVCommandError("invalid-argument", "No change was given");
+  const { places, order, mix, channelLevel } = change;
+  for (const [id, place] of Object.entries(places ?? {})) {
+    checkAudio(effects, id);
+    checkPlace(place);
+  }
+  for (const [place, ids] of Object.entries(order ?? {}))
+    checkOrder(effects, place as AudioPlace, ids);
+  if (channelLevel !== undefined) checked(channelLevel, "level");
+  const placed = { ...readPlacement(game, effects).places, ...places };
+  for (const [id, value] of Object.entries(mix ?? {}))
+    checkMix(effects, id, value, placed[id]);
+
+  const set = (key: string, value: unknown): Promise<unknown> =>
+    game.settings.set(MODULE_ID, key, value);
+  const merged = (
+    key: string,
+    saved: Readonly<Record<string, unknown>>,
+    values: object | undefined,
+  ): readonly Promise<unknown>[] =>
+    values ? [set(key, { ...saved, ...values })] : [];
+  await Promise.all([
+    ...merged(
+      EFFECT_PLACES_SETTING,
+      savedRecord(game, EFFECT_PLACES_SETTING),
+      places,
+    ),
+    ...merged(
+      EFFECT_ORDER_SETTING,
+      savedRecord(game, EFFECT_ORDER_SETTING),
+      order,
+    ),
+    ...merged(EFFECT_MIX_SETTING, savedMix(game), mix),
+    ...(channelLevel === undefined
+      ? []
+      : [set(CHANNEL_LEVEL_SETTING, channelLevel)]),
+  ]);
+}
+
+/** Video effects form one group: one runs at a time. */
+const groupOf = (definition: EffectDefinition): string | null =>
+  definition.kind === "video" ? "video" : (definition.exclusiveGroup ?? null);
+
+export async function writeEffectEnabled(
+  choices: EffectChoices,
+  local: Pick<LocalMedia, "effectStatus">,
+  effects: Registry<EffectDefinition>,
+  id: string,
+  enabled: boolean,
+): Promise<void> {
+  const definition = effects.get(id);
+  if (typeof enabled !== "boolean")
+    throw new AVCommandError(
+      "invalid-argument",
+      "enabled must be true or false",
+    );
+  if (!definition)
+    throw new AVCommandError("unknown-effect", "No such effect", {
+      effect: id,
+    });
+  if (enabled && !choices.isSupported(definition))
+    throw new AVCommandError(
+      "unsupported",
+      "This effect can't run in this browser",
+      { effect: id },
+    );
+  const group = groupOf(definition);
+  const others = choices.saved().filter((other) => {
+    if (other === id) return false;
+    if (!enabled) return true;
+    const theirs = effects.get(other);
+    // A running one of its group stays until it runs: never stop, then
+    // start. One still starting goes, so it can't replace the newer.
+    return (
+      !theirs ||
+      groupOf(theirs) !== group ||
+      group === null ||
+      local.effectStatus(other)?.status === "running"
+    );
+  });
+  await choices.save(enabled ? [...others, id] : others);
 }
 
 export async function writeCutTails(

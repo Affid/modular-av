@@ -52,6 +52,7 @@ export function createFakePreviews(): FakePreviews {
         element,
         stopped: false,
       }),
+    voice: () => null,
     microphone(element, options) {
       const preview: FakePreview = {
         kind: "microphone",

@@ -27,6 +27,13 @@ export interface Previews {
     element: Element,
     options: MicrophonePreviewOptions,
   ): Promise<Preview>;
+  /**
+   * A copy of what is sent, after every effect and Mute, for playing it back
+   * to the player: silent while muted or the push to talk key is up. Null
+   * without a microphone. Unlike the others this is the call's own audio, not
+   * a device's. Stop its track when done, which leaves what is sent as it is.
+   */
+  voice(): MediaStream | null;
 }
 
 export interface CameraPreviewOptions {

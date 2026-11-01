@@ -150,10 +150,18 @@ export function installCore(deps: CoreDeps): InstalledCore {
         controller().attach(...args),
     }),
     meters: meters.api,
-    preview: lazyPreviews(() =>
-      import("./media/preview.ts").then(({ createPreviews }) =>
-        createPreviews({ env: deps.env, effects: effects.api }),
-      ),
+    preview: lazyPreviews(
+      () =>
+        import("./media/preview.ts").then(({ createPreviews }) =>
+          createPreviews({ env: deps.env, effects: effects.api }),
+        ),
+      () => {
+        const copy = current?.local.microphone?.clone();
+        if (!copy) return null;
+        // Mute is in the graph: the sent track's own switch mustn't stick.
+        copy.enabled = true;
+        return deps.env.createStream([copy]);
+      },
     ),
     windows: Object.freeze({
       pip: createPipWindows(deps.windows, deps.onError),

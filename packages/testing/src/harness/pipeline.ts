@@ -31,6 +31,8 @@ export interface PipelineControls {
   track(source: TrackSource): MediaStreamTrack | null;
   /** Reads what the service was given for `source` for `ms` (Chromium). */
   record(source: TrackSource, ms: number): Promise<AudioRecording>;
+  /** Reads the core's voice preview for `ms` (Chromium). */
+  recordVoice(ms: number): Promise<AudioRecording>;
   /** The pass-through camera effect stops (or resumes) sending frames. */
   stallVideo(stalled: boolean): void;
 }
@@ -392,7 +394,9 @@ export function installPipeline(
 ): PipelineControls {
   const published = new Map<TrackSource, MediaStreamTrack>();
   let stalled = false;
+  let core: ModularAV | null = null;
   hooks.on("modularAV.register", (api) => {
+    core = api;
     if (params.get("service") === "mock")
       api.services.register(recordingService(hub.definition(), published));
     if (params.get("effects") === "test") {
@@ -422,6 +426,15 @@ export function installPipeline(
       if (!track)
         return Promise.reject(new Error(`Nothing published as ${source}`));
       return recordAudio(track, ms);
+    },
+    async recordVoice(ms) {
+      const [track] = core?.preview.voice()?.getAudioTracks() ?? [];
+      if (!track) throw new Error("No voice to record");
+      try {
+        return await recordAudio(track, ms);
+      } finally {
+        track.stop();
+      }
     },
     stallVideo(next) {
       stalled = next;

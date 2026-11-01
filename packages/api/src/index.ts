@@ -1,4 +1,9 @@
-export type { AVCommands, CommandError, CommandErrorCode } from "./commands.ts";
+export type {
+  AudioPipelineChange,
+  AVCommands,
+  CommandError,
+  CommandErrorCode,
+} from "./commands.ts";
 export type {
   ButtonControl,
   ChoiceControl,

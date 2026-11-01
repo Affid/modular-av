@@ -1,6 +1,5 @@
 import type { EffectDefinition, Registry } from "@modular-av/api";
 import { MODULE_ID } from "../constants.ts";
-import { AVCommandError } from "../errors.ts";
 import type { FoundryGame } from "../foundry/globals.ts";
 import type { LocalMedia } from "./local-media.ts";
 import type { MediaEnv } from "./env.ts";
@@ -21,7 +20,9 @@ export interface EffectChoicesDeps {
 export interface EffectChoices {
   /** Hands the registered effects and the saved choice to the media. */
   apply(): void;
-  setEnabled(id: string, enabled: boolean): Promise<void>;
+  saved(): readonly string[];
+  /** Hands the choice to the media at once, and saves it. */
+  save(ids: readonly string[]): Promise<void>;
   /** Replaced by another of their group: no longer wanted. */
   replaced(ids: readonly string[]): void;
   readonly isSupported: (definition: EffectDefinition) => boolean;
@@ -49,21 +50,22 @@ export function isEffectAvailable(
   return (definition.requires ?? []).every((f) => features.has(f));
 }
 
-/** Video effects form one group: one runs at a time. */
-const groupOf = (definition: EffectDefinition): string | null =>
-  definition.kind === "video" ? "video" : (definition.exclusiveGroup ?? null);
+/** Whatever the setting holds, only ids of registered effects count. */
+export function savedEffects(
+  game: FoundryGame,
+  effects: Pick<Registry<EffectDefinition>, "get">,
+): readonly string[] {
+  const value: unknown = game.settings.get(MODULE_ID, EFFECTS_SETTING);
+  if (!Array.isArray(value)) return [];
+  return value.filter(
+    (id): id is string => typeof id === "string" && !!effects.get(id),
+  );
+}
 
 export function createEffectChoices(deps: EffectChoicesDeps): EffectChoices {
   const { game, effects, local } = deps;
 
-  /** Whatever the setting holds, only ids of registered effects count. */
-  const saved = (): readonly string[] => {
-    const value: unknown = game.settings.get(MODULE_ID, EFFECTS_SETTING);
-    if (!Array.isArray(value)) return [];
-    return value.filter(
-      (id): id is string => typeof id === "string" && !!effects.get(id),
-    );
-  };
+  const saved = (): readonly string[] => savedEffects(game, effects);
 
   const isAvailable = (definition: EffectDefinition): boolean =>
     isEffectAvailable(definition, deps.features());
@@ -84,39 +86,8 @@ export function createEffectChoices(deps: EffectChoicesDeps): EffectChoices {
     apply: () => {
       apply();
     },
-    async setEnabled(id, enabled) {
-      const definition = effects.get(id);
-      if (typeof enabled !== "boolean")
-        throw new AVCommandError(
-          "invalid-argument",
-          "enabled must be true or false",
-        );
-      if (!definition)
-        throw new AVCommandError("unknown-effect", "No such effect", {
-          effect: id,
-        });
-      if (enabled && !isEffectSupported(definition, deps.env))
-        throw new AVCommandError(
-          "unsupported",
-          "This effect can't run in this browser",
-          { effect: id },
-        );
-      const group = groupOf(definition);
-      const others = saved().filter((other) => {
-        if (other === id) return false;
-        if (!enabled) return true;
-        const theirs = effects.get(other);
-        // A running one of its group stays until it runs: never stop, then
-        // start. One still starting goes, so it can't replace the newer.
-        return (
-          !theirs ||
-          groupOf(theirs) !== group ||
-          group === null ||
-          local.effectStatus(other)?.status === "running"
-        );
-      });
-      await save(enabled ? [...others, id] : others);
-    },
+    saved,
+    save,
     replaced(ids) {
       save(saved().filter((id) => !ids.includes(id))).catch(deps.onError);
     },

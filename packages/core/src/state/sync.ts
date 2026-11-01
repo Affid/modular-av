@@ -16,6 +16,7 @@ import type { WritableStore } from "../store.ts";
 import { readSensitivity } from "../media/sensitivity.ts";
 import { readCutTails } from "../media/cut-tails.ts";
 import { readGateFallback } from "../media/gate-fallback.ts";
+import { savedEffects } from "../media/effect-choices.ts";
 import { readPlacement } from "../media/effect-places.ts";
 import { readLevels } from "../media/levels.ts";
 import { project } from "./project.ts";
@@ -95,6 +96,7 @@ function localState(deps: StateSyncDeps): LocalState {
       local.microphone !== null &&
       ((own.muted ?? false) || deps.rt.deafened),
     effects: effectStates(deps),
+    chosenEffects: savedEffects(deps.game, deps.effects),
     audioEffectPlaces: placement.places,
     audioEffectOrder: placement.order,
     audioEffectMix: levels.mix,

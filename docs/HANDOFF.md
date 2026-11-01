@@ -144,8 +144,9 @@ Rules:
    `modular-av-livekit-krisp`. No `ui-` or `fx-` kind tokens ("FX" reads as
    canvas visual effects to Foundry users).
 3. **Player-facing words**: services by the service's name (`livekit`,
-   `p2p`, `jitsi`), effects by the device they affect (`mic-…`, `cam-…`),
-   UIs by what they show (`dock`, `tokens`). The kind is machine-readable in
+   `p2p`, `jitsi`), effects by what they work on (`mic-…` and `cam-…` for one
+   device, `audio-…` for any sound that reaches them), UIs by what they show
+   (`dock`, `tokens`). The kind is machine-readable in
    `module.json`: `flags["modular-av"].kind` is `service`, `effect`, `ui` or
    `theme`.
 4. **No trademarks** in ids or titles (no "Discord"; "Discord-like" only in

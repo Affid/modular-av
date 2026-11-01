@@ -1,6 +1,5 @@
 import type {
   EffectDefinition,
-  Previews,
   Registry,
   VideoEffect,
   VideoEffectDefinition,
@@ -8,6 +7,7 @@ import type {
 import { AVCommandError } from "../errors.ts";
 import { captureDevice } from "./device-capture.ts";
 import type { MediaEnv } from "./env.ts";
+import type { DevicePreviews } from "./lazy-previews.ts";
 import { METER_INTERVAL_MS } from "./meters.ts";
 
 export interface PreviewsDeps {
@@ -85,7 +85,7 @@ function hold(env: PreviewsDeps["env"], element: Element) {
   };
 }
 
-function cameraPreview(deps: PreviewsDeps): Previews["camera"] {
+function cameraPreview(deps: PreviewsDeps): DevicePreviews["camera"] {
   const { env } = deps;
   return async (element, options) => {
     const definition = options.effect
@@ -125,7 +125,7 @@ function cameraPreview(deps: PreviewsDeps): Previews["camera"] {
   };
 }
 
-function microphonePreview(deps: PreviewsDeps): Previews["microphone"] {
+function microphonePreview(deps: PreviewsDeps): DevicePreviews["microphone"] {
   const { env } = deps;
   return async (element, options) => {
     if (typeof options.listener !== "function")
@@ -163,7 +163,7 @@ function microphonePreview(deps: PreviewsDeps): Previews["microphone"] {
  * Cameras and microphones shown to the player alone, outside the call:
  * their own captures, never published, released when stopped.
  */
-export function createPreviews(deps: PreviewsDeps): Previews {
+export function createPreviews(deps: PreviewsDeps): DevicePreviews {
   return Object.freeze({
     camera: cameraPreview(deps),
     microphone: microphonePreview(deps),

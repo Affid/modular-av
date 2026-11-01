@@ -57,6 +57,7 @@ export function localState(changes: Partial<LocalState> = {}): LocalState {
     microphoneHold: null,
     speakingWhileMuted: false,
     effects: {},
+    chosenEffects: [],
     audioEffectPlaces: {},
     audioEffectOrder: { "pre-gate": [], "post-gate": [], send: [] },
     audioEffectMix: {},
