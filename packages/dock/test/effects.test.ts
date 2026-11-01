@@ -21,7 +21,7 @@ const model = (id: string, cost: EffectCost): AudioEffectDefinition => ({
   id,
   kind: "audio",
   label: id,
-  stage: "denoise",
+  defaultPlace: "pre-gate",
   exclusiveGroup: "noise-suppression",
   cost,
   isSupported: () => true,

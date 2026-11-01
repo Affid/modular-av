@@ -6,6 +6,9 @@ const CHECK_MS = 250;
 /** About -60 dBFS: the microphone hears more than its own noise floor. */
 const SOUND_PEAK = 0.001;
 
+/** Far above full scale: only feedback gets here. About +18 dBFS. */
+const RUNAWAY_PEAK = 8;
+
 /** What the effect's state shows as its error. */
 export class StalledError extends Error {
   override readonly name = "StalledError";
@@ -14,19 +17,29 @@ export class StalledError extends Error {
   }
 }
 
+export class RunawayError extends Error {
+  override readonly name = "RunawayError";
+  constructor() {
+    super("The effect's level ran away");
+  }
+}
+
 export interface WatchedEffect {
   readonly id: string;
   readonly output: AudioNode;
+  /** Added to the stall time: its tail may be silent before it sounds. */
+  readonly graceMs?: number;
 }
 
 /**
- * Watches denoise effects for a stalled worklet. A model that stopped
- * running sends exact zeros; one that removes noise sends quiet, but not
- * zero, so only digital silence while the microphone hears sound counts.
+ * Watches effects for a stalled worklet: only digital silence while sound goes
+ * in counts, as a healthy effect can be far quieter than the voice. A level no
+ * effect should reach counts too.
  */
 export interface StallWatchdog {
-  /** The raw microphone in the chain, or null. */
+  /** What the first effect hears, or null: the raw microphone, say. */
   setSource(source: AudioNode | null): void;
+  /** In chain order. */
   setEffects(effects: readonly WatchedEffect[]): void;
   dispose(): void;
 }
@@ -42,6 +55,7 @@ interface Watched extends Tap {
    * since it last sent any: pauses in speech don't start it over.
    */
   readonly silentMs: number;
+  readonly graceMs: number;
 }
 
 const tap = (
@@ -77,7 +91,7 @@ const untap = (
 
 export function createStallWatchdog(
   capture: Pick<CaptureContext, "createProbe" | "running">,
-  onStalled: (id: string, error: StalledError) => void,
+  onStalled: (id: string, error: StalledError | RunawayError) => void,
   onError: (error: unknown) => void,
 ): StallWatchdog {
   let sourceNode: AudioNode | null = null;
@@ -90,18 +104,35 @@ export function createStallWatchdog(
     capture.running && source !== null && source.probe.peak() >= SOUND_PEAK;
 
   /** Sound in, nothing out counts; any sound out starts over; pauses wait. */
-  const next = (w: Watched, sound: boolean): number => {
-    if (w.probe.peak() !== 0) return 0;
+  const next = (peak: number, w: Watched, sound: boolean): number => {
+    if (peak !== 0) return 0;
     return sound ? w.silentMs + CHECK_MS : w.silentMs;
   };
 
   const check = (): void => {
     const sound = hearsSound();
-    watched = new Map(
-      [...watched].map(([id, w]) => [id, { ...w, silentMs: next(w, sound) }]),
+    const read = [...watched].map(
+      ([id, w]) => [id, w, w.probe.peak()] as const,
     );
-    for (const [id, w] of watched)
-      if (w.silentMs >= STALL_MS) onStalled(id, new StalledError());
+    watched = new Map(
+      read.map(([id, w, peak]) => [
+        id,
+        { ...w, silentMs: next(peak, w, sound) },
+      ]),
+    );
+    // In a place, what is behind a broken insert hears the fault: the first
+    // one only, and the others start over, as they may still hear nothing.
+    const runaway = read.find(([, , peak]) => !(peak <= RUNAWAY_PEAK));
+    if (runaway) onStalled(runaway[0], new RunawayError());
+    const stalled = [...watched].find(
+      ([, w]) => w.silentMs >= STALL_MS + w.graceMs,
+    );
+    if (stalled) {
+      watched = new Map(
+        [...watched].map(([id, w]) => [id, { ...w, silentMs: 0 }]),
+      );
+      onStalled(stalled[0], new StalledError());
+    }
   };
 
   /** Taps the source and runs the timer only while there is work. */
@@ -125,9 +156,9 @@ export function createStallWatchdog(
       return current?.node === output ? current : undefined;
     };
     const next = new Map(
-      effects.map(({ id, output }) => [
+      effects.map(({ id, output, graceMs = 0 }) => [
         id,
-        keep(id, output) ?? { ...tap(capture, output), silentMs: 0 },
+        keep(id, output) ?? { ...tap(capture, output), silentMs: 0, graceMs },
       ]),
     );
     for (const [id, w] of watched) if (next.get(id) !== w) untap(w, onError);

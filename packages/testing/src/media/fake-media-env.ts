@@ -1,4 +1,10 @@
-import type { DeviceList } from "@modular-av/api";
+import type {
+  DeviceList,
+  AudioEffectHost,
+  AudioEffectHostOptions,
+  AudioEffectKernel,
+  HostedAudioEffect,
+} from "@modular-av/api";
 import { createFakeTrack } from "../service/fake-track.ts";
 import {
   createFakeCaptureContext,
@@ -26,11 +32,21 @@ export interface FakeAudioOutput {
   readonly state: FakeAudioOutputState;
 }
 
+/** A kernel the core was asked to run; nothing renders. */
+export interface FakeHostedAudioEffect extends HostedAudioEffect {
+  readonly kernel: AudioEffectKernel;
+  readonly options: AudioEffectHostOptions;
+  readonly configured: readonly unknown[];
+  readonly disposed: boolean;
+}
+
 export interface FakeMediaEnvOptions {
   /** DOMException names to reject captures with, per kind. */
   readonly deny?: { readonly audio?: string; readonly video?: string };
   /** Whether frames can be watched (MediaStreamTrackProcessor); default true. */
   readonly watchFrames?: boolean;
+  /** False plays a browser without k-rate gains; default true. */
+  readonly canFollow?: boolean;
   /** What `listDevices` reports; one default device of each kind if absent. */
   readonly devices?: DeviceList;
 }
@@ -84,6 +100,11 @@ export interface FakeMediaEnv {
   setOnScreen(element: Element, view: FakeOnScreen): void;
   onOnline(listener: () => void): () => void;
   createCaptureContext(): Promise<FakeCaptureContext>;
+  createAudioEffectHost(
+    context: BaseAudioContext,
+    options: AudioEffectHostOptions,
+  ): AudioEffectHost;
+  readonly hosted: readonly FakeHostedAudioEffect[];
   canWatchFrames(): boolean;
   listDevices(): Promise<DeviceList>;
   onDeviceChange(listener: () => void): () => void;
@@ -172,6 +193,7 @@ export function createFakeMediaEnv(
     readonly listener: (view: FakeOnScreen) => void;
   }[] = [];
   let captureContexts: readonly FakeCaptureContext[] = [];
+  let hosted: readonly FakeHostedAudioEffect[] = [];
   let devices = options.devices ?? FAKE_DEVICES;
   let deviceListeners: readonly (() => void)[] = [];
   let frameWatchers: readonly {
@@ -269,9 +291,39 @@ export function createFakeMediaEnv(
       };
     },
     createCaptureContext() {
-      const context = createFakeCaptureContext();
+      const context = createFakeCaptureContext({
+        canFollow: options.canFollow ?? true,
+      });
       captureContexts = [...captureContexts, context];
       return Promise.resolve(context);
+    },
+    createAudioEffectHost: (context, hostOptions) => (kernel) => {
+      const node = context.createGain();
+      let configured: readonly unknown[] = [];
+      let disposed = false;
+      const effect: FakeHostedAudioEffect = {
+        kernel,
+        options: hostOptions,
+        input: node,
+        output: node,
+        get configured() {
+          return configured;
+        },
+        get disposed() {
+          return disposed;
+        },
+        configure(value) {
+          configured = [...configured, value];
+        },
+        dispose() {
+          disposed = true;
+        },
+      };
+      hosted = [...hosted, effect];
+      return Promise.resolve(effect);
+    },
+    get hosted() {
+      return hosted;
     },
     get captureContexts() {
       return captureContexts;

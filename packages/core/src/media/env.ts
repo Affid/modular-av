@@ -3,7 +3,11 @@
  * this, so the session and media logic run in unit tests without a browser.
  * `browser-env.ts` is the real one; @modular-av/testing has a fake.
  */
-import type { DeviceList } from "@modular-av/api";
+import type {
+  DeviceList,
+  AudioEffectHost,
+  AudioEffectHostOptions,
+} from "@modular-av/api";
 
 export interface MediaEnv {
   /**
@@ -45,6 +49,11 @@ export interface MediaEnv {
   onDeviceChange(listener: () => void): () => void;
   /** The one capture context; call once and keep it. Loads its code lazily. */
   createCaptureContext(): Promise<CaptureContext>;
+  /** Runs effect kernels in `context`. Loads its code lazily. */
+  createAudioEffectHost(
+    context: BaseAudioContext,
+    options: AudioEffectHostOptions,
+  ): AudioEffectHost;
   /** Whether `watchFrames` works here (MediaStreamTrackProcessor). */
   canWatchFrames(): boolean;
   /**
@@ -83,6 +92,11 @@ export interface GateConfig {
   readonly threshold: number;
 }
 
+/** The gate's output that is 1 while it passes any sound, else 0. */
+export const GATE_FEED_OUTPUT = 1;
+/** The gate's output for the sends: fades with speech, down to exactly 0. */
+export const GATE_SEND_OUTPUT = 2;
+
 /** The voice gate worklet (public/worklets/voice-gate.js) in the context. */
 export interface VoiceGateNode {
   readonly node: AudioNode;
@@ -106,6 +120,24 @@ export interface SignalProbe {
   dispose(): void;
 }
 
+/** A gain the core owns in the capture context. */
+export interface LevelNode {
+  readonly node: AudioNode;
+  /** 0 to 1. With `rampMs` it fades there, landing exactly on `level`. */
+  set(level: number, rampMs?: number): void;
+  /**
+   * Takes its level from `control`'s `output` on the audio thread, at 0
+   * otherwise. Null lets go, at full level. Needs `canFollow`.
+   */
+  follow(control: AudioNode | null, output?: number): void;
+  dispose(): void;
+}
+
+export interface DelayLine {
+  readonly node: AudioNode;
+  dispose(): void;
+}
+
 /**
  * The core's one capture `AudioContext` (48 kHz) and the end of the
  * microphone chain. Its output track is the microphone the service gets:
@@ -120,6 +152,14 @@ export interface CaptureContext {
   createSource(track: MediaStreamTrack): AudioNode;
   createGate(config: GateConfig): Promise<VoiceGateNode>;
   createProbe(): SignalProbe;
+  /** `name` tells the core's gains apart in tests and traces. */
+  createLevel(name: string, level: number): LevelNode;
+  createDelay(name: string, seconds: number): DelayLine;
+  /**
+   * Whether a level can follow a signal and still let native nodes after it
+   * sleep (k-rate gains). Firefox can't: a followed gain keeps them running.
+   */
+  readonly canFollow: boolean;
   /** Whether audio flows; browsers may keep a context suspended. */
   readonly running: boolean;
   onRunningChange(listener: (running: boolean) => void): () => void;

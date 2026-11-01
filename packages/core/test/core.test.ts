@@ -571,7 +571,7 @@ describe("registration and plain status", () => {
       id: "rnnoise",
       kind: "audio",
       label: "RNNoise",
-      stage: "denoise",
+      defaultPlace: "pre-gate",
       exclusiveGroup: "noise-suppression",
       cost: "light",
       isSupported: () => true,

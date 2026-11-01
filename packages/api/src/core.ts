@@ -1,6 +1,10 @@
 import type { AVCommands } from "./commands.ts";
 import type { Contribution } from "./contributions.ts";
-import type { EffectDefinition } from "./effects.ts";
+import type {
+  EffectDefinition,
+  AudioEffectHost,
+  AudioEffectHostOptions,
+} from "./effects.ts";
 import type { Meters } from "./meters.ts";
 import type { Previews } from "./preview.ts";
 import type { Registry } from "./registry.ts";
@@ -65,4 +69,12 @@ export interface ModularAV {
   socket(channel: string): Channel;
   /** A module file's URL through Foundry's route prefix. */
   assetUrl(moduleId: string, path: string): string;
+  /**
+   * What `AudioEffectContext.host` is, for a context of your own: an
+   * effect's own tests and previews, rendered offline.
+   */
+  createAudioEffectHost(
+    context: BaseAudioContext,
+    options: AudioEffectHostOptions,
+  ): AudioEffectHost;
 }

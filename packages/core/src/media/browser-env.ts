@@ -198,5 +198,9 @@ export function createBrowserMediaEnv(
         await import("./browser-capture.ts");
       return createBrowserCaptureContext(assetUrl);
     },
+    createAudioEffectHost: (context, options) => async (kernel) => {
+      const { createAudioEffectHost } = await import("./effect-host.ts");
+      return createAudioEffectHost(context, assetUrl, options)(kernel);
+    },
   };
 }

@@ -565,7 +565,7 @@ interface AudioEffectDefinition {
   id: string; // "rnnoise"
   kind: "audio";
   label: string;
-  stage: "denoise" | "voice" | "post"; // order: denoise → voice → post → gate
+  defaultPlace: "pre-gate" | "post-gate" | "send"; // docs/voice-routing.md
   exclusiveGroup?: string; // "noise-suppression": one running per group
   cost: "light" | "medium" | "heavy"; // shown to players
   isSupported(): boolean;
@@ -811,7 +811,7 @@ Contract suites in `@modular-av/testing`:
 │  reconnect policy                                            │
 ├──────────────────────────────────────────────────────────────┤
 │ Local media pipeline + audio playback (service-independent)  │
-│  mic → denoise → voice → post → gate → final track → service │
+│  mic → pre-gate → gate → post-gate, sends → track → service  │
 │  camera → video effect (watchdog) → final track → service    │
 │  remote audio → elements (Web Audio only above 100%) → sink  │
 └──────────────────────────────────────────────────────────────┘
@@ -837,7 +837,9 @@ Principles:
   or hold the microphone off if the player chose that (`gateFallback`
   "mute", a setting of this device, decided for 1.0; sending stays the
   default).
-  Mute is applied to the core's own final track, in every connection state.
+  Mute is applied right after the gate and to the core's own final track, in
+  every connection state; a tail of what was said before may ring on for up
+  to 3 s (`docs/voice-routing.md`).
 - **Never expose secrets to players**: a service's secret lives only on the
   GM's device or a token server.
 - **Swap effects atomically** (start the new one, then replace), never
@@ -1136,8 +1138,9 @@ Verified while building and testing the media pipeline (core only,
 Foundry 14.369, Chromium from Playwright 1.64, livekit-server 1.13.8):
 
 - **The pipeline as built**: microphone → capture context (one 48 kHz
-  `AudioContext`, suspended without a microphone) → effects by stage →
-  voice gate worklet → one output track, the same for the whole session
+  `AudioContext`, suspended without a microphone) → `pre-gate` →
+  voice gate worklet → mute → `post-gate` → Channel level, with sends
+  beside it (`docs/voice-routing.md`) → one output track, the same for the whole session
   whatever devices and effects do, so the service never gets
   `replaceTrack` for audio. Swaps connect the new path before cutting the
   old one; a new effect replaces the running one of its group only once it
@@ -1516,7 +1519,7 @@ and Windows Chrome 155 with a GPU, livekit-server 1.13.8, LiveKit Cloud,
   pipeline harness records what the service was given, has a denoise test
   effect that sends silence, and fails module files under
   `?broken=<path>`; the harness loads several modules
-  (`?module=dock,mic-denoise`). `effectContract()` in
+  (`?module=dock,mic-denoise`). `audioEffectContract()` in
   `@modular-av/testing` checks an audio effect module: it runs and the
   player is heard, it renders within the budget of its cost and outputs
   sound, it leaves the chain when off, its group swaps without a gap, and
@@ -2173,3 +2176,52 @@ Verified while rebuilding "Plan your modules" as a signal chain
 - **A tab asked for while the settings window is open** goes to the
   open window (`SettingsHost.onTabRequest`), which switches tabs and
   keeps what is drafted: closing and reopening it would lose the draft.
+
+## 23. Findings from the voice channel routing
+
+Verified while building `docs/voice-routing.md`
+(`docs/plans/voice-routing.md`, which has the measurements; Chromium 156,
+Firefox 157):
+
+- **Gate control**: a message from the worklet to the main thread lost up
+  to 82 blocks (0.2 s) of a speech start on a busy page; a gain following
+  the worklet's output on the audio thread lost none, in both browsers.
+- **Firefox and sleep**: it has no k-rate `automationRate`, and a gain
+  following a signal never lets a native node after it sleep, even at 0.
+  A plain gain at 0 does. So its post feed stays open and its sends follow
+  the gate's message.
+- **`canHear`**: `facts.entry(id).muted` is the listener's own mute of
+  someone. A sender's mute reaches the others as Foundry activity
+  (`project.ts`), and playback doesn't act on it, so a tail after mute
+  needed no change on receivers. Their own `canBroadcast` block does stop
+  playback.
+- **Analysers**: NaN goes through one and reads as NaN, so `peak()` reports
+  it; `peak <= limit` is false for NaN, which is what the watchdog relies
+  on. A probe doesn't keep a native node awake.
+- **Chrome's fake microphone** isn't silent between beeps: a faint noise
+  stays, and the gate's automatic threshold learns to open on it. Browser
+  specs that need a closed gate set a fixed threshold.
+- **The core's entry budget** went from 110,000 to 116,000 bytes for the
+  routing's settings and tail hold, in the entry because state and
+  commands need them. Places would have passed it too, so what writes this
+  device's settings now loads on first use (`media/setting-writes.ts`):
+  115,680 used. The entry reads those settings at start, so that stays. The
+  picture-in-picture code looks like the next candidate but isn't: a request
+  must come from a click, and loading first can outlive the activation.
+- **`sameData` compares arrays now** (`state/project.ts`). It used to take
+  every array as changed, so `LocalState.audioEffectOrder`, the first array in the
+  local state, made every refresh a change for all subscribers.
+- **The docked grid is bistable, open**: with frames that reach past tiles,
+  `setLayout` refits on every `show`, and each refit flips the tile width
+  between 120 and 121 px, as the list's height follows. The fit in
+  `cameras/tiles.ts` damps this for resizes only. The parity of `show` calls
+  decides the width, so one more state update can move every tile by a pixel;
+  the vines spec "the docked grid settles" fails when that lands in its
+  window.
+- **Places**: the `denoise`, `voice`, `post` stages became `pre-gate` and
+  `post-gate` (phase 8 of `docs/plans/voice-routing.md`). `voice` was reserved
+  for voice changers from the first effects commit and nothing shipped in it;
+  it differed from `denoise` by running second and, by accident, by having no
+  stall watchdog. Watching it showed two old faults of a series: an effect
+  behind one that gates to zero looks stalled, and everything behind a stall
+  looks stalled too.

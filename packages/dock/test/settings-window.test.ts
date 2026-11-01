@@ -1,11 +1,16 @@
 // @vitest-environment happy-dom
 import type {
+  LocalState,
   SettingsHost,
   SettingsSectionContribution,
   SettingsWindowTab,
   VideoEffectDefinition,
 } from "@modular-av/api";
-import { avState, participantState } from "@modular-av/testing";
+import {
+  avState,
+  createFakeAudioEffect,
+  participantState,
+} from "@modular-av/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { renderSettings } from "../src/settings-window/window.ts";
 import type { Themes } from "../src/themes/choice.ts";
@@ -127,6 +132,96 @@ describe("the settings window's Call tab", () => {
 });
 
 describe("the settings window's Voice tab", () => {
+  const reverb = createFakeAudioEffect("reverb", {
+    defaultPlace: "send",
+  }).definition;
+  const withMix = (local: Partial<LocalState>): Parameters<typeof open>[0] => ({
+    state: avState({ participants: [me], local }),
+  });
+  const slide = (input: HTMLInputElement | null, percent: number): void => {
+    if (!input) throw new Error("no slider");
+    input.value = String(percent);
+    input.dispatchEvent(new Event("input"));
+  };
+
+  it("shows no mix without an effect the core can mix", () => {
+    const view = open();
+    view.tab("voice");
+
+    expect(view.q('[data-field="audioChannelLevel"]')).toBeNull();
+  });
+
+  it("shows no Channel level without a send to turn it down for", () => {
+    // Arrange
+    const dryWet = {
+      ...createFakeAudioEffect("radio", { defaultPlace: "post-gate" })
+        .definition,
+      latency: 0,
+    };
+
+    // Act
+    const view = open(
+      withMix({
+        audioEffectMix: { radio: 0.5 },
+        audioEffectPlaces: { radio: "post-gate" },
+      }),
+      (dock) => {
+        dock.api.effects.register(dryWet);
+      },
+    );
+    view.tab("voice");
+
+    // Assert
+    expect(view.q('[data-field="audioChannelLevel"]')).toBeNull();
+    expect(view.q('[data-field="audioEffectMix.radio"]')).not.toBeNull();
+  });
+
+  it("drafts Channel level and an effect's wet amount until Save", async () => {
+    // Arrange
+    const view = open(
+      withMix({
+        audioEffectMix: { reverb: 0.5 },
+        audioEffectPlaces: { reverb: "send" },
+        audioChannelLevel: 1,
+      }),
+      (dock) => {
+        dock.api.effects.register(reverb);
+      },
+    );
+    view.tab("voice");
+    const channel = view.q('[data-field="audioChannelLevel"]');
+    const wet = view.q('[data-field="audioEffectMix.reverb"]');
+
+    // Act
+    slide(channel, 40);
+    slide(wet, 25);
+    const before = [...view.api.calls];
+    await view.save();
+
+    // Assert
+    expect(wet?.closest(".mav-settings-row")?.textContent).toContain("reverb");
+    expect(wet?.getAttribute("aria-label")).toBe("reverb");
+    expect(before).toEqual([]);
+    expect(view.api.calls).toEqual([
+      { command: "setAudioChannelLevel", args: [0.4] },
+      { command: "setAudioEffectMix", args: ["reverb", 0.25] },
+    ]);
+  });
+
+  it("offers to cut tails, drafted until Save", async () => {
+    const view = open(withMix({ audioEffectMix: { reverb: 1 } }), (dock) => {
+      dock.api.effects.register(reverb);
+    });
+    view.tab("voice");
+
+    view.q('[data-field="audioCutTails"]')?.click();
+    await view.save();
+
+    expect(view.api.calls).toEqual([
+      { command: "setAudioCutTails", args: [true] },
+    ]);
+  });
+
   it("names a tab with unsaved changes as such, for screen readers", () => {
     const view = open();
     view.tab("voice");

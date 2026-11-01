@@ -140,6 +140,7 @@ export function effectContext() {
     audioContext: {} as AudioContext,
     signal: controller.signal,
     fail,
+    host: () => Promise.reject(new Error("unused")),
   };
   return { context, controller, fail };
 }

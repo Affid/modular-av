@@ -24,7 +24,8 @@ the Discord-like dock, `modular-av-dock`.
   time.
 - **Your microphone**: its own voice gate for voice activity (automatic,
   or a level you set), push to talk with Foundry's key, a warning when
-  you speak while muted.
+  you speak while muted. Reverb and delay from effect modules ring out
+  after you stop, and you set how much of them to mix in.
 
 ## Settings
 

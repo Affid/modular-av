@@ -13,7 +13,8 @@
     "./contract": "./src/contract/service-contract.ts",
     "./contract/ui": "./src/contract/ui-contract.ts",
     "./contract/theme": "./src/contract/theme-contract.ts",
-    "./contract/effects": "./src/contract/effect-contract.ts",
+    "./contract/audio-effects": "./src/contract/audio-effect-contract.ts",
+    "./contract/tail-effects": "./src/contract/tail-effect-contract.ts",
     "./contract/video-effects": "./src/contract/video-effect-contract.ts"
   },
   "scripts": {

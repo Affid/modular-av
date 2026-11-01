@@ -2,6 +2,7 @@ import type {
   AVState,
   Contribution,
   EffectDefinition,
+  AudioEffectHostOptions,
   ModularAV,
   ServiceDefinition,
   SurfaceDefinition,
@@ -37,6 +38,13 @@ import {
   DEFAULT_GATE_FALLBACK,
   GATE_FALLBACK_SETTING,
 } from "./media/gate-fallback.ts";
+import { validateEffect } from "./media/audio-places.ts";
+import { CUT_TAILS_SETTING } from "./media/cut-tails.ts";
+import {
+  EFFECT_ORDER_SETTING,
+  EFFECT_PLACES_SETTING,
+} from "./media/effect-places.ts";
+import { CHANNEL_LEVEL_SETTING, EFFECT_MIX_SETTING } from "./media/levels.ts";
 import { createRegistry } from "./registry.ts";
 import { assetUrl, createChannels } from "./socket.ts";
 import { INITIAL_STATE } from "./state/initial.ts";
@@ -92,7 +100,7 @@ export function installCore(deps: CoreDeps): InstalledCore {
 
   const store = createStore<AVState>(INITIAL_STATE, deps.onError);
   const services = createRegistry<ServiceDefinition>("services");
-  const effects = createRegistry<EffectDefinition>("effects");
+  const effects = createRegistry<EffectDefinition>("effects", validateEffect);
   const surfaces = createRegistry<SurfaceDefinition>(
     "surfaces",
     validateSurface,
@@ -115,35 +123,28 @@ export function installCore(deps: CoreDeps): InstalledCore {
     deps.foundry.applications.apps.av.CameraViews,
     () => hosting,
   );
-  game.settings.register(MODULE_ID, SENSITIVITY_SETTING, {
-    scope: "client",
-    config: false,
-    type: Object,
-    default: DEFAULT_SENSITIVITY,
-  });
-  game.settings.register(MODULE_ID, GATE_FALLBACK_SETTING, {
-    scope: "client",
-    config: false,
-    type: String,
-    default: DEFAULT_GATE_FALLBACK,
-  });
-  game.settings.register(MODULE_ID, EFFECTS_SETTING, {
-    scope: "client",
-    config: false,
-    type: Array,
-    default: [],
-  });
-  game.settings.register(MODULE_ID, DEAFENED_SETTING, {
-    scope: "client",
-    config: false,
-    type: Boolean,
-    default: false,
-  });
+  const clientSetting = (key: string, type: unknown, value: unknown): void => {
+    game.settings.register(MODULE_ID, key, {
+      scope: "client",
+      config: false,
+      type,
+      default: value,
+    });
+  };
+  clientSetting(SENSITIVITY_SETTING, Object, DEFAULT_SENSITIVITY);
+  clientSetting(GATE_FALLBACK_SETTING, String, DEFAULT_GATE_FALLBACK);
+  clientSetting(CUT_TAILS_SETTING, Boolean, false);
+  clientSetting(CHANNEL_LEVEL_SETTING, Number, 1);
+  clientSetting(EFFECT_MIX_SETTING, Object, {});
+  clientSetting(EFFECT_PLACES_SETTING, Object, {});
+  clientSetting(EFFECT_ORDER_SETTING, Object, {});
+  clientSetting(EFFECTS_SETTING, Array, []);
+  clientSetting(DEAFENED_SETTING, Boolean, false);
 
   const api: ModularAV = Object.freeze({
     version: mod.version,
     state: store.view,
-    commands: createCommands(game, controller),
+    commands: createCommands(game, controller, effects.api),
     media: Object.freeze({
       attach: (...args: Parameters<Controller["attach"]>) =>
         controller().attach(...args),
@@ -171,6 +172,10 @@ export function installCore(deps: CoreDeps): InstalledCore {
     socket: (name: string) => channels.channel(name),
     assetUrl: (moduleId: string, path: string) =>
       assetUrl((p) => deps.foundry.utils.getRoute(p), moduleId, path),
+    createAudioEffectHost: (
+      context: BaseAudioContext,
+      options: AudioEffectHostOptions,
+    ) => deps.env.createAudioEffectHost(context, options),
   });
   mod.api = api;
 

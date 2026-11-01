@@ -1,11 +1,15 @@
+import type { AudioEffectDefinition, AudioPlace } from "@modular-av/api";
 import {
   createFakeAudioEffect,
   createFakeVideoEffect,
 } from "@modular-av/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { validateEffect } from "../src/media/audio-places.ts";
 // Loaded lazily by the core; preloaded so its import resolves within settle().
 import "../src/media/camera.ts";
 import { ALWAYS, captureOf, createTable, type Tab } from "./table.ts";
+
+type Table = ReturnType<typeof createTable>;
 
 const EFFECTS_SETTING = "effects";
 
@@ -38,6 +42,335 @@ describe("effects in the state", () => {
       rnnoise: { status: "off", error: null },
       krisp: { status: "unsupported", error: null },
     });
+  });
+});
+
+describe("effect places", () => {
+  const moved = async (
+    definition: AudioEffectDefinition,
+  ): Promise<{ readonly table: Table; readonly p1: Tab }> => {
+    const table = createTable();
+    table.join("gm", { secret: true });
+    const p1 = table.join("p1", { av: ALWAYS, effects: [definition] });
+    await table.settle();
+    await p1.api.commands.setEffectEnabled(definition.id, true);
+    await table.settle();
+    return { table, p1 };
+  };
+
+  it("shows each audio effect where it runs, its default until moved", async () => {
+    const reverb = createFakeAudioEffect("reverb", { defaultPlace: "send" });
+    const blur = createFakeVideoEffect("blur");
+    const table = createTable();
+
+    const p1 = table.join("p1", {
+      effects: [reverb.definition, blur.definition],
+    });
+    await table.settle();
+    await p1.api.commands.setAudioEffectPlace("reverb", "post-gate");
+    await table.settle();
+
+    expect(p1.api.state.get().local.audioEffectPlaces).toEqual({
+      reverb: "post-gate",
+    });
+    expect(
+      p1.client.game.settings.get("modular-av", "audioEffectPlaces"),
+    ).toEqual({
+      reverb: "post-gate",
+    });
+  });
+
+  it("moves a running effect without restarting it, and keeps it there", async () => {
+    // Arrange
+    const reverb = createFakeAudioEffect("reverb", { defaultPlace: "send" });
+    const { table, p1 } = await moved(reverb.definition);
+    const instance = reverb.instances[0];
+    const back = captureOf(p1).level("return:reverb")?.node;
+    if (!instance || !back) throw new Error("not running");
+
+    // Act
+    await p1.api.commands.setAudioEffectPlace("reverb", "post-gate");
+    await table.settle();
+
+    // Assert
+    const capture = captureOf(p1);
+    const feed = capture.level("post feed")?.node;
+    const channel = capture.level("channel")?.node;
+    if (!feed || !channel) throw new Error("no chain");
+    expect(reverb.instances).toHaveLength(1);
+    expect(instance.disposed).toBe(false);
+    expect(capture.graph.feeds(feed, instance.input)).toBe(true);
+    expect(capture.graph.feeds(instance.output, channel)).toBe(true);
+    expect(capture.graph.feeds(instance.output, back)).toBe(false);
+  });
+
+  it("runs an effect ahead of the gate when it is put there", async () => {
+    const radio = createFakeAudioEffect("radio", { defaultPlace: "post-gate" });
+    const { table, p1 } = await moved(radio.definition);
+    const instance = radio.instances[0];
+    if (!instance) throw new Error("not running");
+
+    await p1.api.commands.setAudioEffectPlace("radio", "pre-gate");
+    await table.settle();
+
+    const capture = captureOf(p1);
+    const source = capture.sources[0]?.node;
+    const gate = capture.gates[0]?.node;
+    if (!source || !gate) throw new Error("no chain");
+    expect(capture.graph.feeds(source, instance.input)).toBe(true);
+    expect(capture.graph.feeds(instance.output, gate)).toBe(true);
+  });
+
+  it("runs effects in the player's order, within their place", async () => {
+    // Arrange
+    const table = createTable();
+    table.join("gm", { secret: true });
+    const first = createFakeAudioEffect("first", {
+      defaultPlace: "post-gate",
+    });
+    const second = createFakeAudioEffect("second", {
+      defaultPlace: "post-gate",
+    });
+    const p1 = table.join("p1", {
+      av: ALWAYS,
+      effects: [first.definition, second.definition],
+    });
+    await table.settle();
+    await p1.api.commands.setEffectEnabled("first", true);
+    await p1.api.commands.setEffectEnabled("second", true);
+    await table.settle();
+    const [a] = first.instances;
+    const [b] = second.instances;
+    if (!a || !b) throw new Error("not running");
+    expect(captureOf(p1).graph.reaches(a.output, b.input)).toBe(true);
+
+    // Act
+    await p1.api.commands.setAudioEffectOrder("post-gate", ["second", "first"]);
+    await table.settle();
+
+    // Assert
+    expect(captureOf(p1).graph.reaches(b.output, a.input)).toBe(true);
+    expect(captureOf(p1).graph.reaches(a.output, b.input)).toBe(false);
+    expect(p1.api.state.get().local.audioEffectOrder).toEqual({
+      "pre-gate": [],
+      "post-gate": ["second", "first"],
+      send: [],
+    });
+  });
+
+  it("shows an effect only in the order of the place it runs in", async () => {
+    const reverb = createFakeAudioEffect("reverb", { defaultPlace: "send" });
+    const { table, p1 } = await moved(reverb.definition);
+    await p1.api.commands.setAudioEffectOrder("send", ["reverb"]);
+
+    await p1.api.commands.setAudioEffectPlace("reverb", "post-gate");
+    await table.settle();
+
+    expect(p1.api.state.get().local.audioEffectOrder.send).toEqual([]);
+  });
+
+  it("offers a mix where the effect has one, wherever it is now", async () => {
+    // Arrange
+    const reverb = createFakeAudioEffect("reverb", { defaultPlace: "send" });
+    const { table, p1 } = await moved(reverb.definition);
+    expect(p1.api.state.get().local.audioEffectMix).toEqual({ reverb: 1 });
+
+    // Act
+    await p1.api.commands.setAudioEffectPlace("reverb", "post-gate");
+    await table.settle();
+
+    // Assert: an insert without a latency stays at 100% wet.
+    expect(p1.api.state.get().local.audioEffectMix).toEqual({});
+    await expect(
+      p1.api.commands.setAudioEffectMix("reverb", 0.5),
+    ).rejects.toMatchObject({ code: "invalid-argument" });
+  });
+
+  it("starts a moved effect at its Return level when it comes back", async () => {
+    const reverb = createFakeAudioEffect("reverb", { defaultPlace: "send" });
+    const { table, p1 } = await moved({
+      ...reverb.definition,
+      defaultMix: 0.3,
+    });
+
+    await p1.api.commands.setAudioEffectPlace("reverb", "post-gate");
+    await table.settle();
+    await p1.api.commands.setAudioEffectPlace("reverb", "send");
+    await table.settle();
+
+    expect(captureOf(p1).level("return:reverb")?.level).toBeCloseTo(0.3);
+  });
+
+  it.each([
+    ["an unknown effect", "nope", "send", "unknown-effect"],
+    ["a video effect", "blur", "send", "invalid-argument"],
+    ["an unknown place", "reverb", "master", "invalid-argument"],
+  ])("refuses %s", async (_, id, place, code) => {
+    const reverb = createFakeAudioEffect("reverb", { defaultPlace: "send" });
+    const blur = createFakeVideoEffect("blur");
+    const p1 = createTable().join("p1", {
+      effects: [reverb.definition, blur.definition],
+    });
+
+    await expect(
+      p1.api.commands.setAudioEffectPlace(id, place as AudioPlace),
+    ).rejects.toMatchObject({ code });
+  });
+
+  it.each([
+    ["an unknown place", "master", ["reverb"], "invalid-argument"],
+    ["an unknown effect", "send", ["nope"], "unknown-effect"],
+    ["a video effect", "send", ["blur"], "invalid-argument"],
+    ["a repeat", "send", ["reverb", "reverb"], "invalid-argument"],
+  ])("refuses an order with %s", async (_, place, ids, code) => {
+    const reverb = createFakeAudioEffect("reverb", { defaultPlace: "send" });
+    const blur = createFakeVideoEffect("blur");
+    const p1 = createTable().join("p1", {
+      effects: [reverb.definition, blur.definition],
+    });
+
+    await expect(
+      p1.api.commands.setAudioEffectOrder(place as AudioPlace, ids),
+    ).rejects.toMatchObject({ code });
+  });
+
+  it("keeps the state as it is when a refresh finds nothing new", async () => {
+    const table = createTable();
+    table.join("gm", { secret: true });
+    const reverb = createFakeAudioEffect("reverb", { defaultPlace: "send" });
+    const p1 = table.join("p1", { av: ALWAYS, effects: [reverb.definition] });
+    await p1.api.commands.setAudioEffectOrder("send", ["reverb"]);
+    await table.settle();
+    const before = p1.api.state.get();
+
+    p1.core.controller().refresh();
+
+    expect(p1.api.state.get()).toBe(before);
+  });
+
+  it("falls back to the defaults for what is saved wrong", async () => {
+    const reverb = createFakeAudioEffect("reverb", { defaultPlace: "send" });
+    const table = createTable();
+    const p1 = table.join("p1", { effects: [reverb.definition] });
+    await p1.client.game.settings.set("modular-av", "audioEffectPlaces", {
+      reverb: "master",
+      gone: "send",
+    });
+    await p1.client.game.settings.set("modular-av", "audioEffectOrder", {
+      send: ["gone", 7, "reverb"],
+      "pre-gate": "nope",
+    });
+    await table.settle();
+    await p1.api.commands.setAudioCutTails(false);
+
+    expect(p1.api.state.get().local.audioEffectPlaces).toEqual({
+      reverb: "send",
+    });
+    expect(p1.api.state.get().local.audioEffectOrder).toEqual({
+      "pre-gate": [],
+      "post-gate": [],
+      send: ["reverb"],
+    });
+  });
+});
+
+describe("levels", () => {
+  const send = (): ReturnType<typeof createFakeAudioEffect> =>
+    createFakeAudioEffect("reverb", { defaultPlace: "send" });
+
+  it("gives a send effect a Return level, from its default, then the player's", async () => {
+    // Arrange
+    const table = createTable();
+    table.join("gm", { secret: true });
+    const reverb = send();
+    const p1 = table.join("p1", {
+      av: ALWAYS,
+      effects: [{ ...reverb.definition, defaultMix: 0.3 }],
+    });
+    await table.settle();
+    await p1.api.commands.setEffectEnabled("reverb", true);
+    await table.settle();
+
+    // Assert
+    expect(p1.api.state.get().local.audioEffectMix).toEqual({ reverb: 0.3 });
+    expect(captureOf(p1).level("return:reverb")?.level).toBe(0.3);
+
+    // Act
+    await p1.api.commands.setAudioEffectMix("reverb", 0.6);
+    await table.settle();
+
+    // Assert
+    expect(p1.api.state.get().local.audioEffectMix).toEqual({ reverb: 0.6 });
+    expect(captureOf(p1).level("return:reverb")?.level).toBe(0.6);
+    expect(p1.client.game.settings.get("modular-av", "audioEffectMix")).toEqual(
+      {
+        reverb: 0.6,
+      },
+    );
+  });
+
+  it("gives an insert a dry:wet control only if it declares its latency", async () => {
+    // Arrange
+    const table = createTable();
+    table.join("gm", { secret: true });
+    const radio = createFakeAudioEffect("radio", { defaultPlace: "post-gate" });
+    const krisp = createFakeAudioEffect("krisp");
+    const p1 = table.join("p1", {
+      av: ALWAYS,
+      effects: [{ ...radio.definition, latency: 0.005 }, krisp.definition],
+    });
+    await table.settle();
+    await p1.api.commands.setEffectEnabled("radio", true);
+    await table.settle();
+
+    // Act
+    await p1.api.commands.setAudioEffectMix("radio", 0.4);
+    await table.settle();
+
+    // Assert
+    expect(p1.api.state.get().local.audioEffectMix).toEqual({ radio: 0.4 });
+    expect(captureOf(p1).level("wet:radio")?.level).toBeCloseTo(0.4);
+    expect(captureOf(p1).delay("dry delay:radio")?.seconds).toBe(0.005);
+    await expect(
+      p1.api.commands.setAudioEffectMix("krisp", 0.4),
+    ).rejects.toMatchObject({ code: "invalid-argument" });
+  });
+
+  it("sets Channel level, kept for the next microphone", async () => {
+    const table = createTable();
+    table.join("gm", { secret: true });
+    const p1 = table.join("p1", { av: ALWAYS, effects: [send().definition] });
+    await p1.api.commands.setAudioChannelLevel(0.25);
+    await p1.api.commands.setEffectEnabled("reverb", true);
+    await table.settle();
+
+    expect(p1.api.state.get().local.audioChannelLevel).toBe(0.25);
+    expect(captureOf(p1).level("channel")?.level).toBe(0.25);
+  });
+
+  it.each([-0.1, 1.5, Number.NaN])("refuses a level of %s", async (level) => {
+    const table = createTable();
+    const p1 = table.join("p1", { effects: [send().definition] });
+    await table.settle();
+
+    await expect(
+      p1.api.commands.setAudioChannelLevel(level),
+    ).rejects.toMatchObject({
+      code: "invalid-argument",
+    });
+    await expect(
+      p1.api.commands.setAudioEffectMix("reverb", level),
+    ).rejects.toMatchObject({ code: "invalid-argument" });
+  });
+
+  it("refuses an effect it doesn't know", async () => {
+    const table = createTable();
+    const p1 = table.join("p1");
+    await table.settle();
+
+    await expect(
+      p1.api.commands.setAudioEffectMix("nothing", 0.5),
+    ).rejects.toMatchObject({ code: "unknown-effect" });
   });
 });
 
@@ -152,6 +485,61 @@ describe("turning effects on and off", () => {
     await expect(
       p1.api.commands.setDevice("audioInput", "x".repeat(257)),
     ).rejects.toMatchObject({ code: "invalid-argument" });
+  });
+
+  it("refuses an audio effect in a place it doesn't know, plainly", () => {
+    expect(() => {
+      validateEffect({ kind: "audio", defaultPlace: "master" });
+    }).toThrow('Unknown audio place "master"');
+    expect(() => {
+      validateEffect({ kind: "audio", defaultPlace: "send" });
+    }).not.toThrow();
+    expect(() => {
+      validateEffect({ kind: "video" });
+    }).not.toThrow();
+  });
+
+  it.each([undefined, "sound"])(
+    "refuses an effect of kind %s, plainly",
+    (kind) => {
+      expect(() => {
+        validateEffect({ kind });
+      }).toThrow(`Unknown effect kind "${String(kind)}"`);
+    },
+  );
+
+  it.each(["defaultPlace", "silencesNoise", "tail", "latency", "defaultMix"])(
+    "refuses a video effect that declares %s, which only audio has",
+    (field) => {
+      expect(() => {
+        validateEffect({ kind: "video", [field]: 1 });
+      }).toThrow(`${field} is for audio effects`);
+    },
+  );
+
+  it.each([
+    ["tail", Number.NaN],
+    ["tail", -1],
+    ["tail", Infinity],
+    ["latency", -0.01],
+    ["latency", Number.NaN],
+    ["defaultMix", 2],
+  ])("refuses an effect declaring %s as %s", (field, value) => {
+    expect(() => {
+      validateEffect({ kind: "audio", defaultPlace: "send", [field]: value });
+    }).toThrow(field);
+  });
+
+  it("accepts what an effect may declare", () => {
+    expect(() => {
+      validateEffect({
+        kind: "audio",
+        defaultPlace: "post-gate",
+        tail: 2.5,
+        latency: 0,
+        defaultMix: 0.3,
+      });
+    }).not.toThrow();
   });
 
   it("refuses unknown and unsupported effects", async () => {

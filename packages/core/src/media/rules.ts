@@ -66,6 +66,18 @@ export function isMicrophoneHeld(input: OutboundInput): boolean {
 }
 
 /**
+ * Whether only the player's own choice keeps the microphone closed: mute,
+ * deafen or push to talk. A tail may then ring on; a GM's block ends it.
+ */
+export function mayRingOut(input: OutboundInput): boolean {
+  return (
+    input.hasMicrophone &&
+    input.facts.canBroadcast(input.facts.selfId).audio &&
+    !isMicrophoneHeld(input)
+  );
+}
+
+/**
  * What this client agrees to play: the GM's blocks (the sender's
  * `BROADCAST_*` permissions), the world's mode, and this player's own
  * choices in Foundry (mute all, hide or mute someone, disable video).

@@ -25,6 +25,10 @@ import {
 import { createLocalMedia, type LocalMedia } from "./media/local-media.ts";
 import { readGateFallback } from "./media/gate-fallback.ts";
 import { readSensitivity } from "./media/sensitivity.ts";
+import { readCutTails } from "./media/cut-tails.ts";
+import { readPlacement } from "./media/effect-places.ts";
+import { readLevels } from "./media/levels.ts";
+import { createTailHold } from "./media/tail-hold.ts";
 import { createRemoteMedia, type RemoteMedia } from "./media/remote-media.ts";
 import type { DeviceChoice } from "./media/local-media.ts";
 import {
@@ -32,6 +36,7 @@ import {
   createPlaybackPolicy,
   gateConfig,
   isMicrophoneHeld,
+  mayRingOut,
   type OutboundInput,
   wantedDevices,
 } from "./media/rules.ts";
@@ -208,6 +213,18 @@ function buildParts(deps: ControllerDeps): Parts {
   });
   const outbound = (): MediaPermissions => computeOutbound(outboundInput());
   const microphoneHeld = (): boolean => isMicrophoneHeld(outboundInput());
+  const hold = createTailHold({
+    tailMs: () => local.tailMs,
+    onEnd: () => {
+      apply();
+    },
+  });
+  /** What goes out: what the player sends, and a tail ringing out after it. */
+  const sent = (): MediaPermissions => {
+    const wanted = outbound();
+    const mayRing = mayRingOut(outboundInput()) && !readCutTails(game);
+    return { ...wanted, audio: hold.update(wanted.audio, mayRing) };
+  };
   const refreshState = createStateSync({
     ...{ store: deps.store, game, facts, rt, local, remote },
     ...{ service, outbound, microphoneHeld, effects: deps.effects },
@@ -218,7 +235,9 @@ function buildParts(deps: ControllerDeps): Parts {
   const devices = createDeviceSync(deps, { facts, rt, local }, refreshState);
   const session = createCall({
     ...deps,
-    ...{ facts, rt, local, remote, service, outbound },
+    ...{ facts, rt, local, remote, service },
+    outbound: sent,
+    voiceOpen: () => outbound().audio,
     // The session's status decides which devices run.
     refreshState: () => {
       refreshState();
@@ -234,7 +253,10 @@ function buildParts(deps: ControllerDeps): Parts {
   const apply = (): void => {
     devices.sync();
     local.setGate(gateConfig(facts, readSensitivity(game)));
-    local.setOutbound(outbound());
+    // A moved effect starts at the level it has there.
+    local.setLevels(readLevels(game, deps.effects));
+    local.setPlacement(readPlacement(game, deps.effects));
+    local.setOutbound(sent(), outbound().audio);
     remote.refresh();
     // Tokens carry the rights; without one, publishing follows them as is.
     const rejoin =

@@ -14,7 +14,10 @@ import type { LocalMedia } from "../media/local-media.ts";
 import type { RemoteMedia } from "../media/remote-media.ts";
 import type { WritableStore } from "../store.ts";
 import { readSensitivity } from "../media/sensitivity.ts";
+import { readCutTails } from "../media/cut-tails.ts";
 import { readGateFallback } from "../media/gate-fallback.ts";
+import { readPlacement } from "../media/effect-places.ts";
+import { readLevels } from "../media/levels.ts";
 import { project } from "./project.ts";
 
 export interface StateSyncDeps {
@@ -66,6 +69,8 @@ function chosenDevices(facts: AVFacts): LocalState["chosenDevices"] {
 
 function localState(deps: StateSyncDeps): LocalState {
   const { facts, local } = deps;
+  const levels = readLevels(deps.game, deps.effects);
+  const placement = readPlacement(deps.game, deps.effects);
   const own = facts.entry(facts.selfId);
   const voiceMode = facts.voiceMode();
   const sending = deps.outbound().audio;
@@ -90,6 +95,11 @@ function localState(deps: StateSyncDeps): LocalState {
       local.microphone !== null &&
       ((own.muted ?? false) || deps.rt.deafened),
     effects: effectStates(deps),
+    audioEffectPlaces: placement.places,
+    audioEffectOrder: placement.order,
+    audioEffectMix: levels.mix,
+    audioChannelLevel: levels.channel,
+    audioCutTails: readCutTails(deps.game),
     inputSensitivity: readSensitivity(deps.game),
     cameraHold: local.cameraHold,
     chosenDevices: chosenDevices(facts),

@@ -34,7 +34,7 @@ export function createModelDefinition(
     id: spec.id,
     kind: "audio",
     label: spec.label,
-    stage: "denoise",
+    defaultPlace: "pre-gate",
     exclusiveGroup: "noise-suppression",
     cost: spec.cost,
     isSupported: () => canRunWorklets(globalThis),

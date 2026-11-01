@@ -135,6 +135,11 @@ const COMMANDS: readonly (keyof AVCommands)[] = [
   "rejoin",
   "reconnectNow",
   "setEffectEnabled",
+  "setAudioEffectMix",
+  "setAudioEffectPlace",
+  "setAudioEffectOrder",
+  "setAudioChannelLevel",
+  "setAudioCutTails",
   "setInputSensitivity",
   "setGateFallback",
   "setDevice",
@@ -261,6 +266,8 @@ export function createFakeApi(options: FakeApiOptions = {}): FakeApi {
     contributions,
     socket: () => ({ send: () => undefined, on: () => () => undefined }),
     assetUrl: (moduleId, path) => `/modules/${moduleId}/${path}`,
+    createAudioEffectHost: () => () =>
+      Promise.reject(new Error("The fake API runs no effects")),
     setState: set,
     get calls() {
       return calls;

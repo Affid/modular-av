@@ -43,7 +43,7 @@ function sameData<T extends object>(a: T, b: T): boolean {
       typeof y === "object" &&
       x !== null &&
       y !== null &&
-      !Array.isArray(x) &&
+      Array.isArray(x) === Array.isArray(y) &&
       sameData(x, y)
     );
   });

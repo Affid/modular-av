@@ -16,7 +16,7 @@ describe("fake effects", () => {
     // Arrange
     const capture = createFakeCaptureContext();
     const fake = createFakeAudioEffect("rnnoise", {
-      stage: "voice",
+      defaultPlace: "pre-gate",
       exclusiveGroup: "noise-suppression",
     });
 
@@ -24,6 +24,7 @@ describe("fake effects", () => {
     const effect = await fake.definition.create({
       ...context(),
       audioContext: capture.audioContext,
+      host: () => Promise.reject(new Error("unused")),
     });
     effect.dispose();
 
@@ -31,7 +32,7 @@ describe("fake effects", () => {
     expect(fake.definition).toMatchObject({
       id: "rnnoise",
       kind: "audio",
-      stage: "voice",
+      defaultPlace: "pre-gate",
       exclusiveGroup: "noise-suppression",
     });
     expect(capture.graph.labelOf(effect.input)).toBe("gain");
@@ -67,6 +68,7 @@ describe("fake effects", () => {
       audio.definition.create({
         ...context(),
         audioContext: capture.audioContext,
+        host: () => Promise.reject(new Error("unused")),
       }),
     ).rejects.toBe(error);
     await expect(video.definition.create(context())).rejects.toBe(error);

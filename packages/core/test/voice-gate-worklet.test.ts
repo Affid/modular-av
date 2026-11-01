@@ -78,6 +78,15 @@ const peak = (outputs: readonly Float32Array[]): number =>
 const transitions = (messages: readonly unknown[]): unknown[] =>
   messages.filter((m) => (m as { type?: string }).type === "open");
 
+interface Controls {
+  readonly sound: Float32Array;
+  readonly feed: Float32Array;
+  readonly sends: Float32Array;
+}
+
+const peakOf = (samples: Float32Array): number =>
+  samples.reduce((most, sample) => Math.max(most, Math.abs(sample)), 0);
+
 const send = (gate: Processor, data: unknown): void => {
   gate.port.onmessage?.({ data });
 };
@@ -126,6 +135,66 @@ describe("voice gate worklet", () => {
     expect(transitions(speech.messages)).toEqual([
       { type: "open", open: true },
     ]);
+  });
+
+  it("tells gains on the audio thread when the post feed and the sends may close", () => {
+    // Arrange
+    const gate = new Gate({
+      processorOptions: { mode: "gate", auto: false, threshold: -40 },
+    });
+    const run = (db: number, seconds: number): Controls[] => {
+      const blocks = Math.round((seconds * SAMPLE_RATE) / BLOCK);
+      return Array.from({ length: blocks }, () => {
+        const input = block(db, clock);
+        clock += BLOCK;
+        const sound = new Float32Array(BLOCK);
+        const feed = new Float32Array(BLOCK);
+        const sends = new Float32Array(BLOCK);
+        gate.process([[input]], [[sound], [feed], [sends]]);
+        return { sound, feed, sends };
+      });
+    };
+
+    // Act
+    const quiet = run(-70, 0.2);
+    const speech = run(-15, 0.5);
+    const pause = run(-70, 1);
+
+    // Assert: shut only while the gate passes nothing, and open with its
+    // first block of sound, so a following gain can't clip speech.
+    expect(quiet.every((c) => c.feed[0] === 0 && c.sends[0] === 0)).toBe(true);
+    expect(speech[0]?.feed[0]).toBe(1);
+    expect(speech.at(-1)?.sends[0]).toBe(1);
+    for (const c of [...speech, ...pause])
+      if (peakOf(c.sound) > 0) expect(c.feed[0]).toBe(1);
+    expect(pause.at(-1)?.feed[0]).toBe(0);
+    const closing = pause.map((c) => c.sends[0] ?? 0);
+    expect(closing.at(-1)).toBe(0);
+    expect(closing.some((level) => level > 0 && level < 1)).toBe(true);
+  });
+
+  it("in detect mode, keeps the post feed open but closes the sends in a pause", () => {
+    const gate = new Gate({
+      processorOptions: { mode: "detect", auto: false, threshold: -40 },
+    });
+    const run = (db: number, seconds: number): Controls[] => {
+      const blocks = Math.round((seconds * SAMPLE_RATE) / BLOCK);
+      return Array.from({ length: blocks }, () => {
+        const input = block(db, clock);
+        clock += BLOCK;
+        const sound = new Float32Array(BLOCK);
+        const feed = new Float32Array(BLOCK);
+        const sends = new Float32Array(BLOCK);
+        gate.process([[input]], [[sound], [feed], [sends]]);
+        return { sound, feed, sends };
+      });
+    };
+
+    run(-15, 0.5);
+    const pause = run(-70, 1);
+
+    expect(pause.at(-1)?.feed[0]).toBe(1);
+    expect(pause.at(-1)?.sends[0]).toBe(0);
   });
 
   it("uses a fixed threshold when auto is off, also when configured later", () => {

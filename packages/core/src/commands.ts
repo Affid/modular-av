@@ -1,16 +1,18 @@
 import type {
+  AudioPlace,
   AVCommands,
   DeviceKind,
+  EffectDefinition,
   GateFallback,
   InputSensitivity,
   MediaPermissions,
+  Registry,
   VoiceMode,
 } from "@modular-av/api";
 import type { Controller } from "./controller.ts";
 import { AVCommandError } from "./errors.ts";
 import type { AVSettingsLike, FoundryGame } from "./foundry/globals.ts";
-import { writeGateFallback } from "./media/gate-fallback.ts";
-import { writeSensitivity } from "./media/sensitivity.ts";
+import type * as SettingWrites from "./media/setting-writes.ts";
 
 function avSettings(controller: Controller): AVSettingsLike {
   const settings = controller.facts.settings();
@@ -22,25 +24,7 @@ function avSettings(controller: Controller): AVSettingsLike {
   return settings;
 }
 
-const PERMISSION_KEYS = {
-  audio: "permissions.BROADCAST_AUDIO",
-  video: "permissions.BROADCAST_VIDEO",
-} as const satisfies Record<keyof MediaPermissions, string>;
-
-/** Where Foundry's A/V settings keep each device choice. */
-const DEVICE_KEYS = {
-  audioInput: "audioSrc",
-  videoInput: "videoSrc",
-  audioOutput: "audioSink",
-} as const satisfies Record<DeviceKind, string>;
-
-/** Browsers' device ids are 64 hex characters; "default" is shorter. */
-const MAX_DEVICE_ID = 256;
-
 const VOICE_MODES: readonly VoiceMode[] = ["always", "activity", "ptt"];
-
-const isDeviceKind = (kind: unknown): kind is DeviceKind =>
-  typeof kind === "string" && Object.hasOwn(DEVICE_KEYS, kind);
 
 /** Commands return promises: a failed check rejects, never throws. */
 const attempt = (run: () => void): Promise<void> => {
@@ -54,11 +38,23 @@ const attempt = (run: () => void): Promise<void> => {
   }
 };
 
+/** Loaded with the first change: the entry only reads these settings. */
+const loadWrites = (): Promise<typeof SettingWrites> =>
+  import("./media/setting-writes.ts");
+
 export function createCommands(
   game: FoundryGame,
   controller: () => Controller,
+  effects: Registry<EffectDefinition>,
 ): AVCommands {
   const self = (): string => controller().facts.selfId;
+
+  const change = async (
+    write: (writes: typeof SettingWrites) => Promise<void>,
+  ): Promise<void> => {
+    await write(await loadWrites());
+    controller().apply();
+  };
 
   /** Writes Foundry's client A/V settings, then applies what follows. */
   const setClient = (path: string, value: unknown): void => {
@@ -141,31 +137,34 @@ export function createCommands(
       controller().setEffectEnabled(effect, enabled),
 
     async setDevice(kind: DeviceKind, deviceId: string) {
-      if (!isDeviceKind(kind))
-        throw new AVCommandError("invalid-argument", "No such kind of device", {
-          kind: String(kind),
-        });
-      if (
-        typeof deviceId !== "string" ||
-        deviceId === "" ||
-        deviceId.length > MAX_DEVICE_ID
-      )
-        throw new AVCommandError("invalid-argument", "A device id is needed");
+      const { deviceKey } = await loadWrites();
+      const key = deviceKey(kind, deviceId);
       const c = controller();
-      avSettings(c).set("client", DEVICE_KEYS[kind], deviceId);
+      avSettings(c).set("client", key, deviceId);
       if (kind === "audioOutput") c.apply();
       else await c.reacquire();
     },
 
-    async setInputSensitivity(sensitivity: Partial<InputSensitivity>) {
-      await writeSensitivity(game, sensitivity);
-      controller().apply();
-    },
+    setInputSensitivity: (sensitivity: Partial<InputSensitivity>) =>
+      change((w) => w.writeSensitivity(game, sensitivity)),
 
-    async setGateFallback(fallback: GateFallback) {
-      await writeGateFallback(game, fallback);
-      controller().apply();
-    },
+    setAudioCutTails: (cut: boolean) =>
+      change((w) => w.writeCutTails(game, cut)),
+
+    setAudioChannelLevel: (level: number) =>
+      change((w) => w.writeChannelLevel(game, level)),
+
+    setAudioEffectMix: (effect: string, mix: number) =>
+      change((w) => w.writeEffectMix(game, effects, effect, mix)),
+
+    setAudioEffectPlace: (effect: string, place: AudioPlace) =>
+      change((w) => w.writeEffectPlace(game, effects, effect, place)),
+
+    setAudioEffectOrder: (place: AudioPlace, ids: readonly string[]) =>
+      change((w) => w.writeEffectOrder(game, effects, place, ids)),
+
+    setGateFallback: (fallback: GateFallback) =>
+      change((w) => w.writeGateFallback(game, fallback)),
 
     leave: () => controller().session.stop("left"),
 
@@ -184,28 +183,8 @@ export function createCommands(
       participant: string,
       permissions: Partial<MediaPermissions>,
     ) {
-      if (!game.user.isGM)
-        throw new AVCommandError("forbidden", "Only a GM may block players");
-      const user = game.users.get(participant);
-      if (!user)
-        throw new AVCommandError("unknown-participant", "No such player", {
-          participant,
-        });
-      const changes = Object.fromEntries(
-        (Object.keys(PERMISSION_KEYS) as (keyof MediaPermissions)[])
-          .filter((kind) => typeof permissions[kind] === "boolean")
-          .map((kind) => [PERMISSION_KEYS[kind], permissions[kind]]),
-      );
-      try {
-        await user.update(changes);
-      } catch (error: unknown) {
-        throw new AVCommandError(
-          "forbidden",
-          "Foundry refused to change the permissions",
-          { participant },
-          { cause: error },
-        );
-      }
+      const { writeBroadcastPermissions } = await loadWrites();
+      await writeBroadcastPermissions(game, participant, permissions);
     },
   });
 }

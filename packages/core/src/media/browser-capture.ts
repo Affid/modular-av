@@ -2,6 +2,7 @@ import type {
   CaptureContext,
   GateConfig,
   GateLevel,
+  LevelNode,
   SignalProbe,
   VoiceGateNode,
 } from "./env.ts";
@@ -46,8 +47,8 @@ function createGateNode(
 ): VoiceGateNode {
   const node = new AudioWorkletNode(context, GATE_PROCESSOR, {
     numberOfInputs: 1,
-    numberOfOutputs: 1,
-    outputChannelCount: [1],
+    numberOfOutputs: 3,
+    outputChannelCount: [1, 1, 1],
     processorOptions: config,
   });
   let transitions: Listeners<boolean> = [];
@@ -102,6 +103,8 @@ function createGateNode(
 }
 
 const PROBE_SAMPLES = 2048;
+/** `createDelay` refuses a maximum of 0. */
+const MIN_DELAY_S = 0.001;
 
 /** An analyser, pulled by the context even with nothing connected after it. */
 function createProbe(context: AudioContext): SignalProbe {
@@ -118,6 +121,36 @@ function createProbe(context: AudioContext): SignalProbe {
     },
     dispose() {
       analyser.disconnect();
+    },
+  };
+}
+
+function createLevel(context: AudioContext, level: number): LevelNode {
+  const node = context.createGain();
+  node.gain.value = level;
+  let following: { readonly node: AudioNode; readonly output: number } | null =
+    null;
+  return {
+    node,
+    set(next, rampMs = 0) {
+      const now = context.currentTime;
+      node.gain.cancelScheduledValues(now);
+      if (rampMs === 0) {
+        node.gain.value = next;
+        return;
+      }
+      node.gain.setValueAtTime(node.gain.value, now);
+      node.gain.linearRampToValueAtTime(next, now + rampMs / 1000);
+    },
+    follow(control, output = 0) {
+      following?.node.disconnect(node.gain, following.output);
+      following = control ? { node: control, output } : null;
+      node.gain.automationRate = control ? "k-rate" : "a-rate";
+      node.gain.value = control ? 0 : 1;
+      control?.connect(node.gain, output);
+    },
+    dispose() {
+      node.disconnect();
     },
   };
 }
@@ -159,6 +192,18 @@ export function createBrowserCaptureContext(
       return createGateNode(context, config);
     },
     createProbe: () => createProbe(context),
+    createLevel: (_name, level) => createLevel(context, level),
+    createDelay(_name, seconds) {
+      const node = context.createDelay(Math.max(seconds, MIN_DELAY_S));
+      node.delayTime.value = seconds;
+      return {
+        node,
+        dispose() {
+          node.disconnect();
+        },
+      };
+    },
+    canFollow: "automationRate" in AudioParam.prototype,
     get running() {
       return context.state === "running";
     },
