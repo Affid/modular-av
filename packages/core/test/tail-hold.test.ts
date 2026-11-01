@@ -66,7 +66,7 @@ describe("the tail after mute", () => {
     await p1.api.commands.setMuted(true);
     await table.settle();
 
-    // Assert: nothing new reaches an effect, what rings still goes out.
+    // Assert
     expect(muteLevel(p1)).toBe(0);
     expect(micEnabled(p1)).toBe(true);
     expect(serviceMuted(table, p1)).toBe(false);

@@ -15,7 +15,6 @@ export interface TailHold {
 }
 
 export function createTailHold(deps: {
-  /** How long what runs now rings. */
   readonly tailMs: () => number;
   /** A hold ran out. */
   readonly onEnd: () => void;

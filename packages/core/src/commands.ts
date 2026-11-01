@@ -49,7 +49,6 @@ export function createCommands(
 ): AVCommands {
   const self = (): string => controller().facts.selfId;
 
-  /** Writes a setting of this device, then applies what follows. */
   const change = async (
     write: (writes: typeof SettingWrites) => Promise<void>,
   ): Promise<void> => {

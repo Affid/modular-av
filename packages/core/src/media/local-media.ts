@@ -76,7 +76,6 @@ export interface LocalMedia {
    * out through a microphone still in `outbound`.
    */
   setOutbound(outbound: MediaPermissions, voice?: boolean): void;
-  /** How long what runs now rings after sound stops. */
   readonly tailMs: number;
   release(): void;
   /** Tracks were replaced or removed, or the gate stopped or started. */

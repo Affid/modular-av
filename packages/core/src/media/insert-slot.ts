@@ -23,7 +23,7 @@ export interface InsertSlot {
 
 interface SlotEffect extends Link {
   readonly id: string;
-  /** Seconds; the dry signal is held back by this much to line up. */
+  /** Seconds. */
   readonly latency?: number;
 }
 

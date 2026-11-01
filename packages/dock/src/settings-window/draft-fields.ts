@@ -130,7 +130,6 @@ async function applyEffects(
   }
 }
 
-/** Each mix that changed. */
 async function applyMix(
   ctx: DockContext,
   drafted: Readonly<Record<string, number>>,

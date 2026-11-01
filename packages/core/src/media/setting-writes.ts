@@ -33,9 +33,8 @@ import {
 } from "./sensitivity.ts";
 
 /**
- * What changes this device's voice settings, for the commands. Apart from
- * reading them, as it runs only when a player changes one: the entry stays
- * small.
+ * Writes this device's voice settings, for the commands. Apart from reading
+ * them so the entry stays small: this runs only when a player changes one.
  */
 
 const checkPlace = (place: AudioPlace): void => {
@@ -57,7 +56,6 @@ const checkAudio = (effects: Registry<EffectDefinition>, id: string): void => {
     });
 };
 
-/** Throws for anything but an audio effect and a place. */
 export async function writeEffectPlace(
   game: FoundryGame,
   effects: Registry<EffectDefinition>,
@@ -72,7 +70,6 @@ export async function writeEffectPlace(
   });
 }
 
-/** Throws for anything but a place and different audio effects. */
 export async function writeEffectOrder(
   game: FoundryGame,
   effects: Registry<EffectDefinition>,
@@ -106,7 +103,6 @@ export async function writeChannelLevel(
   await game.settings.set(MODULE_ID, CHANNEL_LEVEL_SETTING, level);
 }
 
-/** Throws for an effect without a mix, and for anything but 0 to 1. */
 export async function writeEffectMix(
   game: FoundryGame,
   effects: Registry<EffectDefinition>,
@@ -132,7 +128,6 @@ export async function writeEffectMix(
   });
 }
 
-/** Saves the choice; throws for anything but true or false. */
 export async function writeCutTails(
   game: FoundryGame,
   cut: boolean,
@@ -184,7 +179,6 @@ const PERMISSION_KEYS = {
   video: "permissions.BROADCAST_VIDEO",
 } as const satisfies Record<keyof MediaPermissions, string>;
 
-/** A GM's block of a player; throws for anyone else. */
 export async function writeBroadcastPermissions(
   game: FoundryGame,
   participant: string,
@@ -227,7 +221,6 @@ const MAX_DEVICE_ID = 256;
 const isDeviceKind = (kind: unknown): kind is DeviceKind =>
   typeof kind === "string" && Object.hasOwn(DEVICE_KEYS, kind);
 
-/** Where to save a device choice; throws for a bad one. */
 export function deviceKey(kind: DeviceKind, deviceId: string): string {
   if (!isDeviceKind(kind))
     throw new AVCommandError("invalid-argument", "No such kind of device", {

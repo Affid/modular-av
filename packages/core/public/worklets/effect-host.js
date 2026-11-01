@@ -1,10 +1,8 @@
 /* global AudioWorkletProcessor, registerProcessor, sampleRate */
 /**
- * Runs an effect's kernel, so the skip on silence is built in: the browser
- * calls a worklet on every block, and an effect that works on silence costs
- * the player all the time. This calls `render()` only while there is sound,
- * or for the kernel's declared tail after it, and wakes on the block sound
- * comes back.
+ * Runs an effect's kernel, calling `render()` only while there is sound or for
+ * the kernel's declared tail after it: an effect that works on silence costs
+ * the player all the time.
  *
  * An effect module's worklet file, loaded after this one, adds its kernel:
  *
@@ -45,7 +43,7 @@ class EffectHostProcessor extends AudioWorkletProcessor {
       tail = 0,
       options: kernelOptions,
     } = options?.processorOptions ?? {};
-    // Anything but a length of time would run the kernel on silence for ever
+    // NaN or Infinity would run the kernel on silence for ever
     this.tailFrames =
       Number.isFinite(tail) && tail > 0 ? Math.ceil(tail * sampleRate) : 0;
     this.framesLeft = 0;

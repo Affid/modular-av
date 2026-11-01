@@ -112,7 +112,6 @@ export function createEffectRunner<
     }
   };
 
-  /** Asks each leaving effect to fade, before the chain lets go of it. */
   const retire = (
     leaving: readonly { readonly id: string; readonly instance: T }[],
   ): readonly {
@@ -124,7 +123,6 @@ export function createEffectRunner<
       fading: deps.retire?.(id) ?? null,
     }));
 
-  /** Disposes what has nothing to fade now, the rest once it faded. */
   const release = (
     retired: readonly {
       readonly instance: T;

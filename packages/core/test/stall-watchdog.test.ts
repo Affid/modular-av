@@ -101,7 +101,6 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-/** Two pre-gate effects in a row, in that order. */
 async function inSeries(
   firstExtra: Partial<AudioEffectDefinition> = {},
 ): Promise<{

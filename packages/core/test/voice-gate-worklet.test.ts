@@ -168,7 +168,6 @@ describe("voice gate worklet", () => {
     for (const c of [...speech, ...pause])
       if (peakOf(c.sound) > 0) expect(c.feed[0]).toBe(1);
     expect(pause.at(-1)?.feed[0]).toBe(0);
-    // The sends ramp down to exactly 0.
     const closing = pause.map((c) => c.sends[0] ?? 0);
     expect(closing.at(-1)).toBe(0);
     expect(closing.some((level) => level > 0 && level < 1)).toBe(true);

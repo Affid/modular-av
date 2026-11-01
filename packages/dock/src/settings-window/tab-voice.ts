@@ -105,7 +105,6 @@ function effectModules(
   return [hint, plan];
 }
 
-/** The Voice tab: devices, input mode, sensitivity, effects and their mix. */
 export function voiceTab(
   ctx: DockContext,
   doc: Document,

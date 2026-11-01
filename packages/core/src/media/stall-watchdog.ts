@@ -17,7 +17,6 @@ export class StalledError extends Error {
   }
 }
 
-/** The same for an effect whose sound can't be right any more. */
 export class RunawayError extends Error {
   override readonly name = "RunawayError";
   constructor() {
@@ -33,10 +32,9 @@ export interface WatchedEffect {
 }
 
 /**
- * Watches effects for a stalled worklet. A model that stopped running sends
- * exact zeros; one that removes noise sends quiet, but not zero, and a
- * healthy reverb can be far quieter than the voice, so only digital silence
- * while sound goes in counts. A level no effect should reach counts too.
+ * Watches effects for a stalled worklet: only digital silence while sound goes
+ * in counts, as a healthy effect can be far quieter than the voice. A level no
+ * effect should reach counts too.
  */
 export interface StallWatchdog {
   /** What the first effect hears, or null: the raw microphone, say. */

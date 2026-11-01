@@ -16,7 +16,6 @@ interface Level {
   write(level: number): void;
 }
 
-/** A slider in percent, with its value beside it. */
 function levelSlider(doc: Document, draft: Draft, level: Level): Rendered {
   const input = el("input", {
     doc,
@@ -47,10 +46,7 @@ function levelSlider(doc: Document, draft: Draft, level: Level): Rendered {
   return { element, dispose: draft.subscribe(render) };
 }
 
-/**
- * Channel level and a slider per effect the core can mix; nothing without
- * such an effect, as Channel level means nothing then.
- */
+/** Nothing without an effect to mix: Channel level means nothing then. */
 export function mixSection(
   ctx: DockContext,
   doc: Document,

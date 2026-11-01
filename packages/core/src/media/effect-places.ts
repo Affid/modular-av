@@ -17,7 +17,7 @@ export type EffectOrder = Readonly<Record<AudioPlace, readonly string[]>>;
 
 /** Where effects run, as the microphone applies it. */
 export interface EffectPlacement {
-  /** Every audio effect. */
+  /** Every audio effect, once read; empty in `NO_PLACEMENT`. */
   readonly places: Readonly<Record<string, AudioPlace>>;
   readonly order: EffectOrder;
 }

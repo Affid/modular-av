@@ -5,17 +5,13 @@
  */
 
 /**
- * Where an audio effect runs: `pre-gate` → the core's voice gate →
- * `post-gate`, and beside them a `send`. Inserts run in series; the gate hears
- * what `pre-gate` gives it, so a tail there holds it open. A `post-gate`
- * effect may ring on after the gate closes, but must not make sound of its
- * own: it only hears what the gate passes.
- *
- * A `send` runs beside the voice, in an FX channel of its own: it hears a
- * copy taken after `post-gate`, and its output goes straight to the output
- * bus. Use it for what adds to the voice (reverb, delay); use `post-gate`
- * when later effects must hear the result or when the effect must be able
- * to replace the voice.
+ * Where an audio effect runs: `pre-gate` → the core's voice gate → `post-gate`
+ * in series, with a `send` beside them. The gate hears what `pre-gate` gives
+ * it, so a tail there holds it open. A `post-gate` effect may ring on after the
+ * gate closes, but must not make sound of its own: it only hears what the gate
+ * passes. A `send` hears a copy taken after `post-gate`: use it for what adds
+ * to the voice (reverb, delay), and `post-gate` when later effects must hear
+ * the result or when the effect must be able to replace the voice.
  */
 export type AudioPlace = "pre-gate" | "post-gate" | "send";
 
@@ -39,8 +35,7 @@ export interface AudioEffectContext extends EffectContext {
   readonly audioContext: AudioContext;
   /**
    * Runs a kernel in the core's worklet: the way to write a worklet effect
-   * after the gate or on a send, as the core then skips it on silence. The result
-   * is a normal `AudioEffect`.
+   * after the gate or on a send, as the core then skips it on silence.
    */
   readonly host: EffectHost;
 }
@@ -95,7 +90,6 @@ interface EffectDefinitionBase {
 
 export interface AudioEffectDefinition extends EffectDefinitionBase {
   readonly kind: "audio";
-  /** Where it runs unless the player moves it. */
   readonly defaultPlace: AudioPlace;
   /**
    * It may send digital silence while the microphone hears noise (it
@@ -110,11 +104,10 @@ export interface AudioEffectDefinition extends EffectDefinitionBase {
    */
   readonly tail?: number;
   /**
-   * How much it delays its output, in seconds, 0 for none. Declaring it
-   * gives the effect a dry:wet control: the core delays the dry signal to
-   * match and mixes the two, so the effect outputs only its processed
-   * signal. Without it, the effect stays at 100% wet, as mixing would
-   * comb-filter the voice. On a send it has a wet control either way.
+   * How much it delays its output, in seconds, 0 for none. Declaring it gives
+   * the effect a dry:wet control: the core delays the dry signal to match, so
+   * the effect outputs only its processed signal. On a send it has a wet
+   * control either way.
    */
   readonly latency?: number;
   /** Where its dry:wet or wet amount starts, 0 to 1; 1 if not given. */

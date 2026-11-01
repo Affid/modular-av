@@ -160,7 +160,7 @@ test("a running effect moved ahead of the gate is gated from then on", async ({
   });
   const before = await record(page, 1000);
 
-  // Assert: the same hum, now stopped by the closed gate.
+  // Assert
   expect(after.longestZeroRun).toBeLessThan(2048);
   expect(before.longestZeroRun).toBeGreaterThan(SILENCE_SAMPLES);
   expect((await state(page)).local.effects["test-hum"]?.status).toBe("running");

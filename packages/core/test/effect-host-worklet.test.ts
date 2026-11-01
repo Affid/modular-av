@@ -1,6 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-/** The shape of the worklet's processor, as this test drives it. */
 interface Processor {
   readonly port: { onmessage: ((event: { data: unknown }) => void) | null };
   process(inputs: Float32Array[][], outputs: Float32Array[][]): boolean;
@@ -31,7 +30,6 @@ let renders = 0;
 let lastInit: { sampleRate: number; options: unknown } | null = null;
 let configured: unknown[] = [];
 
-/** Doubles its input, and counts what it was asked to do. */
 class Doubler implements Kernel {
   constructor(init: { sampleRate: number; options: unknown }) {
     lastInit = init;
@@ -147,7 +145,7 @@ describe("effect host worklet", () => {
   });
 
   it("keeps rendering for the declared tail, then stops", () => {
-    // Arrange: 1000 blocks' worth of tail.
+    // Arrange
     const h = host("doubler", (1000 * BLOCK) / SAMPLE_RATE);
     run(h, sound());
     renders = 0;

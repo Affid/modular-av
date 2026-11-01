@@ -26,22 +26,16 @@ export interface ChainEffect {
 }
 
 /**
- * The microphone chain in the capture context (docs/voice-routing.md):
- * source → pre-gate → gate → mute → post feed → post-gate → Channel level →
- * destination, and after post-gate a copy → Send on/off → one FX channel per
- * effect on a send → its Return level → destination. An insert below 100% wet
- * has a dry branch of its own (`insert-slot.ts`). Every change connects the
- * new path before cutting the old one, in one task, so audio neither stops
- * nor skips an effect.
+ * The microphone chain in the capture context (docs/voice-routing.md). Every
+ * change connects the new path before cutting the old one, in one task, so
+ * audio neither stops nor skips an effect.
  */
 export interface AudioChain {
   /** The raw microphone, or null for none. */
   setSource(track: MediaStreamTrack | null): void;
   /** The raw microphone's node in the chain. */
   readonly source: AudioNode | null;
-  /** What post-gate effects get. */
   readonly postFeed: AudioNode;
-  /** What effects on a send get. */
   readonly sendBus: AudioNode;
   /** In the order they run; see `orderByPlace`. */
   setEffects(effects: readonly ChainEffect[]): void;
@@ -55,9 +49,9 @@ export interface AudioChain {
   /** An effect's wet amount, 0 to 1, also before it runs. */
   setMix(id: string, mix: number): void;
   /**
-   * Fades the Return of an effect on a send out, keeping its output connected through
-   * the `setEffects` that follows; resolves once it is cut. Null for an
-   * effect with nothing to fade.
+   * Fades the Return of an effect on a send out, keeping its output connected
+   * through the `setEffects` that follows; resolves once it is cut. Null for
+   * an effect with nothing to fade.
    */
   fade(id: string): Promise<void> | null;
   dispose(): void;
@@ -199,7 +193,6 @@ export function createAudioChain(capture: CaptureContext): AudioChain {
     );
   };
 
-  /** Replaces the dry branches with `next`, the new path first. */
   const swapSlots = (next: ReadonlyMap<string, InsertSlot>): void => {
     const before = slots;
     slots = next;

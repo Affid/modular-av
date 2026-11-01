@@ -8,9 +8,8 @@ import { expect, type Page, test } from "@playwright/test";
 import type {} from "../harness/types.ts";
 
 /**
- * What the core can't check at runtime, for effects after the voice gate:
- * the browser tier's contract for effects after the gate, on top of
- * `effectContract`. Rendered offline, so a busy machine doesn't decide it.
+ * What the core can't check at runtime, on top of `effectContract`. Rendered
+ * offline, so a busy machine doesn't decide it.
  */
 export interface TailEffectContractOptions {
   /** Package directories the harness loads, e.g. "my-reverb". */
@@ -22,7 +21,7 @@ export interface TailEffectContractOptions {
 
 /**
  * Most of one core an effect may take on silence: 2 ms/s. A reverb that
- * works on every block took about 6 ms/s on a fast desktop, one that skips
+ * works on every block takes about 6 ms/s on a fast desktop, one that skips
  * silence about 1.
  */
 export const IDLE_BUDGET = 0.002;
@@ -70,7 +69,6 @@ declare global {
   interface Window {
     /** Renders `seconds` of `fill` through an effect, offline. */
     renderEffect?: (id: string, seconds: number, fill: Fill) => Promise<Render>;
-    /** What an effect declares. */
     declaredBy?: (id: string) => Declared;
   }
 }

@@ -80,7 +80,6 @@ export interface FakeLevel {
   readonly disposed: boolean;
 }
 
-/** A fixed delay of the core's. */
 export interface FakeDelay {
   readonly node: AudioNode;
   readonly seconds: number;

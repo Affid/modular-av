@@ -19,8 +19,8 @@ const isLevel = (value: unknown): boolean =>
   (typeof value === "number" && value >= 0 && value <= 1);
 
 /**
- * Refuses what would silently never run, or run for ever: a place this core
- * doesn't know, or a tail that isn't a length of time.
+ * Refuses what would silently never run or run for ever, and a duration or
+ * level the chain can't use.
  */
 export function validateEffect(definition: unknown): void {
   const { kind, defaultPlace, tail, latency, defaultMix } = definition as {

@@ -36,7 +36,6 @@ export interface FakeAudioOutput {
 export interface FakeHostedEffect extends HostedEffect {
   readonly kernel: EffectKernel;
   readonly options: EffectHostOptions;
-  /** What `configure` was given, in order. */
   readonly configured: readonly unknown[];
   readonly disposed: boolean;
 }
@@ -105,7 +104,6 @@ export interface FakeMediaEnv {
     context: BaseAudioContext,
     options: EffectHostOptions,
   ): EffectHost;
-  /** Each kernel hosted, with what it was hosted with. */
   readonly hosted: readonly FakeHostedEffect[];
   canWatchFrames(): boolean;
   listDevices(): Promise<DeviceList>;

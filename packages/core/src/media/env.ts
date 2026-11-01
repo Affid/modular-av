@@ -133,7 +133,6 @@ export interface LevelNode {
   dispose(): void;
 }
 
-/** A fixed delay the core owns in the capture context. */
 export interface DelayLine {
   readonly node: AudioNode;
   dispose(): void;
