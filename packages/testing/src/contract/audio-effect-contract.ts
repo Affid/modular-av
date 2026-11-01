@@ -12,8 +12,11 @@ export interface AudioEffectContractOptions {
   readonly modules: string;
   /** The effects' ids, all of one exclusive group. */
   readonly effects: readonly string[];
-  /** A module file path prefix to fail, so the effects can't load. */
-  readonly brokenFiles: string;
+  /**
+   * A module file path prefix to fail, so the effects can't load. An effect
+   * of native nodes alone has none, and nothing that can fail that way.
+   */
+  readonly brokenFiles?: string;
 }
 
 /**
@@ -107,14 +110,23 @@ interface Cost {
 function measureCost(page: Page, id: string): Promise<Cost> {
   return page.evaluate(
     async ({ effect, seconds }) => {
-      const definition = window.harness?.client.game.modules.get("modular-av")
-        ?.api as { effects: { get(id: string): unknown } } | undefined;
-      const audio = definition?.effects.get(effect) as
+      const api = window.harness?.client.game.modules.get("modular-av")?.api as
         | {
+            effects: { get(id: string): unknown };
+            createAudioEffectHost(
+              context: BaseAudioContext,
+              options: { tail?: number; fail: (e: unknown) => void },
+            ): unknown;
+          }
+        | undefined;
+      const audio = api?.effects.get(effect) as
+        | {
+            tail?: number;
             create(c: {
               audioContext: BaseAudioContext;
               signal: AbortSignal;
               fail: (e: unknown) => void;
+              host: unknown;
             }): Promise<{
               input: AudioNode;
               output: AudioNode;
@@ -122,7 +134,7 @@ function measureCost(page: Page, id: string): Promise<Cost> {
             }>;
           }
         | undefined;
-      if (!audio) throw new Error(`no effect ${effect}`);
+      if (!audio || !api) throw new Error(`no effect ${effect}`);
       const failures: unknown[] = [];
       /** Wall time to render, and the output's RMS level. */
       const render = async (
@@ -138,11 +150,18 @@ function measureCost(page: Page, id: string): Promise<Cost> {
             0.01 * (Math.random() * 2 - 1);
         const source = ctx.createBufferSource();
         source.buffer = buffer;
+        const fail = (error: unknown): void => {
+          failures.push(error);
+        };
         const instance = withEffect
           ? await audio.create({
               audioContext: ctx,
               signal: new AbortController().signal,
-              fail: (error) => failures.push(error),
+              fail,
+              host: api.createAudioEffectHost(ctx, {
+                ...(audio.tail === undefined ? {} : { tail: audio.tail }),
+                fail,
+              }),
             })
           : null;
         const node = instance ?? {
@@ -284,7 +303,9 @@ export function audioEffectContract(options: AudioEffectContractOptions): void {
     test("fails closed when its files can't load: the player is heard without it", async ({
       page,
     }) => {
-      await open(page, options, `&broken=${options.brokenFiles}`);
+      const { brokenFiles } = options;
+      test.skip(brokenFiles === undefined, "it has no files to load");
+      await open(page, options, `&broken=${brokenFiles ?? ""}`);
       const [first] = options.effects;
       if (!first) throw new Error("no effects");
 

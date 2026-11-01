@@ -181,6 +181,10 @@
           "title": "Noise cancellation",
           "what": "Removes background noise from microphones. Each player turns it on for themselves."
         },
+        "modular-av-audio-reverb": {
+          "title": "Reverb",
+          "what": "A reverb for the voice, for halls and caves. Needs the Audio mixer."
+        },
         "modular-av-cam-background": {
           "title": "Camera background",
           "what": "Blurs or replaces what's behind each player. Chrome and Edge."
