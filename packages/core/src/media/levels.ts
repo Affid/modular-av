@@ -9,7 +9,7 @@ import type { FoundryGame } from "../foundry/globals.ts";
 import { readPlacement } from "./effect-places.ts";
 
 /** The dry amount: a client setting. */
-export const CHANNEL_LEVEL_SETTING = "channelLevel";
+export const CHANNEL_LEVEL_SETTING = "audioChannelLevel";
 /** The player's dry:wet and wet amounts, by effect id: a client setting. */
 export const EFFECT_MIX_SETTING = "audioEffectMix";
 

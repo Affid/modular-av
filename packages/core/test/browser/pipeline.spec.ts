@@ -266,7 +266,7 @@ test("Channel level drops the dry voice only while a send carries it", async ({
 }) => {
   // Arrange
   const command = (
-    name: "setChannelLevel" | "setAudioEffectMix",
+    name: "setAudioChannelLevel" | "setAudioEffectMix",
     ...args: unknown[]
   ) =>
     page.evaluate(
@@ -280,7 +280,7 @@ test("Channel level drops the dry voice only while a send carries it", async ({
       [name, args] as const,
     );
   await openVoiceActivity(page);
-  await command("setChannelLevel", 0);
+  await command("setAudioChannelLevel", 0);
   await page.waitForTimeout(100);
 
   // Act: no send yet, so the dry path still carries the voice.

@@ -2205,7 +2205,7 @@ Firefox 157):
   routing's settings and tail hold, in the entry because state and
   commands need them. Places would have passed it too, so what writes this
   device's settings now loads on first use (`media/setting-writes.ts`):
-  115,640 used. The entry reads those settings at start, so that stays. The
+  115,680 used. The entry reads those settings at start, so that stays. The
   picture-in-picture code looks like the next candidate but isn't: a request
   must come from a click, and loading first can outlive the activation.
 - **`sameData` compares arrays now** (`state/project.ts`). It used to take

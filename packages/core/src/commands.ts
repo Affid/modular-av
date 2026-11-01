@@ -148,9 +148,10 @@ export function createCommands(
     setInputSensitivity: (sensitivity: Partial<InputSensitivity>) =>
       change((w) => w.writeSensitivity(game, sensitivity)),
 
-    setCutTails: (cut: boolean) => change((w) => w.writeCutTails(game, cut)),
+    setAudioCutTails: (cut: boolean) =>
+      change((w) => w.writeCutTails(game, cut)),
 
-    setChannelLevel: (level: number) =>
+    setAudioChannelLevel: (level: number) =>
       change((w) => w.writeChannelLevel(game, level)),
 
     setAudioEffectMix: (effect: string, mix: number) =>

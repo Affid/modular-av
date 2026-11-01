@@ -47,7 +47,7 @@ These hold whichever UI or service runs, and stay in every 1.x:
 
 - Mute, deafen and the GM's blocks hold in every state of the call.
   Nothing said after a player mutes goes out. A tail of what they said
-  before may ring on for up to 3 s, unless they chose `cutTails`; a GM's
+  before may ring on for up to 3 s, unless they chose `audioCutTails`; a GM's
   block ends it at once.
 - The camera is never sent raw while a chosen video effect isn't
   running (`cameraHold`).

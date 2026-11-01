@@ -25,8 +25,8 @@ export const INITIAL_STATE: AVState = {
     audioEffectPlaces: {},
     audioEffectOrder: { "pre-gate": [], "post-gate": [], send: [] },
     audioEffectMix: {},
-    channelLevel: 1,
-    cutTails: false,
+    audioChannelLevel: 1,
+    audioCutTails: false,
     inputSensitivity: { auto: true, threshold: -50 },
     cameraHold: null,
     chosenDevices: {

@@ -261,7 +261,7 @@ describe("effect places", () => {
       "pre-gate": "nope",
     });
     await table.settle();
-    await p1.api.commands.setCutTails(false);
+    await p1.api.commands.setAudioCutTails(false);
 
     expect(p1.api.state.get().local.audioEffectPlaces).toEqual({
       reverb: "send",
@@ -340,11 +340,11 @@ describe("levels", () => {
     const table = createTable();
     table.join("gm", { secret: true });
     const p1 = table.join("p1", { av: ALWAYS, effects: [send().definition] });
-    await p1.api.commands.setChannelLevel(0.25);
+    await p1.api.commands.setAudioChannelLevel(0.25);
     await p1.api.commands.setEffectEnabled("reverb", true);
     await table.settle();
 
-    expect(p1.api.state.get().local.channelLevel).toBe(0.25);
+    expect(p1.api.state.get().local.audioChannelLevel).toBe(0.25);
     expect(captureOf(p1).level("channel")?.level).toBe(0.25);
   });
 
@@ -353,7 +353,9 @@ describe("levels", () => {
     const p1 = table.join("p1", { effects: [send().definition] });
     await table.settle();
 
-    await expect(p1.api.commands.setChannelLevel(level)).rejects.toMatchObject({
+    await expect(
+      p1.api.commands.setAudioChannelLevel(level),
+    ).rejects.toMatchObject({
       code: "invalid-argument",
     });
     await expect(

@@ -25,10 +25,10 @@ export interface DraftValues {
   readonly threshold: number;
   readonly gateFallback: GateFallback;
   /** How much of the voice goes out dry, 0 to 1. */
-  readonly channelLevel: number;
+  readonly audioChannelLevel: number;
   /** Each effect with a dry:wet or wet control, by id, 0 to 1. */
   readonly audioEffectMix: Readonly<Record<string, number>>;
-  readonly cutTails: boolean;
+  readonly audioCutTails: boolean;
   /** The effect chosen in each group ("" for none), by group name. */
   readonly effects: Readonly<Record<string, string>>;
   readonly receiveVideo: boolean;
@@ -174,14 +174,14 @@ export const FIELDS: { readonly [K in DraftKey]: Field<K> } = {
     read: (ctx) => local(ctx).gateFallback,
     apply: (ctx, fallback) => ctx.api.commands.setGateFallback(fallback),
   },
-  channelLevel: {
-    read: (ctx) => local(ctx).channelLevel,
-    apply: (ctx, level) => ctx.api.commands.setChannelLevel(level),
+  audioChannelLevel: {
+    read: (ctx) => local(ctx).audioChannelLevel,
+    apply: (ctx, level) => ctx.api.commands.setAudioChannelLevel(level),
   },
   audioEffectMix: { read: (ctx) => local(ctx).audioEffectMix, apply: applyMix },
-  cutTails: {
-    read: (ctx) => local(ctx).cutTails,
-    apply: (ctx, cut) => ctx.api.commands.setCutTails(cut),
+  audioCutTails: {
+    read: (ctx) => local(ctx).audioCutTails,
+    apply: (ctx, cut) => ctx.api.commands.setAudioCutTails(cut),
   },
   effects: { read: effectChoices, apply: applyEffects },
   receiveVideo: {

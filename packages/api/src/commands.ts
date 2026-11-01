@@ -77,12 +77,12 @@ export interface AVCommands {
    * For this device: whether a tail stops the moment the microphone closes
    * (mute, deafen, push to talk), not up to 3 s after it.
    */
-  setCutTails(cut: boolean): Promise<void>;
+  setAudioCutTails(cut: boolean): Promise<void>;
   /**
    * For this device: how much of the voice goes out dry, 0 to 1, beside
    * what sends add. Acts as 1 while no send carries it.
    */
-  setChannelLevel(level: number): Promise<void>;
+  setAudioChannelLevel(level: number): Promise<void>;
   /** For this device; what isn't given stays. */
   setInputSensitivity(sensitivity: Partial<InputSensitivity>): Promise<void>;
   /** For this device: what voice activity mode does when its gate can't run. */

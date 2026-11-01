@@ -169,9 +169,9 @@ export interface LocalState {
   /** Each effect with a dry:wet or wet control now, by id, 0 to 1. */
   readonly audioEffectMix: Readonly<Record<string, number>>;
   /** How much of the voice goes out dry, as the player set it, 0 to 1. */
-  readonly channelLevel: number;
+  readonly audioChannelLevel: number;
   /** A reverb's or delay's tail stops with the microphone, not after it. */
-  readonly cutTails: boolean;
+  readonly audioCutTails: boolean;
   readonly inputSensitivity: InputSensitivity;
   /** Why the camera is kept off, if a video effect isn't sending. */
   readonly cameraHold: CameraHold | null;

@@ -148,7 +148,7 @@ describe("the settings window's Voice tab", () => {
     const view = open();
     view.tab("voice");
 
-    expect(view.q('[data-field="channelLevel"]')).toBeNull();
+    expect(view.q('[data-field="audioChannelLevel"]')).toBeNull();
   });
 
   it("shows no Channel level without a send to turn it down for", () => {
@@ -172,7 +172,7 @@ describe("the settings window's Voice tab", () => {
     view.tab("voice");
 
     // Assert
-    expect(view.q('[data-field="channelLevel"]')).toBeNull();
+    expect(view.q('[data-field="audioChannelLevel"]')).toBeNull();
     expect(view.q('[data-field="audioEffectMix.radio"]')).not.toBeNull();
   });
 
@@ -182,14 +182,14 @@ describe("the settings window's Voice tab", () => {
       withMix({
         audioEffectMix: { reverb: 0.5 },
         audioEffectPlaces: { reverb: "send" },
-        channelLevel: 1,
+        audioChannelLevel: 1,
       }),
       (dock) => {
         dock.api.effects.register(reverb);
       },
     );
     view.tab("voice");
-    const channel = view.q('[data-field="channelLevel"]');
+    const channel = view.q('[data-field="audioChannelLevel"]');
     const wet = view.q('[data-field="audioEffectMix.reverb"]');
 
     // Act
@@ -203,7 +203,7 @@ describe("the settings window's Voice tab", () => {
     expect(wet?.getAttribute("aria-label")).toBe("reverb");
     expect(before).toEqual([]);
     expect(view.api.calls).toEqual([
-      { command: "setChannelLevel", args: [0.4] },
+      { command: "setAudioChannelLevel", args: [0.4] },
       { command: "setAudioEffectMix", args: ["reverb", 0.25] },
     ]);
   });
@@ -214,10 +214,12 @@ describe("the settings window's Voice tab", () => {
     });
     view.tab("voice");
 
-    view.q('[data-field="cutTails"]')?.click();
+    view.q('[data-field="audioCutTails"]')?.click();
     await view.save();
 
-    expect(view.api.calls).toEqual([{ command: "setCutTails", args: [true] }]);
+    expect(view.api.calls).toEqual([
+      { command: "setAudioCutTails", args: [true] },
+    ]);
   });
 
   it("names a tab with unsaved changes as such, for screen readers", () => {

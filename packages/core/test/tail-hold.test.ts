@@ -152,12 +152,12 @@ describe("the tail after mute", () => {
 
   it("cuts at once when the player chose that", async () => {
     const { table, p1 } = await ringing(2);
-    await p1.api.commands.setCutTails(true);
+    await p1.api.commands.setAudioCutTails(true);
     await table.settle();
 
     await p1.api.commands.setMuted(true);
 
-    expect(p1.api.state.get().local.cutTails).toBe(true);
+    expect(p1.api.state.get().local.audioCutTails).toBe(true);
     expect(micEnabled(p1)).toBe(false);
   });
 

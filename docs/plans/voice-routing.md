@@ -100,8 +100,8 @@ What this decides:
 - `latency`, `tail` and `defaultMix` on `AudioEffectDefinition`.
 - Inserts with a declared `latency` get dry delay, dry level, wet level.
   100% wet stays a plain link.
-- Client settings, `commands.setChannelLevel`, `commands.setAudioEffectMix`,
-  `LocalState.channelLevel`, `LocalState.audioEffectMix`.
+- Client settings, `commands.setAudioChannelLevel`, `commands.setAudioEffectMix`,
+  `LocalState.audioChannelLevel`, `LocalState.audioEffectMix`.
 - The dock's Voice tab: Channel level and a slider per mixable effect.
 
 ### 5. Hosted effects

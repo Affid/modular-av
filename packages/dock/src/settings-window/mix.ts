@@ -50,11 +50,11 @@ function levelSlider(doc: Document, draft: Draft, level: Level): Rendered {
 function channelRow(ctx: DockContext, doc: Document, draft: Draft): Rendered {
   const label = ctx.t("settings.channelLevel");
   const slider = levelSlider(doc, draft, {
-    field: "channelLevel",
+    field: "audioChannelLevel",
     label,
-    read: () => draft.get("channelLevel"),
+    read: () => draft.get("audioChannelLevel"),
     write: (level) => {
-      draft.set("channelLevel", level);
+      draft.set("audioChannelLevel", level);
     },
   });
   return {
@@ -117,7 +117,12 @@ export function mixSection(
       : []),
     ...mixed.map((d) => effectRow(ctx, doc, draft, d)),
   ];
-  const cut = draftSwitch(doc, draft, "cutTails", ctx.t("settings.cutTails"));
+  const cut = draftSwitch(
+    doc,
+    draft,
+    "audioCutTails",
+    ctx.t("settings.cutTails"),
+  );
   return [
     {
       element: section(doc, ctx.t("settings.mix"), [
