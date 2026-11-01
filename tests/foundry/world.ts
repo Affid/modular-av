@@ -236,6 +236,30 @@ export async function configureWorld(
   await gm.close();
 }
 
+/** The loudest `listener` hears `speaker` over 4 s, in dBFS, on their tile. */
+export const loudness = (listener: Player, speaker: string): Promise<number> =>
+  listener.run(
+    (api, _game, id) =>
+      new Promise<number>((resolve) => {
+        const tile = document.querySelector(
+          `#camera-views .mav-dock-tile[data-participant-id="${id}"]`,
+        );
+        if (!tile) {
+          resolve(-100);
+          return;
+        }
+        let loudest = -100;
+        const off = api.meters.subscribe(id, tile, ({ db }) => {
+          loudest = Math.max(loudest, db);
+        });
+        setTimeout(() => {
+          off();
+          resolve(loudest);
+        }, 4000);
+      }),
+    speaker,
+  );
+
 export async function idOf(player: Player, name: string): Promise<string> {
   const id = await player.run(
     (_api, game, n) => game.users.getName(n)?.id,

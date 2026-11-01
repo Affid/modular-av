@@ -37,10 +37,28 @@ foundry:setup` to see a new module. `docs/voice-routing.md` says Cut tails is in
 the voice settings, so phase 2 corrects that. The wiki follows releases, so it
 isn't in these phases.
 
-## Measured for phase 0
+## Measured
 
-In a throwaway worktree, baseline 115,680 of 116,000 bytes: `setAudioPipeline`
-+91, `chosenEffects` +101, `preview.voice()` +100, moving `setEnabled` -605.
+Phase 0, in a throwaway worktree, baseline 115,680 of 116,000 bytes:
+`setAudioPipeline` +91, `chosenEffects` +101, `preview.voice()` +100, moving
+`setEnabled` -605. Built for real, the entry is 115,225 bytes.
+
+Phase 1, on a fake microphone that talks for 1.5 s and is silent for 1.5 s, with
+the real voice gate, threshold -50 dBFS (`routing.spec.ts` in `audio-reverb`):
+
+| Reverb at decay 3 s | Gate open |
+| ------------------- | --------- |
+| Off                 | 75%       |
+| On a send           | 75%       |
+| Pre-gate            | 100%      |
+
+The three runs agreed to within a point, so a send doesn't hold the gate, and
+the warning about a `tail` ahead of it is true. After the gate closes a send's
+tail falls by about 8 dB per 400 ms, as a 3 s decay should.
+
+On a steady tone exactly on a comb's resonance the reverb peaks at about 10
+times what comes in, and speech-like sound at about 1.8 times. So the kernel keeps a
+fixed gain and bends what passes 0.8 towards 1.
 
 ## Not tested
 

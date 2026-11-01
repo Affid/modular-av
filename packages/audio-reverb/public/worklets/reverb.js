@@ -22,7 +22,7 @@ const DECAY_MARGIN = 0.93;
 const MAX_DAMPING = 0.6;
 /** Keeps speech clear of `KNEE`, at about 0.9 at its loudest. */
 const HEADROOM = 0.5;
-/** A held note on a comb's resonance reaches 5: above this it bends to 1. */
+/** A held note on a comb's resonance gains 10 times: above this, bend to 1. */
 const KNEE = 0.8;
 const BEND = 1 - KNEE;
 

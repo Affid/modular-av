@@ -6,6 +6,7 @@ import {
   configureWorld,
   expectStatus,
   idOf,
+  loudness,
   openGm,
   openPlayer,
   type Player,
@@ -40,30 +41,6 @@ const setEffect = (player: Player, id: string, on: boolean): Promise<void> =>
   player.run(
     (api, _game, args) => api.commands.setEffectEnabled(args.id, args.on),
     { id, on },
-  );
-
-/** The loudest `listener` hears `speaker` over 4 s, in dBFS, on their tile. */
-const loudness = (listener: Player, speaker: string): Promise<number> =>
-  listener.run(
-    (api, _game, id) =>
-      new Promise<number>((resolve) => {
-        const tile = document.querySelector(
-          `#camera-views .mav-dock-tile[data-participant-id="${id}"]`,
-        );
-        if (!tile) {
-          resolve(-100);
-          return;
-        }
-        let loudest = -100;
-        const off = api.meters.subscribe(id, tile, ({ db }) => {
-          loudest = Math.max(loudest, db);
-        });
-        setTimeout(() => {
-          off();
-          resolve(loudest);
-        }, 4000);
-      }),
-    speaker,
   );
 
 /** A GM and Player1 in a call, Player1 always sending. */
