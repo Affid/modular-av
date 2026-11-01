@@ -1,3 +1,4 @@
+import type { EffectDefinition } from "@modular-av/api";
 import { el } from "@modular-av/kit";
 import type { Rendered } from "../contributions/controls.ts";
 import type { DockContext } from "../context.ts";
@@ -46,7 +47,60 @@ function levelSlider(doc: Document, draft: Draft, level: Level): Rendered {
   return { element, dispose: draft.subscribe(render) };
 }
 
-/** Nothing without an effect to mix: Channel level means nothing then. */
+function channelRow(ctx: DockContext, doc: Document, draft: Draft): Rendered {
+  const label = ctx.t("settings.channelLevel");
+  const slider = levelSlider(doc, draft, {
+    field: "channelLevel",
+    label,
+    read: () => draft.get("channelLevel"),
+    write: (level) => {
+      draft.set("channelLevel", level);
+    },
+  });
+  return {
+    element: row(
+      doc,
+      label,
+      slider.element,
+      ctx.t("settings.channelLevelHint"),
+    ),
+    dispose() {
+      slider.dispose();
+    },
+  };
+}
+
+function effectRow(
+  ctx: DockContext,
+  doc: Document,
+  draft: Draft,
+  definition: EffectDefinition,
+): Rendered {
+  const { id } = definition;
+  const label = ctx.text(definition.label);
+  const slider = levelSlider(doc, draft, {
+    field: `audioEffectMix.${id}`,
+    label,
+    read: () => draft.get("audioEffectMix")[id] ?? 1,
+    write: (level) => {
+      draft.set("audioEffectMix", {
+        ...draft.get("audioEffectMix"),
+        [id]: level,
+      });
+    },
+  });
+  return {
+    element: row(doc, label, slider.element),
+    dispose() {
+      slider.dispose();
+    },
+  };
+}
+
+/**
+ * Nothing without an effect to mix. Channel level needs a send: nothing else
+ * can carry the voice while it's turned down.
+ */
 export function mixSection(
   ctx: DockContext,
   doc: Document,
@@ -56,46 +110,23 @@ export function mixSection(
     .list()
     .filter((d) => draft.get("audioEffectMix")[d.id] !== undefined);
   if (mixed.length === 0) return [];
+  const places = ctx.api.state.get().local.audioEffectPlaces;
+  const rows = [
+    ...(mixed.some((d) => places[d.id] === "send")
+      ? [channelRow(ctx, doc, draft)]
+      : []),
+    ...mixed.map((d) => effectRow(ctx, doc, draft, d)),
+  ];
   const cut = draftSwitch(doc, draft, "cutTails", ctx.t("settings.cutTails"));
-  const channelLabel = ctx.t("settings.channelLevel");
-  const channel = levelSlider(doc, draft, {
-    field: "channelLevel",
-    label: channelLabel,
-    read: () => draft.get("channelLevel"),
-    write: (level) => {
-      draft.set("channelLevel", level);
-    },
-  });
-  const effects = mixed.map((d) => ({
-    label: ctx.text(d.label),
-    slider: levelSlider(doc, draft, {
-      field: `audioEffectMix.${d.id}`,
-      label: ctx.text(d.label),
-      read: () => draft.get("audioEffectMix")[d.id] ?? 1,
-      write: (level) => {
-        draft.set("audioEffectMix", {
-          ...draft.get("audioEffectMix"),
-          [d.id]: level,
-        });
-      },
-    }),
-  }));
   return [
     {
       element: section(doc, ctx.t("settings.mix"), [
-        row(
-          doc,
-          channelLabel,
-          channel.element,
-          ctx.t("settings.channelLevelHint"),
-        ),
-        ...effects.map((e) => row(doc, e.label, e.slider.element)),
+        ...rows.map((r) => r.element),
         cut.element,
       ]),
       dispose() {
         cut.dispose();
-        channel.dispose();
-        for (const e of effects) e.slider.dispose();
+        for (const r of rows) r.dispose();
       },
     },
   ];

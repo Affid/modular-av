@@ -151,10 +151,39 @@ describe("the settings window's Voice tab", () => {
     expect(view.q('[data-field="channelLevel"]')).toBeNull();
   });
 
+  it("shows no Channel level without a send to turn it down for", () => {
+    // Arrange
+    const dryWet = {
+      ...createFakeAudioEffect("radio", { defaultPlace: "post-gate" })
+        .definition,
+      latency: 0,
+    };
+
+    // Act
+    const view = open(
+      withMix({
+        audioEffectMix: { radio: 0.5 },
+        audioEffectPlaces: { radio: "post-gate" },
+      }),
+      (dock) => {
+        dock.api.effects.register(dryWet);
+      },
+    );
+    view.tab("voice");
+
+    // Assert
+    expect(view.q('[data-field="channelLevel"]')).toBeNull();
+    expect(view.q('[data-field="audioEffectMix.radio"]')).not.toBeNull();
+  });
+
   it("drafts Channel level and an effect's wet amount until Save", async () => {
     // Arrange
     const view = open(
-      withMix({ audioEffectMix: { reverb: 0.5 }, channelLevel: 1 }),
+      withMix({
+        audioEffectMix: { reverb: 0.5 },
+        audioEffectPlaces: { reverb: "send" },
+        channelLevel: 1,
+      }),
       (dock) => {
         dock.api.effects.register(reverb);
       },
