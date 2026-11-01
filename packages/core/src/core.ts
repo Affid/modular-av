@@ -2,7 +2,7 @@ import type {
   AVState,
   Contribution,
   EffectDefinition,
-  EffectHostOptions,
+  AudioEffectHostOptions,
   ModularAV,
   ServiceDefinition,
   SurfaceDefinition,
@@ -123,55 +123,23 @@ export function installCore(deps: CoreDeps): InstalledCore {
     deps.foundry.applications.apps.av.CameraViews,
     () => hosting,
   );
-  game.settings.register(MODULE_ID, SENSITIVITY_SETTING, {
-    scope: "client",
-    config: false,
-    type: Object,
-    default: DEFAULT_SENSITIVITY,
-  });
-  game.settings.register(MODULE_ID, GATE_FALLBACK_SETTING, {
-    scope: "client",
-    config: false,
-    type: String,
-    default: DEFAULT_GATE_FALLBACK,
-  });
-  game.settings.register(MODULE_ID, CUT_TAILS_SETTING, {
-    scope: "client",
-    config: false,
-    type: Boolean,
-    default: false,
-  });
-  game.settings.register(MODULE_ID, CHANNEL_LEVEL_SETTING, {
-    scope: "client",
-    config: false,
-    type: Number,
-    default: 1,
-  });
-  game.settings.register(MODULE_ID, EFFECT_MIX_SETTING, {
-    scope: "client",
-    config: false,
-    type: Object,
-    default: {},
-  });
-  for (const setting of [EFFECT_PLACES_SETTING, EFFECT_ORDER_SETTING])
-    game.settings.register(MODULE_ID, setting, {
+  const clientSetting = (key: string, type: unknown, value: unknown): void => {
+    game.settings.register(MODULE_ID, key, {
       scope: "client",
       config: false,
-      type: Object,
-      default: {},
+      type,
+      default: value,
     });
-  game.settings.register(MODULE_ID, EFFECTS_SETTING, {
-    scope: "client",
-    config: false,
-    type: Array,
-    default: [],
-  });
-  game.settings.register(MODULE_ID, DEAFENED_SETTING, {
-    scope: "client",
-    config: false,
-    type: Boolean,
-    default: false,
-  });
+  };
+  clientSetting(SENSITIVITY_SETTING, Object, DEFAULT_SENSITIVITY);
+  clientSetting(GATE_FALLBACK_SETTING, String, DEFAULT_GATE_FALLBACK);
+  clientSetting(CUT_TAILS_SETTING, Boolean, false);
+  clientSetting(CHANNEL_LEVEL_SETTING, Number, 1);
+  clientSetting(EFFECT_MIX_SETTING, Object, {});
+  clientSetting(EFFECT_PLACES_SETTING, Object, {});
+  clientSetting(EFFECT_ORDER_SETTING, Object, {});
+  clientSetting(EFFECTS_SETTING, Array, []);
+  clientSetting(DEAFENED_SETTING, Boolean, false);
 
   const api: ModularAV = Object.freeze({
     version: mod.version,
@@ -204,8 +172,10 @@ export function installCore(deps: CoreDeps): InstalledCore {
     socket: (name: string) => channels.channel(name),
     assetUrl: (moduleId: string, path: string) =>
       assetUrl((p) => deps.foundry.utils.getRoute(p), moduleId, path),
-    createEffectHost: (context: BaseAudioContext, options: EffectHostOptions) =>
-      deps.env.createEffectHost(context, options),
+    createAudioEffectHost: (
+      context: BaseAudioContext,
+      options: AudioEffectHostOptions,
+    ) => deps.env.createAudioEffectHost(context, options),
   });
   mod.api = api;
 

@@ -24,7 +24,7 @@ const BLOCK = 128;
 const PROCESSOR = "modular-av-effect-host";
 
 let Host: ProcessorClass;
-let registerKernel: (name: string, kernel: KernelClass) => void;
+let registerAudioKernel: (name: string, kernel: KernelClass) => void;
 let posted: unknown[] = [];
 let renders = 0;
 let lastInit: { sampleRate: number; options: unknown } | null = null;
@@ -79,14 +79,14 @@ beforeAll(async () => {
   const cls = registered.get(PROCESSOR);
   if (!cls) throw new Error(`${PROCESSOR} was not registered`);
   Host = cls;
-  registerKernel = (
+  registerAudioKernel = (
     globalThis as unknown as {
-      modularAV: { registerKernel: typeof registerKernel };
+      modularAV: { registerAudioKernel: typeof registerAudioKernel };
     }
-  ).modularAV.registerKernel;
-  registerKernel("doubler", Doubler);
-  registerKernel("thrower", Thrower);
-  registerKernel("poison", Poison);
+  ).modularAV.registerAudioKernel;
+  registerAudioKernel("doubler", Doubler);
+  registerAudioKernel("thrower", Thrower);
+  registerAudioKernel("poison", Poison);
 });
 
 beforeEach(() => {

@@ -154,7 +154,7 @@ const echoEffect: AudioEffectDefinition = {
 
 /** Kernels for the hosted test effects: a worklet file can't be bundled. */
 const KERNELS = `
-modularAV.registerKernel("test-comb", class {
+modularAV.registerAudioKernel("test-comb", class {
   constructor({ sampleRate }) {
     this.line = new Float32Array(Math.round(sampleRate * 0.1));
     this.at = 0;
@@ -168,7 +168,7 @@ modularAV.registerKernel("test-comb", class {
     }
   }
 });
-modularAV.registerKernel("test-broken", class {
+modularAV.registerAudioKernel("test-broken", class {
   render() { throw new Error("The test kernel always fails"); }
 });
 `;

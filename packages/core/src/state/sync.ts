@@ -95,9 +95,9 @@ function localState(deps: StateSyncDeps): LocalState {
       local.microphone !== null &&
       ((own.muted ?? false) || deps.rt.deafened),
     effects: effectStates(deps),
-    effectPlaces: placement.places,
-    effectOrder: placement.order,
-    effectMix: levels.mix,
+    audioEffectPlaces: placement.places,
+    audioEffectOrder: placement.order,
+    audioEffectMix: levels.mix,
     channelLevel: levels.channel,
     cutTails: readCutTails(deps.game),
     inputSensitivity: readSensitivity(deps.game),

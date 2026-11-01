@@ -58,18 +58,21 @@ export interface AVCommands {
    * For this device: an effect's dry:wet (`latency` declared) or the wet
    * amount of one on a send, 0 to 1. Rejects for any other effect.
    */
-  setEffectMix(effect: string, mix: number): Promise<void>;
+  setAudioEffectMix(effect: string, mix: number): Promise<void>;
   /**
    * For this device: moves an audio effect, running or not, without
    * restarting it. Any effect may go anywhere, once: a UI should warn about a
    * `tail` ahead of the gate, which holds the gate open.
    */
-  setEffectPlace(effect: string, place: AudioPlace): Promise<void>;
+  setAudioEffectPlace(effect: string, place: AudioPlace): Promise<void>;
   /**
    * For this device: the order of `effects` within `place`. Noise suppression
    * runs first unless listed, and what isn't listed follows.
    */
-  setEffectOrder(place: AudioPlace, effects: readonly string[]): Promise<void>;
+  setAudioEffectOrder(
+    place: AudioPlace,
+    effects: readonly string[],
+  ): Promise<void>;
   /**
    * For this device: whether a tail stops the moment the microphone closes
    * (mute, deafen, push to talk), not up to 3 s after it.

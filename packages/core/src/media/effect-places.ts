@@ -9,9 +9,9 @@ import type { FoundryGame } from "../foundry/globals.ts";
 import { AUDIO_PLACES } from "./audio-places.ts";
 
 /** Where the player put each moved effect, by id: a client setting. */
-export const EFFECT_PLACES_SETTING = "effectPlaces";
+export const EFFECT_PLACES_SETTING = "audioEffectPlaces";
 /** The player's order of each place, by place: a client setting. */
-export const EFFECT_ORDER_SETTING = "effectOrder";
+export const EFFECT_ORDER_SETTING = "audioEffectOrder";
 
 export type EffectOrder = Readonly<Record<AudioPlace, readonly string[]>>;
 

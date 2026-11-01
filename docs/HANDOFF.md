@@ -1519,7 +1519,7 @@ and Windows Chrome 155 with a GPU, livekit-server 1.13.8, LiveKit Cloud,
   pipeline harness records what the service was given, has a denoise test
   effect that sends silence, and fails module files under
   `?broken=<path>`; the harness loads several modules
-  (`?module=dock,mic-denoise`). `effectContract()` in
+  (`?module=dock,mic-denoise`). `audioEffectContract()` in
   `@modular-av/testing` checks an audio effect module: it runs and the
   player is heard, it renders within the budget of its cost and outputs
   sound, it leaves the chain when off, its group swaps without a gap, and
@@ -2205,11 +2205,11 @@ Firefox 157):
   routing's settings and tail hold, in the entry because state and
   commands need them. Places would have passed it too, so what writes this
   device's settings now loads on first use (`media/setting-writes.ts`):
-  115,651 used. The entry reads those settings at start, so that stays. The
+  115,640 used. The entry reads those settings at start, so that stays. The
   picture-in-picture code looks like the next candidate but isn't: a request
   must come from a click, and loading first can outlive the activation.
 - **`sameData` compares arrays now** (`state/project.ts`). It used to take
-  every array as changed, so `LocalState.effectOrder`, the first array in the
+  every array as changed, so `LocalState.audioEffectOrder`, the first array in the
   local state, made every refresh a change for all subscribers.
 - **The docked grid is bistable, open**: with frames that reach past tiles,
   `setLayout` refits on every `show`, and each refit flips the tile width

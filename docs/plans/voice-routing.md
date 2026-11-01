@@ -100,13 +100,13 @@ What this decides:
 - `latency`, `tail` and `defaultMix` on `AudioEffectDefinition`.
 - Inserts with a declared `latency` get dry delay, dry level, wet level.
   100% wet stays a plain link.
-- Client settings, `commands.setChannelLevel`, `commands.setEffectMix`,
-  `LocalState.channelLevel`, `LocalState.effectMix`.
+- Client settings, `commands.setChannelLevel`, `commands.setAudioEffectMix`,
+  `LocalState.channelLevel`, `LocalState.audioEffectMix`.
 - The dock's Voice tab: Channel level and a slider per mixable effect.
 
 ### 5. Hosted effects
 
-- `public/worklets/effect-host.js`: the host processor, a `registerKernel`
+- `public/worklets/effect-host.js`: the host processor, a `registerAudioKernel`
   global for kernels, the skip on silence, a thrown or non-finite render
   reported as a failure and silenced.
 - `AudioEffectContext.host(...)`: gives a normal `AudioEffect`.
@@ -146,8 +146,8 @@ ever shipped in it.
 
 ### 9. The core owns placement
 
-- `commands.setEffectPlace`, `commands.setEffectOrder`, saved per device,
-  `LocalState.effectPlaces`, `LocalState.effectOrder`. No dock controls: a
+- `commands.setAudioEffectPlace`, `commands.setAudioEffectOrder`, saved per device,
+  `LocalState.audioEffectPlaces`, `LocalState.audioEffectOrder`. No dock controls: a
   module such as advanced-audio builds that UI on the commands.
 - A running effect moves without restarting, the new path connected first.
 - An effect runs in one place at a time. Two copies stay out of scope.

@@ -232,7 +232,7 @@ describe("microphone pipeline", () => {
     });
     const mic = createMicrophone({
       env: {
-        createEffectHost: () => () => Promise.reject(new Error("unused")),
+        createAudioEffectHost: () => () => Promise.reject(new Error("unused")),
         createCaptureContext: () =>
           Promise.resolve({
             ...capture,
@@ -280,7 +280,7 @@ describe("microphone pipeline", () => {
     });
     const mic = createMicrophone({
       env: {
-        createEffectHost: () => () => Promise.reject(new Error("unused")),
+        createAudioEffectHost: () => () => Promise.reject(new Error("unused")),
         createCaptureContext: async () => {
           await held;
           return capture;

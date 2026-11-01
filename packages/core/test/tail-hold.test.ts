@@ -47,7 +47,7 @@ describe("the tail after mute", () => {
   it("holds nothing for a tail ahead of Mute: it can't ring out", async () => {
     // Arrange
     const { table, p1 } = await ringing(2);
-    await p1.api.commands.setEffectPlace("reverb", "pre-gate");
+    await p1.api.commands.setAudioEffectPlace("reverb", "pre-gate");
     await table.settle();
 
     // Act

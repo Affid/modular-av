@@ -54,7 +54,7 @@ export function mixSection(
 ): readonly Rendered[] {
   const mixed = ctx.api.effects
     .list()
-    .filter((d) => draft.get("effectMix")[d.id] !== undefined);
+    .filter((d) => draft.get("audioEffectMix")[d.id] !== undefined);
   if (mixed.length === 0) return [];
   const cut = draftSwitch(doc, draft, "cutTails", ctx.t("settings.cutTails"));
   const channelLabel = ctx.t("settings.channelLevel");
@@ -69,11 +69,14 @@ export function mixSection(
   const effects = mixed.map((d) => ({
     label: ctx.text(d.label),
     slider: levelSlider(doc, draft, {
-      field: `effectMix.${d.id}`,
+      field: `audioEffectMix.${d.id}`,
       label: ctx.text(d.label),
-      read: () => draft.get("effectMix")[d.id] ?? 1,
+      read: () => draft.get("audioEffectMix")[d.id] ?? 1,
       write: (level) => {
-        draft.set("effectMix", { ...draft.get("effectMix"), [d.id]: level });
+        draft.set("audioEffectMix", {
+          ...draft.get("audioEffectMix"),
+          [d.id]: level,
+        });
       },
     }),
   }));

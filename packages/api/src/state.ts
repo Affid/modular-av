@@ -163,11 +163,11 @@ export interface LocalState {
   /** Every registered effect, by id. */
   readonly effects: Readonly<Record<string, EffectState>>;
   /** Where each audio effect runs on this device, by id. */
-  readonly effectPlaces: Readonly<Record<string, AudioPlace>>;
+  readonly audioEffectPlaces: Readonly<Record<string, AudioPlace>>;
   /** The order the player set for each place; the core orders the rest. */
-  readonly effectOrder: Readonly<Record<AudioPlace, readonly string[]>>;
+  readonly audioEffectOrder: Readonly<Record<AudioPlace, readonly string[]>>;
   /** Each effect with a dry:wet or wet control now, by id, 0 to 1. */
-  readonly effectMix: Readonly<Record<string, number>>;
+  readonly audioEffectMix: Readonly<Record<string, number>>;
   /** How much of the voice goes out dry, as the player set it, 0 to 1. */
   readonly channelLevel: number;
   /** A reverb's or delay's tail stops with the microphone, not after it. */

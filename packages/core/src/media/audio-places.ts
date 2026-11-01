@@ -18,19 +18,28 @@ const isLevel = (value: unknown): boolean =>
   value === undefined ||
   (typeof value === "number" && value >= 0 && value <= 1);
 
+const AUDIO_ONLY = [
+  "defaultPlace",
+  "silencesNoise",
+  "tail",
+  "latency",
+  "defaultMix",
+] as const;
+
 /**
- * Refuses what would silently never run or run for ever, and a duration or
- * level the chain can't use.
+ * Refuses what would silently never run or run for ever, a duration or level
+ * the chain can't use, and audio fields on a video effect.
  */
 export function validateEffect(definition: unknown): void {
-  const { kind, defaultPlace, tail, latency, defaultMix } = definition as {
-    readonly kind?: unknown;
-    readonly defaultPlace?: unknown;
-    readonly tail?: unknown;
-    readonly latency?: unknown;
-    readonly defaultMix?: unknown;
-  };
-  if (kind !== "audio") return;
+  const fields = definition as Readonly<Record<string, unknown>>;
+  const { kind, defaultPlace, tail, latency, defaultMix } = fields;
+  if (kind === "video") {
+    const audio = AUDIO_ONLY.find((field) => fields[field] !== undefined);
+    if (audio) throw new Error(`${audio} is for audio effects`);
+    return;
+  }
+  if (kind !== "audio")
+    throw new Error(`Unknown effect kind "${String(kind)}"`);
   if (!AUDIO_PLACES.includes(defaultPlace as AudioPlace))
     throw new Error(`Unknown audio place "${String(defaultPlace)}"`);
   if (!isDuration(tail)) throw new Error("tail must be seconds, 0 or more");

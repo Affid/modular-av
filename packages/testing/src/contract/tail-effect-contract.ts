@@ -1,14 +1,14 @@
 import type {
   AudioEffectDefinition,
   EffectDefinition,
-  EffectHost,
-  EffectHostOptions,
+  AudioEffectHost,
+  AudioEffectHostOptions,
 } from "@modular-av/api";
 import { expect, type Page, test } from "@playwright/test";
 import type {} from "../harness/types.ts";
 
 /**
- * What the core can't check at runtime, on top of `effectContract`. Rendered
+ * What the core can't check at runtime, on top of `audioEffectContract`. Rendered
  * offline, so a busy machine doesn't decide it.
  */
 export interface TailEffectContractOptions {
@@ -59,10 +59,10 @@ export interface Declared {
 
 interface ApiLike {
   effects: { get(id: string): EffectDefinition | undefined };
-  createEffectHost(
+  createAudioEffectHost(
     context: BaseAudioContext,
-    options: EffectHostOptions,
-  ): EffectHost;
+    options: AudioEffectHostOptions,
+  ): AudioEffectHost;
 }
 
 declare global {
@@ -112,7 +112,7 @@ async function install(page: Page): Promise<void> {
           audioContext: ctx as unknown as AudioContext,
           signal: new AbortController().signal,
           fail,
-          host: api().createEffectHost(ctx, {
+          host: api().createAudioEffectHost(ctx, {
             ...(definition.tail === undefined ? {} : { tail: definition.tail }),
             fail,
           }),

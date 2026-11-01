@@ -2,8 +2,8 @@ import type { AVCommands } from "./commands.ts";
 import type { Contribution } from "./contributions.ts";
 import type {
   EffectDefinition,
-  EffectHost,
-  EffectHostOptions,
+  AudioEffectHost,
+  AudioEffectHostOptions,
 } from "./effects.ts";
 import type { Meters } from "./meters.ts";
 import type { Previews } from "./preview.ts";
@@ -73,8 +73,8 @@ export interface ModularAV {
    * What `AudioEffectContext.host` is, for a context of your own: an
    * effect's own tests and previews, rendered offline.
    */
-  createEffectHost(
+  createAudioEffectHost(
     context: BaseAudioContext,
-    options: EffectHostOptions,
-  ): EffectHost;
+    options: AudioEffectHostOptions,
+  ): AudioEffectHost;
 }

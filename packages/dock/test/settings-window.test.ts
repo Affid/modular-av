@@ -154,14 +154,14 @@ describe("the settings window's Voice tab", () => {
   it("drafts Channel level and an effect's wet amount until Save", async () => {
     // Arrange
     const view = open(
-      withMix({ effectMix: { reverb: 0.5 }, channelLevel: 1 }),
+      withMix({ audioEffectMix: { reverb: 0.5 }, channelLevel: 1 }),
       (dock) => {
         dock.api.effects.register(reverb);
       },
     );
     view.tab("voice");
     const channel = view.q('[data-field="channelLevel"]');
-    const wet = view.q('[data-field="effectMix.reverb"]');
+    const wet = view.q('[data-field="audioEffectMix.reverb"]');
 
     // Act
     slide(channel, 40);
@@ -175,12 +175,12 @@ describe("the settings window's Voice tab", () => {
     expect(before).toEqual([]);
     expect(view.api.calls).toEqual([
       { command: "setChannelLevel", args: [0.4] },
-      { command: "setEffectMix", args: ["reverb", 0.25] },
+      { command: "setAudioEffectMix", args: ["reverb", 0.25] },
     ]);
   });
 
   it("offers to cut tails, drafted until Save", async () => {
-    const view = open(withMix({ effectMix: { reverb: 1 } }), (dock) => {
+    const view = open(withMix({ audioEffectMix: { reverb: 1 } }), (dock) => {
       dock.api.effects.register(reverb);
     });
     view.tab("voice");

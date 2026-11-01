@@ -10,5 +10,5 @@ dry:wet control: the core delays the dry signal to match and mixes the two,
 so the effect outputs only its processed signal. The wet amount of an effect on a send
 works the same way, with `defaultMix` as its start. Players set both, and
 how much of their voice goes out dry, under Voice & Video Settings, Voice,
-Mix. The API adds `commands.setEffectMix`, `commands.setChannelLevel`,
-`LocalState.effectMix` and `LocalState.channelLevel`.
+Mix. The API adds `commands.setAudioEffectMix`, `commands.setChannelLevel`,
+`LocalState.audioEffectMix` and `LocalState.channelLevel`.

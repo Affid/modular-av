@@ -7,7 +7,7 @@ import type {} from "../harness/types.ts";
  * effects, run in the browser tier's "effects" project: the real effect in
  * the core's capture context, on a fake microphone that never goes quiet.
  */
-export interface EffectContractOptions {
+export interface AudioEffectContractOptions {
   /** Package directories the harness loads, e.g. "mic-denoise". */
   readonly modules: string;
   /** The effects' ids, all of one exclusive group. */
@@ -53,7 +53,7 @@ declare global {
 
 async function open(
   page: Page,
-  options: EffectContractOptions,
+  options: AudioEffectContractOptions,
   extra = "",
 ): Promise<void> {
   await page.goto(`/?module=${options.modules}&service=mock${extra}`);
@@ -176,7 +176,7 @@ function measureCost(page: Page, id: string): Promise<Cost> {
   );
 }
 
-export function effectContract(options: EffectContractOptions): void {
+export function audioEffectContract(options: AudioEffectContractOptions): void {
   test.describe(`effects contract: ${options.modules}`, () => {
     for (const id of options.effects) {
       test(`${id} runs, and the player is still heard`, async ({ page }) => {

@@ -153,13 +153,13 @@ export function createCommands(
     setChannelLevel: (level: number) =>
       change((w) => w.writeChannelLevel(game, level)),
 
-    setEffectMix: (effect: string, mix: number) =>
+    setAudioEffectMix: (effect: string, mix: number) =>
       change((w) => w.writeEffectMix(game, effects, effect, mix)),
 
-    setEffectPlace: (effect: string, place: AudioPlace) =>
+    setAudioEffectPlace: (effect: string, place: AudioPlace) =>
       change((w) => w.writeEffectPlace(game, effects, effect, place)),
 
-    setEffectOrder: (place: AudioPlace, ids: readonly string[]) =>
+    setAudioEffectOrder: (place: AudioPlace, ids: readonly string[]) =>
       change((w) => w.writeEffectOrder(game, effects, place, ids)),
 
     setGateFallback: (fallback: GateFallback) =>

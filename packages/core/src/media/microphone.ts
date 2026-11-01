@@ -32,7 +32,10 @@ import type {
 } from "./env.ts";
 
 export interface MicrophoneDeps {
-  readonly env: Pick<MediaEnv, "createCaptureContext" | "createEffectHost">;
+  readonly env: Pick<
+    MediaEnv,
+    "createCaptureContext" | "createAudioEffectHost"
+  >;
   readonly gate: GateConfig;
   /** The output, the gate or an effect's state changed. */
   readonly onChange: () => void;
@@ -199,7 +202,7 @@ export function createMicrophone(deps: MicrophoneDeps): Microphone {
         d.create({
           ...context,
           audioContext: capture.audioContext,
-          host: deps.env.createEffectHost(capture.audioContext, {
+          host: deps.env.createAudioEffectHost(capture.audioContext, {
             ...(d.tail === undefined ? {} : { tail: d.tail }),
             fail: context.fail,
           }),

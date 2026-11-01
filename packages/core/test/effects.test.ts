@@ -67,13 +67,15 @@ describe("effect places", () => {
       effects: [reverb.definition, blur.definition],
     });
     await table.settle();
-    await p1.api.commands.setEffectPlace("reverb", "post-gate");
+    await p1.api.commands.setAudioEffectPlace("reverb", "post-gate");
     await table.settle();
 
-    expect(p1.api.state.get().local.effectPlaces).toEqual({
+    expect(p1.api.state.get().local.audioEffectPlaces).toEqual({
       reverb: "post-gate",
     });
-    expect(p1.client.game.settings.get("modular-av", "effectPlaces")).toEqual({
+    expect(
+      p1.client.game.settings.get("modular-av", "audioEffectPlaces"),
+    ).toEqual({
       reverb: "post-gate",
     });
   });
@@ -87,7 +89,7 @@ describe("effect places", () => {
     if (!instance || !back) throw new Error("not running");
 
     // Act
-    await p1.api.commands.setEffectPlace("reverb", "post-gate");
+    await p1.api.commands.setAudioEffectPlace("reverb", "post-gate");
     await table.settle();
 
     // Assert
@@ -108,7 +110,7 @@ describe("effect places", () => {
     const instance = radio.instances[0];
     if (!instance) throw new Error("not running");
 
-    await p1.api.commands.setEffectPlace("radio", "pre-gate");
+    await p1.api.commands.setAudioEffectPlace("radio", "pre-gate");
     await table.settle();
 
     const capture = captureOf(p1);
@@ -143,13 +145,13 @@ describe("effect places", () => {
     expect(captureOf(p1).graph.reaches(a.output, b.input)).toBe(true);
 
     // Act
-    await p1.api.commands.setEffectOrder("post-gate", ["second", "first"]);
+    await p1.api.commands.setAudioEffectOrder("post-gate", ["second", "first"]);
     await table.settle();
 
     // Assert
     expect(captureOf(p1).graph.reaches(b.output, a.input)).toBe(true);
     expect(captureOf(p1).graph.reaches(a.output, b.input)).toBe(false);
-    expect(p1.api.state.get().local.effectOrder).toEqual({
+    expect(p1.api.state.get().local.audioEffectOrder).toEqual({
       "pre-gate": [],
       "post-gate": ["second", "first"],
       send: [],
@@ -159,28 +161,28 @@ describe("effect places", () => {
   it("shows an effect only in the order of the place it runs in", async () => {
     const reverb = createFakeAudioEffect("reverb", { defaultPlace: "send" });
     const { table, p1 } = await moved(reverb.definition);
-    await p1.api.commands.setEffectOrder("send", ["reverb"]);
+    await p1.api.commands.setAudioEffectOrder("send", ["reverb"]);
 
-    await p1.api.commands.setEffectPlace("reverb", "post-gate");
+    await p1.api.commands.setAudioEffectPlace("reverb", "post-gate");
     await table.settle();
 
-    expect(p1.api.state.get().local.effectOrder.send).toEqual([]);
+    expect(p1.api.state.get().local.audioEffectOrder.send).toEqual([]);
   });
 
   it("offers a mix where the effect has one, wherever it is now", async () => {
     // Arrange
     const reverb = createFakeAudioEffect("reverb", { defaultPlace: "send" });
     const { table, p1 } = await moved(reverb.definition);
-    expect(p1.api.state.get().local.effectMix).toEqual({ reverb: 1 });
+    expect(p1.api.state.get().local.audioEffectMix).toEqual({ reverb: 1 });
 
     // Act
-    await p1.api.commands.setEffectPlace("reverb", "post-gate");
+    await p1.api.commands.setAudioEffectPlace("reverb", "post-gate");
     await table.settle();
 
     // Assert: an insert without a latency stays at 100% wet.
-    expect(p1.api.state.get().local.effectMix).toEqual({});
+    expect(p1.api.state.get().local.audioEffectMix).toEqual({});
     await expect(
-      p1.api.commands.setEffectMix("reverb", 0.5),
+      p1.api.commands.setAudioEffectMix("reverb", 0.5),
     ).rejects.toMatchObject({ code: "invalid-argument" });
   });
 
@@ -191,9 +193,9 @@ describe("effect places", () => {
       defaultMix: 0.3,
     });
 
-    await p1.api.commands.setEffectPlace("reverb", "post-gate");
+    await p1.api.commands.setAudioEffectPlace("reverb", "post-gate");
     await table.settle();
-    await p1.api.commands.setEffectPlace("reverb", "send");
+    await p1.api.commands.setAudioEffectPlace("reverb", "send");
     await table.settle();
 
     expect(captureOf(p1).level("return:reverb")?.level).toBeCloseTo(0.3);
@@ -211,7 +213,7 @@ describe("effect places", () => {
     });
 
     await expect(
-      p1.api.commands.setEffectPlace(id, place as AudioPlace),
+      p1.api.commands.setAudioEffectPlace(id, place as AudioPlace),
     ).rejects.toMatchObject({ code });
   });
 
@@ -228,7 +230,7 @@ describe("effect places", () => {
     });
 
     await expect(
-      p1.api.commands.setEffectOrder(place as AudioPlace, ids),
+      p1.api.commands.setAudioEffectOrder(place as AudioPlace, ids),
     ).rejects.toMatchObject({ code });
   });
 
@@ -237,7 +239,7 @@ describe("effect places", () => {
     table.join("gm", { secret: true });
     const reverb = createFakeAudioEffect("reverb", { defaultPlace: "send" });
     const p1 = table.join("p1", { av: ALWAYS, effects: [reverb.definition] });
-    await p1.api.commands.setEffectOrder("send", ["reverb"]);
+    await p1.api.commands.setAudioEffectOrder("send", ["reverb"]);
     await table.settle();
     const before = p1.api.state.get();
 
@@ -250,19 +252,21 @@ describe("effect places", () => {
     const reverb = createFakeAudioEffect("reverb", { defaultPlace: "send" });
     const table = createTable();
     const p1 = table.join("p1", { effects: [reverb.definition] });
-    await p1.client.game.settings.set("modular-av", "effectPlaces", {
+    await p1.client.game.settings.set("modular-av", "audioEffectPlaces", {
       reverb: "master",
       gone: "send",
     });
-    await p1.client.game.settings.set("modular-av", "effectOrder", {
+    await p1.client.game.settings.set("modular-av", "audioEffectOrder", {
       send: ["gone", 7, "reverb"],
       "pre-gate": "nope",
     });
     await table.settle();
     await p1.api.commands.setCutTails(false);
 
-    expect(p1.api.state.get().local.effectPlaces).toEqual({ reverb: "send" });
-    expect(p1.api.state.get().local.effectOrder).toEqual({
+    expect(p1.api.state.get().local.audioEffectPlaces).toEqual({
+      reverb: "send",
+    });
+    expect(p1.api.state.get().local.audioEffectOrder).toEqual({
       "pre-gate": [],
       "post-gate": [],
       send: ["reverb"],
@@ -288,19 +292,21 @@ describe("levels", () => {
     await table.settle();
 
     // Assert
-    expect(p1.api.state.get().local.effectMix).toEqual({ reverb: 0.3 });
+    expect(p1.api.state.get().local.audioEffectMix).toEqual({ reverb: 0.3 });
     expect(captureOf(p1).level("return:reverb")?.level).toBe(0.3);
 
     // Act
-    await p1.api.commands.setEffectMix("reverb", 0.6);
+    await p1.api.commands.setAudioEffectMix("reverb", 0.6);
     await table.settle();
 
     // Assert
-    expect(p1.api.state.get().local.effectMix).toEqual({ reverb: 0.6 });
+    expect(p1.api.state.get().local.audioEffectMix).toEqual({ reverb: 0.6 });
     expect(captureOf(p1).level("return:reverb")?.level).toBe(0.6);
-    expect(p1.client.game.settings.get("modular-av", "effectMix")).toEqual({
-      reverb: 0.6,
-    });
+    expect(p1.client.game.settings.get("modular-av", "audioEffectMix")).toEqual(
+      {
+        reverb: 0.6,
+      },
+    );
   });
 
   it("gives an insert a dry:wet control only if it declares its latency", async () => {
@@ -318,15 +324,15 @@ describe("levels", () => {
     await table.settle();
 
     // Act
-    await p1.api.commands.setEffectMix("radio", 0.4);
+    await p1.api.commands.setAudioEffectMix("radio", 0.4);
     await table.settle();
 
     // Assert
-    expect(p1.api.state.get().local.effectMix).toEqual({ radio: 0.4 });
+    expect(p1.api.state.get().local.audioEffectMix).toEqual({ radio: 0.4 });
     expect(captureOf(p1).level("wet:radio")?.level).toBeCloseTo(0.4);
     expect(captureOf(p1).delay("dry delay:radio")?.seconds).toBe(0.005);
     await expect(
-      p1.api.commands.setEffectMix("krisp", 0.4),
+      p1.api.commands.setAudioEffectMix("krisp", 0.4),
     ).rejects.toMatchObject({ code: "invalid-argument" });
   });
 
@@ -351,7 +357,7 @@ describe("levels", () => {
       code: "invalid-argument",
     });
     await expect(
-      p1.api.commands.setEffectMix("reverb", level),
+      p1.api.commands.setAudioEffectMix("reverb", level),
     ).rejects.toMatchObject({ code: "invalid-argument" });
   });
 
@@ -361,7 +367,7 @@ describe("levels", () => {
     await table.settle();
 
     await expect(
-      p1.api.commands.setEffectMix("nothing", 0.5),
+      p1.api.commands.setAudioEffectMix("nothing", 0.5),
     ).rejects.toMatchObject({ code: "unknown-effect" });
   });
 });
@@ -490,6 +496,24 @@ describe("turning effects on and off", () => {
       validateEffect({ kind: "video" });
     }).not.toThrow();
   });
+
+  it.each([undefined, "sound"])(
+    "refuses an effect of kind %s, plainly",
+    (kind) => {
+      expect(() => {
+        validateEffect({ kind });
+      }).toThrow(`Unknown effect kind "${String(kind)}"`);
+    },
+  );
+
+  it.each(["defaultPlace", "silencesNoise", "tail", "latency", "defaultMix"])(
+    "refuses a video effect that declares %s, which only audio has",
+    (field) => {
+      expect(() => {
+        validateEffect({ kind: "video", [field]: 1 });
+      }).toThrow(`${field} is for audio effects`);
+    },
+  );
 
   it.each([
     ["tail", Number.NaN],

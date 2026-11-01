@@ -5,8 +5,8 @@
  */
 import type {
   DeviceList,
-  EffectHost,
-  EffectHostOptions,
+  AudioEffectHost,
+  AudioEffectHostOptions,
 } from "@modular-av/api";
 
 export interface MediaEnv {
@@ -50,10 +50,10 @@ export interface MediaEnv {
   /** The one capture context; call once and keep it. Loads its code lazily. */
   createCaptureContext(): Promise<CaptureContext>;
   /** Runs effect kernels in `context`. Loads its code lazily. */
-  createEffectHost(
+  createAudioEffectHost(
     context: BaseAudioContext,
-    options: EffectHostOptions,
-  ): EffectHost;
+    options: AudioEffectHostOptions,
+  ): AudioEffectHost;
   /** Whether `watchFrames` works here (MediaStreamTrackProcessor). */
   canWatchFrames(): boolean;
   /**

@@ -1,9 +1,9 @@
 import type {
   DeviceList,
-  EffectHost,
-  EffectHostOptions,
-  EffectKernel,
-  HostedEffect,
+  AudioEffectHost,
+  AudioEffectHostOptions,
+  AudioEffectKernel,
+  HostedAudioEffect,
 } from "@modular-av/api";
 import { createFakeTrack } from "../service/fake-track.ts";
 import {
@@ -33,9 +33,9 @@ export interface FakeAudioOutput {
 }
 
 /** A kernel the core was asked to run; nothing renders. */
-export interface FakeHostedEffect extends HostedEffect {
-  readonly kernel: EffectKernel;
-  readonly options: EffectHostOptions;
+export interface FakeHostedAudioEffect extends HostedAudioEffect {
+  readonly kernel: AudioEffectKernel;
+  readonly options: AudioEffectHostOptions;
   readonly configured: readonly unknown[];
   readonly disposed: boolean;
 }
@@ -100,11 +100,11 @@ export interface FakeMediaEnv {
   setOnScreen(element: Element, view: FakeOnScreen): void;
   onOnline(listener: () => void): () => void;
   createCaptureContext(): Promise<FakeCaptureContext>;
-  createEffectHost(
+  createAudioEffectHost(
     context: BaseAudioContext,
-    options: EffectHostOptions,
-  ): EffectHost;
-  readonly hosted: readonly FakeHostedEffect[];
+    options: AudioEffectHostOptions,
+  ): AudioEffectHost;
+  readonly hosted: readonly FakeHostedAudioEffect[];
   canWatchFrames(): boolean;
   listDevices(): Promise<DeviceList>;
   onDeviceChange(listener: () => void): () => void;
@@ -193,7 +193,7 @@ export function createFakeMediaEnv(
     readonly listener: (view: FakeOnScreen) => void;
   }[] = [];
   let captureContexts: readonly FakeCaptureContext[] = [];
-  let hosted: readonly FakeHostedEffect[] = [];
+  let hosted: readonly FakeHostedAudioEffect[] = [];
   let devices = options.devices ?? FAKE_DEVICES;
   let deviceListeners: readonly (() => void)[] = [];
   let frameWatchers: readonly {
@@ -297,11 +297,11 @@ export function createFakeMediaEnv(
       captureContexts = [...captureContexts, context];
       return Promise.resolve(context);
     },
-    createEffectHost: (context, hostOptions) => (kernel) => {
+    createAudioEffectHost: (context, hostOptions) => (kernel) => {
       const node = context.createGain();
       let configured: readonly unknown[] = [];
       let disposed = false;
-      const effect: FakeHostedEffect = {
+      const effect: FakeHostedAudioEffect = {
         kernel,
         options: hostOptions,
         input: node,

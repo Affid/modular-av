@@ -153,10 +153,12 @@ test("a running effect moved ahead of the gate is gated from then on", async ({
   await page.evaluate(async () => {
     const api = window.harness?.client.game.modules.get("modular-av")?.api as
       | {
-          commands: { setEffectPlace(id: string, at: string): Promise<void> };
+          commands: {
+            setAudioEffectPlace(id: string, at: string): Promise<void>;
+          };
         }
       | undefined;
-    await api?.commands.setEffectPlace("test-hum", "pre-gate");
+    await api?.commands.setAudioEffectPlace("test-hum", "pre-gate");
   });
   const before = await record(page, 1000);
 
@@ -264,7 +266,7 @@ test("Channel level drops the dry voice only while a send carries it", async ({
 }) => {
   // Arrange
   const command = (
-    name: "setChannelLevel" | "setEffectMix",
+    name: "setChannelLevel" | "setAudioEffectMix",
     ...args: unknown[]
   ) =>
     page.evaluate(
@@ -285,10 +287,10 @@ test("Channel level drops the dry voice only while a send carries it", async ({
   const alone = await record(page, 1000);
   await setEffect(page, "test-echo", true);
   await isRunning(page, "test-echo");
-  await command("setEffectMix", "test-echo", 0.01);
+  await command("setAudioEffectMix", "test-echo", 0.01);
   await page.waitForTimeout(100);
   const carried = await record(page, 1000);
-  await command("setEffectMix", "test-echo", 0);
+  await command("setAudioEffectMix", "test-echo", 0);
   await page.waitForTimeout(100);
   const unreturned = await record(page, 1000);
 

@@ -11,7 +11,7 @@ import { readPlacement } from "./effect-places.ts";
 /** The dry amount: a client setting. */
 export const CHANNEL_LEVEL_SETTING = "channelLevel";
 /** The player's dry:wet and wet amounts, by effect id: a client setting. */
-export const EFFECT_MIX_SETTING = "effectMix";
+export const EFFECT_MIX_SETTING = "audioEffectMix";
 
 /** What the player set, as the microphone applies it. */
 export interface VoiceLevels {

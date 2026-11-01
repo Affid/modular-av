@@ -75,9 +75,9 @@ a dry branch inside it would double the voice.
 ## Places
 
 A slot belongs to the mixer, as in Cubase. An effect names a `defaultPlace`,
-and `commands.setEffectPlace` moves it, running or not, without restarting
+and `commands.setAudioEffectPlace` moves it, running or not, without restarting
 it. Every plug is the same `{ input, output, dispose }`, so any effect can go
-anywhere, in one place at a time. `commands.setEffectOrder` sets the order
+anywhere, in one place at a time. `commands.setAudioEffectOrder` sets the order
 within a place; noise suppression runs first unless the order lists it.
 
 Every effect outputs only its processed signal, and the core adds the dry.
@@ -117,7 +117,7 @@ output bus, as Mute cuts it; each place has its own watchdog.
 
 The hold on the output bus lasts as long as the longest declared `tail` of
 a running effect, at most 3 s, and only while a tail effect runs. With no
-tail effect, the bus closes at once. "Cut sound tails" in the voice
+tail effect, the bus closes at once. "Cut reverb and delay when my microphone closes" in the voice
 settings makes every release close at once. Nothing said after the Mute
 closes can reach an effect, so a tail only carries speech that already went
 out.
@@ -167,7 +167,7 @@ A hosted effect is a kernel in a worklet file of its own, and a definition:
 
 ```js
 // worklet.js: loaded into the audio thread, so it can't import anything.
-modularAV.registerKernel(
+modularAV.registerAudioKernel(
   "my-reverb",
   class {
     constructor({ sampleRate, options }) {}

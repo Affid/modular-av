@@ -29,7 +29,7 @@ const TAB_OF: Readonly<Record<Exclude<DraftKey, "effects">, string>> = {
   threshold: "voice",
   gateFallback: "voice",
   channelLevel: "voice",
-  effectMix: "voice",
+  audioEffectMix: "voice",
   cutTails: "voice",
   videoInput: "video",
   receiveVideo: "video",

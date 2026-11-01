@@ -37,14 +37,14 @@ export interface AudioEffectContext extends EffectContext {
    * Runs a kernel in the core's worklet: the way to write a worklet effect
    * after the gate or on a send, as the core then skips it on silence.
    */
-  readonly host: EffectHost;
+  readonly host: AudioEffectHost;
 }
 
 /** An effect's sound code, run by the core's worklet. */
-export interface EffectKernel {
+export interface AudioEffectKernel {
   /**
    * A worklet module's URL, which calls
-   * `modularAV.registerKernel(name, class { render(input, output) {} })`.
+   * `modularAV.registerAudioKernel(name, class { render(input, output) {} })`.
    * Kernels can't be imported: a worklet loads no bundled code.
    */
   readonly module: string;
@@ -53,14 +53,16 @@ export interface EffectKernel {
   readonly options?: unknown;
 }
 
-export interface HostedEffect extends AudioEffect {
+export interface HostedAudioEffect extends AudioEffect {
   /** Hands `value` to the kernel's `configure`. */
   configure(value: unknown): void;
 }
 
-export type EffectHost = (kernel: EffectKernel) => Promise<HostedEffect>;
+export type AudioEffectHost = (
+  kernel: AudioEffectKernel,
+) => Promise<HostedAudioEffect>;
 
-export interface EffectHostOptions {
+export interface AudioEffectHostOptions {
   /** The effect's `tail`: how long to keep rendering after sound stops. */
   readonly tail?: number;
   /** Told when the kernel throws, or outputs a non-number. */
@@ -116,6 +118,7 @@ export interface AudioEffectDefinition extends EffectDefinitionBase {
   create(context: AudioEffectContext): Promise<AudioEffect>;
 }
 
+/** One runs at a time, on the camera: the audio chain's places don't apply. */
 export interface VideoEffectDefinition extends EffectDefinitionBase {
   readonly kind: "video";
   /** Lazy: import heavy code here, not at module load. */

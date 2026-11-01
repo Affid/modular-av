@@ -1,8 +1,8 @@
 import type {
-  EffectHost,
-  EffectHostOptions,
-  EffectKernel,
-  HostedEffect,
+  AudioEffectHost,
+  AudioEffectHostOptions,
+  AudioEffectKernel,
+  HostedAudioEffect,
 } from "@modular-av/api";
 
 const HOST_WORKLET = "worklets/effect-host.js";
@@ -40,9 +40,9 @@ const isFailure = (data: unknown): data is { readonly error: string } =>
 
 function createHostedEffect(
   context: BaseAudioContext,
-  kernel: EffectKernel,
-  { tail = 0, fail }: EffectHostOptions,
-): HostedEffect {
+  kernel: AudioEffectKernel,
+  { tail = 0, fail }: AudioEffectHostOptions,
+): HostedAudioEffect {
   const node = new AudioWorkletNode(context, HOST_PROCESSOR, {
     numberOfInputs: 1,
     numberOfOutputs: 1,
@@ -71,11 +71,11 @@ function createHostedEffect(
 }
 
 /** `workletUrl` resolves a file in the core's `public/`. */
-export function createEffectHost(
+export function createAudioEffectHost(
   context: BaseAudioContext,
   workletUrl: (path: string) => string,
-  options: EffectHostOptions,
-): EffectHost {
+  options: AudioEffectHostOptions,
+): AudioEffectHost {
   return async (kernel) => {
     await load(context, workletUrl(HOST_WORKLET));
     await load(context, kernel.module);

@@ -6,7 +6,7 @@
  *
  * An effect module's worklet file, loaded after this one, adds its kernel:
  *
- *   modularAV.registerKernel("my-reverb", class {
+ *   modularAV.registerAudioKernel("my-reverb", class {
  *     constructor({ sampleRate, options }) {}
  *     render(input, output) {} // two Float32Arrays, mono, one block each
  *     configure(value) {}      // optional: what `configure()` sent
@@ -20,7 +20,7 @@
 const kernels = new Map();
 
 globalThis.modularAV = {
-  registerKernel(name, Kernel) {
+  registerAudioKernel(name, Kernel) {
     kernels.set(name, Kernel);
   },
 };
