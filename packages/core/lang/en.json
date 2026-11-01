@@ -185,6 +185,10 @@
           "title": "Reverb",
           "what": "A reverb for the voice, for halls and caves. Needs the Audio mixer."
         },
+        "modular-av-audio-echo": {
+          "title": "Echo",
+          "what": "An echo for the voice, for canyons and spirits. Needs the Audio mixer."
+        },
         "modular-av-cam-background": {
           "title": "Camera background",
           "what": "Blurs or replaces what's behind each player. Chrome and Edge."
