@@ -233,6 +233,19 @@ importers:
         specifier: workspace:*
         version: link:../testing
 
+  packages/audio-eq:
+    dependencies:
+      '@modular-av/kit':
+        specifier: workspace:*
+        version: link:../kit
+    devDependencies:
+      '@modular-av/api':
+        specifier: workspace:*
+        version: link:../api
+      '@modular-av/testing':
+        specifier: workspace:*
+        version: link:../testing
+
   packages/audio-reverb:
     dependencies:
       '@modular-av/kit':
