@@ -328,8 +328,14 @@ test("Channel at 0 warns below the chain, and the fader stays where it was", asy
   await clearPipeline(p1);
   const mixer = await openFromSettings(p1);
   const channel = mixer.locator('[data-field="channel"]');
-  const top = async (): Promise<number | undefined> =>
-    (await channel.boundingBox())?.y;
+  // Within the window: the window itself may still be settling on screen.
+  const top = async (): Promise<number | undefined> => {
+    const [fader, frame] = await Promise.all([
+      channel.boundingBox(),
+      mixer.boundingBox(),
+    ]);
+    return fader && frame ? fader.y - frame.y : undefined;
+  };
   const before = await top();
 
   // Act
