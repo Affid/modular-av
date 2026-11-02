@@ -1,0 +1,127 @@
+/*
+ * The audio mixer's window, laid out as the channel runs. Loaded when it first
+ * opens. Colours follow Foundry's theme.
+ */
+.mav-mixer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.25rem;
+}
+
+.mav-mixer h3 {
+  margin: 0;
+  border: 0;
+  font-size: 1rem;
+}
+
+.mav-mixer-hint {
+  margin: 0.125rem 0 0.25rem;
+  font-size: 0.85em;
+  opacity: 0.8;
+}
+
+.mav-mixer-alert:empty,
+.mav-mixer-warnings:empty {
+  display: none;
+}
+
+.mav-mixer-alert,
+.mav-mixer-warnings {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border-left: 3px solid var(--color-warm-2, #c9593f);
+}
+
+.mav-mixer-warnings {
+  list-style: none;
+}
+
+.mav-mixer-channel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mav-mixer-lane,
+.mav-mixer-fixed {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-border, #7a7971);
+  border-radius: 6px;
+}
+
+.mav-mixer-fixed {
+  border-style: dashed;
+}
+
+.mav-mixer-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--color-border, #7a7971);
+}
+
+.mav-mixer-row-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mav-mixer-row-head .mav-mixer-switch {
+  flex: 1 1 8rem;
+  min-width: 0;
+}
+
+.mav-mixer-row-head select {
+  flex: 0 1 12rem;
+  min-width: 0;
+}
+
+.mav-mixer-switch {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.mav-mixer-status,
+.mav-mixer-cost {
+  font-size: 0.85em;
+  opacity: 0.8;
+}
+
+.mav-mixer-icon {
+  flex: 0 0 auto;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+}
+
+.mav-mixer-slider,
+.mav-mixer-choice {
+  display: grid;
+  grid-template-columns: minmax(6rem, 1fr) minmax(0, 2fr) 4.5rem;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mav-mixer-choice {
+  grid-template-columns: minmax(6rem, 1fr) minmax(0, 2fr);
+}
+
+.mav-mixer-slider output {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.mav-mixer-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.mav-mixer-footer button {
+  align-self: flex-start;
+  width: auto;
+}

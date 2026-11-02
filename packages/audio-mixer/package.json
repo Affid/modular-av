@@ -1,0 +1,23 @@
+{
+  "name": "@modular-av/audio-mixer",
+  "version": "0.9.1",
+  "private": true,
+  "description": "Modular A/V: a mixer for the voice channel, with presets and a GM's view of the table.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modular-av/kit": "workspace:*"
+  },
+  "devDependencies": {
+    "@modular-av/api": "workspace:*",
+    "@modular-av/testing": "workspace:*"
+  },
+  "modularAV": {
+    "entryBudgetBytes": 10000
+  }
+}

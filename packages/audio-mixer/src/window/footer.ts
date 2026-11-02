@@ -1,0 +1,82 @@
+import type { LocalState } from "@modular-av/api";
+import { el } from "@modular-av/kit";
+import type { Writer } from "../model/queue.ts";
+import type { MixerContext } from "./context.ts";
+import { switchField } from "./fields.ts";
+import { createVoiceTest, type VoiceTestStep } from "./voice-test.ts";
+
+export interface Footer {
+  readonly element: HTMLElement;
+  update(local: LocalState): void;
+  dispose(): void;
+}
+
+const STEPS_WITH_TEXT: ReadonlySet<VoiceTestStep> = new Set([
+  "recording",
+  "playing",
+  "no-microphone",
+  "failed",
+]);
+
+/** Cut tails, and "Test my voice". */
+export function renderFooter(
+  ctx: MixerContext,
+  doc: Document,
+  writes: Writer,
+): Footer {
+  const cut = switchField(
+    doc,
+    ctx.t("cutTails"),
+    { "data-field": "cutTails" },
+    (on) => {
+      void writes.run("cutTails", () => ctx.api.commands.setAudioCutTails(on));
+    },
+  );
+  const status = el("p", {
+    doc,
+    className: "mav-mixer-hint",
+    attrs: { "data-field": "voiceTestStatus", role: "status" },
+  });
+  const button = el("button", {
+    doc,
+    text: ctx.t("voiceTest.button"),
+    attrs: { type: "button", "data-field": "voiceTest" },
+  });
+  const test = createVoiceTest(
+    () => ctx.api.preview.voice(),
+    ctx.recording,
+    (step) => {
+      status.textContent = STEPS_WITH_TEXT.has(step)
+        ? ctx.t(`voiceTest.${step}`)
+        : "";
+      button.disabled = step === "recording" || step === "playing";
+    },
+  );
+  button.addEventListener("click", () => {
+    test.start().catch((error: unknown) => {
+      ctx.onError(error);
+    });
+  });
+  return {
+    element: el("footer", {
+      doc,
+      className: "mav-mixer-footer",
+      children: [
+        cut.element,
+        button,
+        el("p", {
+          doc,
+          className: "mav-mixer-hint",
+          text: ctx.t("voiceTest.hint"),
+        }),
+        status,
+      ],
+    }),
+    update(local) {
+      cut.input.checked = local.audioCutTails;
+    },
+    dispose() {
+      test.stop();
+    },
+  };
+}

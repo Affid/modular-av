@@ -1,0 +1,64 @@
+{
+  "modular-av-audio-mixer": {
+    "title": "Audio mixer",
+    "open": "Audio mixer",
+    "section": "Audio mixer",
+    "menu": {
+      "name": "Audio mixer",
+      "label": "Open the audio mixer",
+      "hint": "Which effects run on your voice, in which order, and how loud."
+    },
+    "empty": "Effects are modules of their own, and none is enabled in this world. Noise cancellation, reverb, echo and EQ can be turned on from the Modular A/V modules window.",
+    "failed": "That didn't work: {reason}",
+    "places": {
+      "pre-gate": "Before the voice gate",
+      "post-gate": "After the voice gate",
+      "send": "Sends"
+    },
+    "placeHints": {
+      "pre-gate": "The gate hears the result. For noise cancellation, EQ, compression.",
+      "post-gate": "Replaces your voice. For a radio, a pitch shift, a demon.",
+      "send": "Added beside your voice. For reverb and echo: they ring on after the gate closes."
+    },
+    "emptyLane": "Nothing here.",
+    "gate": "Voice gate",
+    "gateHint": "Opens when you speak. Set in the voice settings.",
+    "channel": "My voice",
+    "channelHint": "How much of your voice goes out dry, beside what the sends add.",
+    "on": "Turn {effect} on",
+    "up": "Move {effect} earlier",
+    "down": "Move {effect} later",
+    "place": "Where {effect} runs",
+    "level": "Level",
+    "levelOf": "{effect} level",
+    "cost": {
+      "light": "Light",
+      "medium": "Medium",
+      "heavy": "Heavy"
+    },
+    "status": {
+      "starting": "Starting…",
+      "running": "On",
+      "failed": "Failed. You are heard without it.",
+      "unsupported": "Not available in this browser",
+      "unavailable": "Waiting: this call's server doesn't offer it",
+      "off": "Starts with your microphone"
+    },
+    "warnings": {
+      "tail-before-gate": "{effect} rings on ahead of the voice gate: it holds the gate open, then the gate cuts it off.",
+      "doubled-voice": "{effect} is on a send, so your voice is heard twice: with it and without it.",
+      "noise-after-gate": "{effect} runs after the voice gate, so the gate still hears the noise.",
+      "channel-without-send": "My voice stays at 100% until a send is running to carry it.",
+      "channel-zero-click": "This browser can't turn your voice fully off cleanly: the start of a word may be clipped."
+    },
+    "cutTails": "Cut reverb and delay when my microphone closes",
+    "voiceTest": {
+      "button": "Test my voice",
+      "hint": "Records a few seconds of what is sent, then plays it back. Muted or with push to talk up, it records silence.",
+      "recording": "Recording, speak now…",
+      "playing": "Playing it back…",
+      "no-microphone": "It needs a microphone in the call.",
+      "failed": "It couldn't record your voice."
+    }
+  }
+}

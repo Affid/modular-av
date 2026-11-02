@@ -181,6 +181,10 @@
           "title": "Noise cancellation",
           "what": "Removes background noise from microphones. Each player turns it on for themselves."
         },
+        "modular-av-audio-mixer": {
+          "title": "Audio mixer",
+          "what": "A window for each player's voice: which effects run, in which order, and how loud."
+        },
         "modular-av-audio-reverb": {
           "title": "Reverb",
           "what": "A reverb for the voice, for halls and caves. Needs the Audio mixer."
