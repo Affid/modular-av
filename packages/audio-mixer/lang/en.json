@@ -59,6 +59,33 @@
       "playing": "Playing it back…",
       "no-microphone": "It needs a microphone in the call.",
       "failed": "It couldn't record your voice."
+    },
+    "presets": {
+      "title": "Presets",
+      "choose": "Choose a preset",
+      "none": "No preset",
+      "name": "Name for a new preset",
+      "save": "Save as new",
+      "update": "Save changes",
+      "delete": "Delete",
+      "changed": "Changed since it was saved.",
+      "confirm": "Delete the preset \"{name}\"? This can't be undone.",
+      "missing": "Skipped, not in this world: {effects}.",
+      "unsupported": "Skipped, not available in this browser: {effects}.",
+      "applied": "Preset: {name}",
+      "errors": {
+        "empty-name": "Give the preset a name.",
+        "long-name": "That name is too long.",
+        "full": "You have as many presets as can be saved. Delete one first."
+      }
+    },
+    "keys": {
+      "next": {
+        "name": "Next audio preset"
+      },
+      "previous": {
+        "name": "Previous audio preset"
+      }
     }
   }
 }

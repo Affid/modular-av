@@ -391,3 +391,128 @@ describe("the mixer window", () => {
     expect(rows(view.element)).toEqual(before);
   });
 });
+
+describe("presets in the window", () => {
+  const preset = (name: string) => JSON.stringify({ name, effects: {} });
+  const cave = { a: preset("Cave"), b: preset("Radio") };
+
+  it("lists them, shown as text", () => {
+    const { input } = open({
+      effects: [reverb],
+      presets: { a: preset("<b>Cave</b>") },
+    });
+
+    const list = input('[data-field="preset"]');
+
+    expect(list.textContent).toContain("<b>Cave</b>");
+    expect(list.querySelector("b")).toBeNull();
+  });
+
+  it("applies the one picked", async () => {
+    const { ctx, input } = open({ effects: [reverb], presets: cave });
+
+    change(input('[data-field="preset"]'), "b");
+    await act();
+
+    expect(ctx.presets.active()?.name).toBe("Radio");
+  });
+
+  it("saves a new one from what is there, and shows it picked", async () => {
+    // Arrange
+    const { ctx, input, q } = open({ effects: [reverb] });
+    input('[data-field="presetName"]').value = "Cave";
+
+    // Act
+    q('[data-field="presetSave"]').click();
+    await act();
+
+    // Assert
+    expect(ctx.presets.list().map((p) => p.name)).toEqual(["Cave"]);
+    expect(input('[data-field="preset"]').value).toBe("id1");
+    expect(input('[data-field="presetName"]').value).toBe("");
+  });
+
+  it("says why a name won't do", async () => {
+    const { q } = open({ effects: [reverb] });
+
+    q('[data-field="presetSave"]').click();
+    await act();
+
+    expect(q('[role="alert"]').textContent).toContain("name");
+  });
+
+  it("says when the channel moved off the active one, and can save over it", async () => {
+    // Arrange
+    const { ctx, input, q, setLocal } = open({ effects: [reverb] });
+    await ctx.presets.saveAs("Cave");
+    await act();
+    expect(q('[data-field="presetChanged"]').textContent).toBe("");
+    expect(input('[data-field="presetUpdate"]').disabled).toBe(true);
+
+    // Act
+    await setLocal({ audioChannelLevel: 0.5 });
+    q('[data-field="presetUpdate"]').click();
+    await act();
+
+    // Assert
+    expect(ctx.presets.list()[0]?.channelLevel).toBe(0.5);
+    expect(q('[data-field="presetChanged"]').textContent).toBe("");
+  });
+
+  it("deletes the active one only after asking", async () => {
+    // Arrange
+    const { ctx, q, confirm } = open({ effects: [reverb], presets: cave });
+    await ctx.presets.apply("a");
+    await act();
+    confirm.answer = false;
+
+    // Act: no, then yes.
+    q('[data-field="presetDelete"]').click();
+    await act();
+    expect(ctx.presets.list()).toHaveLength(2);
+    confirm.answer = true;
+    q('[data-field="presetDelete"]').click();
+    await act();
+
+    // Assert
+    expect(confirm.asked[0]).toContain("Cave");
+    expect(ctx.presets.list().map((p) => p.name)).toEqual(["Radio"]);
+  });
+
+  it("has nothing to delete with none active", () => {
+    const { input } = open({ effects: [reverb], presets: cave });
+
+    expect(input('[data-field="presetDelete"]').disabled).toBe(true);
+  });
+
+  it("says what it had to skip", async () => {
+    // Arrange
+    const { ctx, q } = open({
+      effects: [reverb],
+      presets: {
+        a: JSON.stringify({
+          name: "Krisp",
+          effects: { krisp: { on: true } },
+        }),
+      },
+    });
+
+    // Act
+    await ctx.presets.apply("a");
+    await act();
+
+    // Assert
+    expect(q('[data-field="presetSkipped"]').textContent).toContain("krisp");
+  });
+
+  it("stops listening once closed", async () => {
+    const { ctx, view, input } = open({ effects: [reverb], presets: cave });
+    const list = input('[data-field="preset"]');
+
+    view.dispose();
+    await ctx.presets.apply("a");
+    await act();
+
+    expect(list.value).not.toBe("a");
+  });
+});

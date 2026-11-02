@@ -14,12 +14,15 @@ export interface Writer {
    * lands on the last value without replaying the ones between.
    */
   run(key: string, task: Task): Promise<void>;
+  /** Hears each failed write, as long as it listens. */
+  onFailure(listener: (error: unknown) => void): () => void;
 }
 
 /** Every write from the module goes through one of these. */
 export function createWriter(onError: (error: unknown) => void): Writer {
   let waiting: readonly Waiting[] = [];
   let draining = false;
+  let listeners: readonly ((error: unknown) => void)[] = [];
 
   const drain = async (): Promise<void> => {
     draining = true;
@@ -29,6 +32,7 @@ export function createWriter(onError: (error: unknown) => void): Writer {
         await next.task();
       } catch (error: unknown) {
         onError(error);
+        for (const listener of listeners) listener(error);
       }
       next.finish();
     }
@@ -49,6 +53,12 @@ export function createWriter(onError: (error: unknown) => void): Writer {
       waiting = [...waiting, { key, task, done, finish }];
       if (!draining) void drain();
       return done;
+    },
+    onFailure(listener) {
+      listeners = [...listeners, listener];
+      return () => {
+        listeners = listeners.filter((l) => l !== listener);
+      };
     },
   };
 }

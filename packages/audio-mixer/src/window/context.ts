@@ -1,4 +1,6 @@
 import type { ModularAV } from "@modular-av/api";
+import type { Writer } from "../model/queue.ts";
+import type { Presets } from "../presets/presets.ts";
 import type { Recording } from "./voice-test.ts";
 
 /** What the window draws from, and all it can change. */
@@ -16,6 +18,11 @@ export interface MixerContext {
   /** Whether the browser can schedule a gain with no click (not Firefox). */
   readonly automationRate: boolean;
   readonly recording: Recording;
+  readonly presets: Presets;
+  /** The module's one queue: presets and the window write through it. */
+  readonly writes: Writer;
+  /** Asks before something can't be undone. */
+  confirm(text: string): Promise<boolean>;
 }
 
 /** Something drawn, with what undoes its subscriptions. */

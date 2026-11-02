@@ -111,6 +111,67 @@ test("a player sets up their voice in the mixer, and it stays", async ({
   await clearPipeline(p1);
 });
 
+test("a preset comes back across a reload, in a call or out of one", async ({
+  browser,
+}) => {
+  // Arrange: no call for this player's first steps.
+  const p1 = track(await openPlayer(browser, "Player1"));
+  await clearPipeline(p1);
+  const mixer = await openFromSettings(p1);
+  await mixer.locator('[data-field="on.echo"]').check();
+  await expect
+    .poll(async () => (await p1.state()).local.chosenEffects)
+    .toContain("echo");
+
+  // Act: save it, change everything it holds, reload, apply it.
+  await mixer.locator('[data-field="presetName"]').fill("Canyon");
+  await mixer.locator('[data-field="presetSave"]').click();
+  await expect(mixer.locator('[data-field="preset"]')).toContainText("Canyon");
+  await mixer.locator('[data-field="on.echo"]').uncheck();
+  await mixer.locator('[data-field="on.reverb"]').check();
+  await expect(mixer.locator('[data-field="presetChanged"]')).toContainText(
+    "Changed",
+  );
+  await p1.page.reload();
+  await expect(p1.page.locator("#camera-views .mav-dock")).toBeVisible();
+  const again = await openFromSettings(p1);
+  await again
+    .locator('[data-field="preset"]')
+    .selectOption({ label: "Canyon" });
+
+  // Assert: the switch is what was saved, by a macro's way in too.
+  await expect
+    .poll(async () => (await p1.state()).local.chosenEffects)
+    .toEqual(["echo"]);
+  await expect(again.locator('[data-field="presetChanged"]')).toHaveText("");
+  const names = await p1.run(
+    (_api, game) =>
+      (
+        game as unknown as {
+          modules: {
+            get(id: string): {
+              api: { presets: { list(): Promise<string[]> } };
+            };
+          };
+        }
+      ).modules
+        .get("modular-av-audio-mixer")
+        .api.presets.list(),
+    null,
+  );
+  expect(names).toContain("Canyon");
+
+  // Deleting asks first.
+  await again.locator('[data-field="presetDelete"]').click();
+  await p1.page.locator(".dialog button[data-action='yes']").click();
+  await expect(again.locator('[data-field="preset"]')).not.toContainText(
+    "Canyon",
+  );
+  await p1.run(async (api) => {
+    await api.commands.setEffectEnabled("echo", false);
+  }, null);
+});
+
 test("Test my voice records what is sent and plays it back", async ({
   browser,
 }) => {

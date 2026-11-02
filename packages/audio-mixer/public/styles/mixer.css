@@ -37,6 +37,25 @@
   list-style: none;
 }
 
+.mav-mixer-preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.25rem;
+}
+
+.mav-mixer-preset-row select,
+.mav-mixer-preset-row input {
+  flex: 1 1 10rem;
+  min-width: 0;
+}
+
+.mav-mixer-preset-row button {
+  flex: 0 0 auto;
+  width: auto;
+}
+
 .mav-mixer-channel {
   display: flex;
   flex-direction: column;

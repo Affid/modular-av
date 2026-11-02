@@ -1,7 +1,6 @@
 import type {
   ChoiceControl,
   Control,
-  ControlContribution,
   Observable,
   RangeControl,
   ToggleControl,
@@ -10,22 +9,6 @@ import { el } from "@modular-av/kit";
 import type { Writer } from "../model/queue.ts";
 import type { MixerContext, Rendered } from "./context.ts";
 import { slider, switchField } from "./fields.ts";
-
-/** A value that can be saved and set back: buttons have none. */
-export type SettingControl = ControlContribution &
-  (RangeControl | ToggleControl | ChoiceControl);
-
-export function settingsOf(
-  ctx: Pick<MixerContext, "api">,
-  effect: string,
-): readonly SettingControl[] {
-  return ctx.api.contributions
-    .list()
-    .filter(
-      (c): c is SettingControl =>
-        c.kind === "control" && c.effect === effect && c.type !== "button",
-    );
-}
 
 const follow = <T>(
   state: Observable<T>,

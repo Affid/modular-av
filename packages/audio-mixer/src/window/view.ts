@@ -1,11 +1,12 @@
 import type { LocalState } from "@modular-av/api";
 import { el } from "@modular-av/kit";
 import { audioEffectsOf, type Lane, lanesOf } from "../model/pipeline.ts";
-import { createWriter, type Writer } from "../model/queue.ts";
+import type { Writer } from "../model/queue.ts";
 import { type Warning, warningsOf } from "../model/warnings.ts";
 import { type Channel, renderChannel } from "./channel.ts";
 import type { MixerContext, Rendered } from "./context.ts";
 import { type Footer, renderFooter } from "./footer.ts";
+import { renderPresetBar } from "./preset-bar.ts";
 
 const reasonOf = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
@@ -126,10 +127,14 @@ export function renderMixer(ctx: MixerContext, doc: Document): Rendered {
     className: "mav-mixer-alert",
     attrs: { role: "alert" },
   });
-  const writes = createWriter((error) => {
-    ctx.onError(error);
-    alerts.textContent = ctx.t("failed", { reason: reasonOf(error) });
+  const { writes } = ctx;
+  const say = (text: string): void => {
+    alerts.textContent = text;
+  };
+  const offFailure = writes.onFailure((error) => {
+    say(ctx.t("failed", { reason: reasonOf(error) }));
   });
+  const presets = renderPresetBar(ctx, doc, say);
   const slot = el("div", { doc });
   const warnings = el("ul", { doc, className: "mav-mixer-warnings" });
   const footer = renderFooter(ctx, doc, writes);
@@ -138,9 +143,11 @@ export function renderMixer(ctx: MixerContext, doc: Document): Rendered {
     element: el("div", {
       doc,
       className: "mav-mixer",
-      children: [alerts, warnings, slot, footer.element],
+      children: [alerts, presets.element, warnings, slot, footer.element],
     }),
     dispose() {
+      offFailure();
+      presets.dispose();
       following.dispose();
       footer.dispose();
     },

@@ -12,8 +12,9 @@ import {
   placeChange,
 } from "../model/pipeline.ts";
 import type { Writer } from "../model/queue.ts";
+import { settingsOf } from "../model/settings.ts";
 import type { MixerContext, Rendered } from "./context.ts";
-import { renderSetting, settingsOf } from "./controls.ts";
+import { renderSetting } from "./controls.ts";
 import { levelSlider, switchField } from "./fields.ts";
 
 export interface Row extends Rendered {
@@ -161,7 +162,9 @@ export function effectRow(
     : null;
   const chosen = local.chosenEffects.includes(id);
   const settings = chosen
-    ? settingsOf(ctx, id).map((c) => renderSetting(ctx, doc, c, spec.writes))
+    ? settingsOf(ctx.api.contributions.list(), id).map((c) =>
+        renderSetting(ctx, doc, c, spec.writes),
+      )
     : [];
   const update = (next: LocalState): void => {
     level?.show(next.audioEffectMix[id] ?? 1);
