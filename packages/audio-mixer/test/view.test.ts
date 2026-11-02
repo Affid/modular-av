@@ -351,6 +351,27 @@ describe("the mixer window", () => {
     expect(api.calls).toHaveLength(1);
   });
 
+  it("shows a change of status in place, so a drag elsewhere isn't lost", async () => {
+    // Arrange
+    const { view, q, setLocal } = open({
+      effects: [reverb],
+      local: {
+        chosenEffects: ["reverb"],
+        effects: { reverb: { status: "starting", error: null } },
+      },
+    });
+    const row = q('[data-effect="reverb"]');
+
+    // Act
+    await setLocal({
+      effects: { reverb: { status: "running", error: null } },
+    });
+
+    // Assert
+    expect(view.element.querySelector('[data-effect="reverb"]')).toBe(row);
+    expect(q("[data-status]").textContent).toBe("On");
+  });
+
   it("sets Cut tails", async () => {
     const { api, q } = open({ effects: [reverb] });
 

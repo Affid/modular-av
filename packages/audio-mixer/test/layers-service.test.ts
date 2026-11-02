@@ -75,7 +75,8 @@ function setup(options: { selfIsGM?: boolean; undo?: string } = {}) {
     }));
     return Promise.resolve();
   });
-  vi.spyOn(real, "setAudioPipeline").mockImplementation((change) => {
+  const pipeline = vi.spyOn(real, "setAudioPipeline");
+  pipeline.mockImplementation((change) => {
     update((l) => ({
       audioEffectPlaces: { ...l.audioEffectPlaces, ...change.places },
       audioEffectMix: { ...l.audioEffectMix, ...change.mix },
@@ -101,7 +102,7 @@ function setup(options: { selfIsGM?: boolean; undo?: string } = {}) {
     layers,
   });
   const local = () => api.state.get().local;
-  return { ...mixer, layers, presets, values, notified, local };
+  return { ...mixer, layers, presets, values, notified, local, pipeline };
 }
 
 describe("a layer on a player's client", () => {
@@ -268,6 +269,49 @@ describe("a layer on a player's client", () => {
     expect(layers.states()).toEqual([
       { id: "cave", label: "Cave", state: "partly" },
     ]);
+  });
+});
+
+describe("when applying fails", () => {
+  it("tells the player once it finally applies, and repeats", async () => {
+    // Arrange
+    const { layers, values, notified, pipeline } = setup();
+    values.table = JSON.stringify(cave);
+    pipeline.mockRejectedValueOnce(new Error("boom"));
+
+    // Act
+    await layers.reconcile();
+    expect(notified).toEqual([]);
+    await layers.reconcile();
+
+    // Assert
+    expect(notified).toEqual(["Cave"]);
+  });
+
+  it("keeps what is to be given back", async () => {
+    const { layers, values, pipeline } = setup();
+    values.table = JSON.stringify(cave);
+    pipeline.mockRejectedValueOnce(new Error("boom"));
+
+    await layers.reconcile();
+
+    expect(layers.held()?.effects.reverb?.mix).toBe(0.3);
+  });
+});
+
+describe("whoever follows the layers", () => {
+  it("hears of a change that needed no work here", async () => {
+    // Arrange: a GM's client, whose own voice a table layer leaves alone.
+    const { layers, values } = setup({ selfIsGM: true });
+    const listener = vi.fn();
+    layers.subscribe(listener);
+    values.table = JSON.stringify(cave);
+
+    // Act
+    await layers.reconcile();
+
+    // Assert
+    expect(listener).toHaveBeenCalled();
   });
 });
 

@@ -77,6 +77,43 @@ function onLine(
   });
 }
 
+function pickers(ctx: MixerContext, doc: Document) {
+  const presets = ctx.presets.list();
+  return {
+    presets,
+    preset: select(
+      doc,
+      "layerPreset",
+      ctx.t("layers.preset"),
+      presets.map((p) => [p.id, p.name]),
+    ),
+    target: select(doc, "layerTarget", ctx.t("layers.target"), [
+      [TABLE, ctx.t("layers.everyone")],
+      ...others(ctx).map((p): [string, string] => [p.id, p.name]),
+    ]),
+    gms: switchField(
+      doc,
+      ctx.t("layers.includeGMs"),
+      { "data-field": "layerGMs" },
+      () => undefined,
+    ),
+  };
+}
+
+type Pickers = ReturnType<typeof pickers>;
+
+/** A redraw keeps what the GM picked, as far as it still exists. */
+function keepPicks(from: Pickers | null, to: Pickers): void {
+  if (!from) return;
+  const keep = (was: HTMLSelectElement, next: HTMLSelectElement): void => {
+    if ([...next.options].some((o) => o.value === was.value))
+      next.value = was.value;
+  };
+  keep(from.preset, to.preset);
+  keep(from.target, to.target);
+  to.gms.input.checked = from.gms.input.checked;
+}
+
 /** A GM's way to lay a saved preset over the table or one player. */
 export function renderLayerBar(
   ctx: MixerContext,
@@ -84,24 +121,12 @@ export function renderLayerBar(
   gmLayers: GmLayers,
 ): Rendered {
   const element = el("section", { doc, className: "mav-mixer-presets" });
+  let shown: Pickers | null = null;
   const render = (): void => {
-    const presets = ctx.presets.list();
-    const preset = select(
-      doc,
-      "layerPreset",
-      ctx.t("layers.preset"),
-      presets.map((p) => [p.id, p.name]),
-    );
-    const target = select(doc, "layerTarget", ctx.t("layers.target"), [
-      [TABLE, ctx.t("layers.everyone")],
-      ...others(ctx).map((p): [string, string] => [p.id, p.name]),
-    ]);
-    const gms = switchField(
-      doc,
-      ctx.t("layers.includeGMs"),
-      { "data-field": "layerGMs" },
-      () => undefined,
-    );
+    const picks = pickers(ctx, doc);
+    keepPicks(shown, picks);
+    shown = picks;
+    const { presets, preset, target, gms } = picks;
     const apply = el("button", {
       doc,
       text: ctx.t("layers.apply"),
@@ -139,8 +164,15 @@ export function renderLayerBar(
     );
   };
   render();
+  const stops = [
+    ctx.presets.subscribe(render),
+    ctx.api.state.subscribe((s) => s.participants, render),
+    ctx.layers?.subscribe(render),
+  ];
   return {
     element,
-    dispose: ctx.presets.subscribe(render),
+    dispose() {
+      for (const stop of stops) stop?.();
+    },
   };
 }

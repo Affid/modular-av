@@ -238,4 +238,16 @@ describe("the window's tabs", () => {
 
     expect(stop).toHaveBeenCalledOnce();
   });
+
+  it("do nothing once the window has closed", () => {
+    // Arrange
+    const { view, watch } = openWindow(true);
+    view.dispose();
+
+    // Act: a stale reference to the closed window.
+    view.show?.("table");
+
+    // Assert
+    expect(watch).not.toHaveBeenCalled();
+  });
 });

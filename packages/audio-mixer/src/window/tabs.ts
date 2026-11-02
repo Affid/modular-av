@@ -24,8 +24,10 @@ export function withTable(
   );
   const panel = el("div", { doc, attrs: { role: "tabpanel" } });
   let tableView: Rendered | null = null;
+  let closed = false;
 
   const show = (tab: MixerTab): void => {
+    if (closed) return;
     tableView?.dispose();
     tableView = tab === "table" ? renderTableView(ctx, doc, table) : null;
     panel.replaceChildren(tableView?.element ?? mine.element);
@@ -52,6 +54,7 @@ export function withTable(
       ],
     }),
     dispose() {
+      closed = true;
       tableView?.dispose();
       mine.dispose();
     },

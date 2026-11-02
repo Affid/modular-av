@@ -127,6 +127,7 @@
         "refused": "You refused your GM's change: {label}.",
         "kept-out": "You keep your GM out of your voice: {label}."
       }
-    }
+    },
+    "loadFailed": "The audio mixer couldn't load. Reload the page and try again."
   }
 }

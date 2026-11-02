@@ -102,4 +102,26 @@ describe("the write queue", () => {
     expect(errors).toEqual([boom]);
     expect(next).toHaveBeenCalledOnce();
   });
+
+  it("goes on even if whoever listens for failures throws", async () => {
+    // Arrange
+    const thrown = new Error("listener");
+    const reported = vi.fn();
+    vi.stubGlobal("reportError", reported);
+    const writer = createWriter(() => {
+      throw thrown;
+    });
+    const next = vi.fn(() => Promise.resolve());
+
+    // Act
+    await Promise.all([
+      writer.run("a", () => Promise.reject(new Error("boom"))),
+      writer.run("b", next),
+    ]);
+
+    // Assert
+    expect(next).toHaveBeenCalledOnce();
+    expect(reported).toHaveBeenCalledWith(thrown);
+    vi.unstubAllGlobals();
+  });
 });

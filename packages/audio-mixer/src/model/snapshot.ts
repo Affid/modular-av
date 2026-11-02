@@ -43,6 +43,7 @@ export type Pipeline = Pick<
 const MAX_EFFECTS = 64;
 const MAX_SETTINGS = 32;
 const MAX_ID = 128;
+const MAX_TEXT = 256;
 const FORBIDDEN_KEYS: ReadonlySet<string> = new Set([
   "__proto__",
   "constructor",
@@ -63,7 +64,7 @@ const isId = (value: unknown): value is string =>
 
 const isSetting = (value: unknown): value is SettingValue =>
   typeof value === "boolean" ||
-  typeof value === "string" ||
+  (typeof value === "string" && value.length <= MAX_TEXT) ||
   (typeof value === "number" && Number.isFinite(value));
 
 const safeEntries = (

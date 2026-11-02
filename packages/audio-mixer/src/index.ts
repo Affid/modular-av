@@ -52,7 +52,12 @@ declare global {
       escapeHTML(text: string): string;
     };
   };
-  var ui: { notifications: { info(message: string): void } };
+  var ui: {
+    notifications: {
+      info(message: string, options?: object): void;
+      error(message: string, options?: object): void;
+    };
+  };
 }
 
 interface UserChanges {
@@ -74,7 +79,10 @@ function open(tab?: "table"): void {
     .then((mixer) => {
       mixer.open(tab);
     })
-    .catch(reportError);
+    .catch((error: unknown) => {
+      reportError(error);
+      ui.notifications.error(`${MODULE_ID}.loadFailed`, { localize: true });
+    });
 }
 
 function step(by: 1 | -1): void {
@@ -82,11 +90,9 @@ function step(by: 1 | -1): void {
     .then(async ({ presets }) => {
       const preset = await presets.step(by);
       if (preset)
-        ui.notifications.info(
-          game.i18n.format(`${MODULE_ID}.presets.applied`, {
-            name: preset.name,
-          }),
-        );
+        ui.notifications.info(`${MODULE_ID}.presets.applied`, {
+          format: { name: preset.name },
+        });
     })
     .catch(reportError);
 }

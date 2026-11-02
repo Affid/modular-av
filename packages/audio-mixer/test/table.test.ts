@@ -69,6 +69,27 @@ describe("a player's reports", () => {
     });
   });
 
+  it("carry only audio effects", async () => {
+    // Arrange
+    const { sent, table, setLocal } = setup();
+    await setLocal({
+      effects: {
+        reverb: { status: "running", error: null },
+        blur: { status: "running", error: null },
+      },
+    });
+
+    // Act
+    table.receive({ type: "watch" }, "gm");
+    await vi.advanceTimersByTimeAsync(COALESCE_MS);
+
+    // Assert
+    expect(reportsIn(sent)[0]?.data).toMatchObject({
+      status: { reverb: "running" },
+    });
+    expect(JSON.stringify(sent)).not.toContain("blur");
+  });
+
   it("carry no device names", async () => {
     // Arrange
     const { sent, table, setLocal } = setup();
@@ -232,6 +253,13 @@ describe("reading a report", () => {
     ],
     ["a status list that isn't one", { ...report(1), status: "running" }],
     ["warnings that aren't a list", { ...report(1), warnings: "bad" }],
+    [
+      "a warning naming too long an id",
+      {
+        ...report(1),
+        warnings: [{ key: "doubled-voice", effect: "x".repeat(300) }],
+      },
+    ],
     ["an unknown warning", { ...report(1), warnings: [{ key: "nope" }] }],
     ["a warning that isn't one", { ...report(1), warnings: ["nope"] }],
     [

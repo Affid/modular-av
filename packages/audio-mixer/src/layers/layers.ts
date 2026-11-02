@@ -68,6 +68,8 @@ export interface Layers {
   free(snapshot: Snapshot): Snapshot;
   /** For saving a preset: the channel as it is under the layers. */
   underneath(snapshot: Snapshot): Snapshot;
+  /** Something a GM sees changed, that this client's channel doesn't show. */
+  changed(): void;
   subscribe(listener: () => void): () => void;
 }
 
@@ -124,15 +126,22 @@ export function createLayers(deps: LayersDeps): Layers {
         api.contributions.list(),
       ),
     );
-    if (!step) return;
+    if (!step) {
+      notifyChange();
+      return;
+    }
     const ids = layers.map((layer) => layer.id);
-    await save(ids, step.keep);
-    await apply(step.target);
-    if (step.undo) await save(ids, step.undo);
-    else await store.setUndo("");
-    for (const layer of layers)
-      if (!before?.ids.includes(layer.id)) deps.notify(layer);
-    notifyChange();
+    try {
+      // Still under the old ids: a failure below tells the player later.
+      await save(before?.ids ?? [], step.keep);
+      await apply(step.target);
+      if (step.undo) await save(ids, step.undo);
+      else await store.setUndo("");
+      for (const layer of layers)
+        if (!before?.ids.includes(layer.id)) deps.notify(layer);
+    } finally {
+      notifyChange();
+    }
   };
 
   const reconcile = (): Promise<void> => writes.run("reconcile", reconcileNow);
@@ -186,6 +195,7 @@ export function createLayers(deps: LayersDeps): Layers {
       const known = record();
       return known ? underneath(snapshot, known.values) : snapshot;
     },
+    changed: notifyChange,
     subscribe(listener) {
       listeners = [...listeners, listener];
       return () => {

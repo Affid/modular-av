@@ -107,6 +107,7 @@ function header(
   doc: Document,
   spec: RowSpec,
   local: LocalState,
+  status: HTMLElement,
 ): HTMLElement {
   const { id, label, cost } = spec.definition;
   const on = switchField(
@@ -129,12 +130,7 @@ function header(
     className: "mav-mixer-row-head",
     children: [
       on.element,
-      el("span", {
-        doc,
-        className: "mav-mixer-status",
-        text: statusText(ctx, id, local),
-        attrs: { "data-status": "" },
-      }),
+      status,
       el("span", {
         doc,
         className: "mav-mixer-cost",
@@ -195,8 +191,14 @@ export function effectRow(
         lockedIfHeld(renderSetting(ctx, doc, c, spec.writes), c.id, spec.held),
       )
     : [];
+  const status = el("span", {
+    doc,
+    className: "mav-mixer-status",
+    attrs: { "data-status": "" },
+  });
   const update = (next: LocalState): void => {
     level?.show(next.audioEffectMix[id] ?? 1);
+    status.textContent = statusText(ctx, id, next);
   };
   update(local);
   return {
@@ -206,7 +208,7 @@ export function effectRow(
       className: "mav-mixer-row",
       attrs: { "data-effect": id },
       children: [
-        header(ctx, doc, spec, local),
+        header(ctx, doc, spec, local, status),
         level?.element,
         ...settings.map((s) => s.element),
       ],

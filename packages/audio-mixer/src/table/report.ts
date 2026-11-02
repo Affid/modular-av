@@ -10,6 +10,7 @@ import {
   type Snapshot,
 } from "../model/snapshot.ts";
 import type { LayerState, LayerStatus } from "../layers/layers.ts";
+import { audioEffectsOf } from "../model/pipeline.ts";
 import { type Warning, WARNING_KEYS, warningsOf } from "../model/warnings.ts";
 
 /** A burst of changes is one report. */
@@ -18,6 +19,7 @@ export const COALESCE_MS = 300;
 const MAX_EFFECTS = 64;
 const MAX_LAYERS = 8;
 const MAX_LABEL = 64;
+const MAX_ID = 128;
 
 const LAYER_STATES: readonly LayerState[] = [
   "applied",
@@ -57,7 +59,10 @@ export function createReport(
   return {
     snapshot: captureSnapshot(definitions, local, contributions),
     status: Object.fromEntries(
-      Object.entries(local.effects).map(([id, { status }]) => [id, status]),
+      audioEffectsOf(definitions).flatMap(({ id }) => {
+        const state = local.effects[id];
+        return state ? [[id, state.status]] : [];
+      }),
     ),
     warnings: warningsOf(definitions, local, automationRate),
     layers,
@@ -71,7 +76,9 @@ function parseStatus(value: unknown): Report["status"] | null {
   if (!isRecord(value)) return null;
   const entries = Object.entries(value);
   if (entries.length > MAX_EFFECTS) return null;
-  return entries.every(([, s]) => STATUSES.includes(s as EffectStatus))
+  return entries.every(
+    ([id, s]) => id.length <= MAX_ID && STATUSES.includes(s as EffectStatus),
+  )
     ? (value as Report["status"])
     : null;
 }
@@ -82,7 +89,9 @@ function parseWarning(value: unknown): Warning | null {
   const known = WARNING_KEYS.find((k) => k === key);
   if (!known) return null;
   if (effect === undefined) return { key: known };
-  return typeof effect === "string" ? { key: known, effect } : null;
+  return typeof effect === "string" && effect.length <= MAX_ID
+    ? { key: known, effect }
+    : null;
 }
 
 function parseLayerStatus(value: unknown): LayerStatus | null {
@@ -91,6 +100,7 @@ function parseLayerStatus(value: unknown): LayerStatus | null {
   const known = LAYER_STATES.find((s) => s === state);
   return known &&
     typeof id === "string" &&
+    id.length <= MAX_ID &&
     typeof label === "string" &&
     label.length <= MAX_LABEL
     ? { id, label, state: known }

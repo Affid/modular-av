@@ -285,4 +285,35 @@ describe("presets", () => {
     expect(seen).toBeGreaterThan(0);
     expect(listener).toHaveBeenCalledTimes(seen);
   });
+
+  it("moves on with each press, however fast, as each depends on the last", async () => {
+    // Arrange
+    const preset = (name: string) => JSON.stringify({ name, effects: {} });
+    const { presets } = setup({
+      a: preset("A"),
+      b: preset("B"),
+      c: preset("C"),
+    });
+
+    // Act: both before the first has finished.
+    await Promise.all([presets.step(1), presets.step(1)]);
+
+    // Assert
+    expect(presets.active()?.name).toBe("B");
+  });
+
+  it("says nothing was applied when applying failed", async () => {
+    // Arrange
+    const { api, presets } = setup({
+      a: JSON.stringify({ name: "A", effects: {}, channelLevel: 0.5 }),
+    });
+    api.failNext("setAudioPipeline", new Error("boom"));
+
+    // Act
+    const stepped = await presets.step(1);
+
+    // Assert
+    expect(stepped).toBeNull();
+    expect(presets.active()).toBeNull();
+  });
 });

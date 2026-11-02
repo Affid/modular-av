@@ -40,6 +40,7 @@ function fakeLayers(
     takeHeld: (s) => Promise.resolve(s),
     free: (s) => s,
     underneath: (s) => s,
+    changed: () => undefined,
     subscribe: () => () => undefined,
   };
 }
@@ -234,6 +235,29 @@ describe("a GM's layer controls", () => {
     expect(
       view.element.querySelector('[data-field="layerEnd.table"]'),
     ).toBeNull();
+  });
+
+  it("adds a player who joins, keeping what the GM has picked", async () => {
+    // Arrange
+    const { q, api, ctx } = bar();
+    q('[data-field="layerGMs"]').click();
+
+    // Act
+    api.setState((state) => ({
+      ...state,
+      participants: {
+        ...state.participants,
+        p2: participantState({ id: "p2", name: "Bo" }),
+      },
+    }));
+    await act();
+    q('[data-field="layerTarget"]').value = "p2";
+    await ctx.presets.saveAs("Another");
+    await act();
+
+    // Assert
+    expect(q('[data-field="layerTarget"]').value).toBe("p2");
+    expect(q('[data-field="layerGMs"]').checked).toBe(true);
   });
 
   it("says a GM needs a preset first", () => {

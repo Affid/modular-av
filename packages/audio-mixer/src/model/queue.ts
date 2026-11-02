@@ -24,6 +24,17 @@ export function createWriter(onError: (error: unknown) => void): Writer {
   let draining = false;
   let listeners: readonly ((error: unknown) => void)[] = [];
 
+  /** Whoever hears a failure can't stop the writes behind it. */
+  const report = (error: unknown): void => {
+    for (const listener of [onError, ...listeners]) {
+      try {
+        listener(error);
+      } catch (thrown: unknown) {
+        reportError(thrown);
+      }
+    }
+  };
+
   const drain = async (): Promise<void> => {
     draining = true;
     for (let next = waiting[0]; next; next = waiting[0]) {
@@ -31,8 +42,7 @@ export function createWriter(onError: (error: unknown) => void): Writer {
       try {
         await next.task();
       } catch (error: unknown) {
-        onError(error);
-        for (const listener of listeners) listener(error);
+        report(error);
       }
       next.finish();
     }

@@ -48,10 +48,11 @@ function createMixer(api: ModularAV): Mixer {
     writes,
     store: foundryLayerStore(),
     selfIsGM: game.user.isGM,
+    // Through `format`, Foundry escapes it: a label isn't this module's text.
     notify: ({ label }) => {
-      ui.notifications.info(
-        game.i18n.format(`${MODULE_ID}.layers.notice`, { label }),
-      );
+      ui.notifications.info(`${MODULE_ID}.layers.notice`, {
+        format: { label },
+      });
     },
   });
   const gmLayers = game.user.isGM
@@ -61,6 +62,11 @@ function createMixer(api: ModularAV): Mixer {
         newId: () => foundry.utils.randomID(),
       })
     : null;
+  // Another GM's personal layer shows only in this GM's list.
+  if (gmLayers)
+    Hooks.on("updateUser", () => {
+      layers.changed();
+    });
   const presets = createPresets({
     api,
     writes,

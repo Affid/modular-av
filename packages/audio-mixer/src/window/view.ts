@@ -14,7 +14,7 @@ import { withTable } from "./tabs.ts";
 const reasonOf = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
-/** What decides the rows drawn; a level changes in place instead. */
+/** What decides the rows drawn; a level or a status changes in place. */
 const shapeOf = (
   lanes: readonly Lane[],
   local: LocalState,
@@ -24,7 +24,9 @@ const shapeOf = (
     held,
     lanes: lanes.map((lane) => lane.effects.map((d) => d.id)),
     chosen: local.chosenEffects,
-    effects: local.effects,
+    unsupported: Object.keys(local.effects).filter(
+      (id) => local.effects[id]?.status === "unsupported",
+    ),
     mixed: Object.keys(local.audioEffectMix).sort(),
   });
 

@@ -170,6 +170,10 @@ describe("reading a saved preset", () => {
     ["a mix out of range", { effects: { a: { mix: 2 } } }],
     ["a mix that isn't a number", { effects: { a: { mix: "1" } } }],
     ["settings holding an object", { effects: { a: { settings: { b: {} } } } }],
+    [
+      "a setting too long to be a value",
+      { effects: { a: { settings: { b: "x".repeat(300) } } } },
+    ],
     ["an order for an unknown place", { effects: {}, order: { master: [] } }],
     ["an order that isn't a list", { effects: {}, order: { send: "a" } }],
     ["an order of non-strings", { effects: {}, order: { send: [1] } }],

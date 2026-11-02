@@ -111,6 +111,8 @@ function checkName(name: string, known: boolean, count: number): void {
 export function createPresets(deps: PresetsDeps): Presets {
   const { api, store, writes } = deps;
   let skipped = NOTHING_SKIPPED;
+  /** What the last ask aims for, until it lands: fast stepping counts on it. */
+  let aimingAt: string | null = null;
   let listeners: readonly (() => void)[] = [];
 
   const notify = (): void => {
@@ -127,8 +129,9 @@ export function createPresets(deps: PresetsDeps): Presets {
     list().find((p) => p.id === id) ?? null;
   const active = (): Preset | null => find(store.activeId());
 
-  const apply = (id: string): Promise<void> =>
-    writes.run("preset", async () => {
+  const apply = async (id: string): Promise<void> => {
+    aimingAt = id;
+    await writes.run("preset", async () => {
       const preset = find(id);
       if (!preset) return;
       const free = deps.layers ? await deps.layers.takeHeld(preset) : preset;
@@ -143,6 +146,8 @@ export function createPresets(deps: PresetsDeps): Presets {
       await store.setActiveId(id);
       notify();
     });
+    if (aimingAt === id) aimingAt = null;
+  };
 
   return {
     list,
@@ -187,12 +192,13 @@ export function createPresets(deps: PresetsDeps): Presets {
     async step(by) {
       const all = list();
       if (all.length === 0) return null;
-      const at = all.findIndex((p) => p.id === store.activeId());
-      const from = at < 0 && by < 0 ? 0 : at;
-      const next = all[(from + by + all.length) % all.length];
+      const from = aimingAt ?? store.activeId();
+      const at = all.findIndex((p) => p.id === from);
+      const start = at < 0 && by < 0 ? 0 : at;
+      const next = all[(start + by + all.length) % all.length];
       if (!next) return null;
       await apply(next.id);
-      return next;
+      return store.activeId() === next.id ? next : null;
     },
     subscribe(listener) {
       listeners = [...listeners, listener];
