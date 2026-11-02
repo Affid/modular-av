@@ -47,6 +47,11 @@
   min-width: 440px;
 }
 
+/* Flex and grid rules below would show what is hidden. */
+.mav-mixer [hidden] {
+  display: none !important;
+}
+
 .mav-mixer h3,
 .mav-mixer h4 {
   margin: 0;

@@ -142,11 +142,8 @@ export function addTo(
   place: AudioPlace,
 ): ChainPlan {
   const key = isNoise(definition) ? NOISE_KEY : definition.id;
-  const known = slotOf(racks, key);
-  if (known?.effect.id === definition.id) {
-    const moved = moveTo(racks, key, place);
-    return moved ?? plan({});
-  }
+  // Already in, the noise card with whichever model: moved, not doubled.
+  if (slotOf(racks, key)) return moveTo(racks, key, place) ?? plan({});
   const id = definition.id;
   return plan(
     {

@@ -4,6 +4,7 @@ import { cardStateOf, PLACES, type Rack } from "../model/rack.ts";
 import { type Card, nameOf, renderCard } from "./card.ts";
 import type { ChainData } from "./chain-data.ts";
 import type { MixerContext } from "./context.ts";
+import { byField } from "./fields.ts";
 
 /** What the panel asks for; none of it on another player's chain. */
 export interface RoutingHandlers {
@@ -144,9 +145,7 @@ function onKey(
     handlers.toggle(key);
   } else if (event.key === "Enter") {
     handled();
-    const button = card.querySelector<HTMLElement>(
-      `[data-field="settings.${key}"]`,
-    );
+    const button = byField(card, `settings.${key}`);
     if (button) handlers.settings(key, button);
   } else if (event.key === "Delete" || event.key === "Backspace") {
     handled();

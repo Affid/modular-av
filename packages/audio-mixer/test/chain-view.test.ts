@@ -79,7 +79,13 @@ function open(setup: Setup = CHAIN, layers?: Layers) {
   const input = (selector: string) => q(selector) as HTMLInputElement;
   const select = (selector: string) => q(selector) as HTMLSelectElement;
   const button = (selector: string) => q(selector) as HTMLButtonElement;
-  const card = (key: string) => q(`[data-key="${key}"]`);
+  const card = (key: string): HTMLElement => {
+    const found = [
+      ...view.element.querySelectorAll<HTMLElement>("[data-key]"),
+    ].find((c) => c.dataset.key === key);
+    if (!found) throw new Error(`no card ${key}`);
+    return found;
+  };
   const keys = (part: string) =>
     [
       ...view.element.querySelectorAll<HTMLElement>(
@@ -358,6 +364,106 @@ describe("the window following the core", () => {
 
     expect(document.activeElement).toBe(card("eq"));
     expect(card("eq").tabIndex).toBe(0);
+  });
+});
+
+describe("after the code review", () => {
+  it("makes a plan when it runs, from the chain then", async () => {
+    const { card, press, calls, api } = open();
+
+    // Switching it on is still being written when the move is asked for.
+    press(card("eq"), " ");
+    press(card("eq"), "ArrowUp", { altKey: true });
+    // The core moved it meanwhile, before the move's turn came.
+    api.setState((s) => ({
+      ...s,
+      local: {
+        ...s.local,
+        audioEffectOrder: { ...NO_ORDER, "pre-gate": ["eq", "rnnoise"] },
+      },
+    }));
+    await act();
+
+    expect(calls()).toEqual([["setEffectEnabled", "eq", true]]);
+  });
+
+  it("keeps the keys off what a GM's layer holds", async () => {
+    const layers = fakeLayers(
+      [{ id: "cave", label: "The cave", state: "applied" }],
+      { effects: { reverb: { on: true, place: "send" } } },
+    );
+    const { card, press, calls } = open(CHAIN, layers);
+
+    press(card("reverb"), " ");
+    press(card("reverb"), "Delete");
+    press(card("reverb"), "ArrowLeft", { altKey: true });
+    await act();
+
+    expect(calls()).toEqual([]);
+  });
+
+  it("closes a pop-up when its button is pressed again", () => {
+    const { q, view } = open();
+
+    q('[data-field="settings.reverb"]').click();
+    q('[data-field="settings.reverb"]').click();
+
+    expect(view.element.querySelector('[data-pop="settings"]')).toBeNull();
+  });
+
+  it("keeps the gate's pop-up open across a redraw", async () => {
+    const { q, setLocal, view } = open();
+
+    q('[data-field="settings.gate"]').click();
+    await setLocal({
+      audioEffectOrder: { ...NO_ORDER, "pre-gate": ["eq", "rnnoise"] },
+    });
+
+    expect(view.element.querySelector('[data-pop="gate"]')).not.toBeNull();
+  });
+
+  it("moves the noise card when picked again, keeping its model", async () => {
+    const { q, calls } = open({
+      ...CHAIN,
+      local: {
+        ...CHAIN.local,
+        chosenEffects: ["gtcrn", "reverb"],
+        audioEffectOrder: { ...NO_ORDER, "pre-gate": ["gtcrn", "eq"] },
+      },
+    });
+
+    q('[data-field="add.post-gate"]').click();
+    q(`[data-offer="${NOISE_KEY}"]`).click();
+    await act();
+
+    expect(calls()).toEqual([
+      [
+        "setAudioPipeline",
+        {
+          places: { gtcrn: "post-gate" },
+          order: { "pre-gate": ["eq"], "post-gate": ["gtcrn"] },
+        },
+      ],
+    ]);
+  });
+});
+
+describe("ids from other modules", () => {
+  it("work with quotes in them: opening settings, going to the level", () => {
+    const odd = effect('a"b]', "send", { label: "Odd" });
+    const { card, press, view } = open({
+      effects: [odd],
+      local: { chosenEffects: ['a"b]'], audioEffectMix: { 'a"b]': 0.5 } },
+    });
+
+    press(card('a"b]'), "Enter");
+    const pop = view.element.querySelector('[data-pop="settings"]');
+    press(card('a"b]'), "l");
+
+    expect(pop).not.toBeNull();
+    expect((document.activeElement as HTMLElement).dataset.field).toBe(
+      'mix.a"b]',
+    );
   });
 });
 

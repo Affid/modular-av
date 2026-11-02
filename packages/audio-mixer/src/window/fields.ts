@@ -110,6 +110,20 @@ export function switchField(
   };
 }
 
+/**
+ * The element whose `data-field` is `field`. Compared, not put in a selector:
+ * ids come from other modules and may hold quotes.
+ */
+export const byField = (
+  root: ParentNode,
+  field: string | undefined,
+): HTMLElement | null =>
+  field === undefined
+    ? null
+    : ([...root.querySelectorAll<HTMLElement>("[data-field]")].find(
+        (found) => found.dataset.field === field,
+      ) ?? null);
+
 export const undrawn = (element: HTMLElement): Rendered => ({
   element,
   dispose: () => undefined,

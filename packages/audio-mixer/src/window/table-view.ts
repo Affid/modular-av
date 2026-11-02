@@ -35,7 +35,8 @@ export function chainOfReport(
   const known = Object.entries(effects).filter(([id]) =>
     audio.some((d) => d.id === id),
   );
-  const status = (id: string): EffectStatus => report.status[id] ?? "off";
+  const status = (id: string): EffectStatus =>
+    Object.hasOwn(report.status, id) ? (report.status[id] ?? "off") : "off";
   return {
     chosenEffects: known.filter(([, e]) => e.on === true).map(([id]) => id),
     effects: Object.fromEntries(
@@ -157,13 +158,29 @@ export function renderTableView(
     ],
   });
   let picked: string | null = null;
+  /** What is drawn: an unasked report from someone else redraws nothing. */
+  let drawn = "";
+  /** The players offered: an open list isn't rebuilt for a report. */
+  let options = "";
   const render = (): void => {
     const players = others(ctx);
-    picker.replaceChildren(
-      ...players.map((p) =>
-        el("option", { doc, text: p.name, attrs: { value: p.id } }),
-      ),
-    );
+    const current = players.find((p) => p.id === picked) ?? players[0];
+    const next = JSON.stringify([
+      players.map((p) => [p.id, p.name, p.active]),
+      current?.id,
+      current && table.reportOf(current.id),
+    ]);
+    if (next === drawn) return;
+    drawn = next;
+    const listed = JSON.stringify(players.map((p) => [p.id, p.name]));
+    if (listed !== options) {
+      options = listed;
+      picker.replaceChildren(
+        ...players.map((p) =>
+          el("option", { doc, text: p.name, attrs: { value: p.id } }),
+        ),
+      );
+    }
     const player = players.find((p) => p.id === picked) ?? players[0];
     picked = player?.id ?? null;
     if (picked) picker.value = picked;

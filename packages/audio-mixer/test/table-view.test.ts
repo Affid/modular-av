@@ -181,6 +181,15 @@ describe("the GM's table", () => {
     view.dispose();
   });
 
+  it("redraws nothing for a report that changes nothing shown", () => {
+    const { view, notify } = open({ p1: report });
+    const before = view.element.querySelector('[data-player="p1"]');
+
+    notify();
+
+    expect(view.element.querySelector('[data-player="p1"]')).toBe(before);
+  });
+
   it("follows who is logged in", async () => {
     const { view, api } = open();
     pick(view.element, "p3");
