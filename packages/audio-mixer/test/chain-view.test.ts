@@ -277,6 +277,36 @@ describe("the routing panel", () => {
     expect(button('[data-field="on.reverb"]').disabled).toBe(true);
     expect(input('[data-field="mix.reverb"]').disabled).toBe(true);
   });
+
+  it("names the layer on the card's own line, so the card grows no taller", () => {
+    const held: Snapshot = { effects: { reverb: { on: true, mix: 0.5 } } };
+    const layers = fakeLayers(
+      [{ id: "cave", label: "The cave", state: "applied" }],
+      held,
+    );
+
+    const { card } = open(CHAIN, layers);
+    const mark = card("reverb").querySelector(".mav-mixer-held");
+
+    expect(mark?.textContent).toBe("GM: The cave");
+    expect(mark?.parentElement?.classList.contains("mav-mixer-tags")).toBe(
+      true,
+    );
+    expect(card("reverb").querySelector(".mav-mixer-card-sub")).toBeNull();
+  });
+
+  it("keeps where each place and the faders were scrolled to across a redraw", async () => {
+    const { q, setLocal } = open();
+    q('[data-rack="pre-gate"]').scrollTop = 24;
+    q(".mav-mixer-scroll").scrollLeft = 30;
+
+    await setLocal({
+      audioEffectOrder: { ...NO_ORDER, "pre-gate": ["eq", "rnnoise"] },
+    });
+
+    expect(q('[data-rack="pre-gate"]').scrollTop).toBe(24);
+    expect(q(".mav-mixer-scroll").scrollLeft).toBe(30);
+  });
 });
 
 describe("dragging a card", () => {

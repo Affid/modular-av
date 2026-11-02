@@ -95,6 +95,22 @@ export function renderCard(
         children: [icon("fa-sliders", doc)],
       });
   const chip = el("span", { doc, className: "mav-mixer-chip" });
+  // On the card's own line: a layer landing doesn't make it taller.
+  const tags = el("span", {
+    doc,
+    className: "mav-mixer-tags",
+    children: [
+      chip,
+      by
+        ? el("span", {
+            doc,
+            className: "mav-mixer-held",
+            text: ctx.t("heldBy", { layer: by }),
+            attrs: { title: ctx.t("heldBy", { layer: by }) },
+          })
+        : null,
+    ],
+  });
   const element = el("li", {
     doc,
     className: "mav-mixer-card",
@@ -113,7 +129,7 @@ export function renderCard(
         text: name,
         attrs: { title: name },
       }),
-      chip,
+      tags,
       level,
       settings,
       slot.key === NOISE_KEY
@@ -121,13 +137,6 @@ export function renderCard(
             doc,
             className: "mav-mixer-card-sub",
             text: ctx.text(slot.effect.label),
-          })
-        : null,
-      by
-        ? el("span", {
-            doc,
-            className: "mav-mixer-card-sub mav-mixer-held",
-            text: ctx.t("heldBy", { layer: by }),
           })
         : null,
     ],

@@ -177,6 +177,8 @@
       "apply": "Apply",
       "end": "End",
       "on": "{who}: {label}",
+      "onNow": "On now:",
+      "none": "Nothing laid over anyone now.",
       "held": "Set by the GM",
       "refuse": "Not for me",
       "accept": "Use it",

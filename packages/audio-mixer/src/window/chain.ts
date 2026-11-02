@@ -10,6 +10,7 @@ import { byField } from "./fields.ts";
 import { renderGate } from "./gate.ts";
 import { type Levels, renderLevels } from "./levels.ts";
 import { renderRouting, type Routing } from "./routing.ts";
+import { keepScrolls } from "./scrolls.ts";
 
 interface Drawn {
   data: ChainData;
@@ -112,7 +113,9 @@ export function renderChain(
       actions.routing,
     );
     const levels = renderLevels(ctx, doc, drawn.data, actions.levels);
+    const scrollBack = keepScrolls(root);
     root.replaceChildren(routing.element, levels.element);
+    scrollBack();
     drawn.routing = routing;
     drawn.levels = levels;
     markSelected(root, selected);

@@ -64,7 +64,7 @@ function onLine(
         ctx.onError(error);
       });
   });
-  return el("p", {
+  return el("li", {
     doc,
     className: "mav-mixer-layer",
     children: [
@@ -74,6 +74,29 @@ function onLine(
       }),
       end,
     ],
+  });
+}
+
+/** One line, kept with nothing on: a layer starting moves nothing below. */
+function onNow(
+  ctx: MixerContext,
+  doc: Document,
+  gmLayers: GmLayers,
+  after: () => void,
+): HTMLElement {
+  const on = layersOn(ctx, gmLayers);
+  return el("div", {
+    doc,
+    className: "mav-mixer-on-now",
+    children: on.length
+      ? [
+          el("span", { doc, text: ctx.t("layers.onNow") }),
+          el("ul", {
+            doc,
+            children: on.map((each) => onLine(ctx, doc, gmLayers, each, after)),
+          }),
+        ]
+      : [el("span", { doc, text: ctx.t("layers.none") })],
   });
 }
 
@@ -158,9 +181,7 @@ export function renderLayerBar(
         className: "mav-mixer-preset-row",
         children: [preset, target, gms.element, apply],
       }),
-      ...layersOn(ctx, gmLayers).map((on) =>
-        onLine(ctx, doc, gmLayers, on, render),
-      ),
+      onNow(ctx, doc, gmLayers, render),
     );
   };
   render();

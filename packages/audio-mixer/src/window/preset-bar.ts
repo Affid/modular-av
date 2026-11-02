@@ -158,7 +158,12 @@ export function renderPresetBar(
           className: "mav-mixer-preset-row",
           children: [parts.select, parts.update, parts.remove],
         }),
-        parts.changed,
+        // Its line is kept, said or not: what is below doesn't move.
+        el("div", {
+          doc,
+          className: "mav-mixer-preset-status",
+          children: [parts.changed, parts.skipped],
+        }),
         el("div", {
           doc,
           className: "mav-mixer-preset-row",
@@ -169,7 +174,6 @@ export function renderPresetBar(
             }),
           ],
         }),
-        parts.skipped,
       ],
     }),
     dispose() {

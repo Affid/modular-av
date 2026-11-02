@@ -91,6 +91,19 @@ describe("a layer in the player's window", () => {
     expect(layers.spies.accept).toHaveBeenCalledWith("cave");
   });
 
+  it("says it after all that stays, so nothing moves when it lands", () => {
+    const { view } = open(fakeLayers([cave]));
+    const footer = view.element.querySelector(".mav-mixer-footer");
+    const banner = view.element.querySelector(".mav-mixer-layers");
+
+    expect(
+      footer && banner
+        ? footer.compareDocumentPosition(banner) &
+            Node.DOCUMENT_POSITION_FOLLOWING
+        : 0,
+    ).not.toBe(0);
+  });
+
   it("has no banner with no layer", () => {
     const { view } = open(fakeLayers([]));
 
@@ -221,6 +234,21 @@ describe("a GM's layer controls", () => {
 
     expect(written.table).toBe("");
     expect(written.personal.get("p1")).toContain("Cave");
+  });
+
+  it("keeps one line for what is on, so nothing moves when one starts", async () => {
+    // Arrange
+    const { q } = bar();
+    expect(q(".mav-mixer-on-now").textContent).toContain("Nothing");
+
+    // Act
+    q('[data-field="layerApply"]').click();
+    await act();
+
+    // Assert
+    const now = q(".mav-mixer-on-now");
+    expect(now.contains(q('[data-field="layerEnd.table"]'))).toBe(true);
+    expect(now.textContent).not.toContain("Nothing");
   });
 
   it("lists what is on, and ends it", async () => {

@@ -191,7 +191,8 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  max-height: 18.5rem;
+  /* Always this tall: a card coming or going moves nothing below. */
+  height: 10.5rem;
   margin: 0;
   padding: 0;
   overflow-y: auto;
@@ -249,7 +250,20 @@
 }
 
 .mav-mixer-card[data-held] {
-  border-left: 3px solid var(--mav-mixer-layer);
+  box-shadow: inset 3px 0 0 var(--mav-mixer-layer);
+}
+
+/* Edges drawn inside, not as borders: what is inside doesn't shift. */
+.mav-mixer-card[data-held][aria-current="true"] {
+  box-shadow:
+    inset 3px 0 0 var(--mav-mixer-layer),
+    inset 0 0 0 1px var(--mav-mixer-accent);
+}
+
+.mav-mixer-card[data-held][data-drop="before"] {
+  box-shadow:
+    inset 3px 0 0 var(--mav-mixer-layer),
+    0 -3px 0 var(--mav-mixer-accent);
 }
 
 .mav-mixer-card[data-dragging] {
@@ -274,6 +288,21 @@
 
 .mav-mixer-held {
   color: var(--mav-mixer-layer);
+}
+
+.mav-mixer-tags {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.mav-mixer-tags .mav-mixer-held {
+  max-width: 8rem;
+  overflow: hidden;
+  font-size: 0.75em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 /* Small square buttons in a card: Foundry's button styles reset. */
@@ -492,7 +521,13 @@
 }
 
 .mav-mixer-strip[data-held] {
-  border-top: 3px solid var(--mav-mixer-layer);
+  box-shadow: inset 0 3px 0 var(--mav-mixer-layer);
+}
+
+.mav-mixer-strip[data-held][data-selected] {
+  box-shadow:
+    inset 0 3px 0 var(--mav-mixer-layer),
+    inset 0 0 0 1px var(--mav-mixer-accent);
 }
 
 .mav-mixer-strip-name {
@@ -682,7 +717,7 @@
 }
 
 .mav-mixer-tabs button[aria-selected="true"] {
-  border-bottom: 2px solid currentColor;
+  box-shadow: inset 0 -2px 0 currentColor;
 }
 
 .mav-mixer-table {
@@ -706,4 +741,46 @@
 
 .mav-mixer-footer button {
   align-self: flex-start;
+}
+
+/* Lines kept, said or not: their text coming moves nothing below. */
+.mav-mixer-footer [data-field="voiceTestStatus"] {
+  min-height: 1lh;
+}
+
+.mav-mixer-preset-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.5rem;
+  min-height: 1lh;
+  margin: 0.125rem 0 0.25rem;
+  font-size: 0.85em;
+}
+
+.mav-mixer-preset-status .mav-mixer-hint {
+  margin: 0;
+  font-size: inherit;
+}
+
+.mav-mixer-on-now {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  min-height: 2.25rem;
+  margin-top: 0.25rem;
+}
+
+.mav-mixer-on-now ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mav-mixer-on-now .mav-mixer-layer {
+  justify-content: flex-start;
+  margin: 0;
 }

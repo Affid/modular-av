@@ -43,18 +43,28 @@ describe("the mixer window", () => {
     expect(view.element.querySelector('[data-part="gate"]')).toBeNull();
   });
 
-  it("shows warnings and failures below the chain, so nothing above moves", () => {
+  it("shows warnings and failures after all that stays, so nothing moves", () => {
     // Arrange
     const { q } = open({ effects: [reverb] });
-    const chain = q(".mav-mixer-chain");
+    const footer = q(".mav-mixer-footer");
     const below = (other: HTMLElement): boolean =>
-      (chain.compareDocumentPosition(other) &
+      (footer.compareDocumentPosition(other) &
         Node.DOCUMENT_POSITION_FOLLOWING) !==
       0;
 
     // Assert
+    expect(below(q(".mav-mixer-chain"))).toBe(false);
     expect(below(q(".mav-mixer-warnings"))).toBe(true);
     expect(below(q(".mav-mixer-alert"))).toBe(true);
+  });
+
+  it("keeps one line for what a preset says, said or not", () => {
+    const { q } = open({ effects: [reverb] });
+
+    const line = q(".mav-mixer-preset-status");
+
+    expect(q('[data-field="presetChanged"]').parentElement).toBe(line);
+    expect(q('[data-field="presetSkipped"]').parentElement).toBe(line);
   });
 
   it("warns, naming the effect, without blocking anything", async () => {

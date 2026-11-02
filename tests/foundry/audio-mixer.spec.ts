@@ -574,6 +574,68 @@ test("a GM applies a preset to one player from the table", async ({
   await clearPipeline(p1);
 });
 
+/** Where each of `selectors` sits within the window: the window itself may move. */
+const placesIn =
+  (frame: Locator, selectors: readonly string[]) =>
+  async (): Promise<readonly (readonly number[] | null)[]> => {
+    const box = await frame.boundingBox();
+    return Promise.all(
+      selectors.map(async (selector) => {
+        const at = await frame.locator(selector).first().boundingBox();
+        return at && box
+          ? [Math.round(at.x - box.x), Math.round(at.y - box.y)]
+          : null;
+      }),
+    );
+  };
+
+test("nothing in a player's window moves as a GM's cave comes and goes, or a preset changes", async ({
+  browser,
+}) => {
+  // Arrange: a preset in use, and the window open.
+  const gm = track(await openGm(browser));
+  const p1 = track(await openPlayer(browser, "Player1"));
+  await ownSetup(p1);
+  const mixer = await openFromSettings(p1);
+  await mixer.locator('[data-field="presetName"]').fill("Still");
+  await mixer.locator('[data-field="presetSave"]').click();
+  await expect(mixer.locator('[data-field="preset"]')).toContainText("Still");
+  const places = placesIn(mixer, [
+    '[data-field="presetSave"]',
+    '[data-panel="routing"]',
+    '[data-key="echo"] .mav-mixer-card-name',
+    '[data-panel="levels"]',
+    '[data-field="channel"]',
+    '[data-field="voiceTest"]',
+  ]);
+  const before = await places();
+
+  // Act: into the cave.
+  await enterCave(gm);
+
+  // Assert: it is said and marked, and nothing moved.
+  await expect(mixer.locator('[data-key="echo"]')).toContainText("GM: Cave");
+  await expect(mixer.locator('[data-key="reverb"]')).toBeVisible();
+  await expect(mixer.locator(".mav-mixer-layers [data-layer]")).toBeVisible();
+  expect(await places()).toEqual(before);
+
+  // Act, Assert: the preset now differs, and says so.
+  await mixer.locator('[data-field="channel"]').fill("80");
+  await expect(mixer.locator('[data-field="presetChanged"]')).toContainText(
+    "Changed",
+  );
+  expect(await places()).toEqual(before);
+
+  // Act, Assert: out of the cave.
+  await leaveCave(gm);
+  await expect(mixer.locator('[data-key="reverb"]')).toHaveCount(0);
+  await expect(mixer.locator(".mav-mixer-layers [data-layer]")).toHaveCount(0);
+  expect(await places()).toEqual(before);
+  await mixer.locator('[data-field="presetDelete"]').click();
+  await p1.page.locator(".dialog button[data-action='yes']").click();
+  await clearPipeline(p1);
+});
+
 test("the mixer passes axe's checks, pop-ups open too", async ({ browser }) => {
   // Arrange: a chain with a card on, one kept off, and a send.
   const p1 = track(await openPlayer(browser, "Player1"));
