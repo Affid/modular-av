@@ -32,9 +32,9 @@
     "level": "Level",
     "levelOf": "{effect} level",
     "cost": {
-      "light": "Light",
-      "medium": "Medium",
-      "heavy": "Heavy"
+      "light": "CPU: light",
+      "medium": "CPU: medium",
+      "heavy": "CPU: heavy"
     },
     "status": {
       "starting": "Starting…",

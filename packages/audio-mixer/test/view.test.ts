@@ -122,7 +122,7 @@ describe("the mixer window", () => {
   it("shows what an effect costs", () => {
     const { q } = open({ effects: [eq] });
 
-    expect(q('[data-effect="eq"]').textContent).toContain("Light");
+    expect(q('[data-effect="eq"]').textContent).toContain("CPU: light");
   });
 
   it("moves an effect up its lane, the whole lane in one change", async () => {

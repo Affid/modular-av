@@ -71,8 +71,8 @@ describe("the noise cancellation choice", () => {
   it("names each model's cost", () => {
     const view = open(noiseModels({ rnnoise: off, gtcrn: off, krisp: off }));
 
-    expect(view.option("rnnoise")?.textContent).toBe("rnnoise · Light");
-    expect(view.option("gtcrn")?.textContent).toBe("gtcrn · Medium");
+    expect(view.option("rnnoise")?.textContent).toBe("rnnoise · Light on CPU");
+    expect(view.option("gtcrn")?.textContent).toBe("gtcrn · Medium on CPU");
   });
 
   it("doesn't offer an effect the call's service doesn't offer", async () => {
@@ -131,7 +131,7 @@ describe("the noise cancellation choice", () => {
       }),
     );
 
-    expect(view.text()).toContain("Failed · Light");
+    expect(view.text()).toContain("Failed · Light on CPU");
   });
 
   it("warns that a heavier model may crackle on a slower computer", () => {
