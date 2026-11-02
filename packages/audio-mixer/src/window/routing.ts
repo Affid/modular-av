@@ -99,10 +99,16 @@ function addButton(
   return button;
 }
 
-/** Arrows along a place and across places; Alt moves the card itself. */
+type OpenSettings = RoutingHandlers["settings"];
+
+/**
+ * Arrows along a place and across places; Alt moves the card itself. On
+ * another player's chain (no handlers) only the arrows and Enter work.
+ */
 function onKey(
   root: HTMLElement,
-  handlers: RoutingHandlers,
+  handlers: RoutingHandlers | null,
+  settings: OpenSettings,
   event: KeyboardEvent,
 ): void {
   const card = (event.target as HTMLElement).closest<HTMLElement>("[data-key]");
@@ -134,19 +140,21 @@ function onKey(
   };
   if (vertical) {
     handled();
-    if (event.altKey) handlers.move(key, vertical);
+    if (event.altKey) handlers?.move(key, vertical);
     else go(here[at + vertical]);
   } else if (sideways) {
     handled();
-    if (event.altKey) handlers.shift(key, sideways);
+    if (event.altKey) handlers?.shift(key, sideways);
     else go(across(sideways));
-  } else if (event.key === " ") {
-    handled();
-    handlers.toggle(key);
   } else if (event.key === "Enter") {
     handled();
     const button = byField(card, `settings.${key}`);
-    if (button) handlers.settings(key, button);
+    if (button) settings(key, button);
+  } else if (!handlers) {
+    return;
+  } else if (event.key === " ") {
+    handled();
+    handlers.toggle(key);
   } else if (event.key === "Delete" || event.key === "Backspace") {
     handled();
     handlers.remove(key);
@@ -156,16 +164,21 @@ function onKey(
   }
 }
 
-function onClick(handlers: RoutingHandlers, event: MouseEvent): void {
+function onClick(
+  handlers: RoutingHandlers | null,
+  settings: OpenSettings,
+  event: MouseEvent,
+): void {
   const target = event.target as HTMLElement;
   const card = target.closest<HTMLElement>("[data-key]");
   const key = card?.dataset.key;
   if (!card || !key) return;
   const field =
     target.closest<HTMLElement>("[data-field]")?.dataset.field ?? "";
-  if (field === `on.${key}`) handlers.toggle(key);
-  else if (field === `settings.${key}`)
-    handlers.settings(key, target.closest("button") ?? card);
+  if (field === `settings.${key}`)
+    settings(key, target.closest("button") ?? card);
+  else if (!handlers) card.focus();
+  else if (field === `on.${key}`) handlers.toggle(key);
   else if (field === `level.${key}`) handlers.toLevel(key);
   else {
     handlers.select(key);
@@ -243,13 +256,17 @@ function wireDrag(
   });
 }
 
-/** The chain as cards, place by place, with the gate between. */
+/**
+ * The chain as cards, place by place, with the gate between. With no
+ * handlers it is another player's: `read` opens a card's settings to read.
+ */
 export function renderRouting(
   ctx: MixerContext,
   doc: Document,
   data: ChainData,
   gate: HTMLElement,
   handlers: RoutingHandlers | null,
+  read: OpenSettings = () => undefined,
 ): Routing {
   const readOnly = handlers === null;
   const cards = new Map<string, Card>();
@@ -307,23 +324,26 @@ export function renderRouting(
       live,
     ],
   });
-  if (handlers) {
-    element.addEventListener("keydown", (event) => {
-      onKey(element, handlers, event);
-    });
-    element.addEventListener("click", (event) => {
-      onClick(handlers, event);
-    });
-    element.addEventListener("focusin", (event) => {
-      const card = (event.target as HTMLElement).closest<HTMLElement>(
-        "[data-key]",
-      );
-      if (!card || event.target !== card) return;
-      for (const other of element.querySelectorAll<HTMLElement>("[data-key]"))
-        other.tabIndex = other === card ? 0 : -1;
-    });
-    wireDrag(ctx, element, live, data, handlers);
-  }
+  const settings: OpenSettings = handlers
+    ? (key, anchor) => {
+        handlers.settings(key, anchor);
+      }
+    : read;
+  element.addEventListener("keydown", (event) => {
+    onKey(element, handlers, settings, event);
+  });
+  element.addEventListener("click", (event) => {
+    onClick(handlers, settings, event);
+  });
+  element.addEventListener("focusin", (event) => {
+    const card = (event.target as HTMLElement).closest<HTMLElement>(
+      "[data-key]",
+    );
+    if (!card || event.target !== card) return;
+    for (const other of element.querySelectorAll<HTMLElement>("[data-key]"))
+      other.tabIndex = other === card ? 0 : -1;
+  });
+  if (handlers) wireDrag(ctx, element, live, data, handlers);
   const focusable = (key: string | null): HTMLElement | undefined => {
     const all = [...element.querySelectorAll<HTMLElement>("[data-key]")];
     return all.find((card) => card.dataset.key === key) ?? all[0];

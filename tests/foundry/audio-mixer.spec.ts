@@ -636,6 +636,70 @@ test("nothing in a player's window moves as a GM's cave comes and goes, or a pre
   await clearPipeline(p1);
 });
 
+test("a GM reads a player's settings, and sees what their cave holds there", async ({
+  browser,
+}) => {
+  // Arrange
+  const gm = track(await openGm(browser));
+  const p1 = track(await openPlayer(browser, "Player1"));
+  const p1Id = await idOf(gm, "Player1");
+  await ownSetup(p1);
+  const table = await openFromSettings(gm);
+  await table.locator('[data-tab="table"]').click();
+  await table.locator('[data-field="player"]').selectOption(p1Id);
+  const shown = table.locator(`[data-player="${p1Id}"]`);
+  await expect(shown.locator('[data-key="echo"]')).toBeVisible();
+  const places = placesIn(table, [
+    '[data-field="layerApply"]',
+    '[data-field="player"]',
+    `[data-player="${p1Id}"] [data-panel="levels"]`,
+  ]);
+  const before = await places();
+
+  // Act: into the cave.
+  await enterCave(gm);
+
+  // Assert: the cards the cave holds say so, and nothing moved.
+  await expect(shown.locator('[data-key="reverb"]')).toHaveAttribute(
+    "data-held",
+    "",
+  );
+  await expect(shown.locator('[data-key="reverb"]')).toContainText("GM: Cave");
+  await expect(shown.locator('[data-key="echo"]')).toHaveAttribute(
+    "data-held",
+    "",
+  );
+  await expect(shown).toContainText("Cave: applied");
+  await expect(table.locator(".mav-mixer-on-now")).toContainText("Cave");
+  expect(await places()).toEqual(before);
+
+  // Act: their reverb's settings.
+  await shown.locator('[data-field="settings.reverb"]').click();
+
+  // Assert: as text, with nothing to change, open as their report comes.
+  const pop = shown.locator('[data-pop="settings"]');
+  await expect(pop).toContainText("Decay");
+  // Drawn with the window's styles: a pop-up of its own colour, over the chain.
+  expect(
+    await pop.evaluate((e) => getComputedStyle(e).backgroundColor),
+  ).not.toBe("rgba(0, 0, 0, 0)");
+  await expect(pop).toContainText("GM: Cave");
+  await expect(pop.locator("input, select")).toHaveCount(0);
+  await p1.run(
+    (api) => api.commands.setAudioPipeline({ channelLevel: 0.8 }),
+    null,
+  );
+  await expect(shown.locator('[data-field="channel"]')).toHaveValue("80");
+  await expect(pop).toBeVisible();
+  const results = await new AxeBuilder({ page: gm.page })
+    .include("#modular-av-audio-mixer")
+    .withTags(AA)
+    .analyze();
+  expect(results.violations).toEqual([]);
+  await leaveCave(gm);
+  await clearPipeline(p1);
+});
+
 test("the mixer passes axe's checks, pop-ups open too", async ({ browser }) => {
   // Arrange: a chain with a card on, one kept off, and a send.
   const p1 = track(await openPlayer(browser, "Player1"));

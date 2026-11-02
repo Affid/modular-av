@@ -80,20 +80,19 @@ export function renderCard(
       "aria-label": ctx.t("onOf", { effect: name }),
     },
   });
-  const settings = readOnly
-    ? null
-    : el("button", {
-        doc,
-        className: "mav-mixer-card-settings",
-        attrs: {
-          type: "button",
-          tabindex: "-1",
-          "data-field": `settings.${slot.key}`,
-          "aria-label": ctx.t("settingsOf", { effect: name }),
-          "aria-haspopup": "dialog",
-        },
-        children: [icon("fa-sliders", doc)],
-      });
+  // On another player's chain too: their settings, to read.
+  const settings = el("button", {
+    doc,
+    className: "mav-mixer-card-settings",
+    attrs: {
+      type: "button",
+      tabindex: "-1",
+      "data-field": `settings.${slot.key}`,
+      "aria-label": ctx.t("settingsOf", { effect: name }),
+      "aria-haspopup": "dialog",
+    },
+    children: [icon("fa-sliders", doc)],
+  });
   const chip = el("span", { doc, className: "mav-mixer-chip" });
   // On the card's own line: a layer landing doesn't make it taller.
   const tags = el("span", {

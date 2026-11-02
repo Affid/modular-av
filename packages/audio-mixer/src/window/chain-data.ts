@@ -34,6 +34,9 @@ export interface ChainData {
 
 const HOLDING: ReadonlySet<string> = new Set(["applied", "partly"]);
 
+/** Whether a layer holds anything where it went. */
+export const holds = (layer: LayerStatus): boolean => HOLDING.has(layer.state);
+
 export function chainData(
   definitions: readonly EffectDefinition[],
   local: ChainLocal,
@@ -47,7 +50,7 @@ export function chainData(
     racks,
     faders: fadersOf(racks, local),
     held,
-    layers: layers.filter((layer) => HOLDING.has(layer.state)),
+    layers: layers.filter(holds),
   };
 }
 

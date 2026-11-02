@@ -636,6 +636,24 @@
   border-top: 1px solid var(--mav-mixer-line);
 }
 
+/* Another player's settings, to read. */
+.mav-mixer-readout {
+  display: grid;
+  grid-template-columns: minmax(5rem, 1fr) minmax(0, 2fr);
+  gap: 0.25rem 0.5rem;
+  margin: 0;
+}
+
+.mav-mixer-readout dt {
+  color: var(--mav-mixer-soft);
+}
+
+.mav-mixer-readout dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+
 .mav-mixer-pop-foot select {
   flex: 1 1 8rem;
   min-width: 0;

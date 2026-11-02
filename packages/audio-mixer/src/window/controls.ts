@@ -18,19 +18,26 @@ const follow = <T>(
   return state.subscribe(show);
 };
 
+/** A range's value as its slider shows it, with its unit. */
+export const rangeText = (
+  ctx: Pick<MixerContext, "text">,
+  control: Pick<RangeControl, "unit">,
+  value: number,
+): string =>
+  control.unit ? `${String(value)} ${ctx.text(control.unit)}` : String(value);
+
 function range(
   ctx: MixerContext,
   doc: Document,
   control: RangeControl,
   writes: Writer,
 ): Rendered {
-  const unit = control.unit ? ` ${ctx.text(control.unit)}` : "";
   const field = slider(doc, {
     label: ctx.text(control.label),
     min: control.min,
     max: control.max,
     step: control.step,
-    format: (value) => `${String(value)}${unit}`,
+    format: (value) => rangeText(ctx, control, value),
     write: (value) => {
       void writes.run(`control:${control.id}`, () => control.set(value));
     },

@@ -163,7 +163,10 @@
       "layer-refused": "refused",
       "layer-kept-out": "keeps the GM out",
       "unknown": "Also runs, not in this world: {effects}.",
-      "nobody": "Nobody else is logged in."
+      "nobody": "Nobody else is logged in.",
+      "state": "State",
+      "place": "Place",
+      "readOnly": "Only {player} can change these."
     },
     "action": "Voice setup",
     "layers": {

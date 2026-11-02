@@ -82,6 +82,8 @@ before approval.
 | 8. Test through Mute | `preview.voice()` hears through Mute and push to talk while live; the output bus still obeys | audio-mixer: a muted test is heard, the GM hears silence |
 | 9. CPU wording       | "Light on CPU" in the dock, "CPU: light" in the mixer                                        |                                                          |
 | 10. The signal path  | The chain model, routing and levels, pop-ups, the effect browser, the GM's read-only view    | audio-mixer: drag, browser, axe with pop-ups open        |
+| 11. Nothing moves    | What comes and goes after what stays; kept lines; racks of one height; scrolls kept          | audio-mixer: positions as a layer lands, Changed shows   |
+| 12. The Table, read  | A player's settings as text; the cards a GM's own layers hold there; the tab's styles        | audio-mixer: marks, the pop-up as reports come, axe      |
 
 Measured in Chrome with a fake microphone: an overlapping second capture of the
 same device with other processing came back with echo cancellation, gain control
@@ -94,6 +96,16 @@ model for that, and the owner's next test found every noise model much
 quieter: with a quiet microphone, the browser's gain control is most of the
 level. It is on again. The core's entry went from 115,225 to 115,722 bytes of
 116,000; the mixer's stayed at 5,921.
+
+The owner's rule after the next test: nothing in the window moves when
+something comes or goes. A GM's layer said at the top pushed the whole window
+down 36 px, and its mark on a card made the card taller and moved its name 2 px
+across. Now the layer, warnings and failures come after Test my voice, the
+"Changed" and skipped lines keep their line when empty, a GM's mark sits on the
+card's own line, edges are drawn inside, and each place is 10.5 rem tall, five
+cards before it scrolls. The window opens 820 px tall so all of it shows;
+Foundry keeps it on a smaller screen. The Table tab had been drawn without the
+window's styles since it was built: its specs read content, never looks.
 
 ## Not tested
 
