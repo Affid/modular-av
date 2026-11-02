@@ -86,6 +86,19 @@
       "previous": {
         "name": "Previous audio preset"
       }
-    }
+    },
+    "tabs": {
+      "label": "Audio mixer views",
+      "mine": "My voice",
+      "table": "The table"
+    },
+    "table": {
+      "player": "Player",
+      "warnings": "Warnings",
+      "failed": "failed",
+      "waiting": "Waiting for an answer…",
+      "away": "Not logged in."
+    },
+    "action": "Voice setup"
   }
 }

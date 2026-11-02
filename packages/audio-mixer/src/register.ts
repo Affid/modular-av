@@ -16,6 +16,7 @@ const button = (id: string, open: () => void): ButtonControl => ({
 export function registerMixer(
   api: Pick<ModularAV, "contributions">,
   open: () => void,
+  openTable: () => void = open,
 ): void {
   api.contributions.register({
     ...button(`${MODULE_ID}.open`, open),
@@ -29,5 +30,16 @@ export function registerMixer(
     tab: "voice",
     settings: [],
     controls: [button(`${MODULE_ID}.settingsOpen`, open)],
+  });
+  api.contributions.register({
+    kind: "participant-action",
+    id: `${MODULE_ID}.action`,
+    label: `${MODULE_ID}.action`,
+    icon: "fa-solid fa-sliders",
+    gmOnly: true,
+    run() {
+      openTable();
+      return Promise.resolve();
+    },
   });
 }

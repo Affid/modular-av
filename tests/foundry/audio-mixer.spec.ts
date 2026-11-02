@@ -5,6 +5,7 @@ import { expect, type Locator, test } from "@playwright/test";
 import {
   configureWorld,
   expectStatus,
+  idOf,
   openGm,
   openPlayer,
   type Player,
@@ -190,6 +191,36 @@ test("Test my voice records what is sent and plays it back", async ({
   await expect(status).toHaveText("Playing it back…", { timeout: 10_000 });
   await expect(status).toHaveText("", { timeout: 15_000 });
   expect(p1.notices).toEqual([]);
+});
+
+test("a GM sees what a player runs, as it changes", async ({ browser }) => {
+  // Arrange
+  const gm = track(await openGm(browser));
+  const p1 = track(await openPlayer(browser, "Player1"));
+  const p1Id = await idOf(gm, "Player1");
+  await clearPipeline(p1);
+
+  // Act
+  const mixer = await openFromSettings(gm);
+  await mixer.locator('[data-tab="table"]').click();
+  const row = mixer.locator(`[data-player="${p1Id}"]`);
+  await expect(row.locator('[data-place="send"]')).toHaveText("");
+  await p1.run(async (api) => {
+    await api.commands.setEffectEnabled("reverb", true);
+    await api.commands.setAudioEffectPlace("reverb", "pre-gate");
+  }, null);
+
+  // Assert
+  await expect(row.locator('[data-place="pre-gate"]')).toContainText("Reverb");
+  await expect(row).toContainText("rings on ahead of the voice gate");
+  await clearPipeline(p1);
+  await expect(row.locator('[data-place="send"]')).toHaveText("");
+
+  const results = await new AxeBuilder({ page: gm.page })
+    .include("#modular-av-audio-mixer")
+    .withTags(AA)
+    .analyze();
+  expect(results.violations).toEqual([]);
 });
 
 test("the mixer passes axe's checks", async ({ browser }) => {

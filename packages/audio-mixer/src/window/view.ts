@@ -4,9 +4,10 @@ import { audioEffectsOf, type Lane, lanesOf } from "../model/pipeline.ts";
 import type { Writer } from "../model/queue.ts";
 import { type Warning, warningsOf } from "../model/warnings.ts";
 import { type Channel, renderChannel } from "./channel.ts";
-import type { MixerContext, Rendered } from "./context.ts";
+import type { MixerContext, MixerView, Rendered } from "./context.ts";
 import { type Footer, renderFooter } from "./footer.ts";
 import { renderPresetBar } from "./preset-bar.ts";
+import { withTable } from "./tabs.ts";
 
 const reasonOf = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
@@ -119,7 +120,13 @@ function follow(
 }
 
 /** The window's content, drawn only from the API: it knows no effect. */
-export function renderMixer(ctx: MixerContext, doc: Document): Rendered {
+export function renderMixer(ctx: MixerContext, doc: Document): MixerView {
+  const mine = renderChannelView(ctx, doc);
+  return ctx.table ? withTable(ctx, doc, ctx.table, mine) : mine;
+}
+
+/** A player's own channel. */
+function renderChannelView(ctx: MixerContext, doc: Document): Rendered {
   if (audioEffectsOf(ctx.api.effects.list()).length === 0)
     return emptyHint(ctx, doc);
   const alerts = el("p", {

@@ -6,12 +6,15 @@ import type {
 } from "@modular-av/api";
 import { audioEffectsOf, NOISE_SUPPRESSION } from "./pipeline.ts";
 
-export type WarningKey =
-  | "tail-before-gate"
-  | "doubled-voice"
-  | "noise-after-gate"
-  | "channel-without-send"
-  | "channel-zero-click";
+export const WARNING_KEYS = [
+  "tail-before-gate",
+  "doubled-voice",
+  "noise-after-gate",
+  "channel-without-send",
+  "channel-zero-click",
+] as const;
+
+export type WarningKey = (typeof WARNING_KEYS)[number];
 
 export interface Warning {
   readonly key: WarningKey;

@@ -134,6 +134,42 @@
   font-variant-numeric: tabular-nums;
 }
 
+.mav-mixer-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.mav-mixer-tabs button {
+  flex: 0 0 auto;
+  width: auto;
+}
+
+/* Foundry's hover colour is too faint behind its own text. */
+.mav-mixer-tabs button,
+.mav-mixer-tabs button:hover,
+.mav-mixer-tabs button:focus {
+  background: none;
+  color: inherit;
+}
+
+.mav-mixer-tabs button[aria-selected="true"] {
+  border-bottom: 2px solid currentColor;
+}
+
+.mav-mixer-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.mav-mixer-table th,
+.mav-mixer-table td {
+  padding: 0.25rem 0.5rem;
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
 .mav-mixer-footer {
   display: flex;
   flex-direction: column;

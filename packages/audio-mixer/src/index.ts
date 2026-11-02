@@ -1,5 +1,5 @@
 import type { ModularAV } from "@modular-av/api";
-import { MODULE_ID } from "./constants.ts";
+import { MODULE_ID, SOCKET_CHANNEL } from "./constants.ts";
 import { registerMenu } from "./menu.ts";
 import type { FoundryUser } from "./presets/foundry-store.ts";
 import { registerPresetKeys } from "./presets/keys.ts";
@@ -27,6 +27,7 @@ declare global {
     };
     modules: { get(id: string): { api?: unknown } | undefined };
     user: FoundryUser & { id: string; isGM: boolean };
+    users: { get(id: string): { isGM: boolean } | undefined };
   };
   var foundry: {
     applications: {
@@ -56,10 +57,10 @@ const load = async () => {
   return mixerFor(api);
 };
 
-function open(): void {
+function open(tab?: "table"): void {
   load()
     .then((mixer) => {
-      mixer.open();
+      mixer.open(tab);
     })
     .catch(reportError);
 }
@@ -95,7 +96,18 @@ Hooks.once("init", () => {
 
 Hooks.once("modularAV.register", (api: ModularAV) => {
   core = api;
-  registerMixer(api, open);
+  registerMixer(api, open, () => {
+    open("table");
+  });
+  // Only a GM's asking and the answers to it load the rest.
+  api.socket(SOCKET_CHANNEL).on((data, sender) => {
+    if (!game.user.isGM && game.users.get(sender)?.isGM !== true) return;
+    load()
+      .then(({ table }) => {
+        table.receive(data, sender);
+      })
+      .catch(reportError);
+  });
   const own = game.modules.get(MODULE_ID);
   if (own) own.api = macroApi(async () => (await load()).presets);
 });

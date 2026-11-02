@@ -1,6 +1,6 @@
 import { el } from "@modular-av/kit";
 import { MODULE_ID } from "../constants.ts";
-import type { Rendered } from "./context.ts";
+import type { MixerView } from "./context.ts";
 
 type ApplicationBase = abstract new (...args: never[]) => object;
 
@@ -25,7 +25,9 @@ function loadStyles(doc: Document, href: string): void {
 export interface MixerWindowDeps {
   readonly title: string;
   readonly stylesheet: string;
-  fill(doc: Document): Rendered;
+  fill(doc: Document): MixerView;
+  /** What just filled, each time. */
+  onFilled?(view: MixerView): void;
 }
 
 /** A Foundry window of its own: moved, minimized and closed like any other. */
@@ -35,7 +37,7 @@ export function createMixerWindow(
 ): { render(options?: object): unknown } {
   const Base = base as unknown as new (...args: unknown[]) => ApplicationLike;
   // Not private members: Foundry's constructor may call overridden methods.
-  let view: Rendered | null = null;
+  let view: MixerView | null = null;
 
   class ModularAVMixer extends Base {
     static DEFAULT_OPTIONS = {
@@ -60,6 +62,7 @@ export function createMixerWindow(
       loadStyles(content.ownerDocument, deps.stylesheet);
       view = deps.fill(content.ownerDocument);
       content.replaceChildren(view.element);
+      deps.onFilled?.(view);
     }
 
     override _onClose(options: object): void {

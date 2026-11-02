@@ -1,8 +1,10 @@
 import type { ModularAV } from "@modular-av/api";
-import { MODULE_ID } from "./constants.ts";
+import { MODULE_ID, SOCKET_CHANNEL } from "./constants.ts";
 import { createWriter, type Writer } from "./model/queue.ts";
 import { foundryPresetStore } from "./presets/foundry-store.ts";
 import { createPresets, type Presets } from "./presets/presets.ts";
+import { createTable, type Table } from "./table/table.ts";
+import type { MixerTab, MixerView } from "./window/context.ts";
 import { renderMixer } from "./window/view.ts";
 import { BROWSER_RECORDING } from "./window/voice-test.ts";
 import { createMixerWindow } from "./window/window.ts";
@@ -28,8 +30,9 @@ const onOwnUserChange = (listener: () => void): (() => void) => {
 export interface Mixer {
   readonly presets: Presets;
   readonly writes: Writer;
+  readonly table: Table;
   /** The one window, however often it is asked for. */
-  open(): void;
+  open(tab?: MixerTab): void;
 }
 
 function createMixer(api: ModularAV): Mixer {
@@ -45,6 +48,17 @@ function createMixer(api: ModularAV): Mixer {
       onUserChange: onOwnUserChange,
     }),
   });
+  const automationRate = "automationRate" in AudioParam.prototype;
+  const table = createTable({
+    api,
+    channel: api.socket(SOCKET_CHANNEL),
+    isGM: (id) => game.users.get(id)?.isGM === true,
+    selfIsGM: game.user.isGM,
+    automationRate,
+    onError: reportError,
+  });
+  let view: MixerView | null = null;
+  let wanted: MixerTab = "mine";
   const window = createMixerWindow(foundry.applications.api.ApplicationV2, {
     title: localized(`${MODULE_ID}.title`),
     stylesheet: foundry.utils.getRoute(`modules/${MODULE_ID}/styles/mixer.css`),
@@ -58,17 +72,25 @@ function createMixer(api: ModularAV): Mixer {
           t: (key, data) => game.i18n.format(`${MODULE_ID}.${key}`, data),
           text: localized,
           onError: reportError,
-          automationRate: "automationRate" in AudioParam.prototype,
+          automationRate,
           recording: BROWSER_RECORDING,
           confirm,
+          ...(game.user.isGM ? { table } : {}),
         },
         doc,
       ),
+    onFilled(filled) {
+      view = filled;
+      view.show?.(wanted);
+    },
   });
   return {
     presets,
     writes,
-    open() {
+    table,
+    open(tab = "mine") {
+      wanted = tab;
+      view?.show?.(tab);
       void window.render({ force: true });
     },
   };

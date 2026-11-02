@@ -1,6 +1,7 @@
 import type { ModularAV } from "@modular-av/api";
 import type { Writer } from "../model/queue.ts";
 import type { Presets } from "../presets/presets.ts";
+import type { Table } from "../table/table.ts";
 import type { Recording } from "./voice-test.ts";
 
 /** What the window draws from, and all it can change. */
@@ -23,10 +24,20 @@ export interface MixerContext {
   readonly writes: Writer;
   /** Asks before something can't be undone. */
   confirm(text: string): Promise<boolean>;
+  /** A GM's: what the others run. */
+  readonly table?: Table;
 }
 
 /** Something drawn, with what undoes its subscriptions. */
 export interface Rendered {
   readonly element: HTMLElement;
   dispose(): void;
+}
+
+export type MixerTab = "mine" | "table";
+
+/** The window's content. */
+export interface MixerView extends Rendered {
+  /** Brings up a tab, where there are tabs. */
+  readonly show?: (tab: MixerTab) => void;
 }

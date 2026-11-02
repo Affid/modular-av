@@ -2,6 +2,7 @@ import type {
   ButtonControl,
   Contribution,
   ControlContribution,
+  ParticipantActionContribution,
   SettingsSectionContribution,
 } from "@modular-av/api";
 import { createFakeApi } from "@modular-av/testing";
@@ -19,6 +20,26 @@ const find = <T extends Contribution>(
 };
 
 describe("the ways in", () => {
+  it("gives GMs an action on each player, opening the table", async () => {
+    // Arrange
+    const api = createFakeApi();
+    const open = vi.fn();
+    const openTable = vi.fn();
+    registerMixer(api, open, openTable);
+
+    // Act
+    const action = find<ParticipantActionContribution>(
+      api.registered().contributions,
+      "participant-action",
+    );
+    await action.run("p1");
+
+    // Assert
+    expect(action.gmOnly).toBe(true);
+    expect(openTable).toHaveBeenCalledOnce();
+    expect(open).not.toHaveBeenCalled();
+  });
+
   it("offers a quick control that opens the window", async () => {
     // Arrange
     const api = createFakeApi();
