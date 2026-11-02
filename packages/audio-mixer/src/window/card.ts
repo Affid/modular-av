@@ -26,22 +26,31 @@ export interface Card {
   showState(state: CardState, on: boolean): void;
 }
 
-function levelButton(
+/** A button to its fader; plain text on another player's chain. */
+function levelTag(
   ctx: MixerContext,
   doc: Document,
   slot: Slot,
   name: string,
-): HTMLButtonElement {
-  return el("button", {
-    doc,
-    className: "mav-mixer-card-level",
-    attrs: {
-      type: "button",
-      tabindex: "-1",
-      "data-field": `level.${slot.key}`,
-      "aria-label": ctx.t("returnOf", { effect: name }),
-    },
-  });
+  readOnly: boolean,
+): HTMLElement {
+  const field = `level.${slot.key}`;
+  return readOnly
+    ? el("span", {
+        doc,
+        className: "mav-mixer-card-level",
+        attrs: { "data-field": field },
+      })
+    : el("button", {
+        doc,
+        className: "mav-mixer-card-level",
+        attrs: {
+          type: "button",
+          tabindex: "-1",
+          "data-field": field,
+          "aria-label": ctx.t("returnOf", { effect: name }),
+        },
+      });
 }
 
 /** One effect in the chain: its dot, name, state and settings button. */
@@ -59,7 +68,7 @@ export function renderCard(
   const level =
     slot.place === "send" &&
     data.local.audioEffectMix[slot.effect.id] !== undefined
-      ? levelButton(ctx, doc, slot, name)
+      ? levelTag(ctx, doc, slot, name, readOnly)
       : null;
   const dot = el("button", {
     doc,
@@ -71,18 +80,20 @@ export function renderCard(
       "aria-label": ctx.t("onOf", { effect: name }),
     },
   });
-  const settings = el("button", {
-    doc,
-    className: "mav-mixer-card-settings",
-    attrs: {
-      type: "button",
-      tabindex: "-1",
-      "data-field": `settings.${slot.key}`,
-      "aria-label": ctx.t("settingsOf", { effect: name }),
-      "aria-haspopup": "dialog",
-    },
-    children: [icon("fa-sliders", doc)],
-  });
+  const settings = readOnly
+    ? null
+    : el("button", {
+        doc,
+        className: "mav-mixer-card-settings",
+        attrs: {
+          type: "button",
+          tabindex: "-1",
+          "data-field": `settings.${slot.key}`,
+          "aria-label": ctx.t("settingsOf", { effect: name }),
+          "aria-haspopup": "dialog",
+        },
+        children: [icon("fa-sliders", doc)],
+      });
   const chip = el("span", { doc, className: "mav-mixer-chip" });
   const element = el("li", {
     doc,
@@ -138,19 +149,18 @@ export function renderCard(
     chip.textContent = SAID.has(next) ? word : "";
     chip.hidden = !SAID.has(next);
   };
-  showState(state, data.local.chosenEffects.includes(slot.effect.id));
-  return {
-    element,
-    showState,
-    showLevel(value) {
-      if (!level) return;
-      const percent = percentText(value * PERCENT);
-      level.textContent = percent;
-      // The name holds what is shown (WCAG 2.5.3).
-      level.setAttribute(
-        "aria-label",
-        `${ctx.t("returnOf", { effect: name })} ${percent}`,
-      );
-    },
+  const showLevel = (value: number): void => {
+    if (!level) return;
+    const percent = percentText(value * PERCENT);
+    level.textContent = percent;
+    if (readOnly) return;
+    // The name holds what is shown (WCAG 2.5.3).
+    level.setAttribute(
+      "aria-label",
+      `${ctx.t("returnOf", { effect: name })} ${percent}`,
+    );
   };
+  showState(state, data.local.chosenEffects.includes(slot.effect.id));
+  showLevel(data.local.audioEffectMix[slot.effect.id] ?? 0);
+  return { element, showState, showLevel };
 }

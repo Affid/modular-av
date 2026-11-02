@@ -68,11 +68,20 @@ function open(reports: Readonly<Record<string, Report>> = {}) {
   return { ...mixer, ...fake, view };
 }
 
-const rowOf = (root: HTMLElement, id: string) => {
-  const row = root.querySelector<HTMLElement>(`[data-player="${id}"]`);
-  if (!row) throw new Error(`no row ${id}`);
-  return row;
+const pick = (root: HTMLElement, id: string): HTMLElement => {
+  const picker = root.querySelector<HTMLSelectElement>('[data-field="player"]');
+  if (!picker) throw new Error("no player picker");
+  picker.value = id;
+  picker.dispatchEvent(new Event("change"));
+  const shown = root.querySelector<HTMLElement>(`[data-player="${id}"]`);
+  if (!shown) throw new Error(`${id} isn't shown`);
+  return shown;
 };
+
+const keysIn = (root: HTMLElement, place: string) =>
+  [
+    ...root.querySelectorAll<HTMLElement>(`[data-part="${place}"] [data-key]`),
+  ].map((card) => card.dataset.key);
 
 describe("the GM's table", () => {
   it("asks while shown, and stops when closed", () => {
@@ -83,57 +92,64 @@ describe("the GM's table", () => {
     expect(stop).toHaveBeenCalledOnce();
   });
 
-  it("shows each other player, names as text", () => {
+  it("offers each other player, names as text, the first picked", () => {
     const { view } = open();
 
-    const names = [...view.element.querySelectorAll("[data-player] th")].map(
-      (th) => th.textContent,
-    );
+    const names = [
+      ...view.element.querySelectorAll('[data-field="player"] option'),
+    ].map((option) => option.textContent);
 
     expect(names).toEqual(["Ann <b>", "Bo", "Cy"]);
-    expect(view.element.querySelector("td b, th b")).toBeNull();
+    expect(view.element.querySelector("option b")).toBeNull();
+    expect(view.element.querySelector('[data-player="p1"]')).not.toBeNull();
   });
 
-  it("shows what runs where, with sends' levels, read only", () => {
+  it("shows the picked player's chain as cards and faders, read only", () => {
     const { view } = open({ p1: report });
 
-    const row = rowOf(view.element, "p1");
+    const shown = pick(view.element, "p1");
 
-    expect(row.querySelector('[data-place="pre-gate"]')?.textContent).toBe(
-      "DENOISE",
-    );
-    expect(row.querySelector('[data-place="post-gate"]')?.textContent).toBe("");
-    expect(row.querySelector('[data-place="send"]')?.textContent).toContain(
-      "REVERB 30%",
-    );
-    expect(view.element.querySelector("input, select")).toBeNull();
+    expect(keysIn(shown, "pre-gate")).toEqual(["denoise"]);
+    expect(keysIn(shown, "post-gate")).toEqual([]);
+    expect(keysIn(shown, "send")).toEqual(["reverb"]);
+    expect(
+      shown.querySelector('[data-field="level.reverb"]')?.textContent,
+    ).toBe("30%");
+    expect(shown.querySelector('[data-field^="add."]')).toBeNull();
+    expect(shown.querySelector('[data-field^="settings."]')).toBeNull();
+    expect(
+      [...shown.querySelectorAll<HTMLInputElement>("input, button")].every(
+        (control) => control.disabled,
+      ),
+    ).toBe(true);
   });
 
   it("says when an effect failed there", () => {
     const { view } = open({ p1: report });
 
-    expect(rowOf(view.element, "p1").textContent).toContain("failed");
+    const shown = pick(view.element, "p1");
+
+    expect(
+      shown.querySelector<HTMLElement>('[data-key="reverb"]')?.dataset.state,
+    ).toBe("failed");
   });
 
-  it("shows the same warnings the player sees", () => {
+  it("shows the same warnings the player sees, and how a layer went", () => {
     const { view } = open({ p1: report });
 
-    expect(rowOf(view.element, "p1").textContent).toContain(
+    const shown = pick(view.element, "p1");
+
+    expect(shown.textContent).toContain(
       "REVERB rings on ahead of the voice gate",
     );
-  });
-
-  it("shows how a layer went", () => {
-    const { view } = open({ p1: report });
-
-    expect(rowOf(view.element, "p1").textContent).toContain("Cave: refused");
+    expect(shown.textContent).toContain("Cave: refused");
   });
 
   it("says who hasn't answered, and who isn't logged in", () => {
     const { view } = open();
 
-    expect(rowOf(view.element, "p2").textContent).toContain("Waiting");
-    expect(rowOf(view.element, "p3").textContent).toContain("Not logged in");
+    expect(pick(view.element, "p2").textContent).toContain("Waiting");
+    expect(pick(view.element, "p3").textContent).toContain("Not logged in");
   });
 
   it("names an effect this client doesn't know by its id", () => {
@@ -146,25 +162,28 @@ describe("the GM's table", () => {
 
     const { view } = open({ p1: gone });
 
-    expect(rowOf(view.element, "p1").textContent).toContain("krisp");
+    expect(pick(view.element, "p1").textContent).toContain("krisp");
   });
 
-  it("follows new reports until closed", () => {
+  it("follows new reports until closed, keeping the player picked", () => {
     // Arrange
     const reports: Record<string, Report> = {};
     const { view, notify } = open(reports);
+    pick(view.element, "p2");
     reports.p2 = report;
 
     // Act
     notify();
 
     // Assert
-    expect(rowOf(view.element, "p2").textContent).toContain("REVERB");
+    const shown = view.element.querySelector<HTMLElement>('[data-player="p2"]');
+    expect(shown && keysIn(shown, "send")).toEqual(["reverb"]);
     view.dispose();
   });
 
   it("follows who is logged in", async () => {
     const { view, api } = open();
+    pick(view.element, "p3");
 
     api.setState((state) => ({
       ...state,
@@ -175,9 +194,9 @@ describe("the GM's table", () => {
     }));
     await act();
 
-    expect(rowOf(view.element, "p3").textContent).not.toContain(
-      "Not logged in",
-    );
+    expect(
+      view.element.querySelector('[data-player="p3"]')?.textContent,
+    ).not.toContain("Not logged in");
   });
 });
 

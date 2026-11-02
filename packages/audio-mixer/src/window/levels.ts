@@ -160,19 +160,20 @@ export function renderLevels(
       handlers?.channel(level);
     },
   });
-  const cut = el("button", {
-    doc,
-    className: "mav-mixer-toggle",
-    text: ctx.t("cutTailsShort"),
-    attrs: {
-      type: "button",
-      title: ctx.t("cutTails"),
-      "data-field": "cutTails",
-      "aria-pressed": String(data.local.audioCutTails),
-    },
-  });
-  cut.disabled = !handlers;
-  cut.addEventListener("click", () => {
+  const cut = handlers
+    ? el("button", {
+        doc,
+        className: "mav-mixer-toggle",
+        text: ctx.t("cutTailsShort"),
+        attrs: {
+          type: "button",
+          title: ctx.t("cutTails"),
+          "data-field": "cutTails",
+          "aria-pressed": String(data.local.audioCutTails),
+        },
+      })
+    : null;
+  cut?.addEventListener("click", () => {
     handlers?.cutTails(cut.getAttribute("aria-pressed") !== "true");
   });
   const element = el("section", {
@@ -218,7 +219,7 @@ export function renderLevels(
       );
     }
     channel.show(local.audioChannelLevel);
-    cut.setAttribute("aria-pressed", String(local.audioCutTails));
+    cut?.setAttribute("aria-pressed", String(local.audioCutTails));
   };
   update(data.local);
   return { element, update };

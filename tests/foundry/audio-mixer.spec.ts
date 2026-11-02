@@ -296,18 +296,22 @@ test("a GM sees what a player runs, as it changes", async ({ browser }) => {
   // Act
   const mixer = await openFromSettings(gm);
   await mixer.locator('[data-tab="table"]').click();
-  const row = mixer.locator(`[data-player="${p1Id}"]`);
-  await expect(row.locator('[data-place="send"]')).toHaveText("");
+  await mixer.locator('[data-field="player"]').selectOption(p1Id);
+  const shown = mixer.locator(`[data-player="${p1Id}"]`);
+  await expect(shown.locator('[data-key="reverb"]')).toHaveCount(0);
   await p1.run(async (api) => {
     await api.commands.setEffectEnabled("reverb", true);
     await api.commands.setAudioEffectPlace("reverb", "pre-gate");
   }, null);
 
-  // Assert
-  await expect(row.locator('[data-place="pre-gate"]')).toContainText("Reverb");
-  await expect(row).toContainText("rings on ahead of the voice gate");
+  // Assert: the same cards the player sees, read only.
+  await expect(
+    shown.locator('[data-part="pre-gate"] [data-key="reverb"]'),
+  ).toBeVisible();
+  await expect(shown).toContainText("rings on ahead of the voice gate");
+  await expect(shown.locator('[data-field^="add."]')).toHaveCount(0);
   await clearPipeline(p1);
-  await expect(row.locator('[data-place="send"]')).toHaveText("");
+  await expect(shown.locator('[data-key="reverb"]')).toHaveCount(0);
 
   const results = await new AxeBuilder({ page: gm.page })
     .include("#modular-av-audio-mixer")
@@ -418,6 +422,7 @@ test("a player refuses one layer, and the GM sees it", async ({ browser }) => {
   await ownSetup(p1);
   const table = await openFromSettings(gm);
   await table.locator('[data-tab="table"]').click();
+  await table.locator('[data-field="player"]').selectOption(p1Id);
   await enterCave(gm);
   await expect.poll(() => pipelineOf(p1)).toEqual(IN_CAVE);
 

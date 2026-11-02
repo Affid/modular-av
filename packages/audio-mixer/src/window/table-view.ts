@@ -1,14 +1,19 @@
-import type { AudioPlace, ParticipantState } from "@modular-av/api";
+import type {
+  AudioPlace,
+  EffectDefinition,
+  EffectStatus,
+  ParticipantState,
+} from "@modular-av/api";
 import { el } from "@modular-av/kit";
-import { PLACES } from "../model/pipeline.ts";
-import type { EffectEntry } from "../model/snapshot.ts";
+import { audioEffectsOf, PLACES } from "../model/pipeline.ts";
 import type { Warning } from "../model/warnings.ts";
 import type { Report } from "../table/report.ts";
 import type { Table } from "../table/table.ts";
+import { chainData, type ChainLocal } from "./chain-data.ts";
 import type { MixerContext, Rendered } from "./context.ts";
 import { renderLayerBar } from "./layer-bar.ts";
-
-const PERCENT = 100;
+import { renderLevels } from "./levels.ts";
+import { renderRouting } from "./routing.ts";
 
 const others = (ctx: MixerContext): readonly ParticipantState[] =>
   Object.values(ctx.api.state.get().participants)
@@ -20,46 +25,37 @@ const nameOf = (ctx: MixerContext, id: string): string => {
   return definition ? ctx.text(definition.label) : id;
 };
 
-function effectText(
-  ctx: MixerContext,
-  id: string,
-  entry: EffectEntry,
-  place: AudioPlace,
+/** A report read as this client's own state, for the same panels. */
+export function chainOfReport(
+  definitions: readonly EffectDefinition[],
   report: Report,
-): string {
-  const level =
-    place === "send" && entry.mix !== undefined
-      ? ` ${String(Math.round(entry.mix * PERCENT))}%`
-      : "";
-  const failed = report.status[id] === "failed";
-  return `${nameOf(ctx, id)}${level}${failed ? ` (${ctx.t("table.failed")})` : ""}`;
-}
-
-/** What is on at `place`, in the order it runs. */
-function placeText(
-  ctx: MixerContext,
-  report: Report,
-  place: AudioPlace,
-): string {
-  const { effects, order } = report.snapshot;
-  const here = Object.entries(effects).filter(
-    ([, entry]) => entry.on === true && entry.place === place,
+): ChainLocal {
+  const { effects, order, channelLevel } = report.snapshot;
+  const audio = audioEffectsOf(definitions);
+  const known = Object.entries(effects).filter(([id]) =>
+    audio.some((d) => d.id === id),
   );
-  const listed = order?.[place] ?? [];
-  const rank = (id: string): number => {
-    const at = listed.indexOf(id);
-    return at < 0 ? listed.length : at;
+  const status = (id: string): EffectStatus => report.status[id] ?? "off";
+  return {
+    chosenEffects: known.filter(([, e]) => e.on === true).map(([id]) => id),
+    effects: Object.fromEntries(
+      known.map(([id]) => [id, { status: status(id), error: null }]),
+    ),
+    audioEffectPlaces: Object.fromEntries(
+      audio.map((d) => [d.id, effects[d.id]?.place ?? d.defaultPlace]),
+    ),
+    audioEffectOrder: Object.fromEntries(
+      PLACES.map((place) => [place, order?.[place] ?? []]),
+    ) as Record<AudioPlace, readonly string[]>,
+    audioEffectMix: Object.fromEntries(
+      known.flatMap(([id, e]) =>
+        e.mix === undefined ? [] : [[id, e.mix] as const],
+      ),
+    ),
+    audioChannelLevel: channelLevel ?? 1,
+    audioCutTails: false,
   };
-  return [...here]
-    .sort(([a], [b]) => rank(a) - rank(b))
-    .map(([id, entry]) => effectText(ctx, id, entry, place, report))
-    .join(", ");
 }
-
-const layerText = (ctx: MixerContext, report: Report): string =>
-  report.layers
-    .map(({ label, state }) => `${label}: ${ctx.t(`table.layer-${state}`)}`)
-    .join(", ");
 
 const warningText = (ctx: MixerContext, warning: Warning): string =>
   ctx.t(
@@ -67,97 +63,124 @@ const warningText = (ctx: MixerContext, warning: Warning): string =>
     warning.effect ? { effect: nameOf(ctx, warning.effect) } : {},
   );
 
-function rowCells(
+/** The gate on another player's chain: no meter, it is theirs. */
+const staticGate = (ctx: MixerContext, doc: Document): HTMLElement =>
+  el("section", {
+    doc,
+    className: "mav-mixer-gate",
+    attrs: { "data-part": "gate", title: ctx.t("gateHint") },
+    children: [el("h3", { doc, text: ctx.t("gateShort") })],
+  });
+
+function reportView(
+  ctx: MixerContext,
+  doc: Document,
+  report: Report,
+): readonly HTMLElement[] {
+  const definitions = ctx.api.effects.list();
+  const data = chainData(definitions, chainOfReport(definitions, report));
+  const unknown = Object.entries(report.snapshot.effects)
+    .filter(([id, e]) => e.on === true && !definitions.some((d) => d.id === id))
+    .map(([id]) => id);
+  const layers = report.layers.map(
+    ({ label, state }) => `${label}: ${ctx.t(`table.layer-${state}`)}`,
+  );
+  return [
+    layers.length
+      ? el("p", { doc, className: "mav-mixer-held", text: layers.join(", ") })
+      : null,
+    report.warnings.length
+      ? el("ul", {
+          doc,
+          className: "mav-mixer-warnings",
+          children: report.warnings.map((w) =>
+            el("li", { doc, text: warningText(ctx, w) }),
+          ),
+        })
+      : null,
+    renderRouting(ctx, doc, data, staticGate(ctx, doc), null).element,
+    renderLevels(ctx, doc, data, null).element,
+    unknown.length
+      ? el("p", {
+          doc,
+          className: "mav-mixer-hint",
+          text: ctx.t("table.unknown", { effects: unknown.join(", ") }),
+        })
+      : null,
+  ].filter((part): part is HTMLElement => part !== null);
+}
+
+function playerView(
   ctx: MixerContext,
   doc: Document,
   player: ParticipantState,
   report: Report | undefined,
-): readonly HTMLElement[] {
-  if (!player.active || !report) {
-    const text = ctx.t(player.active ? "table.waiting" : "table.away");
-    return [el("td", { doc, text, attrs: { colspan: "5" } })];
-  }
-  return [
-    ...PLACES.map((place) =>
-      el("td", {
-        doc,
-        text: placeText(ctx, report, place),
-        attrs: { "data-place": place },
-      }),
-    ),
-    el("td", { doc, text: layerText(ctx, report) }),
-    el("td", {
-      doc,
-      children: report.warnings.map((w) =>
-        el("p", {
-          doc,
-          className: "mav-mixer-hint",
-          text: warningText(ctx, w),
-        }),
-      ),
-    }),
-  ];
-}
-
-function renderTable(
-  ctx: MixerContext,
-  doc: Document,
-  table: Pick<Table, "reportOf">,
 ): HTMLElement {
-  const headings = [
-    ctx.t("table.player"),
-    ...PLACES.map((place) => ctx.t(`places.${place}`)),
-    ctx.t("table.layers"),
-    ctx.t("table.warnings"),
-  ];
-  return el("table", {
+  const say = (key: string): HTMLElement =>
+    el("p", { doc, className: "mav-mixer-hint", text: ctx.t(key) });
+  const children = !player.active
+    ? [say("table.away")]
+    : report
+      ? reportView(ctx, doc, report)
+      : [say("table.waiting")];
+  return el("section", {
     doc,
-    className: "mav-mixer-table",
-    children: [
-      el("thead", {
-        doc,
-        children: [
-          el("tr", {
-            doc,
-            children: headings.map((text) =>
-              el("th", { doc, text, attrs: { scope: "col" } }),
-            ),
-          }),
-        ],
-      }),
-      el("tbody", {
-        doc,
-        children: others(ctx).map((player) =>
-          el("tr", {
-            doc,
-            attrs: { "data-player": player.id },
-            children: [
-              el("th", { doc, text: player.name, attrs: { scope: "row" } }),
-              ...rowCells(ctx, doc, player, table.reportOf(player.id)),
-            ],
-          }),
-        ),
-      }),
-    ],
+    className: "mav-mixer-chain",
+    attrs: { "data-player": player.id, "aria-label": player.name },
+    children,
   });
 }
 
-/** What every player runs, read only, asking them only while it is shown. */
+/** One player's chain at a time, read only, asking only while it is shown. */
 export function renderTableView(
   ctx: MixerContext,
   doc: Document,
   table: Table,
 ): Rendered {
-  const rows = el("div", { doc });
+  const picker = el("select", {
+    doc,
+    attrs: { "data-field": "player", "aria-label": ctx.t("table.player") },
+  });
+  const shown = el("div", { doc });
   const bar = ctx.gmLayers ? renderLayerBar(ctx, doc, ctx.gmLayers) : null;
   const element = el("div", {
     doc,
     className: "mav-mixer-view",
-    children: [bar?.element, rows],
+    children: [
+      bar?.element,
+      el("div", {
+        doc,
+        className: "mav-mixer-choice",
+        children: [el("span", { doc, text: ctx.t("table.player") }), picker],
+      }),
+      shown,
+    ],
   });
+  let picked: string | null = null;
   const render = (): void => {
-    rows.replaceChildren(renderTable(ctx, doc, table));
+    const players = others(ctx);
+    picker.replaceChildren(
+      ...players.map((p) =>
+        el("option", { doc, text: p.name, attrs: { value: p.id } }),
+      ),
+    );
+    const player = players.find((p) => p.id === picked) ?? players[0];
+    picked = player?.id ?? null;
+    if (picked) picker.value = picked;
+    shown.replaceChildren(
+      player
+        ? playerView(ctx, doc, player, table.reportOf(player.id))
+        : el("p", {
+            doc,
+            className: "mav-mixer-hint",
+            text: ctx.t("table.nobody"),
+          }),
+    );
   };
+  picker.addEventListener("change", () => {
+    picked = picker.value;
+    render();
+  });
   render();
   const stop = table.watch();
   const offReports = table.subscribe(render);

@@ -161,7 +161,9 @@
       "layer-applied": "applied",
       "layer-partly": "partly applied",
       "layer-refused": "refused",
-      "layer-kept-out": "keeps the GM out"
+      "layer-kept-out": "keeps the GM out",
+      "unknown": "Also runs, not in this world: {effects}.",
+      "nobody": "Nobody else is logged in."
     },
     "action": "Voice setup",
     "layers": {
