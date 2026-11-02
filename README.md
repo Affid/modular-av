@@ -41,13 +41,20 @@ Meet server (`modular-av-jitsi`) if you run one.
 | `modular-av-dock-vines`     | A theme for the dock: vine leaves around the cameras.                  | `https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-dock-vines/module.json`     |
 | `modular-av-mic-denoise`    | Noise cancellation in your browser: RNNoise, Speex or GTCRN.           | `https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-mic-denoise/module.json`    |
 | `modular-av-cam-background` | Blurs or replaces your camera's background, in your browser.           | `https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-cam-background/module.json` |
+| `modular-av-audio-mixer`    | A mixer for your voice: effects, order, levels, presets, a GM's view.  | `https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-audio-mixer/module.json`    |
+| `modular-av-audio-reverb`   | A reverb for the voice.                                                | `https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-audio-reverb/module.json`   |
+| `modular-av-audio-echo`     | An echo for the voice.                                                 | `https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-audio-echo/module.json`     |
+| `modular-av-audio-eq`       | A three band equalizer for the voice.                                  | `https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-audio-eq/module.json`       |
 
 Each module's own page: [core](packages/core/README.md),
 [LiveKit](packages/livekit/README.md), [P2P](packages/p2p/README.md),
 [Jitsi](packages/jitsi/README.md), [dock](packages/dock/README.md),
 [vines theme](packages/dock-vines/README.md),
 [noise cancellation](packages/mic-denoise/README.md),
-[camera background](packages/cam-background/README.md).
+[camera background](packages/cam-background/README.md),
+[audio mixer](packages/audio-mixer/README.md),
+[reverb](packages/audio-reverb/README.md), [echo](packages/audio-echo/README.md),
+[EQ](packages/audio-eq/README.md).
 `modular-av-livekit-krisp` (Krisp on LiveKit Cloud) is held back from
 releases for now; see its [README](packages/livekit-krisp/README.md).
 
@@ -93,6 +100,10 @@ The design and the reasons behind it are in
 | `packages/mic-denoise`    | `@modular-av/mic-denoise`    | `modular-av-mic-denoise`    |
 | `packages/starter-set`    | `@modular-av/starter-set`    | `modular-av-starter-set`    |
 | `packages/cam-background` | `@modular-av/cam-background` | `modular-av-cam-background` |
+| `packages/audio-mixer`    | `@modular-av/audio-mixer`    | `modular-av-audio-mixer`    |
+| `packages/audio-reverb`   | `@modular-av/audio-reverb`   | `modular-av-audio-reverb`   |
+| `packages/audio-echo`     | `@modular-av/audio-echo`     | `modular-av-audio-echo`     |
+| `packages/audio-eq`       | `@modular-av/audio-eq`       | `modular-av-audio-eq`       |
 | `packages/testing`        | `@modular-av/testing`        | (library)                   |
 
 ### Development

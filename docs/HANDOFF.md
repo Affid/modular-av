@@ -218,6 +218,10 @@ modular-av/
     dock/             → "modular-av-dock"
     mic-denoise/      → "modular-av-mic-denoise" (RNNoise/Speex/GTCRN; the gate stays in core)
     cam-background/   → "modular-av-cam-background" (blur/replace, MediaPipe)
+    audio-mixer/      → "modular-av-audio-mixer" (window, presets, a GM's layers; no effects)
+    audio-reverb/     → "modular-av-audio-reverb"
+    audio-echo/       → "modular-av-audio-echo"
+    audio-eq/         → "modular-av-audio-eq"
     later: jitsi/, dock-scifi/, dock-fantasy/, dock-vines/, tokens/, embed/
   tools/              → token server template (see "Credentials")
   docs/
@@ -1857,10 +1861,11 @@ Verified while building the scattered layout, themes and
 Left open after milestone 10. None of them is part of a milestone unless
 it is picked up explicitly.
 
-- **The core's entry is nearly full**: 109.4 of 110 KB after the open-mic
-  choice (the modules window, the news check, the no-service notice, the
-  settings window and the connection details load only when needed). The
-  next core feature needs lazy loading or a budget decision.
+- **The core's entry is nearly full**: 115.2 of 116 KB after the audio
+  mixer's additions (the modules window, the news check, the no-service
+  notice, the settings window, the connection details and what writes this
+  device's settings load only when needed). The next core feature needs lazy
+  loading or a budget decision.
 - **The modules window and other GMs**: it reads the installed modules
   when it opens; another GM applying meanwhile isn't seen until it is
   opened again (Apply reloads everyone, so only a window left open across
@@ -2226,3 +2231,20 @@ Firefox 157):
   stall watchdog. Watching it showed two old faults of a series: an effect
   behind one that gates to zero looks stalled, and everything behind a stall
   looks stalled too.
+- **The voice gate and a held note**: while open, the automatic floor used to
+  rise towards the quietest level of the last 2 s, so a steady note between
+  about -45 and -30 dBFS looked like noise and was cut after 5 to 12 s, on every
+  service. While open it now looks back 30 s, longer than a breath lasts. A fan
+  starting during a call takes over 30 s to be learned, and that is the price.
+  Browser noise suppression and Speex still lower a held note by about 15 dB;
+  RNNoise and GTCRN keep it (one synthetic note, in Foundry).
+- **The size check counts static imports**: a chunk shared with the entry
+  counts as entry. The mixer's presets, layers and reports are all behind one
+  dynamic `import()`, loaded by the first GM asking, keybinding, macro, window
+  or layer, so a player who uses none of it pays about 6 KB.
+- **Foundry doesn't announce a client setting**: `updateUser` fires for a flag
+  but nothing fires for the client setting beside it, so the mixer notifies
+  after both. A fake store that announced everything hid this for a phase.
+- **Client settings live in the browser context**: a spec that closes a context
+  and opens a new one is a new device. To test a player who left and came back,
+  go to `about:blank` and back in the same context.

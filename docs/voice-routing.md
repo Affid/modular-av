@@ -1,5 +1,7 @@
 # Voice channel routing
 
+`docs/audio-mixer.md` is the window that sets all of this up.
+
 How the microphone travels from the device to the service. The shape and
 the words come from Cubase's mixer, and differ where a voice call needs
 something else. It grew out of issue #1: a reverb's tail was cut by the

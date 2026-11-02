@@ -81,6 +81,9 @@ objects inside flags and an old key would survive a replace. There are at most
 user's flags, so presets aren't private. The active preset is a client setting,
 because a device can differ.
 
+A preset's code stays out of the module's entry until it is first needed, so
+everything in the macro API returns a promise.
+
 Applying one turns off what must stop, makes one `setAudioPipeline` call, sets
 the effect settings, then turns on what must start. An effect swapped within its
 exclusive group isn't turned off first, so noise suppression never leaves a gap.
@@ -134,6 +137,12 @@ label and whether it includes GMs.
   meanwhile changes the other keys at once, and its value for a held key goes
   into the undo record.
 
+A GM makes a layer from one of their own presets, or a macro writes one by hand
+(`game.modules.get("modular-av-audio-mixer").api.layers`). From a preset a layer
+takes what it turns on, and Channel level if it isn't full. It leaves out what
+the preset turns off, and noise suppression, which stays each player's own. A
+layer written by hand can hold either: that is the GM's call.
+
 If a player already runs an effect a layer uses, the layer replaces it for its
 duration and the player gets theirs back afterwards. An effect runs once.
 
@@ -171,6 +180,12 @@ A pure function of the pipeline. Warnings never block.
 
 ## Limits
 
+- A layer's level for an effect at a place with no level of its own overwrites
+  the player's saved one: the core reports a level only where an effect has it,
+  so there is nothing to record. It matters only if they move that effect to a
+  send later.
+- A player can send a GM reports nobody asked for, and a GM's open table redraws
+  for each. That is a nuisance from a hostile client, outside the trust model.
 - With the mixer disabled during a layer, nothing is left to run the undo, so
   the layer's values stay until it is back. An effect module disabled during a
   layer just goes, as the core ignores ids that aren't registered.

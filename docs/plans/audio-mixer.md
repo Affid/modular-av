@@ -60,6 +60,15 @@ On a steady tone exactly on a comb's resonance the reverb peaks at about 10
 times what comes in, and speech-like sound at about 1.8 times. So the kernel keeps a
 fixed gain and bends what passes 0.8 towards 1.
 
+Later phases, built, against budgets of 116,000 for the core and 10,000 for the
+mixer: the core's entry stayed at 115,225 bytes and the mixer's is 5,828, as
+presets, reports and layers load on first use.
+
+A held note at -32 dBFS over a quiet room, 30 s long, in voice activity mode in
+real Foundry: cut after about 9 s on P2P and LiveKit alike before the gate fix,
+whole after it. Typical level after: RNNoise -32 dB, GTCRN -35, browser noise
+suppression -46, Speex -47.
+
 ## Not tested
 
 Safari (WebKit won't launch here), Foundry's desktop app, a real table of
