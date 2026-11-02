@@ -1,4 +1,5 @@
 import type { Channel, ModularAV } from "@modular-av/api";
+import type { LayerStatus } from "../layers/layers.ts";
 import {
   COALESCE_MS,
   createReport,
@@ -17,6 +18,8 @@ export interface TableDeps {
   isGM(userId: string): boolean;
   readonly selfIsGM: boolean;
   readonly automationRate: boolean;
+  /** How a GM's layers went here. */
+  layerStates(): readonly LayerStatus[];
   onError(error: unknown): void;
 }
 
@@ -62,6 +65,7 @@ export function createTable(deps: TableDeps): Table {
       api.state.get().local,
       api.contributions.list(),
       deps.automationRate,
+      deps.layerStates(),
     );
     channel.send({ type: "report", ...report }, { recipients });
   };

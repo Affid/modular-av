@@ -6,6 +6,7 @@ import type { Warning } from "../model/warnings.ts";
 import type { Report } from "../table/report.ts";
 import type { Table } from "../table/table.ts";
 import type { MixerContext, Rendered } from "./context.ts";
+import { renderLayerBar } from "./layer-bar.ts";
 
 const PERCENT = 100;
 
@@ -55,6 +56,11 @@ function placeText(
     .join(", ");
 }
 
+const layerText = (ctx: MixerContext, report: Report): string =>
+  report.layers
+    .map(({ label, state }) => `${label}: ${ctx.t(`table.layer-${state}`)}`)
+    .join(", ");
+
 const warningText = (ctx: MixerContext, warning: Warning): string =>
   ctx.t(
     `warnings.${warning.key}`,
@@ -69,7 +75,7 @@ function rowCells(
 ): readonly HTMLElement[] {
   if (!player.active || !report) {
     const text = ctx.t(player.active ? "table.waiting" : "table.away");
-    return [el("td", { doc, text, attrs: { colspan: "4" } })];
+    return [el("td", { doc, text, attrs: { colspan: "5" } })];
   }
   return [
     ...PLACES.map((place) =>
@@ -79,6 +85,7 @@ function rowCells(
         attrs: { "data-place": place },
       }),
     ),
+    el("td", { doc, text: layerText(ctx, report) }),
     el("td", {
       doc,
       children: report.warnings.map((w) =>
@@ -100,6 +107,7 @@ function renderTable(
   const headings = [
     ctx.t("table.player"),
     ...PLACES.map((place) => ctx.t(`places.${place}`)),
+    ctx.t("table.layers"),
     ctx.t("table.warnings"),
   ];
   return el("table", {
@@ -140,9 +148,15 @@ export function renderTableView(
   doc: Document,
   table: Table,
 ): Rendered {
-  const element = el("div", { doc, className: "mav-mixer-view" });
+  const rows = el("div", { doc });
+  const bar = ctx.gmLayers ? renderLayerBar(ctx, doc, ctx.gmLayers) : null;
+  const element = el("div", {
+    doc,
+    className: "mav-mixer-view",
+    children: [bar?.element, rows],
+  });
   const render = (): void => {
-    element.replaceChildren(renderTable(ctx, doc, table));
+    rows.replaceChildren(renderTable(ctx, doc, table));
   };
   render();
   const stop = table.watch();
@@ -152,6 +166,7 @@ export function renderTableView(
     element,
     dispose() {
       stop();
+      bar?.dispose();
       offReports();
       offState();
     },

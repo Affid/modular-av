@@ -97,8 +97,36 @@
       "warnings": "Warnings",
       "failed": "failed",
       "waiting": "Waiting for an answer…",
-      "away": "Not logged in."
+      "away": "Not logged in.",
+      "layers": "GM's change",
+      "layer-applied": "applied",
+      "layer-partly": "partly applied",
+      "layer-refused": "refused",
+      "layer-kept-out": "keeps the GM out"
     },
-    "action": "Voice setup"
+    "action": "Voice setup",
+    "layers": {
+      "title": "Change the table's voices",
+      "hint": "Lays one of your presets over a player's setup. What it turns on replaces theirs for as long as it lasts, and ending it gives them their own back.",
+      "noPresets": "Save a preset on your own voice first: that is what gets laid over theirs.",
+      "preset": "Preset to lay over",
+      "target": "Who it is for",
+      "everyone": "Everyone",
+      "includeGMs": "GMs too",
+      "apply": "Apply",
+      "end": "End",
+      "on": "{who}: {label}",
+      "held": "Set by the GM",
+      "refuse": "Not for me",
+      "accept": "Use it",
+      "keepOut": "Keep the GM out of my voice",
+      "notice": "Your GM changed your voice: {label}. You can refuse it in the audio mixer.",
+      "states": {
+        "applied": "Your GM changed your voice: {label}.",
+        "partly": "Your GM changed your voice: {label}. Part of it can't run here.",
+        "refused": "You refused your GM's change: {label}.",
+        "kept-out": "You keep your GM out of your voice: {label}."
+      }
+    }
   }
 }

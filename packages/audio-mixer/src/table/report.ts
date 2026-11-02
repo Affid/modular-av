@@ -9,12 +9,22 @@ import {
   parseSnapshot,
   type Snapshot,
 } from "../model/snapshot.ts";
+import type { LayerState, LayerStatus } from "../layers/layers.ts";
 import { type Warning, WARNING_KEYS, warningsOf } from "../model/warnings.ts";
 
 /** A burst of changes is one report. */
 export const COALESCE_MS = 300;
 
 const MAX_EFFECTS = 64;
+const MAX_LAYERS = 8;
+const MAX_LABEL = 64;
+
+const LAYER_STATES: readonly LayerState[] = [
+  "applied",
+  "partly",
+  "refused",
+  "kept-out",
+];
 
 const STATUSES: readonly EffectStatus[] = [
   "off",
@@ -33,6 +43,8 @@ export interface Report {
   readonly snapshot: Snapshot;
   readonly status: Readonly<Record<string, EffectStatus>>;
   readonly warnings: readonly Warning[];
+  /** A GM's layers, and how each went here. */
+  readonly layers: readonly LayerStatus[];
 }
 
 export function createReport(
@@ -40,6 +52,7 @@ export function createReport(
   local: LocalState,
   contributions: readonly Contribution[],
   automationRate: boolean,
+  layers: readonly LayerStatus[] = [],
 ): Report {
   return {
     snapshot: captureSnapshot(definitions, local, contributions),
@@ -47,6 +60,7 @@ export function createReport(
       Object.entries(local.effects).map(([id, { status }]) => [id, status]),
     ),
     warnings: warningsOf(definitions, local, automationRate),
+    layers,
   };
 }
 
@@ -71,6 +85,26 @@ function parseWarning(value: unknown): Warning | null {
   return typeof effect === "string" ? { key: known, effect } : null;
 }
 
+function parseLayerStatus(value: unknown): LayerStatus | null {
+  if (!isRecord(value)) return null;
+  const { id, label, state } = value;
+  const known = LAYER_STATES.find((s) => s === state);
+  return known &&
+    typeof id === "string" &&
+    typeof label === "string" &&
+    label.length <= MAX_LABEL
+    ? { id, label, state: known }
+    : null;
+}
+
+function parseLayers(value: unknown): readonly LayerStatus[] | null {
+  if (value === undefined) return [];
+  if (!Array.isArray(value) || value.length > MAX_LAYERS) return null;
+  const given = value as readonly unknown[];
+  const layers = given.flatMap((l) => parseLayerStatus(l) ?? []);
+  return layers.length === given.length ? layers : null;
+}
+
 /** What comes over the socket is checked: another client sent it. */
 export function parseReport(value: unknown): Report | null {
   if (!isRecord(value)) return null;
@@ -80,7 +114,8 @@ export function parseReport(value: unknown): Report | null {
   const given = value.warnings as readonly unknown[];
   if (given.length > MAX_EFFECTS) return null;
   const warnings = given.flatMap((w) => parseWarning(w) ?? []);
-  return warnings.length === given.length
-    ? { snapshot, status, warnings }
+  const layers = parseLayers(value.layers);
+  return warnings.length === given.length && layers
+    ? { snapshot, status, warnings, layers }
     : null;
 }

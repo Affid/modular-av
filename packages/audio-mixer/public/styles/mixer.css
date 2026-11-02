@@ -56,6 +56,20 @@
   width: auto;
 }
 
+.mav-mixer-layer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0.25rem 0;
+}
+
+.mav-mixer-layer button {
+  flex: 0 0 auto;
+  width: auto;
+}
+
 .mav-mixer-channel {
   display: flex;
   flex-direction: column;

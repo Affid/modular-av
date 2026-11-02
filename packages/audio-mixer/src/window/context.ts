@@ -1,4 +1,6 @@
 import type { ModularAV } from "@modular-av/api";
+import type { GmLayers } from "../layers/gm-layers.ts";
+import type { Layers } from "../layers/layers.ts";
 import type { Writer } from "../model/queue.ts";
 import type { Presets } from "../presets/presets.ts";
 import type { Table } from "../table/table.ts";
@@ -26,6 +28,10 @@ export interface MixerContext {
   confirm(text: string): Promise<boolean>;
   /** A GM's: what the others run. */
   readonly table?: Table;
+  /** A GM's layers over this client's channel. */
+  readonly layers?: Layers;
+  /** A GM's: laying a change over the table or a player. */
+  readonly gmLayers?: GmLayers;
 }
 
 /** Something drawn, with what undoes its subscriptions. */

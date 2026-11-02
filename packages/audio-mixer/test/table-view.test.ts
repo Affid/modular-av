@@ -49,6 +49,7 @@ const report: Report = {
   },
   status: { denoise: "running", reverb: "failed" },
   warnings: [{ key: "tail-before-gate", effect: "reverb" }],
+  layers: [{ id: "cave", label: "Cave", state: "refused" }],
 };
 
 function open(reports: Readonly<Record<string, Report>> = {}) {
@@ -120,6 +121,12 @@ describe("the GM's table", () => {
     expect(rowOf(view.element, "p1").textContent).toContain(
       "REVERB rings on ahead of the voice gate",
     );
+  });
+
+  it("shows how a layer went", () => {
+    const { view } = open({ p1: report });
+
+    expect(rowOf(view.element, "p1").textContent).toContain("Cave: refused");
   });
 
   it("says who hasn't answered, and who isn't logged in", () => {

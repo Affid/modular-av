@@ -32,6 +32,20 @@ export function renderFooter(
       void writes.run("cutTails", () => ctx.api.commands.setAudioCutTails(on));
     },
   );
+  const layers = ctx.layers;
+  const keptOut = layers
+    ? switchField(
+        doc,
+        ctx.t("layers.keepOut"),
+        { "data-field": "keptOut" },
+        (out) => {
+          layers.setKeptOut(out).catch((error: unknown) => {
+            ctx.onError(error);
+          });
+        },
+      )
+    : null;
+  if (keptOut && layers) keptOut.input.checked = layers.keptOut();
   const status = el("p", {
     doc,
     className: "mav-mixer-hint",
@@ -63,6 +77,7 @@ export function renderFooter(
       className: "mav-mixer-footer",
       children: [
         cut.element,
+        keptOut?.element,
         button,
         el("p", {
           doc,

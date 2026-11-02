@@ -1,11 +1,13 @@
 // The audio mixer in the local Foundry world: a player opens it from the dock,
 // sets up their voice, and it stays; the window passes axe's WCAG 2.1 AA checks.
 import AxeBuilder from "@axe-core/playwright";
-import { expect, type Locator, test } from "@playwright/test";
+import { type Browser, expect, type Locator, test } from "@playwright/test";
 import {
   configureWorld,
   expectStatus,
+  FOUNDRY_URL,
   idOf,
+  notifications,
   openGm,
   openPlayer,
   type Player,
@@ -29,8 +31,18 @@ const track = (player: Player): Player => {
   return player;
 };
 
+/** A run that failed mid-cave would otherwise leave the world in it. */
+async function clearTableLayer(browser: Browser): Promise<void> {
+  const gm = await openGm(browser);
+  await gm.run(async (_api, game) => {
+    await game.settings.set("modular-av-audio-mixer", "tableLayer", "");
+  }, null);
+  await gm.close();
+}
+
 test.beforeAll(async ({ browser }) => {
   await configureWorld(browser, "p2p", "dock");
+  await clearTableLayer(browser);
 });
 
 test.afterAll(async ({ browser }) => {
@@ -221,6 +233,203 @@ test("a GM sees what a player runs, as it changes", async ({ browser }) => {
     .withTags(AA)
     .analyze();
   expect(results.violations).toEqual([]);
+});
+
+interface MixerMacros {
+  readonly layers: {
+    set(layer: object, options?: object): Promise<void>;
+    end(options?: object): Promise<void>;
+  };
+}
+
+interface WithMacros {
+  readonly modules: { get(id: string): { api: MixerMacros } };
+}
+
+const CAVE = {
+  label: "Cave",
+  effects: {
+    reverb: { on: true, place: "send", mix: 0.6 },
+    echo: { mix: 0.9 },
+  },
+};
+
+const enterCave = (gm: Player): Promise<void> =>
+  gm.run(
+    (_api, game, layer) =>
+      (game as unknown as WithMacros).modules
+        .get("modular-av-audio-mixer")
+        .api.layers.set(layer),
+    CAVE,
+  );
+
+const leaveCave = (gm: Player): Promise<void> =>
+  gm.run(
+    (_api, game) =>
+      (game as unknown as WithMacros).modules
+        .get("modular-av-audio-mixer")
+        .api.layers.end(),
+    null,
+  );
+
+/** Player1's own setup: an echo at 20%, no reverb. */
+async function ownSetup(p1: Player): Promise<void> {
+  await clearPipeline(p1);
+  await p1.run(async (api) => {
+    await api.commands.setEffectEnabled("echo", true);
+    await api.commands.setAudioEffectMix("echo", 0.2);
+  }, null);
+}
+
+const pipelineOf = async (player: Player) => {
+  const { local } = await player.state();
+  return {
+    chosen: [...local.chosenEffects].sort(),
+    reverb: local.audioEffectMix.reverb,
+    echo: local.audioEffectMix.echo,
+  };
+};
+
+const OWN = { chosen: ["echo"], reverb: 0.3, echo: 0.2 };
+const IN_CAVE = { chosen: ["echo", "reverb"], reverb: 0.6, echo: 0.9 };
+
+test("a GM's cave applies at once, survives a reload and undoes exactly", async ({
+  browser,
+}) => {
+  // Arrange
+  const gm = track(await openGm(browser));
+  const p1 = track(await openPlayer(browser, "Player1"));
+  await ownSetup(p1);
+  await expect.poll(() => pipelineOf(p1)).toEqual(OWN);
+
+  // Act: into the cave.
+  await enterCave(gm);
+
+  // Assert: it applied, and the player was told.
+  await expect.poll(() => pipelineOf(p1)).toEqual(IN_CAVE);
+  await expect
+    .poll(() => notifications(p1))
+    .toContainEqual(expect.stringContaining("Cave"));
+
+  // Held controls are locked, and say who set them.
+  const mixer = await openFromSettings(p1);
+  await expect(mixer.locator('[data-field="mix.reverb"]')).toBeDisabled();
+  await expect(mixer.locator('[data-effect="reverb"]')).toContainText(
+    "Set by the GM",
+  );
+
+  // Act: a reload mid-cave lands in the same place, with no second notice.
+  await p1.page.reload();
+  await expect(p1.page.locator("#camera-views .mav-dock")).toBeVisible();
+  await expect.poll(() => pipelineOf(p1)).toEqual(IN_CAVE);
+
+  // Act: out of the cave.
+  await leaveCave(gm);
+
+  // Assert: exactly what it was.
+  await expect.poll(() => pipelineOf(p1)).toEqual(OWN);
+  await clearPipeline(p1);
+});
+
+test("a player refuses one layer, and the GM sees it", async ({ browser }) => {
+  // Arrange
+  const gm = track(await openGm(browser));
+  const p1 = track(await openPlayer(browser, "Player1"));
+  const p1Id = await idOf(gm, "Player1");
+  await ownSetup(p1);
+  const table = await openFromSettings(gm);
+  await table.locator('[data-tab="table"]').click();
+  await enterCave(gm);
+  await expect.poll(() => pipelineOf(p1)).toEqual(IN_CAVE);
+
+  // Act
+  const mixer = await openFromSettings(p1);
+  await mixer.getByRole("button", { name: "Not for me" }).click();
+
+  // Assert
+  await expect.poll(() => pipelineOf(p1)).toEqual(OWN);
+  await expect(table.locator(`[data-player="${p1Id}"]`)).toContainText(
+    "Cave: refused",
+  );
+
+  // The next layer applies again.
+  await leaveCave(gm);
+  await enterCave(gm);
+  await expect.poll(() => pipelineOf(p1)).toEqual(IN_CAVE);
+  await leaveCave(gm);
+  await expect.poll(() => pipelineOf(p1)).toEqual(OWN);
+  await clearPipeline(p1);
+});
+
+test("a player away gets the layer on joining, and loses it the same way", async ({
+  browser,
+}) => {
+  // Arrange: their own browser keeps their setup while they are away.
+  const gm = track(await openGm(browser));
+  const p1 = track(await openPlayer(browser, "Player1"));
+  await ownSetup(p1);
+  const leave = () => p1.page.goto("about:blank");
+  const join = async () => {
+    await p1.page.goto(`${FOUNDRY_URL}/game`);
+    await expect(p1.page.locator("#camera-views .mav-dock")).toBeVisible();
+  };
+
+  // Act: into the cave while Player1 is away.
+  await leave();
+  await enterCave(gm);
+  await join();
+
+  // Assert
+  await expect.poll(() => pipelineOf(p1)).toEqual(IN_CAVE);
+
+  // Act: out of it while they are away.
+  await leave();
+  await leaveCave(gm);
+  await join();
+
+  // Assert
+  await expect.poll(() => pipelineOf(p1)).toEqual(OWN);
+  await clearPipeline(p1);
+});
+
+test("a GM applies a preset to one player from the table", async ({
+  browser,
+}) => {
+  // Arrange
+  const gm = track(await openGm(browser));
+  const p1 = track(await openPlayer(browser, "Player1"));
+  const p1Id = await idOf(gm, "Player1");
+  await ownSetup(p1);
+  await clearPipeline(gm);
+  const table = await openFromSettings(gm);
+  await gm.run(async (api) => {
+    await api.commands.setEffectEnabled("reverb", true);
+    await api.commands.setAudioEffectMix("reverb", 0.6);
+  }, null);
+  await table.locator('[data-field="presetName"]').fill("Orc voice");
+  await table.locator('[data-field="presetSave"]').click();
+  await expect(table.locator('[data-field="preset"]')).toContainText("Orc");
+  await table.locator('[data-tab="table"]').click();
+
+  // Act
+  await table.locator('[data-field="layerTarget"]').selectOption(p1Id);
+  await table.locator('[data-field="layerApply"]').click();
+
+  // Assert
+  await expect
+    .poll(async () => (await pipelineOf(p1)).chosen)
+    .toEqual(["echo", "reverb"]);
+
+  // Act, Assert
+  await table.locator(`[data-field="layerEnd.${p1Id}"]`).click();
+  await expect
+    .poll(async () => (await pipelineOf(p1)).chosen)
+    .toEqual(["echo"]);
+  await table.locator('[data-tab="mine"]').click();
+  await table.locator('[data-field="presetDelete"]').click();
+  await gm.page.locator(".dialog button[data-action='yes']").click();
+  await clearPipeline(gm);
+  await clearPipeline(p1);
 });
 
 test("the mixer passes axe's checks", async ({ browser }) => {

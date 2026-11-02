@@ -1,5 +1,13 @@
 import type { ModularAV } from "@modular-av/api";
-import { MODULE_ID, SOCKET_CHANNEL } from "./constants.ts";
+import {
+  KEPT_OUT_SETTING,
+  MODULE_ID,
+  PERSONAL_LAYER_FLAG,
+  REFUSED_SETTING,
+  SOCKET_CHANNEL,
+  TABLE_LAYER_SETTING,
+  UNDO_SETTING,
+} from "./constants.ts";
 import { registerMenu } from "./menu.ts";
 import type { FoundryUser } from "./presets/foundry-store.ts";
 import { registerPresetKeys } from "./presets/keys.ts";
@@ -27,7 +35,7 @@ declare global {
     };
     modules: { get(id: string): { api?: unknown } | undefined };
     user: FoundryUser & { id: string; isGM: boolean };
-    users: { get(id: string): { isGM: boolean } | undefined };
+    users: { get(id: string): (FoundryUser & { isGM: boolean }) | undefined };
   };
   var foundry: {
     applications: {
@@ -45,6 +53,10 @@ declare global {
     };
   };
   var ui: { notifications: { info(message: string): void } };
+}
+
+interface UserChanges {
+  readonly flags?: Readonly<Record<string, unknown>>;
 }
 
 let core: ModularAV | null = null;
@@ -79,12 +91,38 @@ function step(by: 1 | -1): void {
     .catch(reportError);
 }
 
-Hooks.once("init", () => {
-  game.settings.register(MODULE_ID, "activePreset", {
+/** Loads the rest only if a layer is there, or was. */
+const hasLayers = (): boolean =>
+  Boolean(game.settings.get(MODULE_ID, TABLE_LAYER_SETTING)) ||
+  Boolean(game.user.getFlag(MODULE_ID, PERSONAL_LAYER_FLAG)) ||
+  Boolean(game.settings.get(MODULE_ID, UNDO_SETTING));
+
+function reconcile(): void {
+  load()
+    .then(({ layers }) => layers.reconcile())
+    .catch(reportError);
+}
+
+const clientSetting = (key: string, type: unknown, value: unknown): void => {
+  game.settings.register(MODULE_ID, key, {
     scope: "client",
+    config: false,
+    type,
+    default: value,
+  });
+};
+
+Hooks.once("init", () => {
+  clientSetting("activePreset", String, "");
+  clientSetting(UNDO_SETTING, String, "");
+  clientSetting(REFUSED_SETTING, String, "[]");
+  clientSetting(KEPT_OUT_SETTING, Boolean, false);
+  game.settings.register(MODULE_ID, TABLE_LAYER_SETTING, {
+    scope: "world",
     config: false,
     type: String,
     default: "",
+    onChange: reconcile,
   });
   registerMenu({
     settings: game.settings,
@@ -109,5 +147,12 @@ Hooks.once("modularAV.register", (api: ModularAV) => {
       .catch(reportError);
   });
   const own = game.modules.get(MODULE_ID);
-  if (own) own.api = macroApi(async () => (await load()).presets);
+  if (own) own.api = macroApi(load);
+});
+
+Hooks.once("ready", () => {
+  if (hasLayers()) reconcile();
+  Hooks.on("updateUser", (user: { id: string }, changes: UserChanges) => {
+    if (user.id === game.user.id && changes.flags?.[MODULE_ID]) reconcile();
+  });
 });

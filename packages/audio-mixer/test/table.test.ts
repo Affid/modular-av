@@ -24,6 +24,7 @@ function setup(options: { selfIsGM?: boolean } = {}) {
     isGM: (id) => id === "gm" || id === "gm2",
     selfIsGM: options.selfIsGM ?? false,
     automationRate: true,
+    layerStates: () => [],
     onError: (error) => mixer.errors.push(error),
   });
   return { ...mixer, sent, table };

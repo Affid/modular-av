@@ -2,10 +2,12 @@ import type { LocalState } from "@modular-av/api";
 import { el } from "@modular-av/kit";
 import { audioEffectsOf, type Lane, lanesOf } from "../model/pipeline.ts";
 import type { Writer } from "../model/queue.ts";
+import type { Snapshot } from "../model/snapshot.ts";
 import { type Warning, warningsOf } from "../model/warnings.ts";
 import { type Channel, renderChannel } from "./channel.ts";
 import type { MixerContext, MixerView, Rendered } from "./context.ts";
 import { type Footer, renderFooter } from "./footer.ts";
+import { renderLayerBanner } from "./layer-banner.ts";
 import { renderPresetBar } from "./preset-bar.ts";
 import { withTable } from "./tabs.ts";
 
@@ -13,8 +15,13 @@ const reasonOf = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
 /** What decides the rows drawn; a level changes in place instead. */
-const shapeOf = (lanes: readonly Lane[], local: LocalState): string =>
+const shapeOf = (
+  lanes: readonly Lane[],
+  local: LocalState,
+  held: Snapshot | null,
+): string =>
   JSON.stringify({
+    held,
     lanes: lanes.map((lane) => lane.effects.map((d) => d.id)),
     chosen: local.chosenEffects,
     effects: local.effects,
@@ -89,14 +96,15 @@ function follow(
     const active = doc.activeElement as HTMLElement | null;
     const field = slot.contains(active) ? active?.dataset.field : undefined;
     drawn.channel?.dispose();
-    drawn.channel = renderChannel(ctx, doc, lanes, local, writes);
+    const held = ctx.layers?.held() ?? null;
+    drawn.channel = renderChannel(ctx, doc, lanes, local, writes, held);
     slot.replaceChildren(drawn.channel.element);
     restoreFocus(slot, field);
   };
   const update = (local: LocalState): void => {
     const definitions = ctx.api.effects.list();
     const lanes = lanesOf(definitions, local);
-    const shape = shapeOf(lanes, local);
+    const shape = shapeOf(lanes, local, ctx.layers?.held() ?? null);
     if (shape === drawn.shape) drawn.channel?.update(local);
     else redraw(lanes, local);
     drawn.shape = shape;
@@ -111,9 +119,13 @@ function follow(
   };
   update(ctx.api.state.get().local);
   const off = ctx.api.state.subscribe((s) => s.local, update);
+  const offLayers = ctx.layers?.subscribe(() => {
+    update(ctx.api.state.get().local);
+  });
   return {
     dispose() {
       off();
+      offLayers?.();
       drawn.channel?.dispose();
     },
   };
@@ -142,6 +154,9 @@ function renderChannelView(ctx: MixerContext, doc: Document): Rendered {
     say(ctx.t("failed", { reason: reasonOf(error) }));
   });
   const presets = renderPresetBar(ctx, doc, say);
+  const banner = ctx.layers
+    ? renderLayerBanner(ctx, doc, ctx.layers)
+    : undefined;
   const slot = el("div", { doc });
   const warnings = el("ul", { doc, className: "mav-mixer-warnings" });
   const footer = renderFooter(ctx, doc, writes);
@@ -150,11 +165,19 @@ function renderChannelView(ctx: MixerContext, doc: Document): Rendered {
     element: el("div", {
       doc,
       className: "mav-mixer",
-      children: [alerts, presets.element, warnings, slot, footer.element],
+      children: [
+        alerts,
+        banner?.element,
+        presets.element,
+        warnings,
+        slot,
+        footer.element,
+      ],
     }),
     dispose() {
       offFailure();
       presets.dispose();
+      banner?.dispose();
       following.dispose();
       footer.dispose();
     },

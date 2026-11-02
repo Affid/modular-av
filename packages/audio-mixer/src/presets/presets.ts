@@ -1,10 +1,9 @@
 import type { ModularAV } from "@modular-av/api";
 import type { Writer } from "../model/queue.ts";
-import { setValue } from "../model/settings.ts";
+import { runPlan } from "./run-plan.ts";
 import {
   captureSnapshot,
   matchesSnapshot,
-  type Plan,
   parseSnapshot,
   planSnapshot,
   type Snapshot,
@@ -55,6 +54,15 @@ export interface PresetsDeps {
   readonly store: PresetStore;
   readonly writes: Writer;
   readonly newId: () => string;
+  /** A GM's layers on top of the channel, once loaded. */
+  readonly layers?: PresetLayers;
+}
+
+/** How a preset gets along with what a GM's layer holds. */
+export interface PresetLayers {
+  takeHeld(snapshot: Snapshot): Promise<Snapshot>;
+  free(snapshot: Snapshot): Snapshot;
+  underneath(snapshot: Snapshot): Snapshot;
 }
 
 export interface Presets {
@@ -100,19 +108,6 @@ function checkName(name: string, known: boolean, count: number): void {
   if (!known && count >= MAX_PRESETS) throw new PresetError("full");
 }
 
-/** Off first, one pipeline write, settings, then on: see `Plan`. */
-export async function runPlan(
-  commands: PresetsDeps["api"]["commands"],
-  plan: Plan,
-): Promise<void> {
-  for (const id of plan.off) await commands.setEffectEnabled(id, false);
-  if (Object.keys(plan.change).length > 0)
-    await commands.setAudioPipeline(plan.change);
-  for (const { control, value } of plan.settings)
-    await setValue(control, value);
-  for (const id of plan.on) await commands.setEffectEnabled(id, true);
-}
-
 export function createPresets(deps: PresetsDeps): Presets {
   const { api, store, writes } = deps;
   let skipped = NOTHING_SKIPPED;
@@ -136,8 +131,9 @@ export function createPresets(deps: PresetsDeps): Presets {
     writes.run("preset", async () => {
       const preset = find(id);
       if (!preset) return;
+      const free = deps.layers ? await deps.layers.takeHeld(preset) : preset;
       const plan = planSnapshot(
-        preset,
+        free,
         api.effects.list(),
         api.state.get().local,
         contributions(),
@@ -157,7 +153,7 @@ export function createPresets(deps: PresetsDeps): Presets {
       return (
         preset !== null &&
         !matchesSnapshot(
-          preset,
+          deps.layers?.free(preset) ?? preset,
           api.effects.list(),
           api.state.get().local,
           contributions(),
@@ -171,19 +167,22 @@ export function createPresets(deps: PresetsDeps): Presets {
       const known = all.find((p) => sameName(p.name, name));
       checkName(name, known !== undefined, Object.keys(store.read()).length);
       const id = known?.id ?? deps.newId();
-      const snapshot = captureSnapshot(
+      const captured = captureSnapshot(
         api.effects.list(),
         api.state.get().local,
         contributions(),
       );
+      const snapshot = deps.layers?.underneath(captured) ?? captured;
       await store.write(id, JSON.stringify({ name, ...snapshot }));
       await store.setActiveId(id);
       skipped = NOTHING_SKIPPED;
+      notify();
       return { ...snapshot, id, name };
     },
     async remove(id) {
       await store.remove(id);
       if (store.activeId() === id) await store.setActiveId("");
+      notify();
     },
     async step(by) {
       const all = list();

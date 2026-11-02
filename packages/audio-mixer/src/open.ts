@@ -1,5 +1,8 @@
 import type { ModularAV } from "@modular-av/api";
 import { MODULE_ID, SOCKET_CHANNEL } from "./constants.ts";
+import { createGmLayers, type GmLayers } from "./layers/gm-layers.ts";
+import { foundryGmStore, foundryLayerStore } from "./layers/foundry-store.ts";
+import { createLayers, type Layers } from "./layers/layers.ts";
 import { createWriter, type Writer } from "./model/queue.ts";
 import { foundryPresetStore } from "./presets/foundry-store.ts";
 import { createPresets, type Presets } from "./presets/presets.ts";
@@ -31,15 +34,37 @@ export interface Mixer {
   readonly presets: Presets;
   readonly writes: Writer;
   readonly table: Table;
+  readonly layers: Layers;
+  /** A GM's; null on a player's client. */
+  readonly gmLayers: GmLayers | null;
   /** The one window, however often it is asked for. */
   open(tab?: MixerTab): void;
 }
 
 function createMixer(api: ModularAV): Mixer {
   const writes = createWriter(reportError);
+  const layers = createLayers({
+    api,
+    writes,
+    store: foundryLayerStore(),
+    selfIsGM: game.user.isGM,
+    notify: ({ label }) => {
+      ui.notifications.info(
+        game.i18n.format(`${MODULE_ID}.layers.notice`, { label }),
+      );
+    },
+  });
+  const gmLayers = game.user.isGM
+    ? createGmLayers({
+        store: foundryGmStore(),
+        definitions: () => api.effects.list(),
+        newId: () => foundry.utils.randomID(),
+      })
+    : null;
   const presets = createPresets({
     api,
     writes,
+    layers,
     newId: () => foundry.utils.randomID(),
     store: foundryPresetStore({
       user: () => game.user,
@@ -55,6 +80,7 @@ function createMixer(api: ModularAV): Mixer {
     isGM: (id) => game.users.get(id)?.isGM === true,
     selfIsGM: game.user.isGM,
     automationRate,
+    layerStates: () => layers.states(),
     onError: reportError,
   });
   let view: MixerView | null = null;
@@ -75,7 +101,8 @@ function createMixer(api: ModularAV): Mixer {
           automationRate,
           recording: BROWSER_RECORDING,
           confirm,
-          ...(game.user.isGM ? { table } : {}),
+          layers,
+          ...(gmLayers ? { table, gmLayers } : {}),
         },
         doc,
       ),
@@ -88,6 +115,8 @@ function createMixer(api: ModularAV): Mixer {
     presets,
     writes,
     table,
+    layers,
+    gmLayers,
     open(tab = "mine") {
       wanted = tab;
       view?.show?.(tab);

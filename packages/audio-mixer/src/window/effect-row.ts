@@ -12,6 +12,7 @@ import {
   placeChange,
 } from "../model/pipeline.ts";
 import type { Writer } from "../model/queue.ts";
+import type { EffectEntry } from "../model/snapshot.ts";
 import { settingsOf } from "../model/settings.ts";
 import type { MixerContext, Rendered } from "./context.ts";
 import { renderSetting } from "./controls.ts";
@@ -26,6 +27,10 @@ export interface RowSpec {
   readonly place: AudioPlace;
   readonly lanes: readonly Lane[];
   readonly writes: Writer;
+  /** What a GM's layer holds of this effect: locked here. */
+  readonly held: EffectEntry | undefined;
+  /** A GM's layer holds the order of this place. */
+  readonly orderHeld: boolean;
 }
 
 /** What to say beside a chosen effect; `running` needs nothing beyond On. */
@@ -55,7 +60,7 @@ function moveButton(
     ctx.t(direction, { effect: ctx.text(spec.definition.label) }),
     { trusted: false },
   );
-  button.disabled = change === null;
+  button.disabled = change === null || spec.orderHeld;
   button.addEventListener("click", () => {
     if (change)
       void spec.writes.run(`order:${spec.place}`, () =>
@@ -86,6 +91,7 @@ function placeMenu(
     ),
   });
   select.value = spec.place;
+  select.disabled = spec.held?.place !== undefined;
   select.addEventListener("change", () => {
     const change = placeChange(spec.lanes, id, select.value as AudioPlace);
     if (change)
@@ -115,7 +121,9 @@ function header(
   );
   const chosen = local.chosenEffects.includes(id);
   on.input.checked = chosen;
-  on.input.disabled = !chosen && local.effects[id]?.status === "unsupported";
+  on.input.disabled =
+    spec.held?.on !== undefined ||
+    (!chosen && local.effects[id]?.status === "unsupported");
   return el("div", {
     doc,
     className: "mav-mixer-row-head",
@@ -132,11 +140,31 @@ function header(
         className: "mav-mixer-cost",
         text: ctx.t(`cost.${cost}`),
       }),
+      spec.held
+        ? el("span", {
+            doc,
+            className: "mav-mixer-status",
+            text: ctx.t("layers.held"),
+          })
+        : null,
       placeMenu(ctx, doc, spec),
       moveButton(ctx, doc, spec, "up"),
       moveButton(ctx, doc, spec, "down"),
     ],
   });
+}
+
+function lockedIfHeld(
+  drawn: Rendered,
+  control: string,
+  held: EffectEntry | undefined,
+): Rendered {
+  if (held?.settings?.[control] !== undefined)
+    for (const input of drawn.element.querySelectorAll<HTMLInputElement>(
+      "input, select",
+    ))
+      input.disabled = true;
+  return drawn;
 }
 
 /** One effect: its switch, where it runs, its level and its own settings. */
@@ -160,10 +188,11 @@ export function effectRow(
         },
       )
     : null;
+  if (spec.held?.mix !== undefined) level?.lock();
   const chosen = local.chosenEffects.includes(id);
   const settings = chosen
     ? settingsOf(ctx.api.contributions.list(), id).map((c) =>
-        renderSetting(ctx, doc, c, spec.writes),
+        lockedIfHeld(renderSetting(ctx, doc, c, spec.writes), c.id, spec.held),
       )
     : [];
   const update = (next: LocalState): void => {

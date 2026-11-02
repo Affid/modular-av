@@ -54,9 +54,9 @@ export function fakeStore(initial: Readonly<Record<string, unknown>> = {}) {
       return Promise.resolve();
     },
     activeId: () => active,
+    // A client setting: as in Foundry, nothing announces it.
     setActiveId(id) {
       active = id;
-      changed();
       return Promise.resolve();
     },
     subscribe(listener) {

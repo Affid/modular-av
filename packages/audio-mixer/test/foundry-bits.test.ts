@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from "vitest";
 import { foundryPresetStore } from "../src/presets/foundry-store.ts";
 import { registerPresetKeys } from "../src/presets/keys.ts";
 import { macroApi } from "../src/presets/macro.ts";
-import { fakeStore } from "./context.ts";
 
 function fakeFoundry() {
   const flags = new Map<string, unknown>();
@@ -124,19 +123,31 @@ describe("presets in Foundry", () => {
 });
 
 describe("a macro's way in", () => {
-  const preset = (name: string) => JSON.stringify({ name, effects: {} });
+  const cave = { id: "a", name: "Cave", effects: {} };
+
+  function setup(asGM = true) {
+    const apply = vi.fn(() => Promise.resolve());
+    const gmLayers = {
+      applyPreset: vi.fn(() => Promise.resolve()),
+      set: vi.fn(() => Promise.resolve()),
+      end: vi.fn(() => Promise.resolve()),
+    };
+    const api = macroApi(() =>
+      Promise.resolve({
+        presets: {
+          list: () => [cave],
+          apply,
+          step: () => Promise.resolve(null),
+        },
+        gmLayers: asGM ? gmLayers : null,
+      }),
+    );
+    return { api, apply, gmLayers };
+  }
 
   it("lists names, and applies by name, whatever its case", async () => {
     // Arrange
-    const apply = vi.fn(() => Promise.resolve());
-    const { store } = fakeStore({ a: preset("Cave") });
-    const api = macroApi(() =>
-      Promise.resolve({
-        list: () => [{ id: "a", name: "Cave", effects: {} }],
-        apply,
-        step: () => Promise.resolve(null),
-      }),
-    );
+    const { api, apply } = setup();
 
     // Act
     const found = await api.presets.apply("cave");
@@ -147,6 +158,42 @@ describe("a macro's way in", () => {
     expect(found).toBe(true);
     expect(unknown).toBe(false);
     expect(apply).toHaveBeenCalledOnce();
-    expect(Object.keys(store.read())).toEqual(["a"]);
+  });
+
+  it("enters the cave and leaves it", async () => {
+    const { api, gmLayers } = setup();
+
+    await api.layers.apply("cave");
+    await api.layers.end();
+
+    expect(gmLayers.applyPreset).toHaveBeenCalledWith(cave, {
+      target: "table",
+      includeGMs: false,
+    });
+    expect(gmLayers.end).toHaveBeenCalledWith("table");
+  });
+
+  it("reaches one player", async () => {
+    const { api, gmLayers } = setup();
+
+    await api.layers.set({ label: "Orc", effects: {} }, { user: "p1" });
+
+    expect(gmLayers.set).toHaveBeenCalledWith(
+      "p1",
+      expect.objectContaining({ label: "Orc" }),
+    );
+  });
+
+  it("says when a preset doesn't exist", async () => {
+    const { api, gmLayers } = setup();
+
+    await expect(api.layers.apply("attic")).resolves.toBe(false);
+    expect(gmLayers.applyPreset).not.toHaveBeenCalled();
+  });
+
+  it("refuses a player", async () => {
+    const { api } = setup(false);
+
+    await expect(api.layers.end()).rejects.toThrow("GM");
   });
 });

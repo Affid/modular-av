@@ -5,6 +5,7 @@ export interface Slider {
   readonly element: HTMLElement;
   /** The value from outside; left alone while the player drags it. */
   show(value: number): void;
+  lock(): void;
 }
 
 export interface SliderSpec {
@@ -47,6 +48,9 @@ export function slider(doc: Document, spec: SliderSpec): Slider {
       input.value = String(value);
       output.textContent = spec.format(value);
     },
+    lock() {
+      input.disabled = true;
+    },
   };
 }
 
@@ -77,6 +81,9 @@ export function levelSlider(
     element: inner.element,
     show: (level) => {
       inner.show(Math.round(level * PERCENT));
+    },
+    lock: () => {
+      inner.lock();
     },
   };
 }
