@@ -61,11 +61,50 @@ a parallel read-merge-write lost an update in 10 rounds of 10. That is why the
 table layer is replaced whole and never merged. A user flag lost none, because
 Foundry diffs an update by key.
 
+## The window
+
+Routing above, levels below, as in a DAW. Routing is a column of cards per
+place, left to right as the voice runs: before the gate, the gate, after the
+gate, and the sends. Levels holds every fader of the chain in the same order,
+with Channel pinned last like a master strip. An effect's own settings open in a
+pop-up from the button on its card, with its place, Switch off and Remove.
+
+Only what the player added is drawn. An effect is in the chain while it is on or
+its place's order lists it, so switching one off keeps its card, greyed, and
+Remove takes it out of the order as well. The core already accepts an order that
+lists effects that are off, so presets hold this with no new storage, and a
+preset's order is the chain alone. The noise models are one card with a model
+picker, as only one runs.
+
+A place's "+" opens an effect browser: a search box, then what this device
+added lately, what is made for the place (its `defaultPlace`), everything else,
+and what is already in the chain, which moves rather than doubling. It leaves out
+what the call can't run, as the API asks of every UI; one saved earlier shows as
+Waiting. Effects with a `tail` say they ring on, and are first for a send.
+
+| Key            | On a card                                  |
+| -------------- | ------------------------------------------ |
+| Arrows         | The next card in the place, or across them |
+| Space          | Switch on or off                           |
+| Enter          | Its settings                               |
+| Alt and arrows | Move it within the place, or to the next   |
+| Delete         | Remove it                                  |
+| L              | Its fader                                  |
+
+The routing is one tab stop. Dragging a card does what Alt and the arrows do,
+and is never the only way. A card's state changes in place, so a fader being
+dragged elsewhere is never redrawn under the pointer. The gate shows the only
+live level the core has: the microphone after what runs before it, against its
+threshold.
+
+Below 640 px the sends go under the effects after the gate and a pop-up spans
+the window. The window can't be narrower than 440 px.
+
 ## Presets
 
 A preset holds, for each audio effect known when it was saved: on or off, place,
 mix if it has one, and its settings. It also holds the order within each place
-and Channel level. It leaves out what belongs to the device or to the player's
+and Channel level: the chain, as the window draws it. It leaves out what belongs to the device or to the player's
 privacy: devices, voice mode, input sensitivity, gate fallback, Cut tails and
 video effects.
 
@@ -113,6 +152,11 @@ audio. The GM renews the request every 10 s and a player stops 30 s after the
 last one, so a closed window costs nothing. Reports are coalesced to one per
 300 ms. A player answers only a sender whose Foundry user is a GM, and a GM
 reads a report only as the sender's own.
+
+The table tab shows one player at a time, picked from a list, with the same
+cards and faders as their own window, read only: no "+", switches or settings.
+Their warnings and layer states are listed, and an effect this world lacks is
+named by its id.
 
 ### Changing
 
@@ -195,5 +239,10 @@ A pure function of the pipeline. Warnings never block.
   does it once.
 - A GM can load everyone's CPU with heavy effects. The view shows failures and
   cost is shown when choosing, but nothing prevents it.
-- Test my voice records what is really sent, so it needs a microphone and
-  records silence while muted or with the push to talk key up.
+- Test my voice needs a microphone in the call. While it records, Mute and the
+  push to talk key don't silence it; what goes to the table still follows them.
+- There is no level meter after the effects or on a send: the core has only the
+  gate's. Levels has no Send switch either, as the core has no such command.
+- An effect switched off from another UI or a macro stays in the chain only if
+  its place's order lists it, which the mixer's own switch makes sure of.
+- "Recent" in the effect browser is kept in this browser only.

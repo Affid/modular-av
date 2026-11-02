@@ -69,6 +69,29 @@ real Foundry: cut after about 9 s on P2P and LiveKit alike before the gate fix,
 whole after it. Typical level after: RNNoise -32 dB, GTCRN -35, browser noise
 suppression -46, Speex -47.
 
+## After the owner's first test
+
+On 2026-11-02 the owner sang through it, found a loop in Chrome only, asked for
+Test my voice to work while muted, and for a window that looks like a sound
+engine. The design went through four drafts and an outside designer's review
+before approval.
+
+| Phase                | Delivers                                                                                     | Real Foundry                                             |
+| -------------------- | -------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| 7. Echo in Chrome    | Capture again only after letting the microphone go; gain control off with a noise model      | denoise: what each capture got                           |
+| 8. Test through Mute | `preview.voice()` hears through Mute and push to talk while live; the output bus still obeys | audio-mixer: a muted test is heard, the GM hears silence |
+| 9. CPU wording       | "Light on CPU" in the dock, "CPU: light" in the mixer                                        |                                                          |
+| 10. The signal path  | The chain model, routing and levels, pop-ups, the effect browser, the GM's read-only view    | audio-mixer: drag, browser, axe with pop-ups open        |
+
+Measured in Chrome with a fake microphone: an overlapping second capture of the
+same device with other processing came back with echo cancellation, gain control
+and noise suppression all off, at 44.1 kHz stereo; after the fix, echo
+cancellation stays on. A 30 s held note at -32 dBFS, per second: without a model
+the browser's gain control lifts it to about -20 for 8 s, then its noise
+suppression pulls it to -47; RNNoise with the browser's gain control on lifts it
+to -20 for 10 s, then -32; with it off, a flat -32. The core's entry went from
+115,225 to 115,722 bytes of 116,000; the mixer's stayed at 5,921.
+
 ## Not tested
 
 Safari (WebKit won't launch here), Foundry's desktop app, a real table of
