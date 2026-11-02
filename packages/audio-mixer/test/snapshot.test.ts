@@ -108,7 +108,7 @@ describe("what a preset holds", () => {
     expect(snapshot.channelLevel).toBe(0.7);
   });
 
-  it("holds the order of each place, as it runs", () => {
+  it("holds the order of the chain: only what is on or kept, as it runs", () => {
     const snapshot = captureSnapshot(
       ALL,
       local({
@@ -122,9 +122,9 @@ describe("what a preset holds", () => {
     );
 
     expect(snapshot.order).toEqual({
-      "pre-gate": ["gtcrn", "eq", "rnnoise"],
-      "post-gate": ["radio"],
-      send: ["reverb"],
+      "pre-gate": ["eq", "rnnoise"],
+      "post-gate": [],
+      send: [],
     });
   });
 
@@ -421,6 +421,18 @@ describe("whether the channel still matches a preset", () => {
     expect(matchesSnapshot(saved, ALL, { ...state, ...change }, controls)).toBe(
       false,
     );
+  });
+
+  it("doesn't once an effect kept off is taken out of the chain", () => {
+    const kept = {
+      ...state,
+      audioEffectOrder: { "pre-gate": ["eq"], "post-gate": [], send: [] },
+    };
+
+    const withEq = captureSnapshot(ALL, kept, controls);
+
+    expect(matchesSnapshot(withEq, ALL, kept, controls)).toBe(true);
+    expect(matchesSnapshot(withEq, ALL, state, controls)).toBe(false);
   });
 
   it("doesn't after an effect's setting changed", () => {

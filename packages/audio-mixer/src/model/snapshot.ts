@@ -6,7 +6,8 @@ import type {
   EffectDefinition,
   LocalState,
 } from "@modular-av/api";
-import { audioEffectsOf, lanesOf, PLACES } from "./pipeline.ts";
+import { audioEffectsOf, PLACES } from "./pipeline.ts";
+import { rackOf } from "./rack.ts";
 import {
   accepts,
   type SettingControl,
@@ -165,10 +166,11 @@ export function captureSnapshot(
     effects: Object.fromEntries(
       audio.map((d) => [d.id, captureEffect(d, local, contributions)]),
     ),
+    // The chain only: an effect listed in an order is kept in the chain.
     order: Object.fromEntries(
-      lanesOf(audio, local).map((lane) => [
-        lane.place,
-        lane.effects.map((d) => d.id),
+      rackOf(audio, local).map((rack) => [
+        rack.place,
+        rack.slots.map((slot) => slot.effect.id),
       ]),
     ),
     channelLevel: local.audioChannelLevel,
@@ -332,14 +334,15 @@ function orderMatches(
   audio: readonly AudioEffectDefinition[],
   local: Pipeline,
 ): boolean {
-  return lanesOf(audio, local).every((lane) => {
-    const ids = lane.effects.map((d) => d.id);
-    const saved = (snapshot.order?.[lane.place] ?? []).filter((id) =>
-      ids.includes(id),
-    );
+  // Only what it switches: a GM's layer holds the rest.
+  const speaks = (id: string): boolean =>
+    snapshot.effects[id]?.on !== undefined && audio.some((d) => d.id === id);
+  return rackOf(audio, local).every((rack) => {
+    const saved = snapshot.order?.[rack.place];
+    if (saved === undefined) return true;
     return sameList(
-      ids.filter((id) => saved.includes(id)),
-      saved,
+      rack.slots.map((slot) => slot.effect.id).filter(speaks),
+      saved.filter(speaks),
     );
   });
 }
