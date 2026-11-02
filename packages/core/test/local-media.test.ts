@@ -385,6 +385,36 @@ describe("the browser's noise suppression", () => {
     expect(media.microphone).toBe(sent);
   });
 
+  it("lets the microphone go before capturing it with other processing", async () => {
+    // Arrange: Chrome hands a second, overlapping capture of a microphone
+    // with other processing the raw device, without echo cancellation.
+    const { env, media } = setup();
+    const rnnoise = createFakeAudioEffect("rnnoise", {
+      exclusiveGroup: "noise-suppression",
+    });
+    await media.acquire(BOTH);
+    const capture = env.captureAudio.bind(env);
+    let liveAtCapture: boolean[] = [];
+    env.captureAudio = (...args) => {
+      liveAtCapture = [
+        ...liveAtCapture,
+        rawMics(env).some((t) => t.readyState === "live"),
+      ];
+      return capture(...args);
+    };
+
+    // Act
+    media.setEffects([rnnoise.definition], new Set(["rnnoise"]));
+    await settle();
+    media.setEffects([rnnoise.definition], new Set());
+    await settle();
+
+    // Assert
+    expect(liveAtCapture).toEqual([false, false]);
+    expect(suppression(env)).toEqual([true, false, true]);
+    expect(rawMics(env).at(-1)?.readyState).toBe("live");
+  });
+
   it("stays on for effects of other groups", async () => {
     const { env, media } = setup();
     const pitch = createFakeAudioEffect("pitch", { defaultPlace: "pre-gate" });

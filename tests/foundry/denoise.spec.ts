@@ -105,4 +105,44 @@ test.describe("with P2P", () => {
     expect(await effectStatus(players.p1, "krisp")).toBe("unavailable");
     await expectHeardWith("gtcrn", players);
   });
+
+  test("a noise model keeps the browser's echo cancellation, and drops its suppression and gain control", async ({
+    browser,
+  }) => {
+    // Arrange: what each new capture of the microphone got.
+    const { p1 } = await call(browser);
+    await p1.page.evaluate(() => {
+      const devices = navigator.mediaDevices;
+      const seen: string[] = [];
+      Object.assign(window, { mavCaptures: seen });
+      const capture = devices.getUserMedia.bind(devices);
+      devices.getUserMedia = async (constraints) => {
+        const stream = await capture(constraints);
+        for (const t of stream.getAudioTracks()) {
+          const s = t.getSettings();
+          seen.push(
+            `ec ${String(s.echoCancellation)} ns ${String(s.noiseSuppression)} agc ${String(s.autoGainControl)}`,
+          );
+        }
+        return stream;
+      };
+    });
+    const captures = (): Promise<string[]> =>
+      p1.page.evaluate(
+        () => (window as unknown as { mavCaptures: string[] }).mavCaptures,
+      );
+
+    // Act
+    for (const on of [true, false]) {
+      await setEffect(p1, "rnnoise", on);
+      await expect
+        .poll(() => effectStatus(p1, "rnnoise"), { timeout: 30_000 })
+        .toBe(on ? "running" : "off");
+    }
+
+    // Assert
+    await expect
+      .poll(captures)
+      .toEqual(["ec true ns false agc false", "ec true ns true agc true"]);
+  });
 });

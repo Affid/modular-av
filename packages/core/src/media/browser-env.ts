@@ -152,9 +152,11 @@ export function createBrowserMediaEnv(
   assetUrl: (path: string) => string,
 ): MediaEnv {
   return {
-    captureAudio: (deviceId, options = {}) =>
+    // Its gain control lifts a held note, then lowers it: off with a model.
+    captureAudio: (deviceId, { noiseSuppression = true } = {}) =>
       capture("audio", deviceId, {
-        noiseSuppression: options.noiseSuppression ?? true,
+        noiseSuppression,
+        autoGainControl: noiseSuppression,
       }),
     captureVideo: (deviceId) => capture("video", deviceId),
     createStream: (tracks) => new MediaStream([...tracks]),

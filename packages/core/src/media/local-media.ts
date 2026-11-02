@@ -174,13 +174,18 @@ export function createLocalMedia(
         mic?.effectStatus(d.id).status === "running",
     );
 
-  /** Captures the same microphone again once that changed. */
+  /**
+   * Captures the same microphone again once that changed, after letting it
+   * go: Chrome gives an overlapping capture with other processing the raw
+   * device, with no echo cancellation.
+   */
   const syncNoiseSuppression = (): void => {
     if (!audio || audio.noiseSuppression === browserNoiseSuppression()) return;
     enqueue(async () => {
       const captured = audio;
       const wanted = browserNoiseSuppression();
       if (!captured || captured.noiseSuppression === wanted) return;
+      captured.raw.stop();
       await replace(["audio"], () =>
         captureDevice(env, "audio", captured.device, wanted),
       );
