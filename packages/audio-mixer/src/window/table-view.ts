@@ -90,6 +90,8 @@ function reportView(
     layers.length
       ? el("p", { doc, className: "mav-mixer-held", text: layers.join(", ") })
       : null,
+    renderRouting(ctx, doc, data, staticGate(ctx, doc), null).element,
+    renderLevels(ctx, doc, data, null).element,
     report.warnings.length
       ? el("ul", {
           doc,
@@ -99,8 +101,6 @@ function reportView(
           ),
         })
       : null,
-    renderRouting(ctx, doc, data, staticGate(ctx, doc), null).element,
-    renderLevels(ctx, doc, data, null).element,
     unknown.length
       ? el("p", {
           doc,

@@ -96,12 +96,13 @@ function renderChannelView(ctx: MixerContext, doc: Document): Rendered {
     element: el("div", {
       doc,
       className: "mav-mixer",
+      // What comes and goes sits below the chain: a fader doesn't move away.
       children: [
-        alerts,
         banner?.element,
         presets.element,
-        warnings,
         chain.element,
+        alerts,
+        warnings,
         footer.element,
       ],
     }),

@@ -145,6 +145,16 @@ describe("the GM's table", () => {
     expect(shown.textContent).toContain("Cave: refused");
   });
 
+  it("shows a player's warnings below their chain, as they see them", () => {
+    const { view } = open({ p1: report });
+
+    const shown = pick(view.element, "p1");
+    const warnings = shown.querySelector(".mav-mixer-warnings");
+    const levels = shown.querySelector(".mav-mixer-levels");
+
+    expect(warnings && levels?.nextElementSibling === warnings).toBe(true);
+  });
+
   it("says who hasn't answered, and who isn't logged in", () => {
     const { view } = open();
 
@@ -243,6 +253,26 @@ describe("the window's tabs", () => {
     expect(tab?.getAttribute("aria-selected")).toBe("true");
     view.element.querySelector<HTMLElement>('[data-tab="mine"]')?.click();
     expect(stop).toHaveBeenCalledOnce();
+  });
+
+  it("keep the GM's own channel in the page under the Table, so its meter lives on", () => {
+    // Arrange: a meter stops for good once its element leaves the page.
+    const { view } = openWindow(true);
+    document.body.replaceChildren(view.element);
+    const gate = view.element.querySelector<HTMLElement>('[data-part="gate"]');
+    const mine = gate?.closest<HTMLElement>(".mav-mixer");
+    const tab = (name: string) =>
+      view.element.querySelector<HTMLElement>(`[data-tab="${name}"]`);
+
+    // Act
+    tab("table")?.click();
+
+    // Assert: hidden, never removed.
+    expect(gate?.isConnected).toBe(true);
+    expect(mine?.hidden).toBe(true);
+    tab("mine")?.click();
+    expect(mine?.hidden).toBe(false);
+    expect(view.element.querySelectorAll(".mav-mixer-view")).toHaveLength(0);
   });
 
   it("can open on the Table", () => {

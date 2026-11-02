@@ -320,6 +320,58 @@ test("a GM sees what a player runs, as it changes", async ({ browser }) => {
   expect(results.violations).toEqual([]);
 });
 
+test("Channel at 0 warns below the chain, and the fader stays where it was", async ({
+  browser,
+}) => {
+  // Arrange: no send runs, so Channel below 100% warns.
+  const p1 = track(await openPlayer(browser, "Player1"));
+  await clearPipeline(p1);
+  const mixer = await openFromSettings(p1);
+  const channel = mixer.locator('[data-field="channel"]');
+  const top = async (): Promise<number | undefined> =>
+    (await channel.boundingBox())?.y;
+  const before = await top();
+
+  // Act
+  await channel.fill("0");
+
+  // Assert
+  await expect(
+    mixer.locator('[data-warning="channel-without-send"]'),
+  ).toBeVisible();
+  expect(await top()).toBe(before);
+  await clearPipeline(p1);
+});
+
+test("a GM's own gate meter still moves after a visit to the Table tab", async ({
+  browser,
+}) => {
+  // Arrange
+  const gm = track(await openGm(browser));
+  track(await openPlayer(browser, "Player1"));
+  await setVoiceMode(gm, "activity");
+  const mixer = await openFromSettings(gm);
+  const meter = mixer.locator('[data-field="gateMeter"]');
+  const readings = async (): Promise<number> => {
+    const seen = new Set<string | null>();
+    for (let i = 0; i < 20; i += 1) {
+      seen.add(await meter.getAttribute("aria-valuenow"));
+      await gm.page.waitForTimeout(100);
+    }
+    return seen.size;
+  };
+  await expect.poll(readings).toBeGreaterThan(1);
+
+  // Act
+  await mixer.locator('[data-tab="table"]').click();
+  await expect(meter).toBeHidden();
+  await mixer.locator('[data-tab="mine"]').click();
+
+  // Assert
+  await expect(meter).toBeVisible();
+  await expect.poll(readings).toBeGreaterThan(1);
+});
+
 interface MixerMacros {
   readonly layers: {
     set(layer: object, options?: object): Promise<void>;

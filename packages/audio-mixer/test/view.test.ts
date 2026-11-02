@@ -43,6 +43,20 @@ describe("the mixer window", () => {
     expect(view.element.querySelector('[data-part="gate"]')).toBeNull();
   });
 
+  it("shows warnings and failures below the chain, so nothing above moves", () => {
+    // Arrange
+    const { q } = open({ effects: [reverb] });
+    const chain = q(".mav-mixer-chain");
+    const below = (other: HTMLElement): boolean =>
+      (chain.compareDocumentPosition(other) &
+        Node.DOCUMENT_POSITION_FOLLOWING) !==
+      0;
+
+    // Assert
+    expect(below(q(".mav-mixer-warnings"))).toBe(true);
+    expect(below(q(".mav-mixer-alert"))).toBe(true);
+  });
+
   it("warns, naming the effect, without blocking anything", async () => {
     // Arrange
     const { view, q, setLocal, api } = open({ effects: [reverb] });

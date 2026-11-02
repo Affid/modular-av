@@ -26,11 +26,18 @@ export function withTable(
   let tableView: Rendered | null = null;
   let closed = false;
 
+  /**
+   * The own channel is hidden, never taken out: its gate meter stops for good
+   * once it leaves the page, and only pauses while hidden.
+   */
   const show = (tab: MixerTab): void => {
     if (closed) return;
     tableView?.dispose();
     tableView = tab === "table" ? renderTableView(ctx, doc, table) : null;
-    panel.replaceChildren(tableView?.element ?? mine.element);
+    mine.element.hidden = tableView !== null;
+    panel.replaceChildren(
+      ...[mine.element, tableView?.element].filter((e) => e !== undefined),
+    );
     for (const [name, button] of buttons)
       button.setAttribute("aria-selected", String(name === tab));
   };

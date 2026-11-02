@@ -47,7 +47,8 @@
   min-width: 440px;
 }
 
-/* Flex and grid rules below would show what is hidden. */
+/* Flex and grid rules would show what is hidden: a GM's own tab, too. */
+.mav-mixer[hidden],
 .mav-mixer [hidden] {
   display: none !important;
 }
