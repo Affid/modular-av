@@ -1,6 +1,5 @@
 import type { LocalState } from "@modular-av/api";
 import { el } from "@modular-av/kit";
-import type { Writer } from "../model/queue.ts";
 import type { MixerContext } from "./context.ts";
 import { switchField } from "./fields.ts";
 import { createVoiceTest, type VoiceTestStep } from "./voice-test.ts";
@@ -18,20 +17,8 @@ const STEPS_WITH_TEXT: ReadonlySet<VoiceTestStep> = new Set([
   "failed",
 ]);
 
-/** Cut tails, and "Test my voice". */
-export function renderFooter(
-  ctx: MixerContext,
-  doc: Document,
-  writes: Writer,
-): Footer {
-  const cut = switchField(
-    doc,
-    ctx.t("cutTails"),
-    { "data-field": "cutTails" },
-    (on) => {
-      void writes.run("cutTails", () => ctx.api.commands.setAudioCutTails(on));
-    },
-  );
+/** Keeping the GM out, and "Test my voice". */
+export function renderFooter(ctx: MixerContext, doc: Document): Footer {
   const layers = ctx.layers;
   const keptOut = layers
     ? switchField(
@@ -76,7 +63,6 @@ export function renderFooter(
       doc,
       className: "mav-mixer-footer",
       children: [
-        cut.element,
         keptOut?.element,
         button,
         el("p", {
@@ -87,8 +73,8 @@ export function renderFooter(
         status,
       ],
     }),
-    update(local) {
-      cut.input.checked = local.audioCutTails;
+    update() {
+      if (keptOut && layers) keptOut.input.checked = layers.keptOut();
     },
     dispose() {
       test.stop();

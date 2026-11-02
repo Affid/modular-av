@@ -11,6 +11,7 @@ import {
   offersFor,
   rackOf,
   removeFrom,
+  setOn,
   switchModel,
   type Rack,
 } from "../src/model/rack.ts";
@@ -98,6 +99,19 @@ describe("changing the chain", () => {
     });
     expect(addTo(racks, reverb, "send")).toEqual({
       change: { places: { reverb: "send" }, order: { send: ["reverb"] } },
+      enable: [["reverb", true]],
+    });
+  });
+
+  it("switches a card off without losing its slot, and on again", () => {
+    const racks = rackOf(ALL, local({ chosenEffects: ["reverb"] }));
+
+    expect(setOn(racks, "reverb", false)).toEqual({
+      change: { order: { send: ["reverb"] } },
+      enable: [["reverb", false]],
+    });
+    expect(setOn(racks, "reverb", true)).toEqual({
+      change: {},
       enable: [["reverb", true]],
     });
   });

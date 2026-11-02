@@ -11,8 +11,8 @@
     "empty": "Effects are modules of their own, and none is enabled in this world. Noise cancellation, reverb, echo and EQ can be turned on from the Modular A/V modules window.",
     "failed": "That didn't work: {reason}",
     "places": {
-      "pre-gate": "Before the voice gate",
-      "post-gate": "After the voice gate",
+      "pre-gate": "Before the gate",
+      "post-gate": "After the gate",
       "send": "Sends"
     },
     "placeHints": {
@@ -20,17 +20,75 @@
       "post-gate": "Replaces your voice. For a radio, a pitch shift, a demon.",
       "send": "Added beside your voice. For reverb and echo: they ring on after the gate closes."
     },
-    "emptyLane": "Nothing here.",
+    "routing": "Routing",
+    "levels": "Levels",
+    "rail": {
+      "from": "Microphone",
+      "to": "The table"
+    },
     "gate": "Voice gate",
-    "gateHint": "Opens when you speak. Set in the voice settings.",
-    "channel": "My voice",
+    "gateShort": "Gate",
+    "gateLevel": "Voice gate level",
+    "gateOpen": "Open",
+    "gateClosed": "Closed",
+    "gateIdle": "No sound yet",
+    "gateSettings": "Voice gate settings",
+    "gateAuto": "Set the sensitivity automatically",
+    "gateThreshold": "Opens above",
+    "decibels": "{value} dB",
+    "gateHint": "Opens when you speak in voice activity mode. Effects before it change what it hears.",
+    "channel": "Channel",
     "channelHint": "How much of your voice goes out dry, beside what the sends add.",
-    "on": "Turn {effect} on",
-    "up": "Move {effect} earlier",
-    "down": "Move {effect} later",
+    "groups": {
+      "noise-suppression": "Noise cancelling"
+    },
+    "card": "{effect}, {state}",
+    "onOf": "{effect} on",
+    "settingsOf": "{effect} settings",
+    "returnOf": "{effect} return level",
+    "wetOf": "{effect} wet level",
+    "heldBy": "GM: {layer}",
+    "refuseLayer": "Refuse {layer}",
+    "states": {
+      "on": "On",
+      "starting": "Starting…",
+      "off": "Off",
+      "idle": "Starts with your microphone",
+      "waiting": "Waiting",
+      "failed": "Failed",
+      "unsupported": "Not in this browser"
+    },
+    "addTo": {
+      "pre-gate": "Add effect",
+      "post-gate": "Add effect",
+      "send": "Add send"
+    },
+    "search": "Search effects",
+    "browser": {
+      "recent": "Recent",
+      "forPlace": "Made for this place",
+      "others": "Everything else",
+      "inChain": "In your chain: moves here",
+      "none": "No effect matches.",
+      "ringsOn": "Rings on"
+    },
+    "faders": {
+      "pre-gate": "Before the gate: wet",
+      "post-gate": "After the gate: wet",
+      "send": "Sends: return level",
+      "channel": "Dry voice"
+    },
+    "close": "Close",
+    "model": "Model",
+    "switchOff": "Switch off",
+    "switchOn": "Switch on",
+    "remove": "Remove",
+    "offHint": "Switch it on to change its settings.",
+    "drag": {
+      "over": "{effect}: {place}, {position} of {count}"
+    },
+    "keysHint": "Arrows move between cards. Space switches a card, Enter opens its settings, Alt and arrows move it, Delete removes it, L goes to its level.",
     "place": "Where {effect} runs",
-    "level": "Level",
-    "levelOf": "{effect} level",
     "cost": {
       "light": "CPU: light",
       "medium": "CPU: medium",
@@ -48,10 +106,11 @@
       "tail-before-gate": "{effect} rings on ahead of the voice gate: it holds the gate open, then the gate cuts it off.",
       "doubled-voice": "{effect} is on a send, so your voice is heard twice: with it and without it.",
       "noise-after-gate": "{effect} runs after the voice gate, so the gate still hears the noise.",
-      "channel-without-send": "My voice stays at 100% until a send is running to carry it.",
+      "channel-without-send": "Channel stays at 100% until a send is running to carry it.",
       "channel-zero-click": "This browser can't turn your voice fully off cleanly: the start of a word may be clipped."
     },
     "cutTails": "Cut reverb and delay when my microphone closes",
+    "cutTailsShort": "Cut tails",
     "voiceTest": {
       "button": "Test my voice",
       "hint": "Records a few seconds of your voice with every effect, then plays it back. Mute yourself first if the table shouldn't hear you.",

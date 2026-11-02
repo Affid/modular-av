@@ -157,6 +157,22 @@ export function addTo(
   );
 }
 
+/** Switched off, it stays: its place's order lists it from then on. */
+export function setOn(
+  racks: readonly Rack[],
+  key: string,
+  on: boolean,
+): ChainPlan | null {
+  const slot = slotOf(racks, key);
+  if (!slot) return null;
+  const id = slot.effect.id;
+  return on
+    ? plan({}, [[id, true]])
+    : plan({ order: { [slot.place]: ids(rackAt(racks, slot.place)) } }, [
+        [id, false],
+      ]);
+}
+
 /** Out of the chain: off, and out of its place's order. */
 export function removeFrom(
   racks: readonly Rack[],

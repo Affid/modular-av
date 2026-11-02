@@ -114,20 +114,20 @@ describe("a layer in the player's window", () => {
         effects: { reverb: { on: false, place: "send", mix: 0.3 } },
       }),
     );
+    input('[data-field="settings.reverb"]').click();
 
     // Assert
     expect(input('[data-field="on.reverb"]').disabled).toBe(true);
     expect(input('[data-field="place.reverb"]').disabled).toBe(true);
     expect(input('[data-field="mix.reverb"]').disabled).toBe(true);
     expect(
-      view.element.querySelector('[data-effect="reverb"]')?.textContent,
-    ).toContain("Set by the GM");
-    expect(input('[data-field="on.echo"]').disabled).toBe(false);
-    expect(input('[data-field="mix.echo"]').disabled).toBe(false);
+      view.element.querySelector('[data-key="reverb"]')?.textContent,
+    ).toContain("GM: Cave <b>");
+    expect(view.element.querySelector('[data-key="echo"]')).toBeNull();
   });
 
   it("locks Channel level and an order while held", () => {
-    const { input } = open(
+    const { input, view } = open(
       fakeLayers([cave], {
         effects: {},
         order: { send: ["reverb", "echo"] },
@@ -136,7 +136,11 @@ describe("a layer in the player's window", () => {
     );
 
     expect(input('[data-field="channel"]').disabled).toBe(true);
-    expect(input('[data-field="down.reverb"]').disabled).toBe(true);
+    expect(
+      view.element
+        .querySelector('[data-key="reverb"]')
+        ?.getAttribute("draggable"),
+    ).toBeNull();
   });
 });
 

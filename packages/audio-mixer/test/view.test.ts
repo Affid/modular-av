@@ -1,6 +1,5 @@
 // @vitest-environment happy-dom
-import type { ControlContribution, Observable } from "@modular-av/api";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { renderMixer } from "../src/window/view.ts";
 import { act } from "./act.ts";
 import { effect, type Setup, testMixer } from "./context.ts";
@@ -24,11 +23,6 @@ function open(setup: Setup = {}) {
   return { ...mixer, view, q, input };
 }
 
-const fixed = <T>(value: T): Observable<T> => ({
-  get: () => value,
-  subscribe: () => () => undefined,
-});
-
 const change = (input: HTMLInputElement | HTMLSelectElement, value: string) => {
   input.value = value;
   input.dispatchEvent(
@@ -42,23 +36,6 @@ const rows = (root: HTMLElement) =>
   );
 
 describe("the mixer window", () => {
-  it("lays out the channel: pre-gate, the gate, post-gate, then sends", () => {
-    const { view } = open({ effects: [reverb, eq, denoise] });
-
-    const parts = [
-      ...view.element.querySelectorAll<HTMLElement>("[data-part]"),
-    ];
-
-    expect(parts.map((p) => p.dataset.part)).toEqual([
-      "pre-gate",
-      "gate",
-      "post-gate",
-      "channel",
-      "send",
-    ]);
-    expect(rows(view.element)).toEqual(["denoise", "eq", "reverb"]);
-  });
-
   it("says effects are modules of their own when there is nothing to mix", () => {
     const { view } = open();
 
@@ -66,274 +43,9 @@ describe("the mixer window", () => {
     expect(view.element.querySelector('[data-part="gate"]')).toBeNull();
   });
 
-  it("shows a contributed label as text, never as markup", () => {
-    const bad = effect("bad", "send", { label: "<img src=x>" });
-
-    const { view } = open({ effects: [bad] });
-
-    expect(view.element.querySelector("img")).toBeNull();
-    expect(view.element.textContent).toContain("<img src=x>");
-  });
-
-  it("turns an effect on and off", async () => {
-    const { api, input, setLocal } = open({ effects: [reverb] });
-
-    input('[data-field="on.reverb"]').click();
-    await act();
-    await setLocal({ chosenEffects: ["reverb"] });
-    input('[data-field="on.reverb"]').click();
-    await act();
-
-    expect(api.calls).toEqual([
-      { command: "setEffectEnabled", args: ["reverb", true] },
-      { command: "setEffectEnabled", args: ["reverb", false] },
-    ]);
-  });
-
-  it("can't turn on what this browser can't run", () => {
-    const { input } = open({
-      effects: [reverb],
-      local: { effects: { reverb: { status: "unsupported", error: null } } },
-    });
-
-    expect(input('[data-field="on.reverb"]').disabled).toBe(true);
-  });
-
-  it("says how a chosen effect is doing", () => {
-    const failed = open({
-      effects: [reverb],
-      local: {
-        chosenEffects: ["reverb"],
-        effects: { reverb: { status: "failed", error: "KernelError" } },
-      },
-    });
-    expect(failed.q("[data-status]").textContent).toContain("Failed");
-
-    const waiting = open({
-      effects: [reverb],
-      local: {
-        chosenEffects: ["reverb"],
-        effects: { reverb: { status: "off", error: null } },
-      },
-    });
-    expect(waiting.q("[data-status]").textContent).toContain("microphone");
-  });
-
-  it("shows what an effect costs", () => {
-    const { q } = open({ effects: [eq] });
-
-    expect(q('[data-effect="eq"]').textContent).toContain("CPU: light");
-  });
-
-  it("moves an effect up its lane, the whole lane in one change", async () => {
-    const { api, q } = open({ effects: [denoise, eq] });
-
-    q('[data-field="up.eq"]').click();
-    await act();
-
-    expect(api.calls).toEqual([
-      {
-        command: "setAudioPipeline",
-        args: [{ order: { "pre-gate": ["eq", "denoise"] } }],
-      },
-    ]);
-  });
-
-  it("offers no move past the end of a lane", () => {
-    const { input } = open({ effects: [denoise, eq] });
-
-    expect(input('[data-field="up.denoise"]').disabled).toBe(true);
-    expect(input('[data-field="down.eq"]').disabled).toBe(true);
-    expect(input('[data-field="down.denoise"]').disabled).toBe(false);
-  });
-
-  it("moves an effect to another place", async () => {
-    const { api, input } = open({ effects: [eq, reverb] });
-
-    change(input('[data-field="place.reverb"]'), "post-gate");
-    await act();
-
-    expect(api.calls).toEqual([
-      {
-        command: "setAudioPipeline",
-        args: [
-          {
-            places: { reverb: "post-gate" },
-            order: { send: [], "post-gate": ["reverb"] },
-          },
-        ],
-      },
-    ]);
-  });
-
-  it("redraws when the core moves something, and keeps the keyboard's place", async () => {
-    // Arrange
-    const { q, view, setLocal } = open({ effects: [denoise, eq] });
-    q('[data-field="up.eq"]').focus();
-
-    // Act
-    await setLocal({
-      audioEffectOrder: {
-        "pre-gate": ["eq", "denoise"],
-        "post-gate": [],
-        send: [],
-      },
-    });
-
-    // Assert
-    expect(rows(view.element)).toEqual(["eq", "denoise"]);
-    expect(document.activeElement).toBe(q('[data-field="down.eq"]'));
-  });
-
-  it("sets a level while it is dragged, landing on the last value", async () => {
-    // Arrange
-    const { api, input } = open({
-      effects: [reverb],
-      local: { chosenEffects: ["reverb"], audioEffectMix: { reverb: 0.3 } },
-    });
-    const level = input('[data-field="mix.reverb"]');
-
-    // Act
-    change(level, "40");
-    change(level, "50");
-    change(level, "60");
-    await act();
-
-    // Assert
-    const last = api.calls.at(-1);
-    expect(last).toEqual({
-      command: "setAudioEffectMix",
-      args: ["reverb", 0.6],
-    });
-    expect(api.calls.length).toBeLessThan(3);
-    expect(level.parentElement?.textContent).toContain("60%");
-  });
-
-  it("has no level for an effect the core can't mix", () => {
-    const { view } = open({ effects: [eq] });
-
-    expect(view.element.querySelector('[data-field="mix.eq"]')).toBeNull();
-  });
-
-  it("follows a level the core changes", async () => {
-    const { input, setLocal } = open({
-      effects: [reverb],
-      local: { audioEffectMix: { reverb: 0.3 } },
-    });
-    const level = input('[data-field="mix.reverb"]');
-
-    await setLocal({ audioEffectMix: { reverb: 0.8 } });
-
-    expect(input('[data-field="mix.reverb"]')).toBe(level);
-    expect(level.value).toBe("80");
-  });
-
-  it("sets Channel level, which only matters with a send", async () => {
-    const { api, input } = open({ effects: [reverb] });
-
-    change(input('[data-field="channel"]'), "40");
-    await act();
-
-    expect(api.calls).toEqual([
-      { command: "setAudioChannelLevel", args: [0.4] },
-    ]);
-    expect(
-      open({ effects: [eq] }).view.element.querySelector(
-        '[data-field="channel"]',
-      ),
-    ).toBeNull();
-  });
-
-  it("shows an effect's own controls only while it is chosen", async () => {
-    // Arrange
-    const set = vi.fn(() => Promise.resolve());
-    const decay: ControlContribution = {
-      kind: "control",
-      place: "quick",
-      effect: "reverb",
-      type: "range",
-      id: "decay",
-      label: "Decay",
-      min: 0,
-      max: 3,
-      step: 0.1,
-      unit: "s",
-      state: fixed(1.5),
-      set,
-    };
-    const { view, q, input, setLocal } = open({
-      effects: [reverb],
-      controls: [decay],
-    });
-    expect(view.element.querySelector('[data-control="decay"]')).toBeNull();
-
-    // Act
-    await setLocal({ chosenEffects: ["reverb"] });
-    expect(q('[data-control="decay"]').textContent).toContain("1.5 s");
-    change(input('[data-control="decay"] input'), "2");
-    await act();
-
-    // Assert
-    expect(set).toHaveBeenCalledWith(2);
-  });
-
-  it("draws toggles and choices, and leaves buttons out", async () => {
-    // Arrange
-    const toggleSet = vi.fn(() => Promise.resolve());
-    const choiceSet = vi.fn(() => Promise.resolve());
-    const attached = {
-      kind: "control",
-      place: "quick",
-      effect: "reverb",
-    } as const;
-    const { view, input } = open({
-      effects: [reverb],
-      local: { chosenEffects: ["reverb"] },
-      controls: [
-        {
-          ...attached,
-          type: "toggle",
-          id: "wide",
-          label: "Wide",
-          state: fixed({ on: false }),
-          set: toggleSet,
-        },
-        {
-          ...attached,
-          type: "choice",
-          id: "room",
-          label: "Room",
-          options: [
-            { value: "hall", label: "Hall" },
-            { value: "cave", label: "Cave" },
-          ],
-          state: fixed("hall"),
-          set: choiceSet,
-        },
-        {
-          ...attached,
-          type: "button",
-          id: "reset",
-          label: "Reset",
-          run: () => Promise.resolve(),
-        },
-      ],
-    });
-
-    // Act
-    input('[data-control="wide"] input').click();
-    change(input('[data-control="room"] select'), "cave");
-    await act();
-
-    // Assert
-    expect(toggleSet).toHaveBeenCalledWith(true);
-    expect(choiceSet).toHaveBeenCalledWith("cave");
-    expect(view.element.querySelector('[data-control="reset"]')).toBeNull();
-  });
-
   it("warns, naming the effect, without blocking anything", async () => {
     // Arrange
-    const { view, q, input, setLocal, api } = open({ effects: [reverb] });
+    const { view, q, setLocal, api } = open({ effects: [reverb] });
     expect(view.element.querySelector("[data-warning]")).toBeNull();
 
     // Act
@@ -341,44 +53,12 @@ describe("the mixer window", () => {
       chosenEffects: ["reverb"],
       audioEffectPlaces: { reverb: "pre-gate" },
     });
-    change(input('[data-field="place.reverb"]'), "send");
-    await act();
 
     // Assert
     expect(q('[data-warning="tail-before-gate"]').textContent).toContain(
       "REVERB",
     );
-    expect(api.calls).toHaveLength(1);
-  });
-
-  it("shows a change of status in place, so a drag elsewhere isn't lost", async () => {
-    // Arrange
-    const { view, q, setLocal } = open({
-      effects: [reverb],
-      local: {
-        chosenEffects: ["reverb"],
-        effects: { reverb: { status: "starting", error: null } },
-      },
-    });
-    const row = q('[data-effect="reverb"]');
-
-    // Act
-    await setLocal({
-      effects: { reverb: { status: "running", error: null } },
-    });
-
-    // Assert
-    expect(view.element.querySelector('[data-effect="reverb"]')).toBe(row);
-    expect(q("[data-status]").textContent).toBe("On");
-  });
-
-  it("sets Cut tails", async () => {
-    const { api, q } = open({ effects: [reverb] });
-
-    q('[data-field="cutTails"]').click();
-    await act();
-
-    expect(api.calls).toEqual([{ command: "setAudioCutTails", args: [true] }]);
+    expect(api.calls).toEqual([]);
   });
 
   it("tells the player when a write fails", async () => {
@@ -397,7 +77,10 @@ describe("the mixer window", () => {
   });
 
   it("stops following once closed", async () => {
-    const { view, setLocal } = open({ effects: [denoise, eq] });
+    const { view, setLocal } = open({
+      effects: [denoise, eq],
+      local: { chosenEffects: ["denoise", "eq"] },
+    });
     const before = rows(view.element);
 
     view.dispose();

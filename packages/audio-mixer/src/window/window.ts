@@ -49,7 +49,7 @@ export function createMixerWindow(
         icon: "fa-solid fa-sliders",
         resizable: true,
       },
-      position: { width: 620, height: 640 },
+      position: { width: 760, height: 720 },
     };
 
     override _renderHTML(): Promise<unknown> {

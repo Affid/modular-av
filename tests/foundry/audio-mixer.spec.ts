@@ -67,35 +67,50 @@ async function openFromSettings(player: Player): Promise<Locator> {
   return mixer;
 }
 
+/** Reverb and echo off and out of the chain, reverb back on a send. */
 const clearPipeline = (player: Player): Promise<void> =>
   player.run(async (api) => {
     await api.commands.setEffectEnabled("reverb", false);
+    await api.commands.setEffectEnabled("echo", false);
     await api.commands.setAudioPipeline({
-      places: { reverb: "send" },
+      places: { reverb: "send", echo: "send" },
+      order: { "pre-gate": [], "post-gate": [], send: [] },
       mix: { reverb: 0.3 },
       channelLevel: 1,
     });
   }, null);
 
-test("a player sets up their voice in the mixer, and it stays", async ({
+/** Adds `effect` from the browser of `place`'s "+". */
+async function addFromBrowser(
+  mixer: Locator,
+  place: string,
+  effect: string,
+): Promise<void> {
+  await mixer.locator(`[data-field="add.${place}"]`).click();
+  await mixer.locator(`[data-pop="browser"] [data-offer="${effect}"]`).click();
+  await expect(mixer.locator(`[data-key="${effect}"]`)).toBeVisible();
+}
+
+test("a player builds their chain in the mixer, and it stays", async ({
   browser,
 }) => {
   // Arrange
   const p1 = track(await openPlayer(browser, "Player1"));
   await clearPipeline(p1);
   const mixer = await openFromSettings(p1);
-  const reverb = mixer.locator('[data-effect="reverb"]');
+  await expect(mixer.locator('[data-key="reverb"]')).toHaveCount(0);
 
-  // Act: turn it on, move it ahead of the gate, then turn its level down.
-  await reverb.locator('[data-field="on.reverb"]').check();
+  // Act: add it from a send's "+", then move it ahead of the gate.
+  await addFromBrowser(mixer, "send", "reverb");
   await expect
     .poll(async () => (await p1.state()).local.chosenEffects)
     .toContain("reverb");
-  await reverb.locator('[data-field="place.reverb"]').selectOption("pre-gate");
+  await mixer.locator('[data-field="settings.reverb"]').click();
+  await mixer.locator('[data-field="place.reverb"]').selectOption("pre-gate");
 
   // Assert: it moved, and the window says what that does.
   await expect(
-    mixer.locator('[data-part="pre-gate"] [data-effect="reverb"]'),
+    mixer.locator('[data-part="pre-gate"] [data-key="reverb"]'),
   ).toBeVisible();
   await expect(
     mixer.locator('[data-warning="tail-before-gate"]'),
@@ -104,12 +119,26 @@ test("a player sets up their voice in the mixer, and it stays", async ({
     mixer.locator('[data-control="modular-av-audio-reverb.decay"]'),
   ).toBeVisible();
 
-  // Act: back on a send, with its own level.
+  // Act: dragged back onto the sends, with its own level.
+  await p1.page.keyboard.press("Escape");
   await mixer
-    .locator('[data-effect="reverb"] [data-field="place.reverb"]')
-    .selectOption("send");
-  const level = mixer.locator('[data-field="mix.reverb"]');
-  await level.fill("55");
+    .locator('[data-key="reverb"]')
+    .dragTo(mixer.locator('[data-part="send"]'));
+  await expect(
+    mixer.locator('[data-part="send"] [data-key="reverb"]'),
+  ).toBeVisible();
+  await mixer.locator('[data-field="mix.reverb"]').fill("55");
+
+  // Switched off, it keeps its card.
+  await mixer.locator('[data-field="on.reverb"]').click();
+  await expect(mixer.locator('[data-key="reverb"]')).toHaveAttribute(
+    "data-state",
+    "off",
+  );
+  await mixer.locator('[data-field="on.reverb"]').click();
+  await expect
+    .poll(async () => (await p1.state()).local.chosenEffects)
+    .toContain("reverb");
 
   // Assert: it stays across a reload.
   await expect
@@ -120,9 +149,13 @@ test("a player sets up their voice in the mixer, and it stays", async ({
   await expect
     .poll(async () => {
       const { local } = await p1.state();
-      return [local.chosenEffects, local.audioEffectMix.reverb];
+      return [
+        local.chosenEffects,
+        local.audioEffectPlaces.reverb,
+        local.audioEffectMix.reverb,
+      ];
     })
-    .toEqual([["reverb"], 0.55]);
+    .toEqual([["reverb"], "send", 0.55]);
   await clearPipeline(p1);
 });
 
@@ -133,7 +166,7 @@ test("a preset comes back across a reload, in a call or out of one", async ({
   const p1 = track(await openPlayer(browser, "Player1"));
   await clearPipeline(p1);
   const mixer = await openFromSettings(p1);
-  await mixer.locator('[data-field="on.echo"]').check();
+  await addFromBrowser(mixer, "send", "echo");
   await expect
     .poll(async () => (await p1.state()).local.chosenEffects)
     .toContain("echo");
@@ -142,8 +175,8 @@ test("a preset comes back across a reload, in a call or out of one", async ({
   await mixer.locator('[data-field="presetName"]').fill("Canyon");
   await mixer.locator('[data-field="presetSave"]').click();
   await expect(mixer.locator('[data-field="preset"]')).toContainText("Canyon");
-  await mixer.locator('[data-field="on.echo"]').uncheck();
-  await mixer.locator('[data-field="on.reverb"]').check();
+  await mixer.locator('[data-field="on.echo"]').click();
+  await addFromBrowser(mixer, "send", "reverb");
   await expect(mixer.locator('[data-field="presetChanged"]')).toContainText(
     "Changed",
   );
@@ -154,10 +187,11 @@ test("a preset comes back across a reload, in a call or out of one", async ({
     .locator('[data-field="preset"]')
     .selectOption({ label: "Canyon" });
 
-  // Assert: the switch is what was saved, by a macro's way in too.
+  // Assert: the switch and the chain are what was saved, by a macro too.
   await expect
     .poll(async () => (await p1.state()).local.chosenEffects)
     .toEqual(["echo"]);
+  await expect(again.locator('[data-key="reverb"]')).toHaveCount(0);
   await expect(again.locator('[data-field="presetChanged"]')).toHaveText("");
   const names = await p1.run(
     (_api, game) =>
@@ -182,9 +216,7 @@ test("a preset comes back across a reload, in a call or out of one", async ({
   await expect(again.locator('[data-field="preset"]')).not.toContainText(
     "Canyon",
   );
-  await p1.run(async (api) => {
-    await api.commands.setEffectEnabled("echo", false);
-  }, null);
+  await clearPipeline(p1);
 });
 
 test("Test my voice records what is sent and plays it back", async ({
@@ -363,9 +395,7 @@ test("a GM's cave applies at once, survives a reload and undoes exactly", async 
   // Held controls are locked, and say who set them.
   const mixer = await openFromSettings(p1);
   await expect(mixer.locator('[data-field="mix.reverb"]')).toBeDisabled();
-  await expect(mixer.locator('[data-effect="reverb"]')).toContainText(
-    "Set by the GM",
-  );
+  await expect(mixer.locator('[data-key="reverb"]')).toContainText("GM: ");
 
   // Act: a reload mid-cave lands in the same place, with no second notice.
   await p1.page.reload();
@@ -481,20 +511,47 @@ test("a GM applies a preset to one player from the table", async ({
   await clearPipeline(p1);
 });
 
-test("the mixer passes axe's checks", async ({ browser }) => {
+test("the mixer passes axe's checks, pop-ups open too", async ({ browser }) => {
+  // Arrange: a chain with a card on, one kept off, and a send.
   const p1 = track(await openPlayer(browser, "Player1"));
   await p1.run(async (api) => {
+    await api.commands.setAudioPipeline({
+      order: { "pre-gate": ["eq"], "post-gate": [], send: ["reverb"] },
+    });
     await api.commands.setEffectEnabled("reverb", true);
   }, null);
-  await openFromSettings(p1);
+  const mixer = await openFromSettings(p1);
+  const check = async (): Promise<unknown[]> =>
+    (
+      await new AxeBuilder({ page: p1.page })
+        .include("#modular-av-audio-mixer")
+        .withTags(AA)
+        .analyze()
+    ).violations;
 
-  const results = await new AxeBuilder({ page: p1.page })
-    .include("#modular-av-audio-mixer")
-    .withTags(AA)
-    .analyze();
+  // Act
+  const window = await check();
+  await mixer.locator('[data-field="settings.reverb"]').click();
+  const settings = await check();
+  await p1.page.keyboard.press("Escape");
+  await mixer.locator('[data-field="add.post-gate"]').click();
+  const browserPop = await check();
+  await p1.page.keyboard.press("Escape");
   await clearPipeline(p1);
+  await p1.run(
+    (api) =>
+      api.commands.setAudioPipeline({
+        order: { "pre-gate": [], "post-gate": [], send: [] },
+      }),
+    null,
+  );
 
-  expect(results.violations).toEqual([]);
+  // Assert
+  expect({ window, settings, browserPop }).toEqual({
+    window: [],
+    settings: [],
+    browserPop: [],
+  });
 });
 
 test("with no effect module the mixer says they exist", async ({ browser }) => {

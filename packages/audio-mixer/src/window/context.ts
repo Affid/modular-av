@@ -10,7 +10,7 @@ import type { Recording } from "./voice-test.ts";
 export interface MixerContext {
   readonly api: Pick<
     ModularAV,
-    "state" | "commands" | "effects" | "contributions" | "preview"
+    "state" | "commands" | "effects" | "contributions" | "preview" | "meters"
   >;
   readonly isGM: boolean;
   /** This module's text, by a key under its own name. */

@@ -1,10 +1,8 @@
 import type { LocalState } from "@modular-av/api";
 import { el } from "@modular-av/kit";
-import { audioEffectsOf, type Lane, lanesOf } from "../model/pipeline.ts";
-import type { Writer } from "../model/queue.ts";
-import type { Snapshot } from "../model/snapshot.ts";
+import { audioEffectsOf } from "../model/pipeline.ts";
 import { type Warning, warningsOf } from "../model/warnings.ts";
-import { type Channel, renderChannel } from "./channel.ts";
+import { renderChain } from "./chain.ts";
 import type { MixerContext, MixerView, Rendered } from "./context.ts";
 import { type Footer, renderFooter } from "./footer.ts";
 import { renderLayerBanner } from "./layer-banner.ts";
@@ -13,39 +11,6 @@ import { withTable } from "./tabs.ts";
 
 const reasonOf = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
-
-/** What decides the rows drawn; a level or a status changes in place. */
-const shapeOf = (
-  lanes: readonly Lane[],
-  local: LocalState,
-  held: Snapshot | null,
-): string =>
-  JSON.stringify({
-    held,
-    lanes: lanes.map((lane) => lane.effects.map((d) => d.id)),
-    chosen: local.chosenEffects,
-    unsupported: Object.keys(local.effects).filter(
-      (id) => local.effects[id]?.status === "unsupported",
-    ),
-    mixed: Object.keys(local.audioEffectMix).sort(),
-  });
-
-const OPPOSITE: Readonly<Record<string, string>> = { up: "down", down: "up" };
-
-/** Moving to the top disables the button pressed: its sibling takes over. */
-function restoreFocus(root: HTMLElement, field: string | undefined): void {
-  if (!field) return;
-  const find = (name: string) =>
-    root.querySelector<HTMLButtonElement>(`[data-field="${name}"]`);
-  const found = find(field);
-  if (found && !found.disabled) {
-    found.focus();
-    return;
-  }
-  const [direction = "", ...rest] = field.split(".");
-  const other = OPPOSITE[direction];
-  if (other) find([other, ...rest].join("."))?.focus();
-}
 
 function warningLines(
   ctx: MixerContext,
@@ -76,61 +41,25 @@ const emptyHint = (ctx: MixerContext, doc: Document): Rendered => ({
   dispose: () => undefined,
 });
 
-interface Drawn {
-  channel: Channel | null;
-  shape: string;
-}
-
-/** Follows the state: the rows redraw if the shape changed, levels in place. */
+/** The warnings and the footer follow the state; the chain follows itself. */
 function follow(
   ctx: MixerContext,
   doc: Document,
-  parts: {
-    readonly slot: HTMLElement;
-    readonly warnings: HTMLElement;
-    readonly footer: Footer;
-    readonly writes: Writer;
-  },
-): { dispose(): void } {
-  const { slot, warnings, footer, writes } = parts;
-  const drawn: Drawn = { channel: null, shape: "" };
-  const redraw = (lanes: readonly Lane[], local: LocalState): void => {
-    const active = doc.activeElement as HTMLElement | null;
-    const field = slot.contains(active) ? active?.dataset.field : undefined;
-    drawn.channel?.dispose();
-    const held = ctx.layers?.held() ?? null;
-    drawn.channel = renderChannel(ctx, doc, lanes, local, writes, held);
-    slot.replaceChildren(drawn.channel.element);
-    restoreFocus(slot, field);
-  };
+  warnings: HTMLElement,
+  footer: Footer,
+): () => void {
   const update = (local: LocalState): void => {
-    const definitions = ctx.api.effects.list();
-    const lanes = lanesOf(definitions, local);
-    const shape = shapeOf(lanes, local, ctx.layers?.held() ?? null);
-    if (shape === drawn.shape) drawn.channel?.update(local);
-    else redraw(lanes, local);
-    drawn.shape = shape;
     footer.update(local);
     warnings.replaceChildren(
       ...warningLines(
         ctx,
         doc,
-        warningsOf(definitions, local, ctx.automationRate),
+        warningsOf(ctx.api.effects.list(), local, ctx.automationRate),
       ),
     );
   };
   update(ctx.api.state.get().local);
-  const off = ctx.api.state.subscribe((s) => s.local, update);
-  const offLayers = ctx.layers?.subscribe(() => {
-    update(ctx.api.state.get().local);
-  });
-  return {
-    dispose() {
-      off();
-      offLayers?.();
-      drawn.channel?.dispose();
-    },
-  };
+  return ctx.api.state.subscribe((s) => s.local, update);
 }
 
 /** The window's content, drawn only from the API: it knows no effect. */
@@ -159,10 +88,10 @@ function renderChannelView(ctx: MixerContext, doc: Document): Rendered {
   const banner = ctx.layers
     ? renderLayerBanner(ctx, doc, ctx.layers)
     : undefined;
-  const slot = el("div", { doc });
+  const chain = renderChain(ctx, doc, writes);
   const warnings = el("ul", { doc, className: "mav-mixer-warnings" });
-  const footer = renderFooter(ctx, doc, writes);
-  const following = follow(ctx, doc, { slot, warnings, footer, writes });
+  const footer = renderFooter(ctx, doc);
+  const offFollow = follow(ctx, doc, warnings, footer);
   return {
     element: el("div", {
       doc,
@@ -172,7 +101,7 @@ function renderChannelView(ctx: MixerContext, doc: Document): Rendered {
         banner?.element,
         presets.element,
         warnings,
-        slot,
+        chain.element,
         footer.element,
       ],
     }),
@@ -180,7 +109,8 @@ function renderChannelView(ctx: MixerContext, doc: Document): Rendered {
       offFailure();
       presets.dispose();
       banner?.dispose();
-      following.dispose();
+      offFollow();
+      chain.dispose();
       footer.dispose();
     },
   };
