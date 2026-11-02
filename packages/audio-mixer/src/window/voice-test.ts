@@ -17,7 +17,7 @@ export interface VoiceTest {
 }
 
 /**
- * Records what is sent and plays it back afterwards, so it needs no headphones
+ * Records what would be sent and plays it back afterwards, so it needs no headphones
  * and can't feed back. The copy of the voice stops as soon as it is recorded.
  */
 export function createVoiceTest(

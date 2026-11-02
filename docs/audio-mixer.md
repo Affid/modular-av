@@ -44,7 +44,7 @@ storage, so a player who joins late or reloads still gets it.
 | ----------------------------------- | ------------------------------------------------------------------------------- |
 | `commands.setAudioPipeline(change)` | Places, order, mix and Channel level: all checked, saved together, applied once |
 | `state.local.chosenEffects`         | What is turned on, in a call or not. `effects` reads `off` without a microphone |
-| `preview.voice()`                   | A copy of what is sent, to play back to the player                              |
+| `preview.voice()`                   | What would be sent, Mute or not, to play back to the player                     |
 | `ControlContribution.effect`        | An effect's settings, drawn and saved without knowing the effect                |
 
 `mix` is checked against the places in the same change, so one call can move an

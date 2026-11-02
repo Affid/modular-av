@@ -156,10 +156,18 @@ export function installCore(deps: CoreDeps): InstalledCore {
           createPreviews({ env: deps.env, effects: effects.api }),
         ),
       () => {
-        const copy = current?.local.microphone?.clone();
-        if (!copy) return null;
-        // Mute is in the graph: the sent track's own switch mustn't stick.
+        const local = current?.local;
+        const copy = local?.microphone?.clone();
+        if (!local || !copy) return null;
+        // What is sent keeps its own switch; the copy hears through Mute.
         copy.enabled = true;
+        const end = local.rehearse();
+        const stop = copy.stop.bind(copy);
+        copy.stop = () => {
+          end();
+          stop();
+        };
+        copy.addEventListener("ended", end);
         return deps.env.createStream([copy]);
       },
     ),

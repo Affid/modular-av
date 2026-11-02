@@ -300,7 +300,7 @@ test("Channel level drops the dry voice only while a send carries it", async ({
   expect(unreturned.peak).toBeGreaterThan(0.5);
 });
 
-test("the voice preview is what is sent: Mute silences it, and stopping it leaves the call", async ({
+test("the voice preview hears through Mute while nothing is sent, and stopping it leaves the call", async ({
   page,
 }) => {
   // Arrange
@@ -322,14 +322,15 @@ test("the voice preview is what is sent: Mute silences it, and stopping it leave
   const open = await voice(500);
   await setMuted(true);
   await page.waitForTimeout(GATE_CLOSES_MS);
-  const muted = await voice(500);
+  const [muted, sentMuted] = await Promise.all([voice(500), record(page, 500)]);
   await setMuted(false);
   await page.waitForTimeout(GATE_CLOSES_MS);
   const sent = await record(page, 500);
 
   // Assert
   expect(open.peak).toBeGreaterThan(0.01);
-  expect(muted.peak).toBeLessThan(0.001);
+  expect(muted.peak).toBeGreaterThan(0.01);
+  expect(sentMuted.peak).toBeLessThan(0.001);
   expect(sent.peak).toBeGreaterThan(0.01);
 });
 

@@ -54,7 +54,7 @@
     "cutTails": "Cut reverb and delay when my microphone closes",
     "voiceTest": {
       "button": "Test my voice",
-      "hint": "Records a few seconds of what is sent, then plays it back. Muted or with push to talk up, it records silence.",
+      "hint": "Records a few seconds of your voice with every effect, then plays it back. Mute yourself first if the table shouldn't hear you.",
       "recording": "Recording, speak now…",
       "playing": "Playing it back…",
       "no-microphone": "It needs a microphone in the call.",

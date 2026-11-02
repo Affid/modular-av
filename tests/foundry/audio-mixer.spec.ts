@@ -7,10 +7,12 @@ import {
   expectStatus,
   FOUNDRY_URL,
   idOf,
+  loudness,
   notifications,
   openGm,
   openPlayer,
   type Player,
+  setVoiceMode,
 } from "./world.ts";
 
 test.describe.configure({ mode: "serial" });
@@ -203,6 +205,53 @@ test("Test my voice records what is sent and plays it back", async ({
   await expect(status).toHaveText("Playing it back…", { timeout: 10_000 });
   await expect(status).toHaveText("", { timeout: 15_000 });
   expect(p1.notices).toEqual([]);
+});
+
+test("a muted player hears their voice in a test, and the table hears nothing", async ({
+  browser,
+}) => {
+  // Arrange: the GM hears Player1 before the mute.
+  const gm = track(await openGm(browser));
+  const p1 = track(await openPlayer(browser, "Player1"));
+  for (const player of [gm, p1]) await expectStatus(player, "connected");
+  await setVoiceMode(p1, "always");
+  const p1Id = await idOf(gm, "Player1");
+  await expect
+    .poll(async () => (await gm.state()).participants[p1Id]?.connected, {
+      timeout: 60_000,
+    })
+    .toBe(true);
+  await expect.poll(() => loudness(gm, p1Id)).toBeGreaterThan(-60);
+  await p1.run((api) => api.commands.setMuted(true), null);
+  await expect.poll(() => loudness(gm, p1Id)).toBeLessThan(-60);
+
+  // Act: 4 s of the test's copy, while the GM listens.
+  const [copy, heard] = await Promise.all([
+    p1.run(async (api) => {
+      const stream = api.preview.voice();
+      if (!stream) return -100;
+      const context = new AudioContext();
+      const analyser = context.createAnalyser();
+      context.createMediaStreamSource(stream).connect(analyser);
+      const samples = new Float32Array(analyser.fftSize);
+      let peak = 0;
+      const end = performance.now() + 4000;
+      while (performance.now() < end) {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        analyser.getFloatTimeDomainData(samples);
+        for (const sample of samples) peak = Math.max(peak, Math.abs(sample));
+      }
+      for (const t of stream.getTracks()) t.stop();
+      await context.close();
+      return peak > 0 ? 20 * Math.log10(peak) : -100;
+    }, null),
+    loudness(gm, p1Id),
+  ]);
+
+  // Assert
+  expect(copy).toBeGreaterThan(-60);
+  expect(heard).toBeLessThan(-60);
+  await p1.run((api) => api.commands.setMuted(false), null);
 });
 
 test("a GM sees what a player runs, as it changes", async ({ browser }) => {

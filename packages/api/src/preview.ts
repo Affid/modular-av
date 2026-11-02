@@ -28,8 +28,9 @@ export interface Previews {
     options: MicrophonePreviewOptions,
   ): Promise<Preview>;
   /**
-   * A copy of what is sent, after every effect and Mute, for playing it back
-   * to the player: silent while muted or the push to talk key is up. Null
+   * What would be sent, after every effect and the voice gate, for playing it
+   * back to the player. While its track is live, Mute and the push to talk
+   * key don't silence it; what is sent still follows them. Null
    * without a microphone. Unlike the others this is the call's own audio, not
    * a device's. Stop its track when done, which leaves what is sent as it is.
    */

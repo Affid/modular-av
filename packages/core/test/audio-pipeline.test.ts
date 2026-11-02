@@ -329,6 +329,25 @@ describe("the voice preview", () => {
     expect(track?.enabled).toBe(true);
   });
 
+  it("hears through Mute while it lives, and the table still hears nothing", async () => {
+    // Arrange
+    const { table, p1 } = await setup();
+    await p1.api.commands.setMuted(true);
+    await table.settle();
+    const mute = () => p1.env.captureContexts[0]?.level("mute")?.level;
+    const before = mute();
+
+    // Act
+    const [track] = p1.api.preview.voice()?.getAudioTracks() ?? [];
+    const during = { mute: mute(), sent: micEnabled(p1) };
+    track?.stop();
+
+    // Assert
+    expect(before).toBe(0);
+    expect(during).toEqual({ mute: 1, sent: false });
+    expect(mute()).toBe(0);
+  });
+
   it("is null without a microphone", async () => {
     const table = createTable();
     table.join("gm", { secret: true });
