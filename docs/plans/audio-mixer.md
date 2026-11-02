@@ -78,7 +78,7 @@ before approval.
 
 | Phase                | Delivers                                                                                     | Real Foundry                                             |
 | -------------------- | -------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| 7. Echo in Chrome    | Capture again only after letting the microphone go; gain control off with a noise model      | denoise: what each capture got                           |
+| 7. Echo in Chrome    | Capture again only after letting the microphone go                                           | denoise: what each capture got                           |
 | 8. Test through Mute | `preview.voice()` hears through Mute and push to talk while live; the output bus still obeys | audio-mixer: a muted test is heard, the GM hears silence |
 | 9. CPU wording       | "Light on CPU" in the dock, "CPU: light" in the mixer                                        |                                                          |
 | 10. The signal path  | The chain model, routing and levels, pop-ups, the effect browser, the GM's read-only view    | audio-mixer: drag, browser, axe with pop-ups open        |
@@ -89,8 +89,11 @@ and noise suppression all off, at 44.1 kHz stereo; after the fix, echo
 cancellation stays on. A 30 s held note at -32 dBFS, per second: without a model
 the browser's gain control lifts it to about -20 for 8 s, then its noise
 suppression pulls it to -47; RNNoise with the browser's gain control on lifts it
-to -20 for 10 s, then -32; with it off, a flat -32. The core's entry went from
-115,225 to 115,722 bytes of 116,000; the mixer's stayed at 5,921.
+to -20 for 10 s, then -32; with it off, a flat -32. Gain control went off with a
+model for that, and the owner's next test found every noise model much
+quieter: with a quiet microphone, the browser's gain control is most of the
+level. It is on again. The core's entry went from 115,225 to 115,722 bytes of
+116,000; the mixer's stayed at 5,921.
 
 ## Not tested
 

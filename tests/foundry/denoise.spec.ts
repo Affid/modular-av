@@ -106,7 +106,7 @@ test.describe("with P2P", () => {
     await expectHeardWith("gtcrn", players);
   });
 
-  test("a noise model keeps the browser's echo cancellation, and drops its suppression and gain control", async ({
+  test("a noise model keeps the browser's echo cancellation and gain control, and drops its suppression", async ({
     browser,
   }) => {
     // Arrange: what each new capture of the microphone got.
@@ -143,6 +143,6 @@ test.describe("with P2P", () => {
     // Assert
     await expect
       .poll(captures)
-      .toEqual(["ec true ns false agc false", "ec true ns true agc true"]);
+      .toEqual(["ec true ns false agc true", "ec true ns true agc true"]);
   });
 });
