@@ -52,6 +52,19 @@ export function liveEffects(
   };
 }
 
+const NOISE_SUPPRESSION = "noise-suppression";
+
+/**
+ * What the dock offers: of audio, only noise suppression. The rest of the
+ * pipeline is the mixer's, or the API's without it.
+ */
+export const dockEffects = (
+  definitions: readonly EffectDefinition[],
+): readonly EffectDefinition[] =>
+  definitions.filter(
+    (d) => d.kind === "video" || d.exclusiveGroup === NOISE_SUPPRESSION,
+  );
+
 /** Exclusive groups by name; an effect of its own is a group of one. */
 export function groupsOf(
   definitions: readonly EffectDefinition[],
@@ -72,7 +85,7 @@ export interface EffectsOptions {
 }
 
 /**
- * Every registered effect group as one choice, with the controls attached
+ * Every effect group the dock offers as one choice, with the controls attached
  * to the chosen effect under it, kept in step with the state.
  */
 export function renderEffects(
@@ -82,9 +95,9 @@ export function renderEffects(
   options: EffectsOptions = {},
 ): Rendered {
   const model = options.model ?? liveEffects(ctx, alerts);
-  const definitions = ctx.api.effects
-    .list()
-    .filter((d) => !options.kind || d.kind === options.kind);
+  const definitions = dockEffects(ctx.api.effects.list()).filter(
+    (d) => !options.kind || d.kind === options.kind,
+  );
   const rows: GroupRow[] = groupsOf(definitions).map(([name, group]) =>
     effectGroup(ctx, doc, { name, group, model, alerts }),
   );

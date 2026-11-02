@@ -5,6 +5,7 @@ import {
   renderContributedControls,
 } from "../contributions/controls.ts";
 import type { DockContext } from "../context.ts";
+import { dockEffects } from "../panel/effects.ts";
 import { contributedSections } from "./contributed.ts";
 import { createDraft, type Draft } from "./draft.ts";
 import type { DraftKey } from "./draft-fields.ts";
@@ -28,9 +29,6 @@ const TAB_OF: Readonly<Record<Exclude<DraftKey, "effects">, string>> = {
   sensitivityAuto: "voice",
   threshold: "voice",
   gateFallback: "voice",
-  audioChannelLevel: "voice",
-  audioEffectMix: "voice",
-  audioCutTails: "voice",
   videoInput: "video",
   receiveVideo: "video",
   theme: "appearance",
@@ -47,7 +45,7 @@ function unsavedTabs(ctx: DockContext, draft: Draft): ReadonlySet<string> {
   }
   const now = draft.get("effects");
   const was = draft.savedValue("effects");
-  for (const d of ctx.api.effects.list()) {
+  for (const d of dockEffects(ctx.api.effects.list())) {
     const group = d.exclusiveGroup ?? d.id;
     if ((now[group] ?? "") !== (was[group] ?? ""))
       tabs.add(d.kind === "audio" ? "voice" : "video");

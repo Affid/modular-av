@@ -2,14 +2,13 @@ import type { GateFallback, SettingsHost, VoiceMode } from "@modular-av/api";
 import { el } from "@modular-av/kit";
 import type { Rendered } from "../contributions/controls.ts";
 import type { DockContext } from "../context.ts";
-import { renderEffects } from "../panel/effects.ts";
+import { dockEffects, renderEffects } from "../panel/effects.ts";
 import { contributedSections } from "./contributed.ts";
 import { deviceOptions } from "./devices.ts";
 import type { Draft } from "./draft.ts";
 import { draftSelect, draftSwitch } from "./draft-inputs.ts";
 import { draftEffects } from "./effect-draft.ts";
 import { row, section } from "./fields.ts";
-import { mixSection } from "./mix.ts";
 import { pushToTalkKey } from "./ptt-key.ts";
 import { sensitivityBar } from "./sensitivity.ts";
 
@@ -116,7 +115,7 @@ export function voiceTab(
     model: draftEffects(draft),
     kind: "audio",
   });
-  const none = ctx.api.effects.list().length === 0;
+  const none = dockEffects(ctx.api.effects.list()).length === 0;
   return [
     devices(ctx, doc, draft),
     input(ctx, doc, draft),
@@ -130,7 +129,6 @@ export function voiceTab(
         effects.dispose();
       },
     },
-    ...mixSection(ctx, doc, draft),
     ...contributedSections(ctx, doc, alerts, "voice"),
   ];
 }

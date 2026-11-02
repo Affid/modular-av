@@ -117,8 +117,8 @@ output bus, as Mute cuts it; each place has its own watchdog.
 
 The hold on the output bus lasts as long as the longest declared `tail` of
 a running effect, at most 3 s, and only while a tail effect runs. With no
-tail effect, the bus closes at once. "Cut reverb and delay when my microphone closes" in the voice
-settings makes every release close at once. Nothing said after the Mute
+tail effect, the bus closes at once. "Cut reverb and delay when my microphone closes" in the audio
+mixer makes every release close at once. Nothing said after the Mute
 closes can reach an effect, so a tail only carries speech that already went
 out.
 
