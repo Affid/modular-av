@@ -15,7 +15,7 @@
   "flags": {
     "modular-av": {
       "kind": "effect",
-      "icon": "fa-solid fa-sliders",
+      "icon": "fa-solid fa-chart-simple",
       "facts": [
         {
           "label": "Who turns it on",

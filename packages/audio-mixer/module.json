@@ -1,7 +1,7 @@
 {
   "id": "modular-av-audio-mixer",
   "title": "Modular A/V: Audio mixer",
-  "description": "A mixer for your voice: which effects run, in which order, and how loud. Holds no effects itself: it mixes the effect modules a world has turned on.",
+  "description": "A mixer for your voice: which effects run, in which order, and how loud. Holds no effects itself: it mixes the effect modules a world has turned on. A GM can lay a preset over the whole table, or one player.",
   "authors": [{ "name": "Andrei Fedorov", "url": "https://github.com/Affid" }],
   "url": "https://github.com/Affid/modular-av",
   "bugs": "https://github.com/Affid/modular-av/issues",
@@ -24,7 +24,10 @@
       "kind": "effect",
       "icon": "fa-solid fa-sliders",
       "facts": [
-        { "label": "Who uses it", "value": "Each player, for their own voice" },
+        {
+          "label": "Who uses it",
+          "value": "Each player for their own voice; a GM for the whole table's"
+        },
         { "label": "Works with", "value": "Every service" }
       ]
     }
