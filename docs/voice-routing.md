@@ -201,6 +201,22 @@ Output only the processed signal: the core adds the dry one. Don't add a
 dry:wet control, and don't write an early return. Native nodes work too:
 `create` returns their `{ input, output, dispose }`.
 
+Use only what the constructor and `configure` give the kernel, not the
+worklet's globals (`sampleRate`, `currentTime`, `currentFrame`, `port`), so
+the same file can also run outside a browser (issue #6). Check it with a
+Vitest file in `test/node/`, whose tsconfig has `"types": ["node"]`:
+
+```ts
+import { kernelContract } from "@modular-av/testing/contract/kernels";
+
+kernelContract({
+  file: new URL("../../public/worklets/worklet.js", import.meta.url),
+  name: "my-reverb",
+  options: { decay: 1.5 }, // what create() passes
+  configure: [{ decay: 3 }], // values the settings send later
+});
+```
+
 ## Limits
 
 - Only digital silence, a runaway level and a non-number can be detected.

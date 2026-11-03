@@ -12,6 +12,9 @@
  *     configure(value) {}      // optional: what `configure()` sent
  *   });
  *
+ * A kernel uses only what its constructor and `configure` give it, never this
+ * scope's globals, so the same file can run outside a worklet.
+ *
  * Processor options: { kernel: string, tail?: number (s), options?: unknown }
  * Messages in: anything, handed to the kernel's `configure`.
  * Messages out: { type: "failed", error: string }, once; silence from then on.

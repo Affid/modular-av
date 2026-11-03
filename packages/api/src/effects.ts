@@ -40,7 +40,13 @@ export interface AudioEffectContext extends EffectContext {
   readonly host: AudioEffectHost;
 }
 
-/** An effect's sound code, run by the core's worklet. */
+/**
+ * An effect's sound code, run by the core's worklet. A kernel uses only what
+ * its constructor (`{ sampleRate, options }`) and `configure` give it, never
+ * the worklet's globals (`sampleRate`, `currentTime`, `currentFrame`, `port`),
+ * so the same file can also run outside a browser. `kernelContract` from
+ * `@modular-av/testing` checks it.
+ */
 export interface AudioEffectKernel {
   /**
    * A worklet module's URL, which calls
