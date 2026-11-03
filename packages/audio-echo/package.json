@@ -1,6 +1,6 @@
 {
   "name": "@modular-av/audio-echo",
-  "version": "0.10.1",
+  "version": "0.11.0",
   "private": true,
   "description": "Modular A/V effect module: an echo for the voice channel.",
   "license": "MIT",

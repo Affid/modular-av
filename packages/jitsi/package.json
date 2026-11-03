@@ -1,6 +1,6 @@
 {
   "name": "@modular-av/jitsi",
-  "version": "0.10.1",
+  "version": "0.11.0",
   "private": true,
   "description": "Modular A/V service module for self-hosted Jitsi Meet with token authentication.",
   "license": "MIT",

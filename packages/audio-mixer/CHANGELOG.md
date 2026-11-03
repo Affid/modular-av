@@ -1,5 +1,15 @@
 # @modular-av/audio-mixer
 
+## 0.11.0
+
+### Patch Changes
+
+- d7c2b80: A card's state word stays inside its card. "Starts with your microphone" on
+  the noise cancelling card hid the card's name and spilled over its switch; the
+  card now says "No mic yet" on its model's line, and a word too long for a
+  narrow card is cut short, with the whole word on hover.
+- @modular-av/kit@0.11.0
+
 ## 0.10.1
 
 ### Patch Changes
