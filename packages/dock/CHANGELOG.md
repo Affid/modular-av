@@ -1,5 +1,50 @@
 # @modular-av/dock
 
+## 0.10.0
+
+### Minor Changes
+
+- b5d9c1d: The core now owns dry:wet. An effect that declares its `latency` gets a
+  dry:wet control: the core delays the dry signal to match and mixes the two,
+  so the effect outputs only its processed signal. The wet amount of an effect on a send
+  works the same way, with `defaultMix` as its start. Players set both, and
+  how much of their voice goes out dry, under Voice & Video Settings, Voice,
+  Mix. The API adds `commands.setAudioEffectMix`, `commands.setAudioChannelLevel`,
+  `LocalState.audioEffectMix` and `LocalState.audioChannelLevel`.
+- 5634974: The dock no longer holds the voice pipeline: its Mix section is gone, and for
+  audio it offers only noise suppression. Levels, tails and every other audio
+  effect are in `modular-av-audio-mixer`, or the API without it.
+- b5d9c1d: The stall watchdog now also watches effects after the gate, each against
+  what it hears, and takes out any effect whose level runs away or stops being
+  a number. `AudioEffectDefinition.tail` says how long an effect keeps
+  sounding, so a long delay isn't taken for stalled before its first echo.
+- d873ed6: Voice activity mode can now hold the microphone off when its voice gate
+  can't run, instead of sending everything as an open mic. Players choose
+  it under Voice & Video Settings, Voice, "If voice activity can't run"
+  (sending stays the default). The API adds `LocalState.gateFallback`,
+  `LocalState.microphoneHold` and `commands.setGateFallback`; the dock
+  shows a `microphone-held` warning, and the UI contract checks it.
+- b5d9c1d: A worklet effect can now be just a kernel: `AudioEffectContext.host` runs it
+  in the core's worklet, which calls `render()` only while there is sound or
+  the effect's `tail` is still ringing, so no effect has to write its own early
+  return. A kernel that throws or outputs a non-number is reported as failed
+  and silenced. `api.createAudioEffectHost` does the same for a context of your own,
+  for an effect's tests and previews. See `docs/voice-routing.md`.
+- b5d9c1d: While a tail effect runs, a reverb or delay now rings out after a player
+  mutes, deafens or lets go of push to talk, for as long as the effect's `tail`,
+  at most 3 s. Nothing said after that reaches an effect, so a tail only carries
+  what already went out, and a GM's block still ends it at once. Players who
+  want the old behaviour turn on "Cut reverb and delay when my microphone
+  closes" under Voice, Mix. The API adds `LocalState.audioCutTails` and
+  `commands.setAudioCutTails`.
+
+### Patch Changes
+
+- 5634974: An effect's cost now says what it costs: "Light on CPU" instead of "Light",
+  so nobody reads it as how strongly a noise model works.
+- Updated dependencies [5634974]
+  - @modular-av/kit@0.10.0
+
 ## 0.9.1
 
 ### Patch Changes

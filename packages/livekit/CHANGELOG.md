@@ -1,5 +1,14 @@
 # @modular-av/livekit
 
+## 0.10.0
+
+### Patch Changes
+
+- 6ff0f49: The API drops what the core never used, before 1.0 freezes it:
+  `ServiceDefinition.mediaOwnership`, `ServiceCapabilities.moderation` and
+  `simulcast`, and `ServiceConnection.moderation`. A service that still
+  sets them keeps working; they may come back as optional members later.
+
 ## 0.9.1
 
 ### Patch Changes
