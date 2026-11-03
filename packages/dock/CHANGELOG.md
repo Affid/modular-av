@@ -1,5 +1,14 @@
 # @modular-av/dock
 
+## 0.10.1
+
+### Patch Changes
+
+- ec3fe1b: A menu item whose label takes two lines grows to fit it. In Foundry,
+  "Scattered over the screen (the theme's suggestion)" spilled over its
+  button's border, and wasn't centred like the other items.
+- @modular-av/kit@0.10.1
+
 ## 0.10.0
 
 ### Minor Changes

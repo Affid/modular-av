@@ -1,5 +1,17 @@
 # @modular-av/core
 
+## 0.10.1
+
+### Patch Changes
+
+- The module builder says a GM can change the table's voices from the audio
+  mixer, and EQ's card has its own icon instead of the mixer's.
+- 9d64bdf: Module links posted to the chat wrap to the chat's width. A long manifest
+  URL used to be cut off at the edge of the message, so it couldn't be read
+  or copied whole.
+- @modular-av/api@0.10.1
+  - @modular-av/kit@0.10.1
+
 ## 0.10.0
 
 ### Minor Changes
