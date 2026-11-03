@@ -17,8 +17,10 @@ the Discord-like dock, `modular-av-dock`.
   yourself), then turns modules on and off for the world, keeping a
   service on so calls keep working. With no service enabled, a GM is
   told which exist.
-- **What it guarantees**, whatever the other modules do: mute applies to
-  what is sent, in every state of the connection; a GM's block is
+- **What it guarantees**, whatever the other modules do: nothing you say
+  while muted is sent, in every state of the connection (a reverb or
+  echo rings out for up to 3 s of what already went out, unless you turn
+  that off); a GM's block is
   enforced by every player's browser; a camera effect that isn't running
   keeps the camera off; it reconnects by itself, with a fresh token each
   time.
