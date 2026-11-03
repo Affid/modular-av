@@ -167,3 +167,81 @@ describe("exercising a kernel outside a worklet", () => {
     expect(run).toThrow(/not a number/);
   });
 });
+
+describe("what a kernel is sent", () => {
+  const Kernel = () => loadKernel(portable, FILE, NAME);
+
+  it("takes plain data and raw bytes, any number included", () => {
+    // Arrange
+    const options = {
+      gain: 1,
+      name: "hall",
+      on: true,
+      none: null,
+      absent: undefined,
+      odd: Number.NaN,
+      taps: [0.1, [0.2, 0.3]],
+      table: new Float32Array(4),
+      bytes: new Uint8Array([0, 97, 115, 109]).buffer,
+      bare: Object.assign(Object.create(null) as object, { gain: 1 }),
+    };
+
+    // Act
+    const run = () => {
+      exerciseKernel(Kernel(), { options, configure: [{ gain: 0.5 }] });
+    };
+
+    // Assert
+    expect(run).not.toThrow();
+  });
+
+  it.each([
+    ["a function", { curve: () => 1 }, "options.curve"],
+    ["a class instance", { at: new Date(0) }, "options.at"],
+    ["a Map", { taps: new Map([[1, 2]]) }, "options.taps"],
+    ["a Set", { taps: new Set([1]) }, "options.taps"],
+    ["a compiled WASM module", { wasm: compiledWasm() }, "options.wasm"],
+    ["a big integer", { frames: 1n }, "options.frames"],
+    ["a symbol", { tag: Symbol("tag") }, "options.tag"],
+    ["shared memory", { ring: new SharedArrayBuffer(8) }, "options.ring"],
+    ["something deep inside", { a: [1, { b: () => 1 }] }, "options.a[1].b"],
+  ])("refuses options holding %s, and says where", (_what, options, path) => {
+    // Act
+    const run = () => {
+      exerciseKernel(Kernel(), { options });
+    };
+
+    // Assert
+    expect(run).toThrow(PortabilityError);
+    expect(run).toThrow(path);
+  });
+
+  it("refuses options that refer to themselves", () => {
+    // Arrange
+    const options: { self?: unknown } = {};
+    options.self = options;
+
+    // Act
+    const run = () => {
+      exerciseKernel(Kernel(), { options });
+    };
+
+    // Assert
+    expect(run).toThrow(/options\.self/);
+  });
+
+  it("refuses a configure value that isn't plain data, and says which", () => {
+    const run = () => {
+      exerciseKernel(Kernel(), {
+        configure: [{ gain: 1 }, { gain: new Map() }],
+      });
+    };
+
+    expect(run).toThrow(PortabilityError);
+    expect(run).toThrow("configure[1].gain");
+  });
+});
+
+function compiledWasm(): WebAssembly.Module {
+  return new WebAssembly.Module(new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0]));
+}

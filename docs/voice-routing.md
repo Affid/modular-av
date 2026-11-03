@@ -201,10 +201,18 @@ Output only the processed signal: the core adds the dry one. Don't add a
 dry:wet control, and don't write an early return. Native nodes work too:
 `create` returns their `{ input, output, dispose }`.
 
-Use only what the constructor and `configure` give the kernel, not the
-worklet's globals (`sampleRate`, `currentTime`, `currentFrame`, `port`), so
-the same file can also run outside a browser (issue #6). Check it with a
-Vitest file in `test/node/`, whose tsconfig has `"types": ["node"]`:
+Keep the kernel portable, so the same file can also run outside a browser
+(issue #6):
+
+- Use only what the constructor and `configure` give it, and from the scope
+  only JavaScript's own built-ins, `console` and `WebAssembly`. Not the
+  worklet's globals (`sampleRate`, `currentTime`, `currentFrame`, `port`).
+- Send it only plain data (objects, arrays, strings, numbers, booleans,
+  null) and raw bytes (`ArrayBuffer` and typed arrays), as `options` and to
+  `configure`. Pass WASM as bytes, not as a compiled `WebAssembly.Module`.
+
+Check both with a Vitest file in `test/node/`, whose tsconfig has
+`"types": ["node"]`:
 
 ```ts
 import { kernelContract } from "@modular-av/testing/contract/kernels";

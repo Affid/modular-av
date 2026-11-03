@@ -42,10 +42,14 @@ export interface AudioEffectContext extends EffectContext {
 
 /**
  * An effect's sound code, run by the core's worklet. A kernel uses only what
- * its constructor (`{ sampleRate, options }`) and `configure` give it, never
- * the worklet's globals (`sampleRate`, `currentTime`, `currentFrame`, `port`),
- * so the same file can also run outside a browser. `kernelContract` from
- * `@modular-av/testing` checks it.
+ * its constructor (`{ sampleRate, options }`) and `configure` give it, and
+ * from its scope only JavaScript's own built-ins, `console` and
+ * `WebAssembly`: never the worklet's globals (`sampleRate`, `currentTime`,
+ * `currentFrame`, `port`). Its options and `configure` values are plain data
+ * (objects, arrays, strings, numbers, booleans, null) and raw bytes
+ * (`ArrayBuffer` and typed arrays): pass WASM as bytes, not a compiled
+ * module. The same file can then also run outside a browser.
+ * `kernelContract` from `@modular-av/testing` checks both.
  */
 export interface AudioEffectKernel {
   /**
@@ -55,12 +59,12 @@ export interface AudioEffectKernel {
    */
   readonly module: string;
   readonly name: string;
-  /** Given to the kernel's constructor; must survive structured clone. */
+  /** Given to the kernel's constructor: plain data and raw bytes. */
   readonly options?: unknown;
 }
 
 export interface HostedAudioEffect extends AudioEffect {
-  /** Hands `value` to the kernel's `configure`. */
+  /** Hands `value`, plain data and raw bytes, to the kernel's `configure`. */
   configure(value: unknown): void;
 }
 

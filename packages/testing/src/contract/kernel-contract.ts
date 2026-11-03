@@ -4,7 +4,8 @@ import { describe, it } from "vitest";
 import { exerciseKernel, type KernelRun, loadKernel } from "./kernel-realm.ts";
 
 /**
- * A kernel must use only what its constructor and `configure` give it, so
+ * A kernel must use only what its constructor and `configure` give it, and
+ * be sent only plain data and raw bytes (`options`, `configure` here), so
  * the same file can run in the core's worklet or on a processing server
  * (issue #6). Run with Vitest, from a test folder whose tsconfig has Node's
  * types (the modules keep it in `test/node/`).

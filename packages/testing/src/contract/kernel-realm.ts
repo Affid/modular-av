@@ -1,11 +1,13 @@
 import vm from "node:vm";
+import { notPlainData } from "./plain-data.ts";
 
 /**
  * Runs an audio kernel where a processing server would: with ECMAScript's
- * built-ins and `modularAV.registerAudioKernel`, and nothing of the worklet
- * around it (`sampleRate`, `currentTime`, `currentFrame`, `port`,
- * `registerProcessor`). A kernel that keeps to its constructor's arguments
- * and `configure` can then run on either side.
+ * built-ins (V8 adds `console` and `WebAssembly`) and
+ * `modularAV.registerAudioKernel`, and nothing of the worklet around it
+ * (`sampleRate`, `currentTime`, `currentFrame`, `port`, `registerProcessor`).
+ * A kernel that keeps to its constructor's arguments and `configure`, and is
+ * sent only plain data, can then run on either side.
  */
 export class PortabilityError extends Error {
   override readonly name = "PortabilityError";
@@ -42,6 +44,15 @@ const messageOf = (error: unknown): string =>
   typeof error === "object" && error !== null && "message" in error
     ? String(error.message)
     : String(error);
+
+function assertPlain(value: unknown, path: string): void {
+  const found = notPlainData(value, path);
+  if (found) {
+    throw new PortabilityError(
+      `${found}: a kernel is sent only plain data and raw bytes`,
+    );
+  }
+}
 
 function attempt<T>(what: string, action: () => T): T {
   try {
@@ -112,6 +123,10 @@ export function exerciseKernel(
   Kernel: AudioKernelClass,
   { options, configure = [] }: KernelRun,
 ): void {
+  assertPlain(options, "options");
+  configure.forEach((value, index) => {
+    assertPlain(value, `configure[${index}]`);
+  });
   const kernel = attempt(
     "is built",
     () => new Kernel({ sampleRate: SAMPLE_RATE, options }),

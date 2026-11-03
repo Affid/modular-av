@@ -12,8 +12,10 @@
  *     configure(value) {}      // optional: what `configure()` sent
  *   });
  *
- * A kernel uses only what its constructor and `configure` give it, never this
- * scope's globals, so the same file can run outside a worklet.
+ * A kernel uses only what its constructor and `configure` give it, and from
+ * this scope only JavaScript's built-ins, `console` and `WebAssembly`. Its
+ * options and settings are plain data and raw bytes. The same file can then
+ * run outside a worklet.
  *
  * Processor options: { kernel: string, tail?: number (s), options?: unknown }
  * Messages in: anything, handed to the kernel's `configure`.
