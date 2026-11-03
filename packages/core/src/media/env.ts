@@ -12,7 +12,8 @@ import type {
 export interface MediaEnv {
   /**
    * Rejects as `getUserMedia` does (NotAllowedError, NotFoundError…).
-   * `noiseSuppression` is the browser's own, on unless turned off.
+   * `noiseSuppression` is the browser's own, on unless turned off. Echo
+   * cancellation and gain control stay on.
    */
   captureAudio(
     deviceId: string,

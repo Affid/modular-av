@@ -1,6 +1,6 @@
 import type { DeviceKind, GateFallback, VoiceMode } from "@modular-av/api";
 import type { DockContext } from "../context.ts";
-import { chosenInGroup, groupsOf } from "../panel/effects.ts";
+import { chosenInGroup, dockEffects, groupsOf } from "../panel/effects.ts";
 
 /** Foundry's world A/V modes (`AVSettings.AV_MODES`). */
 export const WORLD_MODES = { off: 0, audio: 1, video: 2, both: 3 } as const;
@@ -24,11 +24,6 @@ export interface DraftValues {
   readonly sensitivityAuto: boolean;
   readonly threshold: number;
   readonly gateFallback: GateFallback;
-  /** How much of the voice goes out dry, 0 to 1. */
-  readonly audioChannelLevel: number;
-  /** Each effect with a dry:wet or wet control, by id, 0 to 1. */
-  readonly audioEffectMix: Readonly<Record<string, number>>;
-  readonly audioCutTails: boolean;
   /** The effect chosen in each group ("" for none), by group name. */
   readonly effects: Readonly<Record<string, string>>;
   readonly receiveVideo: boolean;
@@ -108,7 +103,7 @@ const modeOf = (value: number | undefined): WorldMode =>
 function effectChoices(ctx: DockContext): Record<string, string> {
   const effects = local(ctx).effects;
   return Object.fromEntries(
-    groupsOf(ctx.api.effects.list()).map(([name, group]) => [
+    groupsOf(dockEffects(ctx.api.effects.list())).map(([name, group]) => [
       name,
       chosenInGroup(group, effects),
     ]),
@@ -128,15 +123,6 @@ async function applyEffects(
       ? ctx.api.commands.setEffectEnabled(id, true)
       : ctx.api.commands.setEffectEnabled(was, false));
   }
-}
-
-async function applyMix(
-  ctx: DockContext,
-  drafted: Readonly<Record<string, number>>,
-): Promise<void> {
-  const now = local(ctx).audioEffectMix;
-  for (const [id, mix] of Object.entries(drafted))
-    if (mix !== now[id]) await ctx.api.commands.setAudioEffectMix(id, mix);
 }
 
 /** A GM picks everyone's theme, and sees it; a player picks their own. */
@@ -173,15 +159,6 @@ export const FIELDS: { readonly [K in DraftKey]: Field<K> } = {
   gateFallback: {
     read: (ctx) => local(ctx).gateFallback,
     apply: (ctx, fallback) => ctx.api.commands.setGateFallback(fallback),
-  },
-  audioChannelLevel: {
-    read: (ctx) => local(ctx).audioChannelLevel,
-    apply: (ctx, level) => ctx.api.commands.setAudioChannelLevel(level),
-  },
-  audioEffectMix: { read: (ctx) => local(ctx).audioEffectMix, apply: applyMix },
-  audioCutTails: {
-    read: (ctx) => local(ctx).audioCutTails,
-    apply: (ctx, cut) => ctx.api.commands.setAudioCutTails(cut),
   },
   effects: { read: effectChoices, apply: applyEffects },
   receiveVideo: {

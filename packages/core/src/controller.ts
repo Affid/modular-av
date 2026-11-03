@@ -94,7 +94,7 @@ export interface Controller {
   apply(): void;
   /** Rebuilds the state only, e.g. after others' Foundry activity. */
   refresh(): void;
-  setEffectEnabled(id: string, enabled: boolean): Promise<void>;
+  readonly choices: EffectChoices;
 }
 
 interface Parts {
@@ -362,7 +362,7 @@ export function createController(deps: ControllerDeps): Controller {
     connection: () => rt.connection,
     reacquire: parts.reacquire,
     refresh: parts.refresh,
-    setEffectEnabled: (id, enabled) => parts.choices.setEnabled(id, enabled),
+    choices: parts.choices,
     initialize: parts.reacquire,
     foundryConnect() {
       rt.foundryConnected = true;

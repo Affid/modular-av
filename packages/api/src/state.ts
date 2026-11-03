@@ -162,6 +162,11 @@ export interface LocalState {
   readonly speakingWhileMuted: boolean;
   /** Every registered effect, by id. */
   readonly effects: Readonly<Record<string, EffectState>>;
+  /**
+   * What this device turned on, by id, in or out of a call. `effects` tells how
+   * each is doing: without a microphone every one of them reads `off`.
+   */
+  readonly chosenEffects: readonly string[];
   /** Where each audio effect runs on this device, by id. */
   readonly audioEffectPlaces: Readonly<Record<string, AudioPlace>>;
   /** The order the player set for each place; the core orders the rest. */

@@ -1,0 +1,9 @@
+{
+  "modular-av-audio-reverb": {
+    "label": "Reverb",
+    "controls": {
+      "decay": "Decay",
+      "brightness": "Brightness"
+    }
+  }
+}

@@ -7,7 +7,8 @@
  * distance above the noise floor. The floor is learned quickly when the gate
  * starts, then falls quickly to quieter levels and rises slowly towards the
  * quietest level of the last moments: speech has pauses, steady noise
- * doesn't.
+ * doesn't. While the gate is open those moments last longer than a held note,
+ * or a singer would be taken for noise.
  *
  * In "gate" mode (voice activity) it silences the microphone while closed,
  * ramping to digital silence. In "detect" mode it passes everything and only
@@ -48,11 +49,13 @@ const CALIBRATION_TIME_S = 0.05;
 // Then it falls to quieter levels with this time constant...
 const FLOOR_FALL_S = 0.25;
 // ...and rises at most this fast (dB per second) towards the quietest level
-// of the last few segments
+// of the last few segments: 2 s while closed, 30 s while open. That is longer
+// than a breath lasts, and it delays learning a noise that opens the gate.
 const FLOOR_RISE_CLOSED_DB_S = 6;
 const FLOOR_RISE_OPEN_DB_S = 3;
 const QUIET_SEGMENT_S = 0.5;
-const QUIET_SEGMENTS = 3;
+const QUIET_SEGMENTS_CLOSED = 3;
+const QUIET_SEGMENTS_OPEN = 60;
 
 // The gate closes once the level has been this far below the threshold for
 // the hold time
@@ -125,9 +128,20 @@ class VoiceGateProcessor extends AudioWorkletProcessor {
     this.segmentRemaining -= seconds;
     if (this.segmentRemaining > 0) return;
     this.quietSegments.push(this.segmentQuietest);
-    if (this.quietSegments.length > QUIET_SEGMENTS) this.quietSegments.shift();
+    if (this.quietSegments.length > QUIET_SEGMENTS_OPEN)
+      this.quietSegments.shift();
     this.segmentQuietest = Infinity;
     this.segmentRemaining = QUIET_SEGMENT_S;
+  }
+
+  /** Called on the audio thread for most blocks, so it doesn't allocate. */
+  quietestSegment() {
+    const count = this.open ? QUIET_SEGMENTS_OPEN : QUIET_SEGMENTS_CLOSED;
+    const first = Math.max(this.quietSegments.length - count, 0);
+    let quietest = this.segmentQuietest;
+    for (let i = first; i < this.quietSegments.length; i++)
+      quietest = Math.min(quietest, this.quietSegments[i]);
+    return quietest;
   }
 
   updateFloor(db, seconds) {
@@ -140,11 +154,7 @@ class VoiceGateProcessor extends AudioWorkletProcessor {
       this.floorDb +=
         (db - this.floorDb) * (1 - Math.exp(-seconds / FLOOR_FALL_S));
     } else {
-      const quietest = Math.min(
-        db,
-        this.segmentQuietest,
-        ...this.quietSegments,
-      );
+      const quietest = Math.min(db, this.quietestSegment());
       const rise = this.open ? FLOOR_RISE_OPEN_DB_S : FLOOR_RISE_CLOSED_DB_S;
       if (quietest > this.floorDb)
         this.floorDb = Math.min(this.floorDb + rise * seconds, quietest);

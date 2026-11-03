@@ -300,6 +300,40 @@ test("Channel level drops the dry voice only while a send carries it", async ({
   expect(unreturned.peak).toBeGreaterThan(0.5);
 });
 
+test("the voice preview hears through Mute while nothing is sent, and stopping it leaves the call", async ({
+  page,
+}) => {
+  // Arrange
+  await openVoiceActivity(page);
+  const voice = (ms: number) =>
+    page.evaluate((duration) => {
+      const pipeline = window.harness?.pipeline;
+      if (!pipeline) throw new Error("no pipeline");
+      return pipeline.recordVoice(duration);
+    }, ms);
+  const setMuted = (muted: boolean) =>
+    page.evaluate(async (value) => {
+      const api = window.harness?.client.game.modules.get("modular-av")?.api as
+        { commands: { setMuted(muted: boolean): Promise<void> } } | undefined;
+      await api?.commands.setMuted(value);
+    }, muted);
+
+  // Act
+  const open = await voice(500);
+  await setMuted(true);
+  await page.waitForTimeout(GATE_CLOSES_MS);
+  const [muted, sentMuted] = await Promise.all([voice(500), record(page, 500)]);
+  await setMuted(false);
+  await page.waitForTimeout(GATE_CLOSES_MS);
+  const sent = await record(page, 500);
+
+  // Assert
+  expect(open.peak).toBeGreaterThan(0.01);
+  expect(muted.peak).toBeGreaterThan(0.01);
+  expect(sentMuted.peak).toBeLessThan(0.001);
+  expect(sent.peak).toBeGreaterThan(0.01);
+});
+
 test("a camera effect fails closed: only its frames go out, and none while it stalls", async ({
   page,
 }) => {

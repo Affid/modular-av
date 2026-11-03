@@ -1,5 +1,7 @@
 # Voice channel routing
 
+`docs/audio-mixer.md` is the window that sets all of this up.
+
 How the microphone travels from the device to the service. The shape and
 the words come from Cubase's mixer, and differ where a voice call needs
 something else. It grew out of issue #1: a reverb's tail was cut by the
@@ -117,8 +119,8 @@ output bus, as Mute cuts it; each place has its own watchdog.
 
 The hold on the output bus lasts as long as the longest declared `tail` of
 a running effect, at most 3 s, and only while a tail effect runs. With no
-tail effect, the bus closes at once. "Cut reverb and delay when my microphone closes" in the voice
-settings makes every release close at once. Nothing said after the Mute
+tail effect, the bus closes at once. "Cut reverb and delay when my microphone closes" in the audio
+mixer makes every release close at once. Nothing said after the Mute
 closes can reach an effect, so a tail only carries speech that already went
 out.
 

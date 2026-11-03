@@ -152,10 +152,9 @@ export function createBrowserMediaEnv(
   assetUrl: (path: string) => string,
 ): MediaEnv {
   return {
-    captureAudio: (deviceId, options = {}) =>
-      capture("audio", deviceId, {
-        noiseSuppression: options.noiseSuppression ?? true,
-      }),
+    // Gain control stays on with a model: off, a quiet microphone is too quiet.
+    captureAudio: (deviceId, { noiseSuppression = true } = {}) =>
+      capture("audio", deviceId, { noiseSuppression }),
     captureVideo: (deviceId) => capture("video", deviceId),
     createStream: (tracks) => new MediaStream([...tracks]),
     createAudioOutput: createElementOutput,

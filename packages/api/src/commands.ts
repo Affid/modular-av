@@ -25,6 +25,19 @@ export interface CommandError extends Error {
   readonly params: Readonly<Record<string, string | number>>;
 }
 
+/**
+ * Several parts of the audio pipeline, all at once; what isn't given stays.
+ * `mix` is checked against the places in the same change, so one call can move
+ * an effect to a send and set its Return level. `order` replaces the order of
+ * the places it names.
+ */
+export interface AudioPipelineChange {
+  readonly places?: Readonly<Record<string, AudioPlace>>;
+  readonly order?: Partial<Readonly<Record<AudioPlace, readonly string[]>>>;
+  readonly mix?: Readonly<Record<string, number>>;
+  readonly channelLevel?: number;
+}
+
 /** Everything a UI can do. Each returns once done. */
 export interface AVCommands {
   setMuted(muted: boolean): Promise<void>;
@@ -83,6 +96,12 @@ export interface AVCommands {
    * what sends add. Acts as 1 while no send carries it.
    */
   setAudioChannelLevel(level: number): Promise<void>;
+  /**
+   * For this device: checks all of `change` first, so a bad part rejects it
+   * whole, then saves it and applies it once. A running effect moves once, not
+   * through the states between separate commands.
+   */
+  setAudioPipeline(change: AudioPipelineChange): Promise<void>;
   /** For this device; what isn't given stays. */
   setInputSensitivity(sensitivity: Partial<InputSensitivity>): Promise<void>;
   /** For this device: what voice activity mode does when its gate can't run. */

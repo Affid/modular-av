@@ -88,7 +88,8 @@ export type ControlContribution = Control &
     /**
      * The effect (its id) this control sets something of, e.g. a blur's
      * strength: UIs show it with that effect's choice, wherever the choice
-     * is, only while the effect is chosen; `place` then doesn't matter.
+     * is, only while the effect is chosen; `place` then doesn't matter. A
+     * UI may save its value and set it back later, so keep it JSON.
      */
     readonly effect?: string;
   };

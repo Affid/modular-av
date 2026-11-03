@@ -1,4 +1,5 @@
 import type {
+  AudioPipelineChange,
   AudioPlace,
   AVCommands,
   DeviceKind,
@@ -134,7 +135,10 @@ export function createCommands(
       }),
 
     setEffectEnabled: (effect: string, enabled: boolean) =>
-      controller().setEffectEnabled(effect, enabled),
+      change((w) => {
+        const { choices, local } = controller();
+        return w.writeEffectEnabled(choices, local, effects, effect, enabled);
+      }),
 
     async setDevice(kind: DeviceKind, deviceId: string) {
       const { deviceKey } = await loadWrites();
@@ -162,6 +166,9 @@ export function createCommands(
 
     setAudioEffectOrder: (place: AudioPlace, ids: readonly string[]) =>
       change((w) => w.writeEffectOrder(game, effects, place, ids)),
+
+    setAudioPipeline: (pipeline: AudioPipelineChange) =>
+      change((w) => w.writeAudioPipeline(game, effects, pipeline)),
 
     setGateFallback: (fallback: GateFallback) =>
       change((w) => w.writeGateFallback(game, fallback)),

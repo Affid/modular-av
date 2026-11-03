@@ -76,6 +76,11 @@ export interface LocalMedia {
    * out through a microphone still in `outbound`.
    */
   setOutbound(outbound: MediaPermissions, voice?: boolean): void;
+  /**
+   * A voice test: until the returned call, Mute and push to talk leave the
+   * chain open, so a copy of the output hears it; what is sent stays off.
+   */
+  rehearse(): () => void;
   readonly tailMs: number;
   release(): void;
   /** Tracks were replaced or removed, or the gate stopped or started. */
@@ -99,6 +104,7 @@ export function createLocalMedia(
   let errors: CaptureErrors = { audio: null, video: null };
   let outbound: MediaPermissions = { audio: false, video: false };
   let voice = false;
+  let rehearsals = 0;
   let listeners: Listeners<void> = [];
   let gateListeners: Listeners<boolean> = [];
   let levelListeners: Listeners<MeterReading> = [];
@@ -130,7 +136,7 @@ export function createLocalMedia(
   });
 
   const applyOutbound = (): void => {
-    mic?.setVoiceOpen(voice);
+    mic?.setVoiceOpen(voice || rehearsals > 0);
     mic?.setEnabled(outbound.audio);
     camera.setEnabled(outbound.video);
   };
@@ -153,7 +159,7 @@ export function createLocalMedia(
     created.onGate((open) => {
       for (const { listener } of gateListeners) listener(open);
     });
-    created.setVoiceOpen(voice);
+    created.setVoiceOpen(voice || rehearsals > 0);
     created.setEnabled(outbound.audio);
     mic = created;
     syncLevels();
@@ -174,13 +180,18 @@ export function createLocalMedia(
         mic?.effectStatus(d.id).status === "running",
     );
 
-  /** Captures the same microphone again once that changed. */
+  /**
+   * Captures the same microphone again once that changed, after letting it
+   * go: Chrome gives an overlapping capture with other processing the raw
+   * device, with no echo cancellation.
+   */
   const syncNoiseSuppression = (): void => {
     if (!audio || audio.noiseSuppression === browserNoiseSuppression()) return;
     enqueue(async () => {
       const captured = audio;
       const wanted = browserNoiseSuppression();
       if (!captured || captured.noiseSuppression === wanted) return;
+      captured.raw.stop();
       await replace(["audio"], () =>
         captureDevice(env, "audio", captured.device, wanted),
       );
@@ -385,6 +396,17 @@ export function createLocalMedia(
       outbound = next;
       voice = nextVoice;
       applyOutbound();
+    },
+    rehearse() {
+      rehearsals += 1;
+      applyOutbound();
+      let ended = false;
+      return () => {
+        if (ended) return;
+        ended = true;
+        rehearsals -= 1;
+        applyOutbound();
+      };
     },
     get tailMs() {
       return mic?.tailMs ?? 0;

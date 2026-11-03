@@ -355,6 +355,40 @@ describe("local media when a device goes away", () => {
   });
 });
 
+describe("a voice test", () => {
+  const mute = (env: ReturnType<typeof createFakeMediaEnv>) =>
+    env.captureContexts[0]?.level("mute")?.level;
+
+  it("opens Mute until the last test ends, and never what is sent", async () => {
+    // Arrange: muted.
+    const { env, media } = setup();
+    await media.acquire(BOTH);
+    media.setOutbound({ audio: false, video: false });
+
+    // Act
+    const first = media.rehearse();
+    const second = media.rehearse();
+    first();
+    first();
+    const one = { mute: mute(env), sent: enabled(media.microphone) };
+    second();
+
+    // Assert
+    expect(one).toEqual({ mute: 1, sent: false });
+    expect(mute(env)).toBe(0);
+  });
+
+  it("opens Mute for a microphone captured during it", async () => {
+    const { env, media } = setup();
+
+    media.rehearse();
+    await media.acquire(BOTH);
+
+    expect(mute(env)).toBe(1);
+    expect(enabled(media.microphone)).toBe(false);
+  });
+});
+
 describe("the browser's noise suppression", () => {
   const settle = async (): Promise<void> => {
     for (let i = 0; i < 5; i += 1)
@@ -383,6 +417,36 @@ describe("the browser's noise suppression", () => {
     expect(withModel).toEqual([true, false]);
     expect(suppression(env)).toEqual([true, false, true]);
     expect(media.microphone).toBe(sent);
+  });
+
+  it("lets the microphone go before capturing it with other processing", async () => {
+    // Arrange: Chrome hands a second, overlapping capture of a microphone
+    // with other processing the raw device, without echo cancellation.
+    const { env, media } = setup();
+    const rnnoise = createFakeAudioEffect("rnnoise", {
+      exclusiveGroup: "noise-suppression",
+    });
+    await media.acquire(BOTH);
+    const capture = env.captureAudio.bind(env);
+    let liveAtCapture: boolean[] = [];
+    env.captureAudio = (...args) => {
+      liveAtCapture = [
+        ...liveAtCapture,
+        rawMics(env).some((t) => t.readyState === "live"),
+      ];
+      return capture(...args);
+    };
+
+    // Act
+    media.setEffects([rnnoise.definition], new Set(["rnnoise"]));
+    await settle();
+    media.setEffects([rnnoise.definition], new Set());
+    await settle();
+
+    // Assert
+    expect(liveAtCapture).toEqual([false, false]);
+    expect(suppression(env)).toEqual([true, false, true]);
+    expect(rawMics(env).at(-1)?.readyState).toBe("live");
   });
 
   it("stays on for effects of other groups", async () => {

@@ -1,0 +1,918 @@
+/*
+ * The audio mixer's window: the chain as cards place by place, the levels
+ * below. Loaded when it first opens. Light by default, dark under Foundry's
+ * dark theme, as the core's board.
+ */
+.mav-mixer {
+  --mav-mixer-ink: #22201f;
+  --mav-mixer-soft: #5b5650;
+  --mav-mixer-line: #b9b1a6;
+  --mav-mixer-well: #e9e4dc;
+  --mav-mixer-raise: #f7f4ef;
+  --mav-mixer-pop: #fbf9f5;
+  --mav-mixer-accent: #9a5200;
+  --mav-mixer-accent-tint: #f6e3c8;
+  --mav-mixer-on: #2f7d4f;
+  --mav-mixer-send: #1f5f9e;
+  --mav-mixer-layer: #6a3fa0;
+  --mav-mixer-warn: #a3471b;
+  --mav-mixer-focus: #1f6fd1;
+  --mav-mixer-cap-top: #ffffff;
+  --mav-mixer-cap-bottom: #d3ccc1;
+  --mav-mixer-cap-edge: #6f6962;
+  --mav-mixer-cap-locked: #a39d95;
+
+  container-type: inline-size;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.25rem;
+  color: var(--mav-mixer-ink);
+}
+
+.theme-dark .mav-mixer {
+  --mav-mixer-ink: #ece8f2;
+  --mav-mixer-soft: #b3adbd;
+  --mav-mixer-line: #4a4553;
+  --mav-mixer-well: #17151b;
+  --mav-mixer-raise: #2c2934;
+  --mav-mixer-pop: #26232d;
+  --mav-mixer-accent: #ffa14a;
+  --mav-mixer-accent-tint: #3d2c18;
+  --mav-mixer-on: #6fd38f;
+  --mav-mixer-send: #8dbdff;
+  --mav-mixer-layer: #c9a7ff;
+  --mav-mixer-warn: #ff9a6b;
+  --mav-mixer-focus: #a8c8ff;
+  --mav-mixer-cap-top: #ece8f2;
+  --mav-mixer-cap-bottom: #c9c3d4;
+  --mav-mixer-cap-edge: #4a4553;
+  --mav-mixer-cap-locked: #8d8798;
+}
+
+#modular-av-audio-mixer {
+  min-width: 440px;
+}
+
+/* Flex and grid rules would show what is hidden: a GM's own tab, too. */
+.mav-mixer[hidden],
+.mav-mixer [hidden] {
+  display: none !important;
+}
+
+.mav-mixer h3,
+.mav-mixer h4 {
+  margin: 0;
+  border: 0;
+  font-size: 0.95rem;
+}
+
+.mav-mixer-hint {
+  margin: 0.125rem 0 0.25rem;
+  font-size: 0.85em;
+  color: var(--mav-mixer-soft);
+}
+
+.mav-mixer-alert:empty,
+.mav-mixer-warnings:empty {
+  display: none;
+}
+
+.mav-mixer-alert,
+.mav-mixer-warnings {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border-left: 3px solid var(--mav-mixer-warn);
+}
+
+.mav-mixer-warnings {
+  list-style: none;
+}
+
+.mav-mixer-preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.25rem;
+}
+
+.mav-mixer-preset-row select,
+.mav-mixer-preset-row input {
+  flex: 1 1 10rem;
+  min-width: 0;
+}
+
+.mav-mixer-preset-row button,
+.mav-mixer-layer button,
+.mav-mixer-footer button,
+.mav-mixer-pop-foot button {
+  flex: 0 0 auto;
+  width: auto;
+}
+
+.mav-mixer-layer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0.25rem 0;
+}
+
+/* The chain: what and where. */
+.mav-mixer-chain {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.mav-mixer-rail {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 0.8em;
+  color: var(--mav-mixer-soft);
+}
+
+.mav-mixer-rail-line {
+  flex: 1;
+  border-top: 1px solid var(--mav-mixer-line);
+}
+
+.mav-mixer-places {
+  display: grid;
+  grid-template-columns:
+    minmax(10.5rem, 1fr) 4.5rem minmax(10.5rem, 1fr)
+    minmax(10.5rem, 1fr);
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+@container (max-width: 639px) {
+  .mav-mixer-places {
+    grid-template-columns: minmax(0, 1fr) 4rem minmax(0, 1fr);
+  }
+
+  .mav-mixer-places > [data-part="pre-gate"],
+  .mav-mixer-places > [data-part="gate"] {
+    grid-row: span 2;
+  }
+
+  .mav-mixer-places > [data-part="send"] {
+    grid-column: 3;
+  }
+}
+
+.mav-mixer-place,
+.mav-mixer-gate {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  min-width: 0;
+  padding: 0.5rem;
+  border: 1px solid var(--mav-mixer-line);
+  border-radius: 6px;
+  background: var(--mav-mixer-well);
+}
+
+.mav-mixer-place[data-part="send"] {
+  border-color: var(--mav-mixer-send);
+}
+
+.mav-mixer-place h3 {
+  display: flex;
+  gap: 0.375rem;
+  align-items: baseline;
+}
+
+.mav-mixer-count {
+  font-weight: normal;
+  font-size: 0.85em;
+  color: var(--mav-mixer-soft);
+}
+
+.mav-mixer-rack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  /* Always this tall: a card coming or going moves nothing below. */
+  height: 10.5rem;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.mav-mixer-rack[data-drop="end"] {
+  box-shadow: inset 0 -2px 0 var(--mav-mixer-accent);
+}
+
+.mav-mixer-card {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto auto 24px;
+  align-items: center;
+  gap: 2px 4px;
+  min-height: 30px;
+  padding: 2px 4px;
+  border: 1px solid var(--mav-mixer-line);
+  border-radius: 5px;
+  background: var(--mav-mixer-raise);
+  cursor: default;
+}
+
+.mav-mixer-card[draggable="true"] {
+  cursor: grab;
+}
+
+.mav-mixer-card:focus-visible {
+  outline: 2px solid var(--mav-mixer-focus);
+  outline-offset: 2px;
+}
+
+.mav-mixer-card[aria-current="true"] {
+  border-color: var(--mav-mixer-accent);
+  box-shadow: inset 0 0 0 1px var(--mav-mixer-accent);
+  background: var(--mav-mixer-accent-tint);
+}
+
+.mav-mixer-card[data-state="off"] {
+  background: transparent;
+  border-style: dashed;
+}
+
+.mav-mixer-card[data-state="off"] .mav-mixer-card-name {
+  color: var(--mav-mixer-soft);
+}
+
+.mav-mixer-card[data-state="waiting"],
+.mav-mixer-card[data-state="unsupported"] {
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent 0 6px,
+    color-mix(in srgb, var(--mav-mixer-warn) 14%, transparent) 6px 9px
+  );
+}
+
+.mav-mixer-card[data-held] {
+  box-shadow: inset 3px 0 0 var(--mav-mixer-layer);
+}
+
+/* Edges drawn inside, not as borders: what is inside doesn't shift. */
+.mav-mixer-card[data-held][aria-current="true"] {
+  box-shadow:
+    inset 3px 0 0 var(--mav-mixer-layer),
+    inset 0 0 0 1px var(--mav-mixer-accent);
+}
+
+.mav-mixer-card[data-held][data-drop="before"] {
+  box-shadow:
+    inset 3px 0 0 var(--mav-mixer-layer),
+    0 -3px 0 var(--mav-mixer-accent);
+}
+
+.mav-mixer-card[data-dragging] {
+  opacity: 0.45;
+}
+
+.mav-mixer-card[data-drop="before"] {
+  box-shadow: 0 -3px 0 var(--mav-mixer-accent);
+}
+
+.mav-mixer-card-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.mav-mixer-card-sub {
+  grid-column: 2 / -1;
+  font-size: 0.8em;
+  color: var(--mav-mixer-soft);
+}
+
+.mav-mixer-held {
+  color: var(--mav-mixer-layer);
+}
+
+.mav-mixer-tags {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.mav-mixer-tags .mav-mixer-held {
+  max-width: 8rem;
+  overflow: hidden;
+  font-size: 0.75em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/*
+ * Foundry eases every property of a button over 0.5 s, so a redrawn button
+ * would shrink from Foundry's size to this window's: colours only.
+ */
+.mav-mixer button {
+  transition-property: color, background-color, border-color, box-shadow;
+}
+
+/* Small square buttons in a card: Foundry's button styles reset. */
+.mav-mixer .mav-mixer-dot,
+.mav-mixer .mav-mixer-card-settings,
+.mav-mixer .mav-mixer-card-level,
+.mav-mixer .mav-mixer-pop-close {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  min-height: 24px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  box-shadow: none;
+  color: inherit;
+  line-height: 1;
+}
+
+.mav-mixer .mav-mixer-card-level {
+  width: auto;
+  padding: 0 4px;
+  border: 1px solid var(--mav-mixer-send);
+  font-size: 0.8em;
+  font-variant-numeric: tabular-nums;
+  color: var(--mav-mixer-send);
+}
+
+.mav-mixer .mav-mixer-dot::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--mav-mixer-soft);
+  border-radius: 50%;
+}
+
+.mav-mixer .mav-mixer-dot[aria-pressed="true"]::before {
+  border-color: var(--mav-mixer-on);
+  background: var(--mav-mixer-on);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--mav-mixer-on) 60%, transparent);
+}
+
+.mav-mixer-card[data-state="failed"] .mav-mixer-dot::before {
+  border-color: var(--mav-mixer-warn);
+  background: var(--mav-mixer-warn);
+  border-radius: 1px;
+  transform: rotate(45deg) scale(0.85);
+  box-shadow: none;
+}
+
+.mav-mixer-card[data-state="waiting"] .mav-mixer-dot::before {
+  border-color: var(--mav-mixer-warn);
+  background: none;
+  box-shadow: none;
+}
+
+.mav-mixer .mav-mixer-dot:focus-visible,
+.mav-mixer .mav-mixer-card-settings:focus-visible,
+.mav-mixer .mav-mixer-card-level:focus-visible,
+.mav-mixer .mav-mixer-pop-close:focus-visible {
+  outline: 2px solid var(--mav-mixer-focus);
+}
+
+.mav-mixer-chip {
+  padding: 0 4px;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  font-size: 0.75em;
+  white-space: nowrap;
+  color: var(--mav-mixer-warn);
+}
+
+.mav-mixer .mav-mixer-add {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.375rem;
+  width: 100%;
+  min-height: 28px;
+  border: 1px dashed var(--mav-mixer-line);
+  background: none;
+  color: var(--mav-mixer-soft);
+}
+
+.mav-mixer-gate {
+  align-items: center;
+  text-align: center;
+}
+
+.mav-mixer-meter {
+  position: relative;
+  flex: 1;
+  width: 12px;
+  min-height: 7rem;
+  border-radius: 3px;
+  background: var(--mav-mixer-line);
+  overflow: hidden;
+}
+
+.mav-mixer-meter-level {
+  position: absolute;
+  inset: auto 0 0;
+  height: 0;
+  background: var(--mav-mixer-soft);
+}
+
+.mav-mixer-meter[data-open] .mav-mixer-meter-level {
+  background: var(--mav-mixer-on);
+}
+
+.mav-mixer-meter-mark {
+  position: absolute;
+  inset: auto -2px 0;
+  height: 2px;
+  background: var(--mav-mixer-accent);
+}
+
+.mav-mixer-gate-state {
+  font-size: 0.8em;
+}
+
+.mav-mixer-live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Levels: how much. */
+.mav-mixer-levels {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--mav-mixer-line);
+}
+
+.mav-mixer-levels-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mav-mixer .mav-mixer-toggle {
+  flex: 0 0 auto;
+  width: auto;
+}
+
+.mav-mixer .mav-mixer-toggle[aria-pressed="true"] {
+  border-color: var(--mav-mixer-accent);
+  color: var(--mav-mixer-accent);
+}
+
+.mav-mixer-mix {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+}
+
+.mav-mixer-scroll {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  mask-image: linear-gradient(to right, #000 calc(100% - 1.5rem), transparent);
+}
+
+.mav-mixer-master {
+  padding-left: 0.75rem;
+  border-left: 1px solid var(--mav-mixer-line);
+}
+
+.mav-mixer-faders {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.mav-mixer-faders-name {
+  font-size: 0.8em;
+  color: var(--mav-mixer-soft);
+  white-space: nowrap;
+}
+
+.mav-mixer-strips {
+  display: flex;
+  gap: 4px;
+}
+
+.mav-mixer-strip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 66px;
+  padding: 4px 2px;
+  border: 1px solid var(--mav-mixer-line);
+  border-radius: 5px;
+  background: var(--mav-mixer-raise);
+}
+
+.mav-mixer-strip[data-selected] {
+  border-color: var(--mav-mixer-accent);
+  box-shadow: inset 0 0 0 1px var(--mav-mixer-accent);
+}
+
+.mav-mixer-strip[data-off] {
+  background: transparent;
+  border-style: dashed;
+}
+
+.mav-mixer-strip[data-held] {
+  box-shadow: inset 0 3px 0 var(--mav-mixer-layer);
+}
+
+.mav-mixer-strip[data-held][data-selected] {
+  box-shadow:
+    inset 0 3px 0 var(--mav-mixer-layer),
+    inset 0 0 0 1px var(--mav-mixer-accent);
+}
+
+.mav-mixer-strip-name {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 0.8em;
+  font-weight: bold;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* The track is drawn here: Foundry styles a range for lying flat. */
+.mav-mixer-fader {
+  --mav-mixer-fill: 0%;
+  --mav-mixer-fill-colour: var(--mav-mixer-accent);
+
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 6rem;
+}
+
+/* Ticks at every quarter, beside the track, as on a desk. */
+.mav-mixer-fader::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 2px;
+  width: 5px;
+  background-image:
+    linear-gradient(var(--mav-mixer-line), var(--mav-mixer-line)),
+    linear-gradient(var(--mav-mixer-line), var(--mav-mixer-line)),
+    linear-gradient(var(--mav-mixer-line), var(--mav-mixer-line)),
+    linear-gradient(var(--mav-mixer-line), var(--mav-mixer-line)),
+    linear-gradient(var(--mav-mixer-line), var(--mav-mixer-line));
+  background-position:
+    0 0,
+    0 25%,
+    0 50%,
+    0 75%,
+    0 100%;
+  background-size: 100% 1px;
+  background-repeat: no-repeat;
+  pointer-events: none;
+}
+
+.mav-mixer-fader::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 50%;
+  width: 6px;
+  border-radius: 3px;
+  translate: -50% 0;
+  background: linear-gradient(
+    to top,
+    var(--mav-mixer-fill-colour) var(--mav-mixer-fill),
+    var(--mav-mixer-line) var(--mav-mixer-fill)
+  );
+}
+
+.mav-mixer-faders:not(.mav-mixer-master) .mav-mixer-fader {
+  --mav-mixer-fill-colour: var(--mav-mixer-send);
+}
+
+.mav-mixer-strip .mav-mixer-fader input[type="range"] {
+  position: relative;
+  width: 30px;
+  height: 100%;
+  margin: 0;
+  background: transparent;
+  appearance: none;
+  writing-mode: vertical-lr;
+  direction: rtl;
+}
+
+.mav-mixer-strip
+  .mav-mixer-fader
+  input[type="range"]::-webkit-slider-runnable-track {
+  background: transparent;
+}
+
+.mav-mixer-strip .mav-mixer-fader input[type="range"]::-moz-range-track {
+  background: transparent;
+}
+
+/* A fader cap, wide and lit, with its line across. */
+.mav-mixer-strip .mav-mixer-fader input[type="range"]::-webkit-slider-thumb {
+  box-sizing: border-box;
+  width: 26px;
+  height: 11px;
+  border: 1px solid var(--mav-mixer-cap-edge);
+  border-radius: 2px;
+  background:
+    linear-gradient(
+      transparent 4px,
+      var(--mav-mixer-cap-edge) 4px 5px,
+      transparent 5px
+    ),
+    linear-gradient(var(--mav-mixer-cap-top), var(--mav-mixer-cap-bottom));
+  box-shadow: 0 1px 2px rgb(0 0 0 / 60%);
+  appearance: none;
+  cursor: grab;
+}
+
+.mav-mixer-strip .mav-mixer-fader input[type="range"]::-moz-range-thumb {
+  box-sizing: border-box;
+  width: 26px;
+  height: 11px;
+  border: 1px solid var(--mav-mixer-cap-edge);
+  border-radius: 2px;
+  background:
+    linear-gradient(
+      transparent 4px,
+      var(--mav-mixer-cap-edge) 4px 5px,
+      transparent 5px
+    ),
+    linear-gradient(var(--mav-mixer-cap-top), var(--mav-mixer-cap-bottom));
+  box-shadow: 0 1px 2px rgb(0 0 0 / 60%);
+  cursor: grab;
+}
+
+.mav-mixer-strip
+  .mav-mixer-fader
+  input[type="range"]:disabled::-webkit-slider-thumb {
+  background:
+    linear-gradient(
+      transparent 4px,
+      var(--mav-mixer-cap-edge) 4px 5px,
+      transparent 5px
+    ),
+    var(--mav-mixer-cap-locked);
+  cursor: not-allowed;
+}
+
+.mav-mixer-strip
+  .mav-mixer-fader
+  input[type="range"]:disabled::-moz-range-thumb {
+  background:
+    linear-gradient(
+      transparent 4px,
+      var(--mav-mixer-cap-edge) 4px 5px,
+      transparent 5px
+    ),
+    var(--mav-mixer-cap-locked);
+  cursor: not-allowed;
+}
+
+.mav-mixer-strip
+  .mav-mixer-fader
+  input[type="range"]:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 2px var(--mav-mixer-focus);
+}
+
+.mav-mixer-strip
+  .mav-mixer-fader
+  input[type="range"]:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 2px var(--mav-mixer-focus);
+}
+
+.mav-mixer-strip output {
+  font-size: 0.8em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Pop-ups: an effect's settings, the browser, the gate. */
+.mav-mixer-pop {
+  position: absolute;
+  z-index: 10;
+  width: min(20rem, 100%);
+  max-height: 22.5rem;
+  overflow-y: auto;
+  border: 1px solid var(--mav-mixer-line);
+  border-radius: 6px;
+  background: var(--mav-mixer-pop);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 35%);
+}
+
+.mav-mixer-pop[data-sheet] {
+  width: 100%;
+}
+
+.mav-mixer-pop-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.5rem;
+  border-bottom: 1px solid var(--mav-mixer-line);
+}
+
+.mav-mixer-pop-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem;
+}
+
+.mav-mixer-pop-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  align-items: center;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--mav-mixer-line);
+}
+
+/* Another player's settings, to read. */
+.mav-mixer-readout {
+  display: grid;
+  grid-template-columns: minmax(5rem, 1fr) minmax(0, 2fr);
+  gap: 0.25rem 0.5rem;
+  margin: 0;
+}
+
+.mav-mixer-readout dt {
+  color: var(--mav-mixer-soft);
+}
+
+.mav-mixer-readout dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+
+.mav-mixer-pop-foot select {
+  flex: 1 1 8rem;
+  min-width: 0;
+}
+
+.mav-mixer-offers {
+  display: flex;
+  flex-direction: column;
+}
+
+.mav-mixer-offer-group {
+  padding: 0.375rem 0.25rem 0.125rem;
+  font-size: 0.8em;
+  color: var(--mav-mixer-soft);
+}
+
+.mav-mixer-offer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 28px;
+  padding: 0.125rem 0.375rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.mav-mixer-offer:hover,
+.mav-mixer-offer[aria-selected="true"] {
+  background: var(--mav-mixer-accent-tint);
+  box-shadow: inset 0 0 0 1px var(--mav-mixer-accent);
+}
+
+.mav-mixer-offer[aria-disabled="true"] {
+  cursor: not-allowed;
+  color: var(--mav-mixer-soft);
+}
+
+.mav-mixer-switch {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.mav-mixer-slider,
+.mav-mixer-choice {
+  display: grid;
+  grid-template-columns: minmax(5rem, 1fr) minmax(0, 2fr) 4rem;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mav-mixer-choice {
+  grid-template-columns: minmax(5rem, 1fr) minmax(0, 2fr);
+}
+
+.mav-mixer-slider output {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.mav-mixer-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.mav-mixer-tabs button {
+  flex: 0 0 auto;
+  width: auto;
+}
+
+/* Foundry's hover colour is too faint behind its own text. */
+.mav-mixer-tabs button,
+.mav-mixer-tabs button:hover,
+.mav-mixer-tabs button:focus {
+  background: none;
+  color: inherit;
+}
+
+.mav-mixer-tabs button[aria-selected="true"] {
+  box-shadow: inset 0 -2px 0 currentColor;
+}
+
+.mav-mixer-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.mav-mixer-table th,
+.mav-mixer-table td {
+  padding: 0.25rem 0.5rem;
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.mav-mixer-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.mav-mixer-footer button {
+  align-self: flex-start;
+}
+
+/* Lines kept, said or not: their text coming moves nothing below. */
+.mav-mixer-footer [data-field="voiceTestStatus"] {
+  min-height: 1lh;
+}
+
+.mav-mixer-preset-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.5rem;
+  min-height: 1lh;
+  margin: 0.125rem 0 0.25rem;
+  font-size: 0.85em;
+}
+
+.mav-mixer-preset-status .mav-mixer-hint {
+  margin: 0;
+  font-size: inherit;
+}
+
+.mav-mixer-on-now {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  min-height: 2.25rem;
+  margin-top: 0.25rem;
+}
+
+.mav-mixer-on-now ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mav-mixer-on-now .mav-mixer-layer {
+  justify-content: flex-start;
+  margin: 0;
+}

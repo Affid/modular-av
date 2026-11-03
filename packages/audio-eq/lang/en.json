@@ -1,0 +1,10 @@
+{
+  "modular-av-audio-eq": {
+    "label": "EQ",
+    "controls": {
+      "low": "Low",
+      "mid": "Mid",
+      "high": "High"
+    }
+  }
+}

@@ -394,7 +394,7 @@ describe("quick controls", () => {
       group.querySelector('[aria-pressed="true"]')?.getAttribute("data-effect"),
     ).toBe("rnnoise");
     expect(popover.element.textContent).toContain("Noise cancellation");
-    expect(popover.element.textContent).not.toContain("On · Light");
+    expect(popover.element.textContent).not.toContain("On · Light on CPU");
     group.querySelector<HTMLButtonElement>('[data-effect=""]')?.click();
 
     expect(api.calls).toContainEqual({

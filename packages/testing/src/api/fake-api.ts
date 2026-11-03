@@ -140,6 +140,7 @@ const COMMANDS: readonly (keyof AVCommands)[] = [
   "setAudioEffectOrder",
   "setAudioChannelLevel",
   "setAudioCutTails",
+  "setAudioPipeline",
   "setInputSensitivity",
   "setGateFallback",
   "setDevice",

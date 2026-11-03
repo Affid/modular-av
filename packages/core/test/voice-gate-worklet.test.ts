@@ -125,6 +125,57 @@ describe("voice gate worklet", () => {
     expect(peak(after.outputs.slice(-10))).toBe(0);
   });
 
+  it.each([-30, -35, -45])(
+    "keeps a held note at %d dBFS: a voice has no pauses for that long",
+    (note) => {
+      // Arrange
+      const gate = new Gate({ processorOptions: { mode: "gate" } });
+      feed(gate, -60, 2);
+
+      // Act
+      const held = feed(gate, note, 25);
+
+      // Assert
+      expect(transitions(held.messages)).toEqual([
+        { type: "open", open: true },
+      ]);
+      expect(peak(held.outputs.slice(-10))).toBeGreaterThan(0);
+    },
+  );
+
+  it("takes a sound with no quiet moment for noise once it outlasts a held note", () => {
+    // Arrange: a fan starts, loud enough to open the gate.
+    const gate = new Gate({ processorOptions: { mode: "gate" } });
+    feed(gate, -60, 2);
+
+    // Act
+    const fan = feed(gate, -35, 60);
+
+    // Assert
+    expect(transitions(fan.messages)).toEqual([
+      { type: "open", open: true },
+      { type: "open", open: false },
+    ]);
+    expect(peak(fan.outputs.slice(-10))).toBe(0);
+  });
+
+  it("starts counting again after a breath, so singing goes on", () => {
+    // Arrange
+    const gate = new Gate({ processorOptions: { mode: "gate" } });
+    feed(gate, -60, 2);
+
+    // Act: phrases of 20 s, each with a quick breath.
+    const phrases = [1, 2, 3].flatMap(() => [
+      feed(gate, -35, 20),
+      feed(gate, -60, 0.25),
+    ]);
+
+    // Assert
+    expect(phrases.flatMap((run) => transitions(run.messages))).toEqual([
+      { type: "open", open: true },
+    ]);
+  });
+
   it("in detect mode, passes everything but still reports transitions", () => {
     const gate = new Gate({ processorOptions: { mode: "detect" } });
 

@@ -6,6 +6,7 @@ import {
   configureWorld,
   expectStatus,
   idOf,
+  loudness,
   openGm,
   openPlayer,
   type Player,
@@ -40,30 +41,6 @@ const setEffect = (player: Player, id: string, on: boolean): Promise<void> =>
   player.run(
     (api, _game, args) => api.commands.setEffectEnabled(args.id, args.on),
     { id, on },
-  );
-
-/** The loudest `listener` hears `speaker` over 4 s, in dBFS, on their tile. */
-const loudness = (listener: Player, speaker: string): Promise<number> =>
-  listener.run(
-    (api, _game, id) =>
-      new Promise<number>((resolve) => {
-        const tile = document.querySelector(
-          `#camera-views .mav-dock-tile[data-participant-id="${id}"]`,
-        );
-        if (!tile) {
-          resolve(-100);
-          return;
-        }
-        let loudest = -100;
-        const off = api.meters.subscribe(id, tile, ({ db }) => {
-          loudest = Math.max(loudest, db);
-        });
-        setTimeout(() => {
-          off();
-          resolve(loudest);
-        }, 4000);
-      }),
-    speaker,
   );
 
 /** A GM and Player1 in a call, Player1 always sending. */
@@ -127,5 +104,45 @@ test.describe("with P2P", () => {
 
     expect(await effectStatus(players.p1, "krisp")).toBe("unavailable");
     await expectHeardWith("gtcrn", players);
+  });
+
+  test("a noise model keeps the browser's echo cancellation and gain control, and drops its suppression", async ({
+    browser,
+  }) => {
+    // Arrange: what each new capture of the microphone got.
+    const { p1 } = await call(browser);
+    await p1.page.evaluate(() => {
+      const devices = navigator.mediaDevices;
+      const seen: string[] = [];
+      Object.assign(window, { mavCaptures: seen });
+      const capture = devices.getUserMedia.bind(devices);
+      devices.getUserMedia = async (constraints) => {
+        const stream = await capture(constraints);
+        for (const t of stream.getAudioTracks()) {
+          const s = t.getSettings();
+          seen.push(
+            `ec ${String(s.echoCancellation)} ns ${String(s.noiseSuppression)} agc ${String(s.autoGainControl)}`,
+          );
+        }
+        return stream;
+      };
+    });
+    const captures = (): Promise<string[]> =>
+      p1.page.evaluate(
+        () => (window as unknown as { mavCaptures: string[] }).mavCaptures,
+      );
+
+    // Act
+    for (const on of [true, false]) {
+      await setEffect(p1, "rnnoise", on);
+      await expect
+        .poll(() => effectStatus(p1, "rnnoise"), { timeout: 30_000 })
+        .toBe(on ? "running" : "off");
+    }
+
+    // Assert
+    await expect
+      .poll(captures)
+      .toEqual(["ec true ns false agc true", "ec true ns true agc true"]);
   });
 });

@@ -1,6 +1,5 @@
 // @vitest-environment happy-dom
 import type {
-  LocalState,
   SettingsHost,
   SettingsSectionContribution,
   SettingsWindowTab,
@@ -135,91 +134,67 @@ describe("the settings window's Voice tab", () => {
   const reverb = createFakeAudioEffect("reverb", {
     defaultPlace: "send",
   }).definition;
-  const withMix = (local: Partial<LocalState>): Parameters<typeof open>[0] => ({
-    state: avState({ participants: [me], local }),
-  });
-  const slide = (input: HTMLInputElement | null, percent: number): void => {
-    if (!input) throw new Error("no slider");
-    input.value = String(percent);
-    input.dispatchEvent(new Event("input"));
-  };
-
-  it("shows no mix without an effect the core can mix", () => {
-    const view = open();
-    view.tab("voice");
-
-    expect(view.q('[data-field="audioChannelLevel"]')).toBeNull();
-  });
-
-  it("shows no Channel level without a send to turn it down for", () => {
-    // Arrange
-    const dryWet = {
-      ...createFakeAudioEffect("radio", { defaultPlace: "post-gate" })
-        .definition,
-      latency: 0,
-    };
-
-    // Act
-    const view = open(
-      withMix({
-        audioEffectMix: { radio: 0.5 },
-        audioEffectPlaces: { radio: "post-gate" },
-      }),
-      (dock) => {
-        dock.api.effects.register(dryWet);
-      },
-    );
-    view.tab("voice");
-
-    // Assert
-    expect(view.q('[data-field="audioChannelLevel"]')).toBeNull();
-    expect(view.q('[data-field="audioEffectMix.radio"]')).not.toBeNull();
-  });
-
-  it("drafts Channel level and an effect's wet amount until Save", async () => {
-    // Arrange
-    const view = open(
-      withMix({
+  const denoise = createFakeAudioEffect("denoise", {
+    exclusiveGroup: "noise-suppression",
+  }).definition;
+  const withReverb = {
+    state: avState({
+      participants: [me],
+      local: {
         audioEffectMix: { reverb: 0.5 },
         audioEffectPlaces: { reverb: "send" },
-        audioChannelLevel: 1,
-      }),
-      (dock) => {
-        dock.api.effects.register(reverb);
+        effects: { reverb: { status: "running", error: null } },
       },
-    );
-    view.tab("voice");
-    const channel = view.q('[data-field="audioChannelLevel"]');
-    const wet = view.q('[data-field="audioEffectMix.reverb"]');
+    }),
+  };
 
-    // Act
-    slide(channel, 40);
-    slide(wet, 25);
-    const before = [...view.api.calls];
-    await view.save();
-
-    // Assert
-    expect(wet?.closest(".mav-settings-row")?.textContent).toContain("reverb");
-    expect(wet?.getAttribute("aria-label")).toBe("reverb");
-    expect(before).toEqual([]);
-    expect(view.api.calls).toEqual([
-      { command: "setAudioChannelLevel", args: [0.4] },
-      { command: "setAudioEffectMix", args: ["reverb", 0.25] },
-    ]);
-  });
-
-  it("offers to cut tails, drafted until Save", async () => {
-    const view = open(withMix({ audioEffectMix: { reverb: 1 } }), (dock) => {
+  it("leaves levels and tails to the mixer", () => {
+    const view = open(withReverb, (dock) => {
       dock.api.effects.register(reverb);
     });
     view.tab("voice");
 
-    view.q('[data-field="audioCutTails"]')?.click();
+    expect(view.q('[data-field="audioChannelLevel"]')).toBeNull();
+    expect(view.q('[data-field="audioEffectMix.reverb"]')).toBeNull();
+    expect(view.q('[data-field="audioCutTails"]')).toBeNull();
+  });
+
+  it("offers noise suppression, and no other audio effect", () => {
+    const view = open({}, (dock) => {
+      dock.api.effects.register(reverb);
+      dock.api.effects.register(denoise);
+    });
+    view.tab("voice");
+
+    const choice = view.q(".mav-effects");
+
+    expect(choice?.textContent).toContain("denoise");
+    expect(choice?.textContent).not.toContain("reverb");
+  });
+
+  it("saves without touching an effect the mixer turned on", async () => {
+    // Arrange
+    const view = open(withReverb, (dock) => {
+      dock.api.effects.register(reverb);
+      dock.api.effects.register(denoise);
+    });
+    view.tab("voice");
+
+    // Act
+    view.choose("voiceMode", "ptt");
     await view.save();
 
-    expect(view.api.calls).toEqual([
-      { command: "setAudioCutTails", args: [true] },
-    ]);
+    // Assert
+    expect(view.api.calls.map((c) => c.command)).toEqual(["setVoiceMode"]);
+  });
+
+  it("says effect modules exist when it has none to show", () => {
+    const view = open({}, (dock) => {
+      dock.api.effects.register(reverb);
+    });
+    view.tab("voice");
+
+    expect(document.body.textContent).toContain("modules of their own");
   });
 
   it("names a tab with unsaved changes as such, for screen readers", () => {

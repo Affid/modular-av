@@ -1,0 +1,9 @@
+{
+  "modular-av-audio-echo": {
+    "label": "Echo",
+    "controls": {
+      "time": "Time",
+      "decay": "Decay"
+    }
+  }
+}
