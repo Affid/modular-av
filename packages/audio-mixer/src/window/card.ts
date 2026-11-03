@@ -94,7 +94,8 @@ export function renderCard(
     children: [icon("fa-sliders", doc)],
   });
   const chip = el("span", { doc, className: "mav-mixer-chip" });
-  // On the card's own line: a layer landing doesn't make it taller.
+  const noise = slot.key === NOISE_KEY;
+  // On a line the card already has: a layer landing doesn't make it taller.
   const tags = el("span", {
     doc,
     className: "mav-mixer-tags",
@@ -128,14 +129,22 @@ export function renderCard(
         text: name,
         attrs: { title: name },
       }),
-      tags,
+      noise ? null : tags,
       level,
       settings,
-      slot.key === NOISE_KEY
+      // The model's line has room for the tags, the group's name has none.
+      noise
         ? el("span", {
             doc,
             className: "mav-mixer-card-sub",
-            text: ctx.text(slot.effect.label),
+            children: [
+              el("span", {
+                doc,
+                className: "mav-mixer-card-model",
+                text: ctx.text(slot.effect.label),
+              }),
+              tags,
+            ],
           })
         : null,
     ],
@@ -155,6 +164,8 @@ export function renderCard(
     dot.setAttribute("aria-pressed", String(on));
     dot.disabled = readOnly || held?.on !== undefined || next === "unsupported";
     chip.textContent = SAID.has(next) ? word : "";
+    // Cut short in a narrow card: the whole word on hover.
+    chip.title = chip.textContent;
     chip.hidden = !SAID.has(next);
   };
   const showLevel = (value: number): void => {

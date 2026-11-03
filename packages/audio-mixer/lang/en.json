@@ -53,7 +53,7 @@
       "on": "On",
       "starting": "Starting…",
       "off": "Off",
-      "idle": "Starts with your microphone",
+      "idle": "No mic yet",
       "waiting": "Waiting",
       "failed": "Failed",
       "unsupported": "Not in this browser"

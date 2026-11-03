@@ -760,6 +760,92 @@ test("the mixer passes axe's checks, pop-ups open too", async ({ browser }) => {
   });
 });
 
+/** `part`'s box within `card`'s, overlapping none of `others`, or why not. */
+const outOfPlace = (card: Locator, part: string, others: readonly string[]) =>
+  card.evaluate(
+    (c, args) => {
+      const box = (s: string) => c.querySelector(s)?.getBoundingClientRect();
+      const own = box(args.part);
+      const edge = c.getBoundingClientRect();
+      if (!own || own.width < 1) return [`${args.part} not shown`];
+      const inside =
+        own.left >= edge.left &&
+        own.right <= edge.right &&
+        own.top >= edge.top &&
+        own.bottom <= edge.bottom;
+      const overlaps = args.others.filter((s) => {
+        const other = box(s);
+        return (
+          other &&
+          other.width > 0 &&
+          own.left < other.right &&
+          other.left < own.right &&
+          own.top < other.bottom &&
+          other.top < own.bottom
+        );
+      });
+      return [
+        ...(inside ? [] : [`${args.part} outside the card`]),
+        ...overlaps.map((s) => `${args.part} over ${s}`),
+      ];
+    },
+    { part, others },
+  );
+
+test("a card's state word stays within its card, and its name stays", async ({
+  browser,
+}) => {
+  // Arrange: a world without audio, so nothing starts the noise model.
+  const gm = track(await openGm(browser));
+  const setMode = (mode: number): Promise<void> =>
+    gm.run(async (_api, game, m) => {
+      const world = game.settings.get("core", "rtcWorldSettings") as object;
+      await game.settings.set("core", "rtcWorldSettings", {
+        ...world,
+        mode: m,
+      });
+    }, mode);
+  const VIDEO = 2;
+  const AUDIO_VIDEO = 3;
+  const p1 = track(await openPlayer(browser, "Player1"));
+  await clearPipeline(p1);
+  await p1.run((api) => api.commands.setEffectEnabled("gtcrn", true), null);
+  await setMode(VIDEO);
+
+  try {
+    // Act
+    await p1.page.reload();
+    const mixer = await openFromSettings(p1);
+    const card = mixer.locator('[data-key="group:noise-suppression"]');
+    await expect(card).toHaveAttribute("data-state", "idle");
+
+    // Assert
+    const parts = [
+      ".mav-mixer-dot",
+      ".mav-mixer-card-name",
+      ".mav-mixer-chip",
+      ".mav-mixer-card-settings",
+    ];
+    const misplaced = await Promise.all(
+      parts.map((part) =>
+        outOfPlace(
+          card,
+          part,
+          parts.filter((p) => p !== part),
+        ),
+      ),
+    );
+    expect(misplaced.flat()).toEqual([]);
+    await expect(card.locator(".mav-mixer-chip")).toHaveAttribute(
+      "title",
+      "No mic yet",
+    );
+  } finally {
+    await setMode(AUDIO_VIDEO);
+    await p1.run((api) => api.commands.setEffectEnabled("gtcrn", false), null);
+  }
+});
+
 test("with no effect module the mixer says they exist", async ({ browser }) => {
   // Arrange
   const gm = track(await openGm(browser));

@@ -213,7 +213,8 @@
 
 .mav-mixer-card {
   display: grid;
-  grid-template-columns: 24px minmax(0, 1fr) auto auto 24px;
+  /* The tags take at most half: the name always shows. */
+  grid-template-columns: 24px minmax(0, 1fr) fit-content(50%) auto 24px;
   align-items: center;
   gap: 2px 4px;
   min-height: 30px;
@@ -289,20 +290,35 @@
 }
 
 .mav-mixer-card-sub {
+  display: flex;
+  gap: 4px;
+  align-items: center;
   grid-column: 2 / -1;
+  min-width: 0;
   font-size: 0.8em;
   color: var(--mav-mixer-soft);
+}
+
+.mav-mixer-card-model {
+  flex: none;
+}
+
+.mav-mixer-card-sub .mav-mixer-tags {
+  flex: 1;
+  font-size: 1.25em;
 }
 
 .mav-mixer-held {
   color: var(--mav-mixer-layer);
 }
 
+/* Never wider than its track: a long word is cut, not drawn over the name. */
 .mav-mixer-tags {
   display: flex;
   gap: 4px;
   justify-content: flex-end;
   min-width: 0;
+  overflow: hidden;
 }
 
 .mav-mixer-tags .mav-mixer-held {
@@ -387,11 +403,14 @@
 }
 
 .mav-mixer-chip {
+  min-width: 0;
+  overflow: hidden;
   padding: 0 4px;
   border: 1px solid currentColor;
   border-radius: 3px;
   font-size: 0.75em;
   white-space: nowrap;
+  text-overflow: ellipsis;
   color: var(--mav-mixer-warn);
 }
 

@@ -295,6 +295,20 @@ describe("the routing panel", () => {
     expect(card("reverb").querySelector(".mav-mixer-card-sub")).toBeNull();
   });
 
+  it("puts the noise card's state on its model's line, so its name keeps the room", () => {
+    const { card } = open({
+      ...CHAIN,
+      local: { ...CHAIN.local, effects: {} },
+    });
+    const chip = card(NOISE_KEY).querySelector(".mav-mixer-chip");
+
+    expect(card(NOISE_KEY).dataset.state).toBe("idle");
+    expect(chip?.closest(".mav-mixer-card-sub")?.textContent).toContain(
+      "RNNoise",
+    );
+    expect(chip?.getAttribute("title")).toBe(chip?.textContent);
+  });
+
   it("keeps where each place and the faders were scrolled to across a redraw", async () => {
     const { q, setLocal } = open();
     q('[data-rack="pre-gate"]').scrollTop = 24;
