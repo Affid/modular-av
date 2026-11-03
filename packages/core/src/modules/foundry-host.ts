@@ -197,8 +197,13 @@ export function createFoundryBoardHost(foundry: BoardFoundry): BoardHost {
       await game.shutDown();
     },
     whisper: async (text) => {
-      // Text only: the chat renders HTML.
+      // Text only: the chat renders HTML. Inline style, since the message
+      // outlives any stylesheet; links wrap anywhere, as they have no spaces.
       const pre = doc.createElement("pre");
+      pre.setAttribute(
+        "style",
+        "white-space: pre-wrap; overflow-wrap: anywhere",
+      );
       pre.textContent = text;
       await foundry.chat.create({
         content: pre.outerHTML,

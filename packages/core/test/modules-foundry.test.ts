@@ -195,7 +195,7 @@ describe("the board in Foundry", () => {
     expect(calls.reloads).toBe(1);
   });
 
-  it("whispers the links as text, never as markup", async () => {
+  it("whispers the links as text, never as markup, wrapped to the chat's width", async () => {
     const { host, calls } = foundry();
 
     await host.whisper("<img src=x onerror=alert(1)> https://x/module.json");
@@ -203,7 +203,7 @@ describe("the board in Foundry", () => {
     expect(calls.chats).toEqual([
       {
         content:
-          "<pre>&lt;img src=x onerror=alert(1)&gt; https://x/module.json</pre>",
+          '<pre style="white-space: pre-wrap; overflow-wrap: anywhere">&lt;img src=x onerror=alert(1)&gt; https://x/module.json</pre>',
         whisper: ["gm"],
       },
     ]);
