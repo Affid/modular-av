@@ -251,7 +251,7 @@
       "requires": [
         {
           "id": "modular-av",
-          "minimum": "0.10.1"
+          "minimum": "0.11.0"
         }
       ],
       "facts": [
@@ -269,7 +269,7 @@
         }
       ],
       "icon": "fa-solid fa-tower-broadcast",
-      "version": "0.10.1",
+      "version": "0.11.0",
       "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-livekit/module.json"
     },
     {
