@@ -8,7 +8,7 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite build --watch",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p test/browser"
+    "typecheck": "tsc --noEmit && tsc --noEmit -p test/browser && tsc --noEmit -p test/node"
   },
   "dependencies": {
     "@modular-av/kit": "workspace:*"

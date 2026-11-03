@@ -1,5 +1,5 @@
 {
   "extends": "../../tsconfig.base.json",
   "include": ["src", "test"],
-  "exclude": ["test/service", "test/browser"]
+  "exclude": ["test/service", "test/browser", "test/node"]
 }

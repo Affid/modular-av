@@ -15,6 +15,7 @@
     "./contract/theme": "./src/contract/theme-contract.ts",
     "./contract/audio-effects": "./src/contract/audio-effect-contract.ts",
     "./contract/tail-effects": "./src/contract/tail-effect-contract.ts",
+    "./contract/kernels": "./src/contract/kernel-contract.ts",
     "./contract/video-effects": "./src/contract/video-effect-contract.ts"
   },
   "scripts": {
