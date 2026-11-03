@@ -222,6 +222,7 @@ modular-av/
     audio-reverb/     → "modular-av-audio-reverb"
     audio-echo/       → "modular-av-audio-echo"
     audio-eq/         → "modular-av-audio-eq"
+    audio-radio/      → "modular-av-audio-radio"
     later: jitsi/, dock-scifi/, dock-fantasy/, dock-vines/, tokens/, embed/
   tools/              → token server template (see "Credentials")
   docs/

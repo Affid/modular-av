@@ -1,0 +1,10 @@
+{
+  "modular-av-audio-radio": {
+    "label": "Radio",
+    "controls": {
+      "drive": "Drive",
+      "static": "Static",
+      "squelch": "Squelch"
+    }
+  }
+}

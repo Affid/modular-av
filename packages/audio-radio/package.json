@@ -1,0 +1,23 @@
+{
+  "name": "@modular-av/audio-radio",
+  "version": "0.10.1",
+  "private": true,
+  "description": "Modular A/V effect module: a walkie-talkie radio for the voice channel.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p test/browser"
+  },
+  "dependencies": {
+    "@modular-av/kit": "workspace:*"
+  },
+  "devDependencies": {
+    "@modular-av/api": "workspace:*",
+    "@modular-av/testing": "workspace:*"
+  },
+  "modularAV": {
+    "entryBudgetBytes": 5000
+  }
+}

@@ -45,6 +45,7 @@ Meet server (`modular-av-jitsi`) if you run one.
 | `modular-av-audio-reverb`   | A reverb for the voice.                                                | `https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-audio-reverb/module.json`   |
 | `modular-av-audio-echo`     | An echo for the voice.                                                 | `https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-audio-echo/module.json`     |
 | `modular-av-audio-eq`       | A three band equalizer for the voice.                                  | `https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-audio-eq/module.json`       |
+| `modular-av-audio-radio`    | A walkie-talkie for the voice: static and squelch.                     | `https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-audio-radio/module.json`    |
 
 Each module's own page: [core](packages/core/README.md),
 [LiveKit](packages/livekit/README.md), [P2P](packages/p2p/README.md),
@@ -54,7 +55,7 @@ Each module's own page: [core](packages/core/README.md),
 [camera background](packages/cam-background/README.md),
 [audio mixer](packages/audio-mixer/README.md),
 [reverb](packages/audio-reverb/README.md), [echo](packages/audio-echo/README.md),
-[EQ](packages/audio-eq/README.md).
+[EQ](packages/audio-eq/README.md), [radio](packages/audio-radio/README.md).
 `modular-av-livekit-krisp` (Krisp on LiveKit Cloud) is held back from
 releases for now; see its [README](packages/livekit-krisp/README.md).
 
@@ -104,6 +105,7 @@ The design and the reasons behind it are in
 | `packages/audio-reverb`   | `@modular-av/audio-reverb`   | `modular-av-audio-reverb`   |
 | `packages/audio-echo`     | `@modular-av/audio-echo`     | `modular-av-audio-echo`     |
 | `packages/audio-eq`       | `@modular-av/audio-eq`       | `modular-av-audio-eq`       |
+| `packages/audio-radio`    | `@modular-av/audio-radio`    | `modular-av-audio-radio`    |
 | `packages/testing`        | `@modular-av/testing`        | (library)                   |
 
 ### Development
