@@ -36,6 +36,31 @@
       "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-audio-echo/module.json"
     },
     {
+      "id": "modular-av-audio-eq",
+      "title": "Modular A/V: EQ",
+      "description": "A three band equalizer for the voice channel, ahead of the voice gate by default. Needs Modular A/V: Audio mixer, or anything else that calls the API, to be turned on.",
+      "kind": "effect",
+      "requires": [
+        {
+          "id": "modular-av",
+          "minimum": "0.10.0"
+        }
+      ],
+      "facts": [
+        {
+          "label": "Who turns it on",
+          "value": "Each player, in the Audio mixer"
+        },
+        {
+          "label": "Works with",
+          "value": "Every service"
+        }
+      ],
+      "icon": "fa-solid fa-chart-simple",
+      "version": "0.10.0",
+      "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-audio-eq/module.json"
+    },
+    {
       "id": "modular-av-cam-background",
       "title": "Modular A/V: Camera background",
       "description": "Blurs or replaces the background of your camera, in your browser, with MediaPipe's selfie segmentation. Pick it in the voice and video settings.",

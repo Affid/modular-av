@@ -1,0 +1,59 @@
+{
+  "id": "modular-av-audio-eq",
+  "title": "Modular A/V: EQ",
+  "description": "A three band equalizer for the voice channel, ahead of the voice gate by default. Needs Modular A/V: Audio mixer, or anything else that calls the API, to be turned on.",
+  "authors": [
+    {
+      "name": "Andrei Fedorov",
+      "url": "https://github.com/Affid"
+    }
+  ],
+  "url": "https://github.com/Affid/modular-av",
+  "bugs": "https://github.com/Affid/modular-av/issues",
+  "license": "LICENSE",
+  "compatibility": {
+    "minimum": "14",
+    "verified": "14.369"
+  },
+  "esmodules": [
+    "modular-av-audio-eq.js"
+  ],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    }
+  ],
+  "relationships": {
+    "requires": [
+      {
+        "id": "modular-av",
+        "type": "module",
+        "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av/module.json",
+        "compatibility": {
+          "minimum": "0.10.0"
+        }
+      }
+    ]
+  },
+  "flags": {
+    "modular-av": {
+      "kind": "effect",
+      "icon": "fa-solid fa-chart-simple",
+      "facts": [
+        {
+          "label": "Who turns it on",
+          "value": "Each player, in the Audio mixer"
+        },
+        {
+          "label": "Works with",
+          "value": "Every service"
+        }
+      ]
+    }
+  },
+  "version": "0.10.0",
+  "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-audio-eq/module.json",
+  "download": "https://github.com/Affid/modular-av/releases/download/modular-av-audio-eq-v0.10.0/modular-av-audio-eq.zip"
+}
