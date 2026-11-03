@@ -183,7 +183,7 @@
         },
         "modular-av-audio-mixer": {
           "title": "Audio mixer",
-          "what": "A window for each player's voice: which effects run, in which order, and how loud."
+          "what": "A window for each player's voice: which effects run, in which order, and how loud. A GM can change the table's voices from it."
         },
         "modular-av-audio-reverb": {
           "title": "Reverb",
