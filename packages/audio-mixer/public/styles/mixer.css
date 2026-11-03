@@ -17,6 +17,10 @@
   --mav-mixer-layer: #6a3fa0;
   --mav-mixer-warn: #a3471b;
   --mav-mixer-focus: #1f6fd1;
+  --mav-mixer-cap-top: #ffffff;
+  --mav-mixer-cap-bottom: #d3ccc1;
+  --mav-mixer-cap-edge: #6f6962;
+  --mav-mixer-cap-locked: #a39d95;
 
   container-type: inline-size;
   position: relative;
@@ -41,6 +45,10 @@
   --mav-mixer-layer: #c9a7ff;
   --mav-mixer-warn: #ff9a6b;
   --mav-mixer-focus: #a8c8ff;
+  --mav-mixer-cap-top: #ece8f2;
+  --mav-mixer-cap-bottom: #c9c3d4;
+  --mav-mixer-cap-edge: #4a4553;
+  --mav-mixer-cap-locked: #8d8798;
 }
 
 #modular-av-audio-mixer {
@@ -555,8 +563,31 @@
   position: relative;
   display: grid;
   place-items: center;
-  width: 24px;
+  width: 30px;
   height: 6rem;
+}
+
+/* Ticks at every quarter, beside the track, as on a desk. */
+.mav-mixer-fader::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 2px;
+  width: 5px;
+  background-image:
+    linear-gradient(var(--mav-mixer-line), var(--mav-mixer-line)),
+    linear-gradient(var(--mav-mixer-line), var(--mav-mixer-line)),
+    linear-gradient(var(--mav-mixer-line), var(--mav-mixer-line)),
+    linear-gradient(var(--mav-mixer-line), var(--mav-mixer-line)),
+    linear-gradient(var(--mav-mixer-line), var(--mav-mixer-line));
+  background-position:
+    0 0,
+    0 25%,
+    0 50%,
+    0 75%,
+    0 100%;
+  background-size: 100% 1px;
+  background-repeat: no-repeat;
+  pointer-events: none;
 }
 
 .mav-mixer-fader::before {
@@ -579,10 +610,11 @@
 
 .mav-mixer-strip .mav-mixer-fader input[type="range"] {
   position: relative;
-  width: 24px;
+  width: 30px;
   height: 100%;
   margin: 0;
   background: transparent;
+  appearance: none;
   writing-mode: vertical-lr;
   direction: rtl;
 }
@@ -595,6 +627,80 @@
 
 .mav-mixer-strip .mav-mixer-fader input[type="range"]::-moz-range-track {
   background: transparent;
+}
+
+/* A fader cap, wide and lit, with its line across. */
+.mav-mixer-strip .mav-mixer-fader input[type="range"]::-webkit-slider-thumb {
+  box-sizing: border-box;
+  width: 26px;
+  height: 11px;
+  border: 1px solid var(--mav-mixer-cap-edge);
+  border-radius: 2px;
+  background:
+    linear-gradient(
+      transparent 4px,
+      var(--mav-mixer-cap-edge) 4px 5px,
+      transparent 5px
+    ),
+    linear-gradient(var(--mav-mixer-cap-top), var(--mav-mixer-cap-bottom));
+  box-shadow: 0 1px 2px rgb(0 0 0 / 60%);
+  appearance: none;
+  cursor: grab;
+}
+
+.mav-mixer-strip .mav-mixer-fader input[type="range"]::-moz-range-thumb {
+  box-sizing: border-box;
+  width: 26px;
+  height: 11px;
+  border: 1px solid var(--mav-mixer-cap-edge);
+  border-radius: 2px;
+  background:
+    linear-gradient(
+      transparent 4px,
+      var(--mav-mixer-cap-edge) 4px 5px,
+      transparent 5px
+    ),
+    linear-gradient(var(--mav-mixer-cap-top), var(--mav-mixer-cap-bottom));
+  box-shadow: 0 1px 2px rgb(0 0 0 / 60%);
+  cursor: grab;
+}
+
+.mav-mixer-strip
+  .mav-mixer-fader
+  input[type="range"]:disabled::-webkit-slider-thumb {
+  background:
+    linear-gradient(
+      transparent 4px,
+      var(--mav-mixer-cap-edge) 4px 5px,
+      transparent 5px
+    ),
+    var(--mav-mixer-cap-locked);
+  cursor: not-allowed;
+}
+
+.mav-mixer-strip
+  .mav-mixer-fader
+  input[type="range"]:disabled::-moz-range-thumb {
+  background:
+    linear-gradient(
+      transparent 4px,
+      var(--mav-mixer-cap-edge) 4px 5px,
+      transparent 5px
+    ),
+    var(--mav-mixer-cap-locked);
+  cursor: not-allowed;
+}
+
+.mav-mixer-strip
+  .mav-mixer-fader
+  input[type="range"]:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 2px var(--mav-mixer-focus);
+}
+
+.mav-mixer-strip
+  .mav-mixer-fader
+  input[type="range"]:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 2px var(--mav-mixer-focus);
 }
 
 .mav-mixer-strip output {
