@@ -61,6 +61,31 @@
       "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-audio-eq/module.json"
     },
     {
+      "id": "modular-av-audio-mixer",
+      "title": "Modular A/V: Audio mixer",
+      "description": "A mixer for your voice: which effects run, in which order, and how loud. Holds no effects itself: it mixes the effect modules a world has turned on. A GM can lay a preset over the whole table, or one player.",
+      "kind": "effect",
+      "requires": [
+        {
+          "id": "modular-av",
+          "minimum": "0.10.0"
+        }
+      ],
+      "facts": [
+        {
+          "label": "Who uses it",
+          "value": "Each player for their own voice; a GM for the whole table's"
+        },
+        {
+          "label": "Works with",
+          "value": "Every service"
+        }
+      ],
+      "icon": "fa-solid fa-sliders",
+      "version": "0.10.0",
+      "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-audio-mixer/module.json"
+    },
+    {
       "id": "modular-av-cam-background",
       "title": "Modular A/V: Camera background",
       "description": "Blurs or replaces the background of your camera, in your browser, with MediaPipe's selfie segmentation. Pick it in the voice and video settings.",
