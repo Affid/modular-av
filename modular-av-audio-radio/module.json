@@ -1,0 +1,59 @@
+{
+  "id": "modular-av-audio-radio",
+  "title": "Modular A/V: Radio",
+  "description": "A walkie-talkie for the voice channel: a narrow, crackling voice and a burst of squelch when you stop talking. Needs Modular A/V: Audio mixer, or anything else that calls the API, to be turned on.",
+  "authors": [
+    {
+      "name": "Andrei Fedorov",
+      "url": "https://github.com/Affid"
+    }
+  ],
+  "url": "https://github.com/Affid/modular-av",
+  "bugs": "https://github.com/Affid/modular-av/issues",
+  "license": "LICENSE",
+  "compatibility": {
+    "minimum": "14",
+    "verified": "14.369"
+  },
+  "esmodules": [
+    "modular-av-audio-radio.js"
+  ],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    }
+  ],
+  "relationships": {
+    "requires": [
+      {
+        "id": "modular-av",
+        "type": "module",
+        "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av/module.json",
+        "compatibility": {
+          "minimum": "0.11.0"
+        }
+      }
+    ]
+  },
+  "flags": {
+    "modular-av": {
+      "kind": "effect",
+      "icon": "fa-solid fa-walkie-talkie",
+      "facts": [
+        {
+          "label": "Who turns it on",
+          "value": "Each player, in the Audio mixer"
+        },
+        {
+          "label": "Works with",
+          "value": "Every service"
+        }
+      ]
+    }
+  },
+  "version": "0.11.0",
+  "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-audio-radio/module.json",
+  "download": "https://github.com/Affid/modular-av/releases/download/modular-av-audio-radio-v0.11.0/modular-av-audio-radio.zip"
+}
