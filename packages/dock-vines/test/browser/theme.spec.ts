@@ -87,6 +87,48 @@ test("suggests the scattered layout, leaving the dock where it is", async ({
   );
 });
 
+test("fits the suggestion's longer label in its menu item, under Foundry's button rule", async ({
+  page,
+}) => {
+  await open(page, "vines");
+  // Foundry 14.369's rule for every button, which fixes its height: the
+  // label wraps to two lines in the menu.
+  await page.addStyleTag({
+    content: `@layer elements.forms {
+      button {
+        --button-size: 2em;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: var(--button-size);
+        min-height: var(--button-size);
+      }
+    }`,
+  });
+
+  await page.locator(".mav-dock-placement").click();
+  const item = page.getByRole("menuitemradio", {
+    name: "Scattered over the screen (the theme's suggestion)",
+  });
+
+  // The label stays inside the padding, and is centred as the one-line
+  // items are by Foundry's rule.
+  const fit = await item.evaluate((button) => {
+    const label = button.ownerDocument.createRange();
+    label.selectNodeContents(button);
+    const text = label.getBoundingClientRect();
+    const box = button.getBoundingClientRect();
+    const style = getComputedStyle(button);
+    const top = box.top + parseFloat(style.paddingTop);
+    const bottom = box.bottom - parseFloat(style.paddingBottom);
+    return {
+      overflow: Math.max(0, top - text.top) + Math.max(0, text.bottom - bottom),
+      align: style.textAlign,
+    };
+  });
+  expect(fit).toEqual({ overflow: 0, align: "center" });
+});
+
 test("follows the dock into the Picture-in-Picture window", async ({
   page,
 }) => {

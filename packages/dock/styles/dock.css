@@ -989,6 +989,8 @@
   align-items: center;
   gap: 8px;
   width: 100%;
+  /* Foundry fixes a button's height: a label that wraps grows it instead. */
+  height: auto;
   min-height: 30px;
   margin: 0;
   padding: 4px 8px;
@@ -997,6 +999,11 @@
   background: var(--mav-surface);
   text-align: start;
   cursor: pointer;
+}
+
+/* Centred by Foundry on one line: on two as well. */
+.mav-dock-menu-item {
+  text-align: center;
 }
 
 .mav-control-switch::after {
