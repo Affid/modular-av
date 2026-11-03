@@ -305,6 +305,14 @@
   text-overflow: ellipsis;
 }
 
+/*
+ * Foundry eases every property of a button over 0.5 s, so a redrawn button
+ * would shrink from Foundry's size to this window's: colours only.
+ */
+.mav-mixer button {
+  transition-property: color, background-color, border-color, box-shadow;
+}
+
 /* Small square buttons in a card: Foundry's button styles reset. */
 .mav-mixer .mav-mixer-dot,
 .mav-mixer .mav-mixer-card-settings,

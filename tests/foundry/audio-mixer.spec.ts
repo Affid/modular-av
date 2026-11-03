@@ -574,20 +574,37 @@ test("a GM applies a preset to one player from the table", async ({
   await clearPipeline(p1);
 });
 
+type Places = ReadonlyMap<string, readonly [number, number] | null>;
+
 /** Where each of `selectors` sits within the window: the window itself may move. */
 const placesIn =
   (frame: Locator, selectors: readonly string[]) =>
-  async (): Promise<readonly (readonly number[] | null)[]> => {
+  async (): Promise<Places> => {
     const box = await frame.boundingBox();
-    return Promise.all(
+    const each = await Promise.all(
       selectors.map(async (selector) => {
         const at = await frame.locator(selector).first().boundingBox();
-        return at && box
-          ? [Math.round(at.x - box.x), Math.round(at.y - box.y)]
-          : null;
+        const place: readonly [number, number] | null =
+          at && box ? [at.x - box.x, at.y - box.y] : null;
+        return [selector, place] as const;
       }),
     );
+    return new Map(each);
   };
+
+/**
+ * What moved by half a pixel or more: positions fall between pixels, so a
+ * whole-pixel rounding can flip with nothing moved.
+ */
+const movedSince = (before: Places, now: Places): readonly string[] =>
+  [...before].flatMap(([selector, was]) => {
+    const is = now.get(selector);
+    if (!was || !is) return was === is ? [] : [`${selector} came or went`];
+    const [dx, dy] = [is[0] - was[0], is[1] - was[1]];
+    return Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5
+      ? []
+      : [`${selector} by ${dx.toFixed(2)}, ${dy.toFixed(2)}`];
+  });
 
 test("nothing in a player's window moves as a GM's cave comes and goes, or a preset changes", async ({
   browser,
@@ -617,20 +634,20 @@ test("nothing in a player's window moves as a GM's cave comes and goes, or a pre
   await expect(mixer.locator('[data-key="echo"]')).toContainText("GM: Cave");
   await expect(mixer.locator('[data-key="reverb"]')).toBeVisible();
   await expect(mixer.locator(".mav-mixer-layers [data-layer]")).toBeVisible();
-  expect(await places()).toEqual(before);
+  expect(movedSince(before, await places())).toEqual([]);
 
   // Act, Assert: the preset now differs, and says so.
   await mixer.locator('[data-field="channel"]').fill("80");
   await expect(mixer.locator('[data-field="presetChanged"]')).toContainText(
     "Changed",
   );
-  expect(await places()).toEqual(before);
+  expect(movedSince(before, await places())).toEqual([]);
 
   // Act, Assert: out of the cave.
   await leaveCave(gm);
   await expect(mixer.locator('[data-key="reverb"]')).toHaveCount(0);
   await expect(mixer.locator(".mav-mixer-layers [data-layer]")).toHaveCount(0);
-  expect(await places()).toEqual(before);
+  expect(movedSince(before, await places())).toEqual([]);
   await mixer.locator('[data-field="presetDelete"]').click();
   await p1.page.locator(".dialog button[data-action='yes']").click();
   await clearPipeline(p1);
@@ -671,7 +688,7 @@ test("a GM reads a player's settings, and sees what their cave holds there", asy
   );
   await expect(shown).toContainText("Cave: applied");
   await expect(table.locator(".mav-mixer-on-now")).toContainText("Cave");
-  expect(await places()).toEqual(before);
+  expect(movedSince(before, await places())).toEqual([]);
 
   // Act: their reverb's settings.
   await shown.locator('[data-field="settings.reverb"]').click();
