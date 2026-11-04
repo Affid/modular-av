@@ -2045,8 +2045,10 @@ when every item below is checked or explicitly dropped by the owner.
 - [x] A GM can find the whole family from inside Foundry: a modules menu
       in the core, a notice naming the services when none is enabled, and
       READMEs that list every module (milestone 10).
-- [ ] Decided whether to list the modules on foundryvtt.com's package
-      registry.
+- [x] Decided whether to list the modules on foundryvtt.com's package
+      registry: yes. The core was submitted about 2026-10-28 and is waiting
+      for Foundry's approval. Once a module is listed, every release is also
+      sent there (`docs/RELEASING.md`, "foundryvtt.com").
 
 **Process**
 
