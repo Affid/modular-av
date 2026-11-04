@@ -2,7 +2,8 @@
 //   node tools/release/cli.ts pending                   list what to publish, in order
 //   node tools/release/cli.ts pack [module-id]          build and zip into release/
 //   node tools/release/cli.ts publish <module-id>       show what would happen
-//   node tools/release/cli.ts publish <module-id> --yes tag, release, update manifests
+//   node tools/release/cli.ts publish <module-id> --yes tag, release, update manifests, list
+//   node tools/release/cli.ts listing <module-id> [--yes] check (or send) a released version on foundryvtt.com
 import { execFileSync } from "node:child_process";
 import {
   copyFile,
@@ -14,10 +15,12 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
+import { readEnv } from "../../scripts/foundry/env.ts";
 import { listModulePackages, type ModulePackage, ROOT } from "../workspace.ts";
 import { publishedCatalog } from "./catalog.ts";
 import { releaseHold } from "./hold.ts";
-import { MANIFESTS_BRANCH, tagFor } from "./manifest.ts";
+import { listingRelease, listingTokenKey, submitListing } from "./listing.ts";
+import { MANIFESTS_BRANCH, REPOSITORY, tagFor } from "./manifest.ts";
 import { packModule } from "./pack.ts";
 import { pendingReleases } from "./pending.ts";
 
@@ -175,6 +178,50 @@ async function updateManifestsBranch(
   }
 }
 
+/**
+ * Sends a released version to foundryvtt.com with the package's release
+ * token from `.env.local`; without a token the module isn't listed there,
+ * and nothing is sent.
+ */
+async function listOnFoundry(
+  mod: ModulePackage,
+  manifest: unknown,
+  dryRun: boolean,
+): Promise<void> {
+  const key = listingTokenKey(mod.id);
+  const token = readEnv(key);
+  if (!token) {
+    console.log(`${mod.id}: not sent to foundryvtt.com, no ${key}`);
+    return;
+  }
+  const request = listingRelease(manifest, relative(ROOT, mod.dir), dryRun);
+  const outcome = await submitListing(request, token);
+  const what = `${mod.id} ${request.release.version} on foundryvtt.com`;
+  if (outcome.kind === "exists") console.log(`${what}: already there`);
+  else if (outcome.kind === "checked")
+    console.log(`${what}: Foundry accepts it (dry run, nothing saved)`);
+  else console.log(`${what}: saved, ${outcome.page}`);
+}
+
+/** Lists the version already released on GitHub, e.g. once the listing is approved. */
+async function listReleased(
+  mod: ModulePackage,
+  confirmed: boolean,
+): Promise<void> {
+  if (!readEnv(listingTokenKey(mod.id)))
+    throw new Error(
+      `Set ${listingTokenKey(mod.id)} in .env.local: the Package Release Token on the package's page on foundryvtt.com`,
+    );
+  const tag = tagFor(mod.id, mod.version);
+  const url = `https://github.com/${REPOSITORY}/releases/download/${tag}/module.json`;
+  const response = await fetch(url);
+  if (!response.ok)
+    throw new Error(
+      `${url} answered ${String(response.status)}: publish ${tag} first`,
+    );
+  await listOnFoundry(mod, await response.json(), !confirmed);
+}
+
 async function publish(mod: ModulePackage, confirmed: boolean): Promise<void> {
   const tag = tagFor(mod.id, mod.version);
   const problems = preflight(tag);
@@ -189,6 +236,9 @@ async function publish(mod: ModulePackage, confirmed: boolean): Promise<void> {
     prerelease
       ? `leave the ${MANIFESTS_BRANCH} branch alone: ${mod.version} is a prerelease`
       : `update ${mod.id}/module.json and catalog.json on the ${MANIFESTS_BRANCH} branch and push them`,
+    prerelease
+      ? `leave foundryvtt.com alone: ${mod.version} is a prerelease`
+      : `send ${mod.version} to foundryvtt.com (if ${listingTokenKey(mod.id)} is set)`,
   ];
   if (!confirmed) {
     console.log(`Dry run. With --yes this would:\n  - ${steps.join("\n  - ")}`);
@@ -201,8 +251,10 @@ async function publish(mod: ModulePackage, confirmed: boolean): Promise<void> {
     [files.zip, files.manifest],
     prerelease,
   );
-  if (!prerelease)
-    await updateManifestsBranch(mod.id, mod.version, files.manifest);
+  if (prerelease) return;
+  await updateManifestsBranch(mod.id, mod.version, files.manifest);
+  const manifest: unknown = JSON.parse(await readFile(files.manifest, "utf8"));
+  await listOnFoundry(mod, manifest, false);
 }
 
 /** The family modules a module requires, from its source `module.json`. */
@@ -250,9 +302,11 @@ if (command === "pending") {
   for (const mod of selected) await pack(mod);
 } else if (command === "publish" && id && selected[0]) {
   await publish(selected[0], process.argv.includes("--yes"));
+} else if (command === "listing" && id && selected[0]) {
+  await listReleased(selected[0], process.argv.includes("--yes"));
 } else {
   console.error(
-    "Usage: cli.ts pending | pack [module-id] | publish <module-id> [--yes]",
+    "Usage: cli.ts pending | pack [module-id] | publish <module-id> [--yes] | listing <module-id> [--yes]",
   );
   process.exitCode = 1;
 }

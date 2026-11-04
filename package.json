@@ -26,6 +26,7 @@
     "release:pending": "node tools/release/cli.ts pending",
     "release:pack": "node tools/release/cli.ts pack",
     "release:publish": "node tools/release/cli.ts publish",
+    "release:listing": "node tools/release/cli.ts listing",
     "foundry:start": "scripts/foundry/start.sh",
     "foundry:link": "node scripts/foundry/link-modules.ts",
     "foundry:setup": "node scripts/foundry/setup-world.ts",

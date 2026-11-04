@@ -52,11 +52,48 @@ by `publish` until the hold is removed.
    - `pnpm release:publish <module-id>` checks the tree and shows the
      steps;
    - `pnpm release:publish <module-id> --yes` tags and pushes the tag,
-     creates the GitHub release with the zip and `module.json`, and
-     updates the manifest and `catalog.json` on the `manifests` branch.
+     creates the GitHub release with the zip and `module.json`, updates
+     the manifest and `catalog.json` on the `manifests` branch, and sends
+     the version to foundryvtt.com if the module is listed there (below).
 
 Releases are manual while GitHub Actions is unavailable; a release workflow
 can run the same script later.
+
+## foundryvtt.com
+
+Since Foundry 14.366, Foundry looks for a listed package's updates on
+foundryvtt.com rather than at its manifest URL. A version that isn't
+sent there never reaches the people who installed the module from
+Foundry's package list. The manifests branch keeps serving those who
+installed it by URL.
+
+Each listed package has its own release token: the **Package Release
+Token** on its page on foundryvtt.com, just above **Save Package**. Put
+it in `.env.local` as `FOUNDRY_RELEASE_TOKEN_<ID>`, with the module id in
+capitals and its dashes as underscores (`FOUNDRY_RELEASE_TOKEN_MODULAR_AV`
+for the core, `FOUNDRY_RELEASE_TOKEN_MODULAR_AV_DOCK` for the dock). It
+is a secret: never commit or print it, and if it leaks, use **Refresh** on
+the package's page.
+
+`pnpm release:publish <module-id> --yes` sends the version through
+Foundry's [package release API](https://foundryvtt.com/article/package-release-api/)
+whenever the module's token is set, and only says so when it isn't. A
+prerelease isn't sent. The request names the GitHub release's own
+`module.json` (one URL per version, as Foundry asks) and the module's
+changelog at the release's tag. Its `compatibility` comes from that
+manifest, so `maximum` stays unset unless the manifest sets it. If
+Foundry already has the version, that counts as done, so a publish can be
+re-run.
+
+To send a version that is already on GitHub (the current one, right
+after Foundry approves a listing, or one whose sending failed):
+
+- `pnpm release:listing <module-id>` asks Foundry to check the request
+  without saving it (a dry run);
+- `pnpm release:listing <module-id> --yes` saves it.
+
+Foundry refuses more than one release of a package a minute (HTTP 429);
+the error says how long to wait.
 
 ## Versions from 1.0
 
