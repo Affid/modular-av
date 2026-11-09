@@ -1,22 +1,15 @@
 import type { ModularAV } from "@modular-av/api";
-import type { SettingsApi } from "@modular-av/kit";
 import { registerEcho } from "./register.ts";
-import { type EchoSettings, registerSettings } from "./settings.ts";
+import { registerSettings } from "./settings.ts";
 
 /** The slice of Foundry's globals this module uses. */
 declare global {
   var Hooks: {
     once(hook: string, fn: (...args: never[]) => void): number;
   };
-  var game: { settings: SettingsApi };
 }
 
-let settings: EchoSettings | null = null;
-
-Hooks.once("init", () => {
-  settings = registerSettings(game.settings);
-});
-
+// Its settings are the player's, kept through the core: they follow them.
 Hooks.once("modularAV.register", (api: ModularAV) => {
-  if (settings) registerEcho(api, settings);
+  registerEcho(api, registerSettings(api.settings));
 });

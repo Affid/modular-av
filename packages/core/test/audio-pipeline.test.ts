@@ -286,7 +286,7 @@ describe("the effects a player chose", () => {
 
     // Act
     await p1.api.commands.setEffectEnabled("reverb", false);
-    await p1.client.game.settings.set("modular-av", "effects", [
+    await p1.client.game.settings.set("modular-av", "audioEffects", [
       "radio",
       "gone",
     ]);

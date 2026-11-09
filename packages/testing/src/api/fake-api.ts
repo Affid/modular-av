@@ -6,6 +6,7 @@
  */
 import { createFakePreviews, type FakePreviews } from "./fake-previews.ts";
 import type {
+  ModuleSettings,
   AVCommands,
   AVState,
   Contribution,
@@ -17,6 +18,7 @@ import type {
   PageWindows,
   Registry,
   Store,
+  SettingStorage,
   SurfaceDefinition,
   VideoSource,
 } from "@modular-av/api";
@@ -199,6 +201,25 @@ function fakeWindows(supported: boolean): PageWindows {
   };
 }
 
+/** Settings kept in memory: what a module registered and saved. */
+function fakeSettings(): ModuleSettings {
+  let storages = new Map<string, SettingStorage>();
+  let values = new Map<string, unknown>();
+  return {
+    register(module, key, setting) {
+      storages = new Map(storages).set(`${module}.${key}`, setting.storage);
+      if (!values.has(`${module}.${key}`))
+        values = new Map(values).set(`${module}.${key}`, setting.default);
+    },
+    get: (module, key) => values.get(`${module}.${key}`),
+    set(module, key, value) {
+      values = new Map(values).set(`${module}.${key}`, value);
+      return Promise.resolve();
+    },
+    storageOf: (module, key) => storages.get(`${module}.${key}`) ?? null,
+  };
+}
+
 export function createFakeApi(options: FakeApiOptions = {}): FakeApi {
   const { store, set } = fakeStore(options.state ?? avState());
   let calls: readonly CommandCall[] = [];
@@ -261,6 +282,7 @@ export function createFakeApi(options: FakeApiOptions = {}): FakeApi {
       pip: fakeWindows(options.pip ?? false),
       popup: fakeWindows(options.popup ?? true),
     },
+    settings: fakeSettings(),
     stats: {
       get(participant) {
         const found = stats.get(participant ?? "");

@@ -77,6 +77,11 @@ export interface FoundrySettings {
   registerMenu(namespace: string, key: string, config: FoundryMenuConfig): void;
   get(namespace: string, key: string): unknown;
   set(namespace: string, key: string, value: unknown): Promise<unknown>;
+  /**
+   * Where values live: "client" is the browser's localStorage, "user" the
+   * player's Setting documents. Read only to move settings to the player.
+   */
+  readonly storage?: { get(scope: string): unknown };
 }
 
 export interface FoundryI18n {

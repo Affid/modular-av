@@ -5,3 +5,6 @@ export const IMPORTED_SETTING = "legacyImported";
 
 /** The world setting naming the service module that carries calls. */
 export const SERVICE_SETTING = "service";
+
+/** The player's volume for each other player (see media/volumes.ts). */
+export const VOLUMES_SETTING = "volumes";

@@ -11,10 +11,11 @@ import { ALWAYS, captureOf, createTable, type Tab } from "./table.ts";
 
 type Table = ReturnType<typeof createTable>;
 
-const EFFECTS_SETTING = "effects";
-
-const savedEffects = (tab: Tab): unknown =>
-  tab.client.game.settings.get("modular-av", EFFECTS_SETTING);
+/** The player's voice effects, then this device's camera effects. */
+const savedEffects = (tab: Tab): unknown => [
+  ...(tab.client.game.settings.get("modular-av", "audioEffects") as string[]),
+  ...(tab.client.game.settings.get("modular-av", "effects") as string[]),
+];
 
 const cameraOf = (tab: Tab): MediaStreamTrack | null =>
   tab.core.controller().local.camera;

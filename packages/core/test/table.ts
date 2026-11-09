@@ -67,6 +67,8 @@ export interface TabOptions {
   readonly register?: (api: ModularAV) => void;
   /** The browser has no Document Picture-in-Picture. */
   readonly noPip?: boolean;
+  /** What this browser's localStorage holds from before, by "<module>.<key>". */
+  readonly stored?: Readonly<Record<string, unknown>>;
 }
 
 export interface Table {
@@ -103,7 +105,10 @@ export function createTable(
   };
 
   const join = (userId: string, tab: TabOptions = {}): Tab => {
-    const client = world.connect(userId, tab.av ? { av: tab.av } : {});
+    const client = world.connect(userId, {
+      ...(tab.av ? { av: tab.av } : {}),
+      ...(tab.stored ? { stored: tab.stored } : {}),
+    });
     const env = createFakeMediaEnv(tab.deny ? { deny: tab.deny } : {});
     const errors: unknown[] = [];
     const pip = createFakeDocumentPip();

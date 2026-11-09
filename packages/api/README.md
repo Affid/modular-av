@@ -22,6 +22,46 @@ A module that uses something added in a minor version requires that
 core: the release build writes the core version it was built with into
 `relationships.requires[].compatibility.minimum`, and Foundry checks it.
 
+## A module's settings
+
+A module keeps its settings through the core, so every module follows the
+same rule about what goes with the player:
+
+```ts
+Hooks.once("modularAV.register", (api: ModularAV) => {
+  api.settings.register("my-effect", "drive", {
+    storage: "player", // follows the player's login: a choice or a taste
+    type: Number,
+    default: 0.5,
+    onChange: (value) => apply(value),
+  });
+  api.settings.register("my-effect", "quality", {
+    storage: "device", // depends on the machine: its CPU, microphone, camera
+    type: String,
+    default: "standard",
+  });
+});
+```
+
+- `"player"` is Foundry's `user` scope: stored on the server, so it comes
+  back on another browser, device or address (a LAN address and a public
+  one are different sites to a browser, with storage of their own).
+- `"device"` is Foundry's `client` scope: this browser only.
+- Read and save with `api.settings.get` and `api.settings.set`. Saves of
+  one setting run one at a time; a player setting saves once the game is
+  ready. Foundry's own `game.settings.get` reads them too.
+- A setting that moves from `"device"` to `"player"` keeps its key: the
+  core moves this browser's value to the player once, when the game is
+  ready, unless the player saved one already. Nobody loses their setup to
+  the change.
+- Choose `"device"` for what one machine can do and another can't, and
+  `"player"` for the rest. A module's settings don't show in Foundry's
+  settings window; the module shows them in its own UI or as
+  contributions.
+
+`ModuleSetting` may gain optional members in a minor version (such as who
+may change where a setting is kept).
+
 ### Unions that may gain values
 
 UIs must cope with a value they don't know (show it plainly, or ignore
@@ -34,6 +74,8 @@ it), as a minor version may add one:
   goes under More)
 - `ContributionKind` (a UI ignores contributions of a kind it doesn't
   render) and `ModuleKind`
+- `SettingStorage` (a module that declares a value the core doesn't know
+  is refused, so declare only the values of the core you require)
 
 A service copes the same way with what the core passes it: it treats a
 `disconnect` reason it doesn't know like `"user"`, and rejects `publish`

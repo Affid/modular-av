@@ -2,7 +2,12 @@
 // browser contexts with fake devices, read and drive the core through its
 // public API on `game.modules.get("modular-av").api`.
 import type { AVState, ModularAV } from "@modular-av/api";
-import { type Browser, expect, type Page } from "@playwright/test";
+import {
+  type Browser,
+  type BrowserContextOptions,
+  expect,
+  type Page,
+} from "@playwright/test";
 import { loadFoundryEnv } from "../../scripts/foundry/env.ts";
 import { joinAs } from "../../scripts/foundry/session.ts";
 import { JITSI_DOCKER } from "../../scripts/services/jitsi.ts";
@@ -60,18 +65,18 @@ export interface FoundryBinding {
   readonly modifiers?: readonly string[];
 }
 
+/** `context` adds to the browser context, such as a storage state to start from. */
 export async function openPlayer(
   browser: Browser,
   name: string,
+  context: BrowserContextOptions = {},
 ): Promise<Player> {
   // Only Chromium takes these; Firefox grants devices by its launch prefs.
   const chromium = browser.browserType().name() === "chromium";
-  const page = await joinAs(
-    browser,
-    FOUNDRY_URL,
-    name,
-    chromium ? { permissions: ["camera", "microphone"] } : {},
-  );
+  const page = await joinAs(browser, FOUNDRY_URL, name, {
+    ...(chromium ? { permissions: ["camera", "microphone"] } : {}),
+    ...context,
+  });
   return wrap(page, name);
 }
 

@@ -11,7 +11,7 @@ import {
 /** The slice of Foundry's globals this module uses. */
 declare global {
   var game: {
-    settings: SettingsApi;
+    settings: Pick<SettingsApi, "get">;
     user: { can(permission: string): boolean } | null;
     i18n: { localize(key: string): string };
   };
@@ -30,13 +30,9 @@ declare global {
 let settings: CameraBackgroundSettings | null = null;
 let core: ModularAV | null = null;
 
-Hooks.once("init", () => {
-  settings = registerSettings(game.settings);
-});
-
 Hooks.once("modularAV.register", (api: ModularAV) => {
   core = api;
-  if (!settings) return;
+  settings = registerSettings(api.settings);
   registerBackground(api, {
     settings,
     route: (path) => foundry.utils.getRoute(path),

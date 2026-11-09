@@ -1,14 +1,22 @@
 import { clamp } from "./rect.ts";
 
-/** The slice of Foundry's settings a saved number uses. */
-export interface SettingsApi {
+/**
+ * The core's `api.settings`, as far as a saved number uses it: a setting is
+ * kept for the "player" (it follows their login) or the "device".
+ */
+export interface StoredSettings {
   register(
-    namespace: string,
+    module: string,
     key: string,
-    config: Readonly<Record<string, unknown>>,
+    setting: {
+      readonly storage: "player" | "device";
+      readonly type: NumberConstructor;
+      readonly default: number;
+      readonly onChange?: (value: unknown) => void;
+    },
   ): void;
-  get(namespace: string, key: string): unknown;
-  set(namespace: string, key: string, value: unknown): Promise<unknown>;
+  get(module: string, key: string): unknown;
+  set(module: string, key: string, value: unknown): Promise<void>;
 }
 
 export interface NumberRange {
@@ -24,12 +32,13 @@ export interface NumberSetting {
   set(value: number): Promise<void>;
 }
 
-/** Saved for this device. What it reads is always within `range`. */
-export function clientNumber(
-  settings: SettingsApi,
+/** Kept as `storage` says. What it reads is always within `range`. */
+export function savedNumber(
+  settings: StoredSettings,
   moduleId: string,
   key: string,
   range: NumberRange,
+  storage: "player" | "device",
 ): NumberSetting {
   const inRange = (value: unknown): number =>
     typeof value === "number" && Number.isFinite(value)
@@ -38,8 +47,7 @@ export function clientNumber(
   let listeners: readonly ((value: number) => void)[] = [];
   const read = (): number => inRange(settings.get(moduleId, key));
   settings.register(moduleId, key, {
-    scope: "client",
-    config: false,
+    storage,
     type: Number,
     default: range.value,
     onChange: () => {

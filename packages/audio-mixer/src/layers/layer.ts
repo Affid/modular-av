@@ -21,7 +21,7 @@ export interface Layer extends Snapshot {
   readonly includeGMs: boolean;
 }
 
-/** What the layers on this device took over, and which layers those are. */
+/** What the layers on the player took over, and which layers those are. */
 export interface UndoRecord {
   readonly ids: readonly string[];
   readonly values: Snapshot;

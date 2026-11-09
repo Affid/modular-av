@@ -1,7 +1,7 @@
-import { MODULE_ID } from "../constants.ts";
+import { ACTIVE_SETTING, MODULE_ID } from "../constants.ts";
 import type { PresetStore } from "./presets.ts";
 
-export const ACTIVE_SETTING = "activePreset";
+export { ACTIVE_SETTING };
 const FLAG = "presets";
 
 export interface FoundryUser {
@@ -21,7 +21,7 @@ export interface PresetStoreDeps {
 /**
  * On the player's own User, so presets follow them to any device. One key per
  * preset, each one JSON string: Foundry merges objects inside flags, so a key
- * removed from an object would survive. Which is active is per device.
+ * removed from an object would survive. Which is active is the player's.
  */
 export function foundryPresetStore(deps: PresetStoreDeps): PresetStore {
   return {

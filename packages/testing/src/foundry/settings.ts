@@ -47,6 +47,21 @@ export interface RegisteredSetting extends FakeSettingConfig {
   readonly key: string;
 }
 
+/**
+ * Foundry's `game.settings.storage`: "client" is the browser's
+ * localStorage (JSON strings by "<namespace>.<key>"), "user" and "world"
+ * the Setting documents, read for this client's user.
+ */
+export interface FakeSettingStorages {
+  get(scope: "client"): { getItem(key: string): string | null };
+  get(scope: "user" | "world"): {
+    getSetting(
+      key: string,
+      user?: string | null,
+    ): { value: unknown } | undefined;
+  };
+}
+
 export interface FakeSettings {
   /** Foundry registers "core.webrtc" (its A/V settings) before `init`. */
   readonly menus: Map<string, FakeSettingMenu>;
@@ -57,6 +72,7 @@ export interface FakeSettings {
   registerMenu(namespace: string, key: string, menu: FakeSettingMenu): void;
   get(namespace: string, key: string): unknown;
   set(namespace: string, key: string, value: unknown): Promise<unknown>;
+  readonly storage: FakeSettingStorages;
 }
 
 /**
@@ -88,11 +104,15 @@ export function createSettings(
   shared: SharedSettingsStore,
   isReady: () => boolean,
   owned: ReadonlyMap<string, OwnedSetting> = new Map(),
+  /** What this browser's localStorage already holds, as values. */
+  stored: Readonly<Record<string, unknown>> = {},
 ): FakeSettingsHandle {
   let configs = new Map<string, FakeSettingConfig>(
     [...owned].map(([key, setting]) => [key, setting.config]),
   );
-  let clientValues = new Map<string, string>();
+  let clientValues = new Map<string, string>(
+    Object.entries(stored).map(([key, value]) => [key, toJson(value)]),
+  );
 
   const configFor = (key: string): FakeSettingConfig => {
     const config = configs.get(key);
@@ -173,6 +193,20 @@ export function createSettings(
       return json === undefined
         ? structuredClone(config.default)
         : fromJson(json);
+    },
+
+    storage: {
+      get: ((scope: SettingScope) =>
+        scope === "client"
+          ? { getItem: (key: string) => clientValues.get(key) ?? null }
+          : {
+              getSetting(key: string) {
+                const json = shared.read(scope, key)?.json;
+                return json === undefined
+                  ? undefined
+                  : { value: fromJson(json) };
+              },
+            }) as FakeSettingStorages["get"],
     },
 
     set(namespace, key, value) {

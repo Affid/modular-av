@@ -1,7 +1,7 @@
 import {
-  clientNumber,
+  savedNumber,
   type NumberSetting,
-  type SettingsApi,
+  type StoredSettings,
 } from "@modular-av/kit";
 import { MODULE_ID } from "./constants.ts";
 
@@ -18,14 +18,20 @@ const STARTS: Readonly<Record<Knob, number>> = {
   squelch: 0.5,
 };
 
-/** Per device, as a player sets it up for one voice. */
-export function registerSettings(settings: SettingsApi): RadioSettings {
+/** The player's: they follow them to another browser or address. */
+export function registerSettings(settings: StoredSettings): RadioSettings {
   const knob = (key: Knob): NumberSetting =>
-    clientNumber(settings, MODULE_ID, key, {
-      min: 0,
-      max: 1,
-      value: STARTS[key],
-    });
+    savedNumber(
+      settings,
+      MODULE_ID,
+      key,
+      {
+        min: 0,
+        max: 1,
+        value: STARTS[key],
+      },
+      "player",
+    );
   return {
     drive: knob("drive"),
     static: knob("static"),

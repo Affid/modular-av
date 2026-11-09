@@ -8,6 +8,7 @@ import type {
 import type { Meters } from "./meters.ts";
 import type { Previews } from "./preview.ts";
 import type { Registry } from "./registry.ts";
+import type { ModuleSettings } from "./settings.ts";
 import type {
   ConnectionStats,
   ParticipantId,
@@ -66,6 +67,8 @@ export interface ModularAV {
   readonly effects: Registry<EffectDefinition>;
   readonly surfaces: Registry<SurfaceDefinition>;
   readonly contributions: Registry<Contribution>;
+  /** Modules' own settings, each kept for the player or for the device. */
+  readonly settings: ModuleSettings;
   socket(channel: string): Channel;
   /** A module file's URL through Foundry's route prefix. */
   assetUrl(moduleId: string, path: string): string;

@@ -170,11 +170,12 @@ export interface LocalState {
   /** Every registered effect, by id. */
   readonly effects: Readonly<Record<string, EffectState>>;
   /**
-   * What this device turned on, by id, in or out of a call. `effects` tells how
+   * What is turned on, by id, in or out of a call: the player's voice
+   * effects, this device's camera effects. `effects` tells how
    * each is doing: without a microphone every one of them reads `off`.
    */
   readonly chosenEffects: readonly string[];
-  /** Where each audio effect runs on this device, by id. */
+  /** Where each audio effect runs, for the player, by id. */
   readonly audioEffectPlaces: Readonly<Record<string, AudioPlace>>;
   /** The order the player set for each place; the core orders the rest. */
   readonly audioEffectOrder: Readonly<Record<AudioPlace, readonly string[]>>;

@@ -25,7 +25,7 @@ export interface LayerStatus {
   readonly state: LayerState;
 }
 
-/** A layer's stored JSON, and this device's own part of it. */
+/** A layer's stored JSON, and this player's own part of it. */
 export interface LayerStore {
   table(): unknown;
   personal(): unknown;
@@ -52,7 +52,7 @@ export interface LayersDeps {
 export interface Layers {
   /** Runs at load and on any change: safe to repeat. */
   reconcile(): Promise<void>;
-  /** "Not for me": this layer, on this device. */
+  /** "Not for me": this layer, for this player. */
   refuse(id: string): Promise<void>;
   accept(id: string): Promise<void>;
   keptOut(): boolean;

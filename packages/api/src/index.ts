@@ -101,6 +101,12 @@ export type {
   VideoResolution,
   VoiceMode,
 } from "./state.ts";
+export type {
+  ModuleSetting,
+  ModuleSettings,
+  SettingStorage,
+  SettingType,
+} from "./settings.ts";
 export type { Store, SubscribeOptions } from "./store.ts";
 export type {
   PageWindow,

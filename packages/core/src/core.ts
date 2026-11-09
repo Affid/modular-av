@@ -4,12 +4,16 @@ import type {
   EffectDefinition,
   AudioEffectHostOptions,
   ModularAV,
+  ModuleSettings,
+  Registry,
   ServiceDefinition,
+  SettingStorage,
+  SettingType,
   SurfaceDefinition,
 } from "@modular-av/api";
 import { createCommands } from "./commands.ts";
 import { validateContribution, validateSurface } from "./contributions.ts";
-import { MODULE_ID, SERVICE_SETTING } from "./constants.ts";
+import { MODULE_ID, SERVICE_SETTING, VOLUMES_SETTING } from "./constants.ts";
 import {
   type Controller,
   createController,
@@ -27,7 +31,14 @@ import type {
   FoundryNamespace,
   FoundryUi,
 } from "./foundry/globals.ts";
-import { EFFECTS_SETTING } from "./media/effect-choices.ts";
+import {
+  AUDIO_EFFECTS_SETTING,
+  EFFECTS_SETTING,
+} from "./media/effect-choices.ts";
+import {
+  createModuleSettings,
+  type CoreModuleSettings,
+} from "./settings/module-settings.ts";
 import { createMeters } from "./media/meters.ts";
 import type { MediaEnv } from "./media/env.ts";
 import {
@@ -100,6 +111,33 @@ const notReady = (): never => {
   throw new Error("Modular A/V is not set up yet (before Foundry's setup)");
 };
 
+/**
+ * Once ready: what this browser kept moves to the player (a lazy chunk),
+ * the player's volumes fill in Foundry's A/V settings, and what was read
+ * before that is applied again.
+ */
+function followPlayer(
+  deps: CoreDeps,
+  controller: Controller,
+  settings: CoreModuleSettings,
+  effects: Pick<Registry<EffectDefinition>, "get">,
+): void {
+  import("./settings/migrate.ts")
+    .then(({ moveToPlayer }) =>
+      moveToPlayer({
+        game: deps.game,
+        settings,
+        effects,
+        av: () => deps.game.webrtc?.settings ?? null,
+      }),
+    )
+    .then(() => {
+      controller.choices.apply();
+      controller.apply();
+    })
+    .catch(deps.onError);
+}
+
 /** Called in `init`: puts the client class, the dock host and the API in place. */
 export function installCore(deps: CoreDeps): InstalledCore {
   const { game, hooks } = deps;
@@ -131,29 +169,34 @@ export function installCore(deps: CoreDeps): InstalledCore {
     deps.foundry.applications.apps.av.CameraViews,
     () => hosting,
   );
-  const clientSetting = (key: string, type: unknown, value: unknown): void => {
-    game.settings.register(MODULE_ID, key, {
-      scope: "client",
-      config: false,
-      type,
-      default: value,
-    });
+  const settings = createModuleSettings(game);
+  // The machine's: the microphone's level, its gate, the camera's effects.
+  // The player's: their voice effects and how they run, their volumes.
+  const own = (
+    key: string,
+    storage: SettingStorage,
+    type: SettingType,
+    value: unknown,
+  ): void => {
+    settings.register(MODULE_ID, key, { storage, type, default: value });
   };
-  clientSetting(SENSITIVITY_SETTING, Object, DEFAULT_SENSITIVITY);
-  clientSetting(GATE_FALLBACK_SETTING, String, DEFAULT_GATE_FALLBACK);
-  clientSetting(VIDEO_RESOLUTION_SETTING, String, DEFAULT_VIDEO_RESOLUTION);
-  clientSetting(CUT_TAILS_SETTING, Boolean, false);
-  clientSetting(CHANNEL_LEVEL_SETTING, Number, 1);
-  clientSetting(EFFECT_MIX_SETTING, Object, {});
-  clientSetting(EFFECT_PLACES_SETTING, Object, {});
-  clientSetting(EFFECT_ORDER_SETTING, Object, {});
-  clientSetting(EFFECTS_SETTING, Array, []);
-  clientSetting(DEAFENED_SETTING, Boolean, false);
+  own(SENSITIVITY_SETTING, "device", Object, DEFAULT_SENSITIVITY);
+  own(GATE_FALLBACK_SETTING, "device", String, DEFAULT_GATE_FALLBACK);
+  own(EFFECTS_SETTING, "device", Array, []);
+  own(DEAFENED_SETTING, "device", Boolean, false);
+  own(VIDEO_RESOLUTION_SETTING, "device", String, DEFAULT_VIDEO_RESOLUTION);
+  own(AUDIO_EFFECTS_SETTING, "player", Array, []);
+  own(CUT_TAILS_SETTING, "player", Boolean, false);
+  own(CHANNEL_LEVEL_SETTING, "player", Number, 1);
+  own(EFFECT_MIX_SETTING, "player", Object, {});
+  own(EFFECT_PLACES_SETTING, "player", Object, {});
+  own(EFFECT_ORDER_SETTING, "player", Object, {});
+  own(VOLUMES_SETTING, "player", Object, {});
 
   const api: ModularAV = Object.freeze({
     version: mod.version,
     state: store.view,
-    commands: createCommands(game, controller, effects.api),
+    commands: createCommands(game, controller, effects.api, settings),
     media: Object.freeze({
       attach: (...args: Parameters<Controller["attach"]>) =>
         controller().attach(...args),
@@ -195,6 +238,16 @@ export function installCore(deps: CoreDeps): InstalledCore {
     effects: effects.api,
     surfaces: surfaces.api,
     contributions: contributions.api,
+    settings: Object.freeze({
+      register: (...args: Parameters<ModuleSettings["register"]>) => {
+        settings.register(...args);
+      },
+      get: (module: string, key: string) => settings.get(module, key),
+      set: (module: string, key: string, value: unknown) =>
+        settings.set(module, key, value),
+      storageOf: (module: string, key: string) =>
+        settings.storageOf(module, key),
+    }),
     socket: (name: string) => channels.channel(name),
     assetUrl: (moduleId: string, path: string) =>
       assetUrl((p) => deps.foundry.utils.getRoute(p), moduleId, path),
@@ -239,6 +292,7 @@ export function installCore(deps: CoreDeps): InstalledCore {
       selectedService: () =>
         String(game.settings.get(MODULE_ID, SERVICE_SETTING)),
       renderDock: () => deps.ui().webrtc?.render(),
+      saveSetting: (key, value) => settings.set(MODULE_ID, key, value),
       onError: deps.onError,
       now: deps.now,
       randomId: deps.randomId,
@@ -253,7 +307,9 @@ export function installCore(deps: CoreDeps): InstalledCore {
 
   hooks.once("ready", () => {
     installSettingsWindow(deps, surfaces.api.list());
+    settings.ready();
     controller().ready();
+    followPlayer(deps, controller(), settings, effects.api);
     onReady(
       deps,
       controller(),

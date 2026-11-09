@@ -1,7 +1,7 @@
 import {
-  clientNumber,
+  savedNumber,
   type NumberSetting,
-  type SettingsApi,
+  type StoredSettings,
 } from "@modular-av/kit";
 import { MODULE_ID } from "./constants.ts";
 
@@ -15,10 +15,10 @@ export interface EchoSettings {
 export const TIME = { min: 50, max: 600, value: 300 } as const;
 export const DECAY = { min: 0.3, max: 3, value: 1.5 } as const;
 
-/** Per device, as a player sets it up for one voice. */
-export function registerSettings(settings: SettingsApi): EchoSettings {
+/** The player's: they follow them to another browser or address. */
+export function registerSettings(settings: StoredSettings): EchoSettings {
   return {
-    time: clientNumber(settings, MODULE_ID, "time", TIME),
-    decay: clientNumber(settings, MODULE_ID, "decay", DECAY),
+    time: savedNumber(settings, MODULE_ID, "time", TIME, "player"),
+    decay: savedNumber(settings, MODULE_ID, "decay", DECAY, "player"),
   };
 }

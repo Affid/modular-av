@@ -900,7 +900,29 @@ Principles:
   client — never put secrets there; only GMs can write), `user` (new in v14:
   per player, follows them across devices), `client` (this browser only:
   device ids, the GM's secret). A setting's `onChange` already re-renders:
-  don't render twice.
+  don't render twice. A `user` setting is a Setting document with the
+  user's id (players may create and update their own); `set` throws before
+  `ready`, like a world setting, and saves over the network, so a
+  read-merge-write of one races where a client setting's didn't.
+- **Where a module's setting is kept** (issue #11): modules declare
+  `"player"` (`user` scope) or `"device"` (`client` scope) through
+  `api.settings.register`, because a browser keeps `client` settings per
+  address and a player on a LAN address one day and a public one the next
+  lost everything. The player's: voice effects chosen
+  (`audioEffects`) and how they run (places, order, mix, channel level,
+  cut tails), effect values (EQ, echo, reverb, radio, the mic boost's Even
+  out), the camera background's strength and image, the mixer's preset and
+  layer records, volumes (a copy of Foundry's own client volumes, filled
+  back in at ready). The device's: microphone sensitivity, the gate
+  fallback, deafened, the camera's resolution, the mic boost's level (how
+  quiet that microphone is), camera effects chosen (`effects`), blur
+  quality, Krisp quality, device choices (Foundry's, and device ids are per
+  site anyway). At ready the core moves a browser's old value of each
+  player setting to the player once, if the player has none, from a lazy
+  chunk, then applies again. The core's setting-writing commands run one at a time, and the
+  effect choices keep the list being saved, since the player's half now
+  saves over the network. Step 2 of the issue (a GM choosing the storage)
+  is open: `ModuleSetting` can gain an optional member for it.
 - Foundry's server authenticates the sender of socket messages (the user id
   arrives with each message); a GM's client can trust it when deciding who
   gets a token.
@@ -1882,8 +1904,11 @@ it is picked up explicitly.
   above 1 to load the booster, which is lazy. The dock's popup window
   (issue #10) took it to 120.0 KB, so the budget went to 120,500
   bytes: a window must open within the click that asks for it, so its code
-  can't load first. The next core feature needs lazy loading or a budget
-  decision.
+  can't load first. Settings kept for the player (issue #11) took it to
+  124.2 KB, so the budget went to 124,500 bytes: modules register in the
+  hook, so `api.settings` and the core's own declarations are in the entry;
+  moving a browser's values and the volume copy are lazy. The next core
+  feature needs lazy loading or a budget decision.
 - **The modules window and other GMs**: it reads the installed modules
   when it opens; another GM applying meanwhile isn't seen until it is
   opened again (Apply reloads everyone, so only a window left open across

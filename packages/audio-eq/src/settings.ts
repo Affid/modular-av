@@ -1,7 +1,7 @@
 import {
-  clientNumber,
+  savedNumber,
   type NumberSetting,
-  type SettingsApi,
+  type StoredSettings,
 } from "@modular-av/kit";
 import { MODULE_ID } from "./constants.ts";
 
@@ -14,9 +14,9 @@ export type EqSettings = Readonly<Record<Band, NumberSetting>>;
 
 export const GAIN = { min: -12, max: 12, value: 0 } as const;
 
-/** Per device: a microphone's character belongs to the machine. */
-export function registerSettings(settings: SettingsApi): EqSettings {
+/** The player's: they follow them to another browser or address. */
+export function registerSettings(settings: StoredSettings): EqSettings {
   const band = (key: Band): NumberSetting =>
-    clientNumber(settings, MODULE_ID, key, GAIN);
+    savedNumber(settings, MODULE_ID, key, GAIN, "player");
   return { low: band("low"), mid: band("mid"), high: band("high") };
 }

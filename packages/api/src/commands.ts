@@ -46,8 +46,9 @@ export interface AVCommands {
   /** Stops all playback and the microphone; self-reported to others. */
   setDeafened(deafened: boolean): Promise<void>;
   /**
-   * This client's playback volume for a participant, 0 to 2. Above 1 boosts
-   * a quiet player, through a limiter so the boost can't clip.
+   * The playback volume for a participant, 0 to 2, for the player: their
+   * other browsers get it too. Above 1 boosts a quiet player, through a
+   * limiter so the boost can't clip.
    */
   setVolume(participant: ParticipantId, volume: number): Promise<void>;
   /**
@@ -65,25 +66,26 @@ export interface AVCommands {
   /** Skips the wait while `retrying`. */
   reconnectNow(): Promise<void>;
   /**
-   * Turns an effect on or off, for this device. One turned on replaces the
+   * Turns an effect on or off: a voice effect for the player (it follows
+   * their login), a camera effect for this device. One turned on replaces the
    * running effect of its exclusive group once it runs; the camera is held
    * from now until a video effect runs. The effect's state tells how
    * starting went.
    */
   setEffectEnabled(effect: string, enabled: boolean): Promise<void>;
   /**
-   * For this device: an effect's dry:wet (`latency` declared) or the wet
+   * For the player: an effect's dry:wet (`latency` declared) or the wet
    * amount of one on a send, 0 to 1. Rejects for any other effect.
    */
   setAudioEffectMix(effect: string, mix: number): Promise<void>;
   /**
-   * For this device: moves an audio effect, running or not, without
+   * For the player: moves an audio effect, running or not, without
    * restarting it. Any effect may go anywhere, once: a UI should warn about a
    * `tail` ahead of the gate, which holds the gate open.
    */
   setAudioEffectPlace(effect: string, place: AudioPlace): Promise<void>;
   /**
-   * For this device: the order of `effects` within `place`. Noise suppression
+   * For the player: the order of `effects` within `place`. Noise suppression
    * runs first unless listed, and what isn't listed follows.
    */
   setAudioEffectOrder(
@@ -91,17 +93,17 @@ export interface AVCommands {
     effects: readonly string[],
   ): Promise<void>;
   /**
-   * For this device: whether a tail stops the moment the microphone closes
+   * For the player: whether a tail stops the moment the microphone closes
    * (mute, deafen, push to talk), not up to 3 s after it.
    */
   setAudioCutTails(cut: boolean): Promise<void>;
   /**
-   * For this device: how much of the voice goes out dry, 0 to 1, beside
+   * For the player: how much of the voice goes out dry, 0 to 1, beside
    * what sends add. Acts as 1 while no send carries it.
    */
   setAudioChannelLevel(level: number): Promise<void>;
   /**
-   * For this device: checks all of `change` first, so a bad part rejects it
+   * For the player: checks all of `change` first, so a bad part rejects it
    * whole, then saves it and applies it once. A running effect moves once, not
    * through the states between separate commands.
    */

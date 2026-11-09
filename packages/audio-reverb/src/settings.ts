@@ -1,7 +1,7 @@
 import {
-  clientNumber,
+  savedNumber,
   type NumberSetting,
-  type SettingsApi,
+  type StoredSettings,
 } from "@modular-av/kit";
 import { MODULE_ID } from "./constants.ts";
 
@@ -15,10 +15,16 @@ export interface ReverbSettings {
 export const DECAY = { min: 0.3, max: 3, value: 1.5 } as const;
 const BRIGHTNESS = { min: 0, max: 1, value: 0.5 } as const;
 
-/** Per device, as a player sets it up for one voice and one machine. */
-export function registerSettings(settings: SettingsApi): ReverbSettings {
+/** The player's: they follow them to another browser or address. */
+export function registerSettings(settings: StoredSettings): ReverbSettings {
   return {
-    decay: clientNumber(settings, MODULE_ID, "decay", DECAY),
-    brightness: clientNumber(settings, MODULE_ID, "brightness", BRIGHTNESS),
+    decay: savedNumber(settings, MODULE_ID, "decay", DECAY, "player"),
+    brightness: savedNumber(
+      settings,
+      MODULE_ID,
+      "brightness",
+      BRIGHTNESS,
+      "player",
+    ),
   };
 }

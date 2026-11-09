@@ -13,11 +13,11 @@ export {
   METER_MIN_DB,
 } from "./meter.ts";
 export type { Meter, Reading } from "./meter.ts";
-export { clientNumber } from "./number-setting.ts";
+export { savedNumber } from "./number-setting.ts";
 export type {
   NumberRange,
   NumberSetting,
-  SettingsApi,
+  StoredSettings,
 } from "./number-setting.ts";
 export { keepOnScreen, SCREEN_MARGIN } from "./on-screen.ts";
 export { openPopover } from "./popover.ts";
