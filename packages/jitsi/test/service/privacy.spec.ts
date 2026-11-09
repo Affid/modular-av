@@ -1,4 +1,4 @@
-import { openPeers } from "@modular-av/testing/contract";
+import { openPeers, type Peer } from "@modular-av/testing/contract";
 import { expect, test } from "@playwright/test";
 import { JITSI_DOCKER } from "../../../../scripts/services/jitsi.ts";
 
@@ -12,11 +12,23 @@ const OPTIONS = {
   secrets: { appId: JITSI_DOCKER.appId, appSecret: JITSI_DOCKER.appSecret },
 };
 
+let opened: readonly Peer[] = [];
+
+// A page left open keeps its camera, and Chrome gives every later capture
+// in this browser that camera's size.
+test.afterEach(async () => {
+  const closing = opened;
+  opened = [];
+  await Promise.all(closing.map((peer) => peer.context.close()));
+});
+
 test("talks only to the Jitsi server and the page's own origin", async ({
   browser,
 }) => {
   // Arrange
-  const [alice, bob] = await openPeers(browser, OPTIONS, "alice", "bob");
+  const peers = await openPeers(browser, OPTIONS, "alice", "bob");
+  opened = peers;
+  const [alice, bob] = peers;
   if (!alice || !bob) throw new Error("no peers");
   const own = new URL(alice.page.url()).host;
   const hosts = new Set<string>();
