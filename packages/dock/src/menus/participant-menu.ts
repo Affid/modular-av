@@ -57,13 +57,14 @@ function volume(
     Math.round((ctx.api.state.get().participants[id]?.volume ?? 1) * 100);
   const input = el("input", {
     doc,
-    attrs: { id: inputId, type: "range", min: "0", max: "100", step: "1" },
+    attrs: { id: inputId, type: "range", min: "0", max: "200", step: "1" },
   });
+  // Above 100%, the core boosts them through a limiter.
   const describe = (): void => {
-    input.setAttribute(
-      "aria-valuetext",
-      ctx.t("menu.volumeValue", { percent: input.value }),
-    );
+    const percent = input.value;
+    const key =
+      Number(percent) > 100 ? "menu.volumeBoosted" : "menu.volumeValue";
+    input.setAttribute("aria-valuetext", ctx.t(key, { percent }));
   };
   const follow = (): void => {
     // Not while the player drags it: their hand wins.

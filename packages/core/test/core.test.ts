@@ -506,12 +506,47 @@ describe("deafen and volume", () => {
     const output = p1.env.outputs.find((o) => o.state.track === micOf(gm));
     expect(output?.state.volume).toBe(0.25);
     expect(master(p1).settings.client.users.gm?.volume).toBe(0.25);
-    await expect(p1.api.commands.setVolume("gm", 2)).rejects.toMatchObject({
+    await expect(p1.api.commands.setVolume("gm", 2.5)).rejects.toMatchObject({
       code: "invalid-argument",
     });
     await expect(p1.api.commands.setVolume("x", 1)).rejects.toMatchObject({
       code: "unknown-participant",
     });
+  });
+});
+
+describe("a boost for a quiet player", () => {
+  it("plays a player louder than full volume, up to twice, and remembers it", async () => {
+    // Arrange
+    const table = createTable();
+    const gm = table.join("gm", { secret: true });
+    const p1 = table.join("p1");
+    await table.settle();
+
+    // Act
+    await p1.api.commands.setVolume("gm", 1.5);
+    await table.settle();
+
+    // Assert
+    const output = p1.env.outputs.find((o) => o.state.track === micOf(gm));
+    expect(output?.state.volume).toBe(1.5);
+    expect(p1.api.state.get().participants.gm?.volume).toBe(1.5);
+    expect(master(p1).settings.client.users.gm?.volume).toBe(1.5);
+  });
+
+  it("refuses more than twice the volume", async () => {
+    const table = createTable();
+    table.join("gm", { secret: true });
+    const p1 = table.join("p1");
+    await table.settle();
+
+    await p1.api.commands.setVolume("gm", 2);
+
+    await expect(p1.api.commands.setVolume("gm", 2.01)).rejects.toMatchObject({
+      code: "invalid-argument",
+      params: { volume: 2.01 },
+    });
+    expect(p1.api.state.get().participants.gm?.volume).toBe(2);
   });
 });
 

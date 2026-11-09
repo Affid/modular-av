@@ -1,4 +1,5 @@
 import type { DeviceKind, DeviceList } from "@modular-av/api";
+import type { Booster, OutputState } from "./browser-boost.ts";
 import { canWatchFrames, watchFrames } from "./browser-frames.ts";
 import { createOnScreenWatcher } from "./browser-on-screen.ts";
 import type { AudioOutput, MediaEnv } from "./env.ts";
@@ -21,27 +22,62 @@ async function capture(
   return track;
 }
 
-/** Remote WebRTC audio must reach an element in Chrome, even with Web Audio. */
+/**
+ * Remote WebRTC audio must reach an element in Chrome, even with Web Audio.
+ * Above full volume the booster plays it (its code loads then) and the
+ * element stays on, muted; until the booster runs, the element plays at full.
+ */
 function createElementOutput(): AudioOutput {
   const element = document.createElement("audio");
   element.autoplay = true;
+  let state: OutputState = {
+    ...{ track: null, volume: 1, muted: false, sinkId: "default" },
+  };
+  let booster: Booster | null = null;
+  let loading = false;
+  let disposed = false;
+  const sync = (): void => {
+    element.volume = Math.min(1, Math.max(0, state.volume));
+    element.muted = (booster?.sync(state) ?? false) || state.muted;
+    if (state.volume <= 1 || booster || loading || disposed) return;
+    loading = true;
+    import("./browser-boost.ts")
+      .then(({ createBooster }) => {
+        if (!disposed) booster = createBooster(sync);
+        sync();
+      })
+      // Without it, the element plays at full volume.
+      .catch(() => undefined)
+      .finally(() => {
+        loading = false;
+      });
+  };
+  const change = (next: Partial<OutputState>): void => {
+    state = { ...state, ...next };
+    sync();
+  };
   return {
     play(track) {
       element.srcObject = track ? new MediaStream([track]) : null;
       if (track) element.play().catch(() => undefined);
+      change({ track });
     },
-    setVolume(volume) {
-      element.volume = Math.min(1, Math.max(0, volume));
+    setVolume: (volume) => {
+      change({ volume });
     },
-    setMuted(muted) {
-      element.muted = muted;
+    setMuted: (muted) => {
+      change({ muted });
     },
     async setSinkId(sinkId) {
+      change({ sinkId });
       // Older Safari and Foundry's Electron app may lack output selection.
       if (!("setSinkId" in element)) return;
       await element.setSinkId(sinkId === "default" ? "" : sinkId);
     },
     dispose() {
+      disposed = true;
+      booster?.dispose();
+      booster = null;
       element.srcObject = null;
     },
   };

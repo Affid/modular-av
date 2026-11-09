@@ -79,7 +79,7 @@ export interface ParticipantState {
    */
   readonly blockedAudio: boolean;
   readonly blockedVideo: boolean;
-  /** This client's playback volume for them, 0 to 1. */
+  /** This client's playback volume for them, 0 to 2 (above 1: boosted). */
   readonly volume: number;
   /** This client neither plays nor shows them (Foundry's "hide user"). */
   readonly hiddenByMe: boolean;
