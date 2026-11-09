@@ -129,33 +129,34 @@ test("fits the suggestion's longer label in its menu item, under Foundry's butto
   expect(fit).toEqual({ overflow: 0, align: "center" });
 });
 
-test("follows the dock into the Picture-in-Picture window", async ({
-  page,
-}) => {
-  await open(page, "vines");
+for (const { kind, choice } of [
+  { kind: "popup", choice: "In a window of its own" },
+  { kind: "pip", choice: "In a window always on top" },
+] as const)
+  test(`follows the dock into its ${kind} window`, async ({ page }) => {
+    await open(page, "vines");
 
-  await page.locator(".mav-dock-placement").click();
-  await page
-    .getByRole("menuitemradio", { name: "In a window of its own" })
-    .click();
+    await page.locator(".mav-dock-placement").click();
+    await page.getByRole("menuitemradio", { name: choice }).click();
 
-  await expect
-    .poll(() =>
-      page.evaluate(() => {
-        const api = window.harness?.client.game.modules.get("modular-av")
-          ?.api as ModularAV;
-        const doc = api.windows.pip.current?.document;
-        const tile = doc?.querySelector(".mav-dock-tile");
-        return tile && doc
-          ? {
-              themed: doc.documentElement.classList.contains("mav-theme-vines"),
-              background: getComputedStyle(tile).backgroundColor,
-            }
-          : null;
-      }),
-    )
-    .toEqual({ themed: true, background: VINE_TILE });
-});
+    await expect
+      .poll(() =>
+        page.evaluate((which) => {
+          const api = window.harness?.client.game.modules.get("modular-av")
+            ?.api as ModularAV;
+          const doc = api.windows[which].current?.document;
+          const tile = doc?.querySelector(".mav-dock-tile");
+          return tile && doc
+            ? {
+                themed:
+                  doc.documentElement.classList.contains("mav-theme-vines"),
+                background: getComputedStyle(tile).backgroundColor,
+              }
+            : null;
+        }, kind),
+      )
+      .toEqual({ themed: true, background: VINE_TILE });
+  });
 
 test("the docked grid settles with frames that reach past the tiles", async ({
   page,

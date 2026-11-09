@@ -68,7 +68,8 @@ along: see [docs/MIGRATING.md](docs/MIGRATING.md).
 
 Chrome, Edge and other Chromium browsers run everything. Firefox and
 Safari aren't tested yet; there the camera background isn't offered and
-the dock can't open in a window of its own.
+the dock's window can't stay always on top (a normal window of its own
+works).
 
 ## Privacy and security
 

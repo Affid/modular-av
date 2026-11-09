@@ -13,7 +13,8 @@ import type {
   MeterReading,
   ModularAV,
   ParticipantId,
-  PipWindow,
+  PageWindow,
+  PageWindows,
   Registry,
   Store,
   SurfaceDefinition,
@@ -152,6 +153,50 @@ export interface FakeApiOptions {
   readonly state?: AVState;
   /** Whether the browser has Document Picture-in-Picture. */
   readonly pip?: boolean;
+  /** Whether popups open (true unless a blocker is played). */
+  readonly popup?: boolean;
+}
+
+/** One kind of window: opens with a document of its own, or refuses. */
+function fakeWindows(supported: boolean): PageWindows {
+  let current: PageWindow | null = null;
+  return {
+    supported: () => supported,
+    get current() {
+      return current;
+    },
+    request(owner) {
+      if (!supported)
+        return Promise.reject(
+          Object.assign(new Error("unsupported"), {
+            code: "unsupported",
+            params: {},
+          }),
+        );
+      current?.close();
+      const doc = document.implementation.createHTMLDocument("");
+      let listeners: (() => void)[] = [];
+      const opened: PageWindow = {
+        owner,
+        window: { document: doc } as unknown as Window,
+        document: doc,
+        close() {
+          if (current === opened) current = null;
+          for (const l of listeners) l();
+          listeners = [];
+        },
+        onClose(listener) {
+          listeners = [...listeners, listener];
+          return () => {
+            listeners = listeners.filter((l) => l !== listener);
+          };
+        },
+      };
+      current = opened;
+      return Promise.resolve(opened);
+    },
+    onChange: () => () => undefined,
+  };
 }
 
 export function createFakeApi(options: FakeApiOptions = {}): FakeApi {
@@ -164,7 +209,6 @@ export function createFakeApi(options: FakeApiOptions = {}): FakeApi {
     listener: (r: MeterReading) => void;
   }[] = [];
   let stats = new Map<string, ConnectionStats>();
-  let pip: PipWindow | null = null;
   const surfaces = openRegistry<SurfaceDefinition>();
   const contributions = openRegistry<Contribution>();
   const preview = createFakePreviews();
@@ -214,42 +258,8 @@ export function createFakeApi(options: FakeApiOptions = {}): FakeApi {
       },
     },
     windows: {
-      pip: {
-        supported: () => options.pip ?? false,
-        get current() {
-          return pip;
-        },
-        request(owner) {
-          if (!(options.pip ?? false))
-            return Promise.reject(
-              Object.assign(new Error("unsupported"), {
-                code: "unsupported",
-                params: {},
-              }),
-            );
-          const doc = document.implementation.createHTMLDocument("");
-          let listeners: (() => void)[] = [];
-          const opened: PipWindow = {
-            owner,
-            window: { document: doc } as unknown as Window,
-            document: doc,
-            close() {
-              pip = null;
-              for (const l of listeners) l();
-              listeners = [];
-            },
-            onClose(listener) {
-              listeners = [...listeners, listener];
-              return () => {
-                listeners = listeners.filter((l) => l !== listener);
-              };
-            },
-          };
-          pip = opened;
-          return Promise.resolve(opened);
-        },
-        onChange: () => () => undefined,
-      },
+      pip: fakeWindows(options.pip ?? false),
+      popup: fakeWindows(options.popup ?? true),
     },
     stats: {
       get(participant) {

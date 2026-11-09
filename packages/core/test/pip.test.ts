@@ -35,7 +35,7 @@ describe("the Picture-in-Picture window", () => {
     expect(opened.owner).toBe("modular-av-dock");
     expect(opened.window).toBe(p1.pip.window);
     expect(opened.document).toBe(p1.pip.window?.document);
-    expect(p1.pipPrepared).toEqual([opened.window]);
+    expect(p1.prepared).toEqual([opened.window]);
     expect(p1.api.windows.pip.current).toBe(opened);
     expect(changes).toEqual([opened]);
   });
@@ -51,7 +51,7 @@ describe("the Picture-in-Picture window", () => {
 
     expect(closed).toHaveBeenCalledTimes(1);
     expect(p1.api.windows.pip.current).toBeNull();
-    expect(p1.pipUndone).toEqual([opened.window]);
+    expect(p1.undone).toEqual([opened.window]);
   });
 
   it("closes another module's window for a new request", async () => {

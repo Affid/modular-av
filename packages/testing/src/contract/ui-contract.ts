@@ -27,7 +27,7 @@ export type Control =
 export interface UIDriver {
   /** The package directory of the UI module (the harness's ?module=). */
   readonly module: string;
-  /** The module id that asks for the Picture-in-Picture window. */
+  /** The module id that asks for the windows of the page's own. */
   readonly moduleId: string;
   /** A layout or mode the contract runs in, named in the test titles. */
   readonly variant?: string;
@@ -43,8 +43,10 @@ export interface UIDriver {
   openQuickControls(page: Page): Promise<Locator>;
   /** Opens the connection details of a participant's menu. */
   openConnectionDetails(page: Page, menu: Locator): Promise<Locator>;
-  /** Puts the cameras in the Picture-in-Picture window, from a click. */
+  /** Puts the cameras in a normal window of their own, from a click. */
   openWindow(page: Page): Promise<void>;
+  /** If the UI offers it: the cameras in the window always on top. */
+  openOnTop?(page: Page): Promise<void>;
   /**
    * In an open settings window with tabs, shows the sections that name no
    * tab (as the sample's doesn't).
@@ -343,31 +345,56 @@ function contributionTests(driver: UIDriver): void {
   });
 }
 
+/** How many participants the window of `kind` holds for the driver's module; -1 if not its. */
+function inWindow(
+  page: Page,
+  kind: "popup" | "pip",
+  owner: string,
+): Promise<number> {
+  return page.evaluate(
+    ({ which, module }) => {
+      const api = window.harness?.client.game.modules.get("modular-av")
+        ?.api as ModularAV;
+      const current = api.windows[which].current;
+      return current?.owner === module
+        ? current.document.querySelectorAll("[data-participant-id]").length
+        : -1;
+    },
+    { which: kind, module: owner },
+  );
+}
+
+function closeWindow(page: Page, kind: "popup" | "pip"): Promise<void> {
+  return page.evaluate((which) => {
+    const api = window.harness?.client.game.modules.get("modular-av")
+      ?.api as ModularAV;
+    api.windows[which].current?.close();
+  }, kind);
+}
+
 function windowTests(driver: UIDriver): void {
-  test("moves the cameras into the Picture-in-Picture window and back", async ({
+  test("moves the cameras into a window of its own and back", async ({
     page,
   }) => {
     await open(page, driver);
 
     await driver.openWindow(page);
 
-    await expect
-      .poll(() =>
-        page.evaluate((owner) => {
-          const api = window.harness?.client.game.modules.get("modular-av")
-            ?.api as ModularAV;
-          const pip = api.windows.pip.current;
-          return pip?.owner === owner
-            ? pip.document.querySelectorAll("[data-participant-id]").length
-            : -1;
-        }, driver.moduleId),
-      )
-      .toBe(3);
-    await page.evaluate(() => {
-      const api = window.harness?.client.game.modules.get("modular-av")
-        ?.api as ModularAV;
-      api.windows.pip.current?.close();
-    });
+    await expect.poll(() => inWindow(page, "popup", driver.moduleId)).toBe(3);
+    await closeWindow(page, "popup");
+    await expect(participant(page, "p1")).toBeVisible();
+  });
+
+  if (!driver.openOnTop) return;
+  test("moves the cameras into the window always on top and back", async ({
+    page,
+  }) => {
+    await open(page, driver);
+
+    await driver.openOnTop?.(page);
+
+    await expect.poll(() => inWindow(page, "pip", driver.moduleId)).toBe(3);
+    await closeWindow(page, "pip");
     await expect(participant(page, "p1")).toBeVisible();
   });
 }

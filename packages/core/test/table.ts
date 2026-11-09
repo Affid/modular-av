@@ -7,12 +7,14 @@ import {
   type AVClientSettings,
   createFakeDocumentPip,
   createFakeMediaEnv,
+  createFakePopups,
   createFakeWorld,
   createMockServiceHub,
   type FakeAVMaster,
   type FakeCaptureContext,
   type FakeClient,
   type FakeDocumentPip,
+  type FakePopups,
   type FakeMediaEnv,
   type FakeWorld,
   type FakeWorldOptions,
@@ -38,9 +40,14 @@ export interface Tab {
   readonly client: FakeClient;
   readonly env: FakeMediaEnv;
   readonly pip: FakeDocumentPip;
-  /** Picture-in-Picture windows the core prepared, and those it undid. */
-  readonly pipPrepared: Window[];
-  readonly pipUndone: Window[];
+  readonly popups: FakePopups;
+  /** Windows of the page's own the core prepared, and those it undid. */
+  readonly prepared: Window[];
+  readonly undone: Window[];
+  /** Plays the Foundry page going away (`pagehide`). */
+  hidePage(): void;
+  /** How many listen for the page going away. */
+  pageHideListeners(): number;
   readonly core: InstalledCore;
   readonly api: ModularAV;
   readonly errors: unknown[];
@@ -100,8 +107,10 @@ export function createTable(
     const env = createFakeMediaEnv(tab.deny ? { deny: tab.deny } : {});
     const errors: unknown[] = [];
     const pip = createFakeDocumentPip();
-    const pipPrepared: Window[] = [];
-    const pipUndone: Window[] = [];
+    const popups = createFakePopups();
+    const prepared: Window[] = [];
+    const undone: Window[] = [];
+    let pageHidden: readonly (() => void)[] = [];
     if (!tab.noService)
       client.Hooks.on("modularAV.register", (api: ModularAV) => {
         api.services.register(
@@ -121,10 +130,17 @@ export function createTable(
       env,
       windows: {
         documentPip: () => (tab.noPip ? null : pip),
-        preparePip(window) {
-          pipPrepared.push(window);
+        openPopup: (features) => popups.open(features),
+        onPageHide(listener) {
+          pageHidden = [...pageHidden, listener];
+          return () => {
+            pageHidden = pageHidden.filter((l) => l !== listener);
+          };
+        },
+        prepareWindow(window) {
+          prepared.push(window);
           return Promise.resolve(() => {
-            pipUndone.push(window);
+            undone.push(window);
           });
         },
       },
@@ -135,7 +151,11 @@ export function createTable(
     client.runLifecycle();
     return {
       ...{ client, env, core, api: core.api, errors },
-      ...{ pip, pipPrepared, pipUndone },
+      ...{ pip, popups, prepared, undone },
+      hidePage() {
+        for (const listener of pageHidden) listener();
+      },
+      pageHideListeners: () => pageHidden.length,
     };
   };
 

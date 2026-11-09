@@ -12,6 +12,7 @@ const CHOICES: readonly Where[] = [
   "floating",
   "scattered",
   "window",
+  "on-top",
 ];
 
 interface SceneItem {
@@ -58,8 +59,10 @@ function sceneItems(ctx: DockContext, scene: SceneControls): SceneItem[] {
 }
 
 /**
- * Where the cameras go. "In a window of its own" is offered only where the
- * browser can (Chrome, Edge), and says why otherwise.
+ * Where the cameras go. "In a window of its own" is a normal window, which
+ * can go full screen on any monitor; "Always on top" (Picture-in-Picture)
+ * is offered only where the browser can (Chrome, Edge), and says why
+ * otherwise.
  */
 export function openPlacementMenu(
   ctx: DockContext,
@@ -73,7 +76,7 @@ export function openPlacementMenu(
     className: "mav-dock-alert",
     attrs: { role: "alert" },
   });
-  const supported = ctx.api.windows.pip.supported();
+  const onTop = ctx.api.windows.pip.supported();
   const suggested = ctx.themes.shown()?.suggestedLayout;
   /** The theme's suggested layout is offered, never applied by itself. */
   const isSuggested = (where: Where): boolean =>
@@ -95,14 +98,16 @@ export function openPlacementMenu(
         "data-placement": where,
       },
     });
-    if (where === "window" && !supported) {
+    if (where === "on-top" && !onTop) {
       item.disabled = true;
-      item.title = ctx.t("dock.windowUnsupported");
+      item.title = ctx.t("dock.onTopUnsupported");
     }
     item.addEventListener("click", () => {
       popover?.close();
       run(ctx, alerts, () =>
-        where === "window" ? placement.openWindow() : placement.set(where),
+        where === "window" || where === "on-top"
+          ? placement.openWindow(where)
+          : placement.set(where),
       );
     });
     return item;
@@ -129,9 +134,9 @@ export function openPlacementMenu(
       ...(extra.length > 0
         ? [el("hr", { doc, attrs: { role: "separator" } }), ...extra]
         : []),
-      ...(supported
+      ...(onTop
         ? []
-        : [el("p", { doc, text: ctx.t("dock.windowUnsupported") })]),
+        : [el("p", { doc, text: ctx.t("dock.onTopUnsupported") })]),
       alerts,
     ],
   });

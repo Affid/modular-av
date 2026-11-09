@@ -104,7 +104,8 @@
   box-shadow: var(--mav-dock-shadow);
 }
 
-.mav-dock[data-placement="window"] {
+.mav-dock[data-placement="window"],
+.mav-dock[data-placement="on-top"] {
   position: fixed;
   inset: 0;
 }
@@ -1730,7 +1731,7 @@ li[data-user-id][data-speaking] {
   box-shadow: inset 3px 0 0 var(--mav-speaking);
 }
 
-/* ---- The Picture-in-Picture window ---- */
+/* ---- A window of its own: a popup, or Picture-in-Picture ---- */
 
 body.modular-av-pip {
   margin: 0;

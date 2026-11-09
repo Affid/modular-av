@@ -1,4 +1,8 @@
-import type { CamerasHost, CamerasPlacement, PipWindow } from "@modular-av/api";
+import type {
+  CamerasHost,
+  CamerasPlacement,
+  PageWindow,
+} from "@modular-av/api";
 import {
   dragToMove,
   dragToResize,
@@ -10,10 +14,17 @@ import { MODULE_ID, type DockContext } from "../context.ts";
 import { dockMode, floatingRect, save, SETTINGS } from "../settings.ts";
 
 export type Side = Exclude<CamerasPlacement, "free">;
-export type Where = Side | "floating" | "scattered" | "window";
+/** "window": a popup that can go full screen; "on-top": Picture-in-Picture. */
+export type WindowKind = "window" | "on-top";
+export type Where = Side | "floating" | "scattered" | WindowKind;
 
 /** Placements outside Foundry's dock: the host leaves no room for them. */
-const FREE: ReadonlySet<Where> = new Set(["floating", "scattered", "window"]);
+const FREE: ReadonlySet<Where> = new Set([
+  "floating",
+  "scattered",
+  "window",
+  "on-top",
+]);
 
 const MIN_FLOATING = { width: 220, height: 160 } as const;
 
@@ -29,9 +40,9 @@ export interface PlacementParts {
 
 export interface Placement {
   readonly where: Where;
-  set(where: Exclude<Where, "window">): Promise<void>;
-  /** From a click: the dock moves into the page's Picture-in-Picture window. */
-  openWindow(): Promise<void>;
+  set(where: Exclude<Where, WindowKind>): Promise<void>;
+  /** From a click: the dock moves into a window of the page's own. */
+  openWindow(kind: WindowKind): Promise<void>;
   onChange(listener: (where: Where) => void): void;
   dispose(): void;
 }
@@ -72,7 +83,7 @@ export function createPlacement(
     return mode === "docked" ? side : mode;
   };
   let where: Where = rest();
-  let pip: PipWindow | null = null;
+  let opened: PageWindow | null = null;
   let listeners: readonly ((w: Where) => void)[] = [];
 
   const apply = async (): Promise<void> => {
@@ -108,7 +119,7 @@ export function createPlacement(
   view?.addEventListener("resize", onResize);
 
   const back = (): void => {
-    pip = null;
+    opened = null;
     host.element.append(root);
     where = rest();
     apply().catch(ctx.onError);
@@ -120,26 +131,30 @@ export function createPlacement(
       return where;
     },
     async set(next) {
-      pip?.close();
+      opened?.close();
       if (!FREE.has(next)) side = next as Side;
       where = next;
       save(ctx, SETTINGS.mode, FREE.has(next) ? next : "docked");
       await apply();
     },
-    async openWindow() {
+    async openWindow(kind) {
       const rect = root.getBoundingClientRect();
-      const opened = await ctx.api.windows.pip.request(MODULE_ID, {
+      const windows = ctx.api.windows[kind === "window" ? "popup" : "pip"];
+      const next = await windows.request(MODULE_ID, {
         width: Math.max(rect.width, MIN_FLOATING.width),
         height: Math.max(rect.height, MIN_FLOATING.height),
         title: ctx.t("dock.windowTitle"),
       });
-      pip = opened;
+      // One window holds the dock: the other kind closes.
+      const previous = opened;
+      opened = next;
+      previous?.close();
       // Only the window the dock is in brings it back when it closes.
-      opened.onClose(() => {
-        if (pip === opened) back();
+      next.onClose(() => {
+        if (opened === next) back();
       });
-      opened.document.body.append(root);
-      where = "window";
+      next.document.body.append(root);
+      where = kind;
       await apply();
     },
     onChange(listener) {
@@ -148,7 +163,7 @@ export function createPlacement(
     dispose() {
       for (const step of undo) step();
       view?.removeEventListener("resize", onResize);
-      pip?.close();
+      opened?.close();
     },
   };
 }

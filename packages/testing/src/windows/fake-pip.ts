@@ -23,7 +23,7 @@ export interface FakeDocumentPip {
 
 type Listener = () => void;
 
-function createFakeWindow(onClosed: () => void): Window {
+export function createFakeWindow(onClosed: () => void): Window {
   const doc =
     typeof document === "undefined"
       ? ({} as Document)

@@ -46,7 +46,14 @@ function startPlayer(
     env: createBrowserMediaEnv((path) => `/modules/modular-av/${path}`),
     windows: {
       documentPip: () => null,
-      preparePip: () => Promise.resolve(() => undefined),
+      openPopup: (features) => window.open("", "_blank", features),
+      onPageHide(listener) {
+        window.addEventListener("pagehide", listener);
+        return () => {
+          window.removeEventListener("pagehide", listener);
+        };
+      },
+      prepareWindow: () => Promise.resolve(() => undefined),
     },
     now: () => Date.now(),
     randomId: () => `${id}-${String(nextId++)}`,
