@@ -15,6 +15,8 @@ export interface FakePopups {
   block(blocked: boolean): void;
   /** Plays the player closing the newest window. */
   closeByUser(): void;
+  /** Plays the player reloading the newest window: it hides, and stays open. */
+  reloadByUser(): void;
 }
 
 export function createFakePopups(): FakePopups {
@@ -42,6 +44,9 @@ export function createFakePopups(): FakePopups {
     },
     closeByUser() {
       windows.at(-1)?.close();
+    },
+    reloadByUser() {
+      (windows.at(-1) as unknown as { hide(): void } | undefined)?.hide();
     },
   };
 }

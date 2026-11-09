@@ -94,9 +94,11 @@ function handleFor(
   let undo: (() => void) | null = null;
   let done = false;
   if (request.title) win.document.title = request.title;
+  // Also a reload or navigation of the window: closed, it isn't left blank.
   const onClosed = (): void => {
     if (done) return;
     done = true;
+    win.close();
     win.removeEventListener("pagehide", onClosed);
     clearInterval(check);
     undo?.();
@@ -118,10 +120,7 @@ function handleFor(
     owner: request.owner,
     window: win,
     document: win.document,
-    close: () => {
-      win.close();
-      onClosed();
-    },
+    close: onClosed,
     onClose: (listener: () => void) =>
       listen(
         () => closeListeners,

@@ -43,6 +43,11 @@ export function createFakeWindow(onClosed: () => void): Window {
         (l) => l.type !== type || l.listener !== listener,
       );
     },
+    /** Plays a reload or navigation: `pagehide`, and the window stays open. */
+    hide() {
+      for (const l of listeners.filter((x) => x.type === "pagehide"))
+        l.listener();
+    },
     close() {
       if (closed) return;
       closed = true;

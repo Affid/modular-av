@@ -54,6 +54,19 @@ describe("the popup window", () => {
     expect(p1.undone).toEqual([opened.window]);
   });
 
+  it("closes a window reloaded or sent elsewhere, so it isn't left blank", async () => {
+    const p1 = await tab();
+    const opened = await p1.api.windows.popup.request("modular-av-dock", SIZE);
+    const closed = vi.fn();
+    opened.onClose(closed);
+
+    p1.popups.reloadByUser();
+
+    expect(opened.window.closed).toBe(true);
+    expect(closed).toHaveBeenCalledTimes(1);
+    expect(p1.api.windows.popup.current).toBeNull();
+  });
+
   it("closes with the Foundry page, so it isn't left behind", async () => {
     const p1 = await tab();
     const opened = await p1.api.windows.popup.request("modular-av-dock", SIZE);
