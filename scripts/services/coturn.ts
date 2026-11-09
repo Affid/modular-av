@@ -80,7 +80,9 @@ export async function startCoturn(): Promise<() => Promise<void>> {
     ...["--listening-port=3478", "--fingerprint", "--lt-cred-mech"],
     ...["--realm=modular-av", `--user=${COTURN.username}:${COTURN.password}`],
     ...["--external-ip=127.0.0.1", "--relay-ip=127.0.0.1"],
-    ...["--allow-loopback-peers", "--min-port=49160", "--max-port=49200"],
+    // Relay ports stay inside the container. The whole service suite,
+    // four P2P tests at a time, ran out of 41 ("no available ports").
+    ...["--allow-loopback-peers", "--min-port=49160", "--max-port=49660"],
   ]);
   const deadline = Date.now() + STARTUP_TIMEOUT_MS;
   while (!(await ready())) {
