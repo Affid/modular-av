@@ -50,12 +50,19 @@ interface Setup {
   conference(): FakeConference;
 }
 
-function setup(self = "alice"): Setup {
+/** What a frame of a track without a size measures: none comes by default. */
+type Measured = { readonly width: number; readonly height: number } | null;
+
+function setup(self = "alice", measured: Measured = null): Setup {
   const sdk = createFakeSdk();
   const errors: unknown[] = [];
   const service = createJitsiConnection(
     { participant: self },
-    { sdk, server: SERVER, now: () => NOW, onError: (e) => errors.push(e) },
+    {
+      ...{ sdk, server: SERVER, now: () => NOW },
+      onError: (e) => errors.push(e),
+      measureFrame: () => Promise.resolve(measured),
+    },
   );
   const seen: Recorded = {
     states: [],
@@ -600,6 +607,38 @@ describe("the core's own tracks", () => {
       height: { ideal: 480 },
     });
     expect(s.conference().added).toEqual([jitsi]);
+  });
+
+  it("sizes a camera that reports no size (an effect's) by its frames", async () => {
+    // Arrange: lib-jitsi-meet sizes its layers from what it is told.
+    const s = setup("alice", { width: 1280, height: 720 });
+    await join(s);
+    const background = createFakeTrack("video");
+    const background2 = createFakeTrack("video");
+
+    // Act
+    const cam = await s.service.publish(background, "camera");
+    await s.service.replaceTrack(cam, background2);
+
+    // Assert
+    expect(s.sdk.localTracks.map((t) => t.info.constraints)).toEqual([
+      { width: { ideal: 1280 }, height: { ideal: 720 } },
+      { width: { ideal: 1280 }, height: { ideal: 720 } },
+    ]);
+  });
+
+  it("takes a camera's own size when it reports one", async () => {
+    const s = setup("alice", { width: 1, height: 1 });
+    await join(s);
+    const camera = createFakeTrack("video");
+    camera.getSettings = () => ({ width: 1920, height: 1080 });
+
+    await s.service.publish(camera, "camera");
+
+    expect(s.sdk.localTracks[0]?.info.constraints).toEqual({
+      width: { ideal: 1920 },
+      height: { ideal: 1080 },
+    });
   });
 
   it("never stops them: not on unpublish, a replacement or leaving", async () => {

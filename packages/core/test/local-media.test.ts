@@ -533,3 +533,129 @@ describe("local media after review", () => {
     expect(fakeTrackInfo(late).readyState).toBe("ended");
   });
 });
+
+describe("the camera's resolution", () => {
+  const CAMERA = { audio: null, video: "default" } as const;
+
+  /** A camera whose captures wait until let through, in order. */
+  function slowCamera() {
+    const env = createFakeMediaEnv();
+    let waiting: (() => void)[] = [];
+    let tracks: readonly MediaStreamTrack[] = [];
+    const media = create({
+      ...env,
+      captureVideo: (deviceId, options) =>
+        new Promise<void>((resolve) => {
+          waiting = [...waiting, resolve];
+        })
+          .then(() => env.captureVideo(deviceId, options))
+          .then((track) => {
+            tracks = [...tracks, track];
+            return track;
+          }),
+    });
+    const next = async (): Promise<void> => {
+      await vi.waitFor(() => {
+        expect(waiting.length).toBeGreaterThan(0);
+      });
+      const [first, ...rest] = waiting;
+      waiting = rest;
+      first?.();
+    };
+    return {
+      ...{ env, media, next },
+      pending: () => waiting.length,
+      captured: () => tracks,
+    };
+  }
+
+  it("captures a camera that was starting again at the size chosen meanwhile", async () => {
+    // Arrange
+    const { env, media, next, pending } = slowCamera();
+    const starting = media.acquire(CAMERA);
+    await vi.waitFor(() => {
+      expect(pending()).toBe(1);
+    });
+
+    // Act
+    media.setVideoResolution("720p");
+    await next();
+    await starting;
+    await next();
+    await media.settled();
+
+    // Assert
+    expect(env.videoCaptures.map((c) => c.resolution)).toEqual([
+      "default",
+      "720p",
+    ]);
+    expect(env.videoCaptures.at(-1)?.previousLive).toBe(false);
+    expect(media.camera).not.toBeNull();
+  });
+
+  it("lets the camera go, and says why, when it can't be captured again", async () => {
+    // Arrange
+    const { env, media } = setup();
+    await media.acquire(CAMERA);
+    const before = media.camera;
+    env.setDenied("video", "NotReadableError");
+
+    // Act
+    media.setVideoResolution("1080p");
+    await media.settled();
+
+    // Assert
+    expect(media.camera).toBeNull();
+    expect(media.errors.video).toBe("NotReadableError");
+    expect(before && fakeTrackInfo(before).readyState).toBe("ended");
+  });
+
+  it("opens the camera at the new size the next time it is asked for after a failure", async () => {
+    const { env, media } = setup();
+    await media.acquire(CAMERA);
+    env.setDenied("video", "NotReadableError");
+    media.setVideoResolution("1080p");
+    await media.settled();
+
+    env.setDenied("video", undefined);
+    await media.acquire(CAMERA);
+
+    expect(media.camera).not.toBeNull();
+    expect(env.videoCaptures.at(-1)?.resolution).toBe("1080p");
+  });
+
+  it("stops a camera captured again after release", async () => {
+    // Arrange
+    const { media, next, pending, captured } = slowCamera();
+    const starting = media.acquire(CAMERA);
+    await next();
+    await starting;
+    media.setVideoResolution("720p");
+    await vi.waitFor(() => {
+      expect(pending()).toBe(1);
+    });
+
+    // Act
+    media.release();
+    await next();
+    await media.settled();
+
+    // Assert
+    expect(media.camera).toBeNull();
+    expect(captured().map((t) => fakeTrackInfo(t).readyState)).toEqual([
+      "ended",
+      "ended",
+    ]);
+  });
+
+  it("doesn't capture again when told the size it already has", async () => {
+    const { env, media } = setup();
+    media.setVideoResolution("720p");
+    await media.acquire(CAMERA);
+
+    media.setVideoResolution("720p");
+    await media.settled();
+
+    expect(env.videoCaptures.map((c) => c.resolution)).toEqual(["720p"]);
+  });
+});

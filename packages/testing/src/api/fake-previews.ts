@@ -1,4 +1,4 @@
-import type { Previews } from "@modular-av/api";
+import type { Previews, VideoResolution } from "@modular-av/api";
 
 /** A preview a UI asked for, as the fake core keeps it. */
 export interface FakePreview {
@@ -6,6 +6,8 @@ export interface FakePreview {
   readonly device: string;
   /** The camera's effect, or null. */
   readonly effect: string | null;
+  /** The size asked of a camera; "default" for a microphone. */
+  readonly resolution: VideoResolution;
   readonly element: Element;
   readonly stopped: boolean;
 }
@@ -49,6 +51,7 @@ export function createFakePreviews(): FakePreviews {
         kind: "camera",
         device: options.device,
         effect: options.effect,
+        resolution: options.resolution ?? "default",
         element,
         stopped: false,
       }),
@@ -58,6 +61,7 @@ export function createFakePreviews(): FakePreviews {
         kind: "microphone",
         device: options.device,
         effect: null,
+        resolution: "default",
         element,
         stopped: false,
       };

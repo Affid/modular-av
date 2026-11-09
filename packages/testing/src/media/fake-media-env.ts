@@ -4,6 +4,7 @@ import type {
   AudioEffectHostOptions,
   AudioEffectKernel,
   HostedAudioEffect,
+  VideoResolution,
 } from "@modular-av/api";
 import { createFakeTrack } from "../service/fake-track.ts";
 import {
@@ -76,12 +77,22 @@ export interface FakeAudioCapture {
   readonly noiseSuppression: boolean;
 }
 
+export interface FakeVideoCapture {
+  readonly deviceId: string;
+  readonly resolution: VideoResolution;
+  /** Whether the camera captured before was still running when this began. */
+  readonly previousLive: boolean;
+}
+
 export interface FakeMediaEnv {
   captureAudio(
     deviceId: string,
     options?: { readonly noiseSuppression?: boolean },
   ): Promise<MediaStreamTrack>;
-  captureVideo(deviceId: string): Promise<MediaStreamTrack>;
+  captureVideo(
+    deviceId: string,
+    options?: { readonly resolution?: VideoResolution },
+  ): Promise<MediaStreamTrack>;
   createStream(tracks: readonly MediaStreamTrack[]): MediaStream;
   createAudioOutput(): FakeAudioOutput;
   showVideo(element: Element, stream: MediaStream | null): void;
@@ -116,6 +127,7 @@ export interface FakeMediaEnv {
   readonly captures: readonly string[];
   /** Each microphone capture asked for, with its processing options. */
   readonly audioCaptures: readonly FakeAudioCapture[];
+  readonly videoCaptures: readonly FakeVideoCapture[];
   readonly outputs: readonly FakeAudioOutput[];
   /** The tracks an element currently shows. */
   shownOn(element: Element): readonly MediaStreamTrack[];
@@ -182,6 +194,8 @@ export function createFakeMediaEnv(
   let unplugged: ReadonlySet<string> = new Set();
   let captures: readonly string[] = [];
   let audioCaptures: readonly FakeAudioCapture[] = [];
+  let videoCaptures: readonly FakeVideoCapture[] = [];
+  let lastVideo: MediaStreamTrack | null = null;
   let outputs: readonly FakeAudioOutput[] = [];
   let shown = new Map<Element, MediaStream | null>();
   let removalWatchers = new Map<Element, readonly (() => void)[]>();
@@ -224,7 +238,19 @@ export function createFakeMediaEnv(
       ];
       return capture("audio", deviceId);
     },
-    captureVideo: (deviceId) => capture("video", deviceId),
+    async captureVideo(deviceId, captureOptions = {}) {
+      videoCaptures = [
+        ...videoCaptures,
+        {
+          deviceId,
+          resolution: captureOptions.resolution ?? "default",
+          previousLive: lastVideo?.readyState === "live",
+        },
+      ];
+      const track = await capture("video", deviceId);
+      lastVideo = track;
+      return track;
+    },
     createStream: createFakeStream,
     createAudioOutput() {
       const output = createOutput();
@@ -356,6 +382,9 @@ export function createFakeMediaEnv(
     },
     get audioCaptures() {
       return audioCaptures;
+    },
+    get videoCaptures() {
+      return videoCaptures;
     },
     get outputs() {
       return outputs;

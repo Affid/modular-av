@@ -2,6 +2,7 @@ import type { DeviceKind, DeviceList } from "@modular-av/api";
 import { canWatchFrames, watchFrames } from "./browser-frames.ts";
 import { createOnScreenWatcher } from "./browser-on-screen.ts";
 import type { AudioOutput, MediaEnv } from "./env.ts";
+import { resolutionConstraints } from "./video-resolution.ts";
 
 const deviceConstraint = (deviceId: string): MediaTrackConstraints =>
   deviceId && deviceId !== "default" ? { deviceId: { exact: deviceId } } : {};
@@ -155,7 +156,8 @@ export function createBrowserMediaEnv(
     // Gain control stays on with a model: off, a quiet microphone is too quiet.
     captureAudio: (deviceId, { noiseSuppression = true } = {}) =>
       capture("audio", deviceId, { noiseSuppression }),
-    captureVideo: (deviceId) => capture("video", deviceId),
+    captureVideo: (deviceId, { resolution = "default" } = {}) =>
+      capture("video", deviceId, resolutionConstraints(resolution)),
     createStream: (tracks) => new MediaStream([...tracks]),
     createAudioOutput: createElementOutput,
     showVideo(element, stream) {

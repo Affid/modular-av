@@ -73,6 +73,7 @@ export {
 } from "./media/fake-media-env.ts";
 export type {
   FakeAudioCapture,
+  FakeVideoCapture,
   FakeAudioOutput,
   FakeHostedAudioEffect,
   FakeAudioOutputState,

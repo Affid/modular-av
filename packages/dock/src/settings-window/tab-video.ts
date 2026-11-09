@@ -1,3 +1,4 @@
+import type { VideoResolution } from "@modular-av/api";
 import { el } from "@modular-av/kit";
 import type { Rendered } from "../contributions/controls.ts";
 import type { DockContext } from "../context.ts";
@@ -9,6 +10,28 @@ import type { Draft } from "./draft.ts";
 import { draftSelect, draftSwitch } from "./draft-inputs.ts";
 import { draftEffects } from "./effect-draft.ts";
 import { section } from "./fields.ts";
+
+const RESOLUTIONS: readonly VideoResolution[] = [
+  "default",
+  "360p",
+  "720p",
+  "1080p",
+];
+
+/** A labelled control in the camera's column. */
+const control = (
+  doc: Document,
+  label: string,
+  input: HTMLElement,
+): HTMLElement =>
+  el("div", {
+    doc,
+    className: "mav-control",
+    children: [
+      el("label", { doc, text: label, attrs: { for: input.id } }),
+      input,
+    ],
+  });
 
 /** The camera's preview leading, the camera and its background beside it. */
 function camera(
@@ -22,6 +45,13 @@ function camera(
     deviceOptions(ctx, "videoInput", draft.get("videoInput")),
   );
   choice.element.id = "mav-settings-camera";
+  const size = draftSelect(doc, draft, "videoResolution", () =>
+    RESOLUTIONS.map((r) => ({
+      value: r,
+      label: ctx.t(`settings.resolution-${r}`),
+    })),
+  );
+  size.element.id = "mav-settings-camera-resolution";
   const effects = renderEffects(ctx, doc, alerts, {
     model: draftEffects(draft),
     kind: "video",
@@ -30,18 +60,8 @@ function camera(
     doc,
     className: "mav-settings-camera-side",
     children: [
-      el("div", {
-        doc,
-        className: "mav-control",
-        children: [
-          el("label", {
-            doc,
-            text: ctx.t("settings.camera"),
-            attrs: { for: choice.element.id },
-          }),
-          choice.element,
-        ],
-      }),
+      control(doc, ctx.t("settings.camera"), choice.element),
+      control(doc, ctx.t("settings.resolution"), size.element),
       effects.element,
     ],
   });
@@ -54,7 +74,7 @@ function camera(
       }),
     ]),
     dispose() {
-      for (const part of [preview, choice, effects]) part.dispose();
+      for (const part of [preview, choice, size, effects]) part.dispose();
     },
   };
 }

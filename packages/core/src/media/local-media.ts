@@ -6,10 +6,12 @@ import type {
   MediaPermissions,
   MeterReading,
   VideoEffectDefinition,
+  VideoResolution,
 } from "@modular-av/api";
 import { errorName } from "../errors.ts";
 import { NOISE_SUPPRESSION_GROUP } from "./audio-places.ts";
 import {
+  type CaptureOptions,
   type Captured,
   captureDevice,
   captureRaw,
@@ -71,6 +73,13 @@ export interface LocalMedia {
   /** Applied at once and to the microphone captured later. */
   setPlacement(placement: EffectPlacement): void;
   /**
+   * Captures a running camera again at this size, or one still starting
+   * once it runs, and later ones too.
+   */
+  setVideoResolution(resolution: VideoResolution): void;
+  /** Resolves once every capture asked for so far is done. */
+  settled(): Promise<void>;
+  /**
    * Applied at once and to every track captured later. `voice` is what
    * enters the effects after the gate; it stays closed while a tail rings
    * out through a microphone still in `outbound`.
@@ -101,6 +110,7 @@ export function createLocalMedia(
   let wantedEffects: ReadonlySet<string> = new Set();
   let levels: VoiceLevels = { channel: 1, mix: {} };
   let placement = NO_PLACEMENT;
+  let resolution: VideoResolution = "default";
   let errors: CaptureErrors = { audio: null, video: null };
   let outbound: MediaPermissions = { audio: false, video: false };
   let voice = false;
@@ -148,7 +158,7 @@ export function createLocalMedia(
       gate,
       onChange: () => {
         changed();
-        syncNoiseSuppression();
+        if (outdated("audio")) recapture("audio");
       },
       onReplaced: deps.onReplaced,
       onError: deps.onError,
@@ -180,20 +190,36 @@ export function createLocalMedia(
         mic?.effectStatus(d.id).status === "running",
     );
 
+  /** How each kind is captured now: a microphone has no size to ask for. */
+  const optionsFor = (kind: DeviceKindOf): CaptureOptions =>
+    kind === "audio"
+      ? { noiseSuppression: browserNoiseSuppression(), resolution: "default" }
+      : { noiseSuppression: true, resolution };
+
+  const outdated = (kind: DeviceKindOf): Captured | null => {
+    const captured = current(kind);
+    const wanted = optionsFor(kind);
+    return captured &&
+      (captured.noiseSuppression !== wanted.noiseSuppression ||
+        captured.resolution !== wanted.resolution)
+      ? captured
+      : null;
+  };
+
   /**
-   * Captures the same microphone again once that changed, after letting it
-   * go: Chrome gives an overlapping capture with other processing the raw
-   * device, with no echo cancellation.
+   * Captures the same device again once how it should be captured changed,
+   * after letting it go: Chrome gives an overlapping capture of a
+   * microphone with other processing the raw device (no echo cancellation),
+   * and keeps a camera that is still open at its size. Checked again when
+   * its turn comes: a capture under way may already be the right one.
    */
-  const syncNoiseSuppression = (): void => {
-    if (!audio || audio.noiseSuppression === browserNoiseSuppression()) return;
+  const recapture = (kind: DeviceKindOf): void => {
     enqueue(async () => {
-      const captured = audio;
-      const wanted = browserNoiseSuppression();
-      if (!captured || captured.noiseSuppression === wanted) return;
+      const captured = outdated(kind);
+      if (!captured) return;
       captured.raw.stop();
-      await replace(["audio"], () =>
-        captureDevice(env, "audio", captured.device, wanted),
+      await replace([kind], () =>
+        captureDevice(env, kind, captured.device, optionsFor(kind)),
       );
     }).catch(deps.onError);
   };
@@ -271,12 +297,7 @@ export function createLocalMedia(
         enqueue(async () => {
           if (current(kind) !== captured) return;
           await replace([kind], () =>
-            captureDevice(
-              env,
-              kind,
-              captured.device,
-              captured.noiseSuppression,
-            ),
+            captureDevice(env, kind, captured.device, captured),
           );
         }).catch(deps.onError);
       },
@@ -293,12 +314,7 @@ export function createLocalMedia(
         const started = epoch;
         let raw: MediaStreamTrack;
         try {
-          raw = await captureRaw(
-            env,
-            kind,
-            fallen.device,
-            fallen.noiseSuppression,
-          );
+          raw = await captureRaw(env, kind, fallen.device, fallen);
         } catch {
           continue;
         }
@@ -324,7 +340,7 @@ export function createLocalMedia(
       const device = devices[kind];
       return device === null
         ? Promise.resolve(null)
-        : captureDevice(env, kind, device, browserNoiseSuppression());
+        : captureDevice(env, kind, device, optionsFor(kind));
     });
   };
 
@@ -392,6 +408,12 @@ export function createLocalMedia(
       placement = next;
       mic?.setPlacement(next);
     },
+    setVideoResolution(next) {
+      if (next === resolution) return;
+      resolution = next;
+      recapture("video");
+    },
+    settled: () => queue,
     setOutbound(next, nextVoice = next.audio) {
       outbound = next;
       voice = nextVoice;

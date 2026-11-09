@@ -4,6 +4,7 @@ import type {
   GateFallback,
   InputSensitivity,
   MediaPermissions,
+  VideoResolution,
   VoiceMode,
 } from "./state.ts";
 import type { ParticipantId } from "./service.ts";
@@ -106,6 +107,12 @@ export interface AVCommands {
   setInputSensitivity(sensitivity: Partial<InputSensitivity>): Promise<void>;
   /** For this device: what voice activity mode does when its gate can't run. */
   setGateFallback(fallback: GateFallback): Promise<void>;
+  /**
+   * For this device: the size its camera is asked for. A running camera is
+   * captured again at once, so it pauses for a moment; resolves once it
+   * runs at the new size, or is off with the reason in `local`.
+   */
+  setVideoResolution(resolution: VideoResolution): Promise<void>;
   /** Saved in Foundry's A/V settings; "default" for the system default. */
   setDevice(kind: DeviceKind, deviceId: string): Promise<void>;
   /** GM only: Foundry's `BROADCAST_AUDIO` / `BROADCAST_VIDEO`. */

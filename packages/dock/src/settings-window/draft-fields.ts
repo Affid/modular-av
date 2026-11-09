@@ -1,4 +1,9 @@
-import type { DeviceKind, GateFallback, VoiceMode } from "@modular-av/api";
+import type {
+  DeviceKind,
+  GateFallback,
+  VideoResolution,
+  VoiceMode,
+} from "@modular-av/api";
 import type { DockContext } from "../context.ts";
 import { chosenInGroup, dockEffects, groupsOf } from "../panel/effects.ts";
 
@@ -16,6 +21,8 @@ export interface Relay {
 /** Everything the window's own fields hold, as saved or as drafted. */
 export interface DraftValues {
   readonly audioInput: string;
+  /** Before the camera: a new camera then opens at the new size at once. */
+  readonly videoResolution: VideoResolution;
   readonly videoInput: string;
   readonly audioOutput: string;
   readonly voiceMode: VoiceMode;
@@ -137,6 +144,10 @@ const theme: Field<"theme"> = {
 
 export const FIELDS: { readonly [K in DraftKey]: Field<K> } = {
   audioInput: device("audioInput"),
+  videoResolution: {
+    read: (ctx) => local(ctx).videoResolution,
+    apply: (ctx, size) => ctx.api.commands.setVideoResolution(size),
+  },
   videoInput: device("videoInput"),
   audioOutput: device("audioOutput"),
   voiceMode: {

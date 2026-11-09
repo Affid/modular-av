@@ -25,6 +25,7 @@ import {
 import { createLocalMedia, type LocalMedia } from "./media/local-media.ts";
 import { readGateFallback } from "./media/gate-fallback.ts";
 import { readSensitivity } from "./media/sensitivity.ts";
+import { readVideoResolution } from "./media/video-resolution.ts";
 import { readCutTails } from "./media/cut-tails.ts";
 import { readPlacement } from "./media/effect-places.ts";
 import { readLevels } from "./media/levels.ts";
@@ -256,6 +257,7 @@ function buildParts(deps: ControllerDeps): Parts {
     // A moved effect starts at the level it has there.
     local.setLevels(readLevels(game, deps.effects));
     local.setPlacement(readPlacement(game, deps.effects));
+    local.setVideoResolution(readVideoResolution(game));
     local.setOutbound(sent(), outbound().audio);
     remote.refresh();
     // Tokens carry the rights; without one, publishing follows them as is.

@@ -10,7 +10,7 @@ import type {
   TrackSource,
 } from "@modular-av/api";
 import { coreCamera, coreMicrophone } from "./core-tracks.ts";
-import { meanLuminance, peakLevel } from "./service-probes.ts";
+import { meanLuminance, peakLevel, playedSize } from "./service-probes.ts";
 import type {
   CreateDefinition,
   JoinOptions,
@@ -172,6 +172,18 @@ function createHarness(definition: ServiceDefinition): ServiceHarness {
       const published = await live().publish(entry.track, source);
       local = new Map(local).set(source, { track: entry.track, published });
     },
+    async replaceCamera(width, height) {
+      const entry = local.get("camera");
+      if (!entry) throw new Error("No camera published");
+      entry.track.stop();
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: { ideal: width }, height: { ideal: height } },
+      });
+      const [track] = stream.getVideoTracks();
+      if (!track) throw new Error("No camera");
+      await live().replaceTrack(entry.published, track);
+      local = new Map(local).set("camera", { ...entry, track });
+    },
     setSubscription(participant, source, enabled) {
       live().setSubscription(participant, source, { enabled });
     },
@@ -201,6 +213,10 @@ function createHarness(definition: ServiceDefinition): ServiceHarness {
     videoBrightness: (participant) => {
       const track = remoteTrack(participant, "camera");
       return track ? meanLuminance(track) : Promise.resolve(0);
+    },
+    videoSize: (participant) => {
+      const track = remoteTrack(participant, "camera");
+      return track ? playedSize(track) : Promise.resolve("");
     },
     stats(participant) {
       const connection = live();

@@ -483,6 +483,81 @@ describe("the settings window's Voice tab", () => {
 });
 
 describe("the settings window's Video tab", () => {
+  it("offers the camera's resolution beside the camera, and saves it for this device", async () => {
+    // Arrange
+    const view = open({ state: avState({ participants: [me] }) });
+    view.tab("video");
+    const choice = view.select("videoResolution");
+
+    // Act
+    view.choose("videoResolution", "720p");
+    await view.save();
+
+    // Assert
+    expect([...(choice?.options ?? [])].map((o) => o.text)).toEqual([
+      "Browser's choice",
+      "360p",
+      "720p (HD)",
+      "1080p (Full HD)",
+    ]);
+    expect(choice?.closest(".mav-control")?.textContent).toContain(
+      "Resolution",
+    );
+    expect(view.api.calls).toEqual([
+      { command: "setVideoResolution", args: ["720p"] },
+    ]);
+  });
+
+  it("previews the camera at the drafted resolution", async () => {
+    // Arrange
+    const view = open({ state: avState({ participants: [me] }) });
+    view.tab("video");
+    await settle();
+
+    // Act
+    view.choose("videoResolution", "1080p");
+    await settle();
+
+    // Assert
+    expect(view.api.preview.all.map((p) => [p.resolution, p.stopped])).toEqual([
+      ["default", true],
+      ["1080p", false],
+    ]);
+  });
+
+  it("lets go of its preview while a new resolution is saved, so the call's camera can open at it", async () => {
+    // Arrange: Chrome opens a camera once, at the size its first capture asked.
+    const view = open({ state: avState({ participants: [me] }) });
+    view.tab("video");
+    await settle();
+    view.choose("videoResolution", "720p");
+    await settle();
+    const save = view.api.commands.setVideoResolution.bind(view.api.commands);
+    let runningWhileCapturing: readonly boolean[] = [];
+    view.api.commands.setVideoResolution = async (size) => {
+      // As the core: the state says the new size before the camera reopens.
+      view.api.setState((s) => ({
+        ...s,
+        local: { ...s.local, videoResolution: size },
+      }));
+      await settle();
+      runningWhileCapturing = view.api.preview.all.map((p) => !p.stopped);
+      return save(size);
+    };
+
+    // Act
+    await view.save();
+    await settle();
+
+    // Assert: none ran while the core captured; the new size shows after.
+    expect(runningWhileCapturing).toEqual([false, false]);
+    expect(view.api.preview.all.map((p) => [p.resolution, p.stopped])).toEqual([
+      ["default", true],
+      ["720p", true],
+      ["720p", false],
+    ]);
+  });
+
   const background = (id: string): VideoEffectDefinition => ({
     id,
     kind: "video",

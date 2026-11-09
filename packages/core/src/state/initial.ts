@@ -30,6 +30,7 @@ export const INITIAL_STATE: AVState = {
     audioCutTails: false,
     inputSensitivity: { auto: true, threshold: -50 },
     cameraHold: null,
+    videoResolution: "default",
     chosenDevices: {
       audioInput: "default",
       videoInput: "default",

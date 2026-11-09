@@ -1,4 +1,4 @@
-import type { Preview } from "@modular-av/api";
+import type { CameraPreviewOptions, Preview } from "@modular-av/api";
 import { el } from "@modular-av/kit";
 import type { Rendered } from "../contributions/controls.ts";
 import type { DockContext } from "../context.ts";
@@ -49,6 +49,21 @@ function previewParts(ctx: DockContext, doc: Document) {
   return { video, note, element };
 }
 
+/** What the preview shows now; null while it must let the camera go. */
+function wantedPreview(
+  ctx: DockContext,
+  draft: Draft,
+): CameraPreviewOptions | null {
+  // The call's camera opens again at a new size, which a capture of the
+  // preview's own would hold at its size (a browser opens a camera once).
+  if (draft.applying("videoResolution")) return null;
+  return {
+    device: draft.get("videoInput"),
+    effect: draftVideoEffect(ctx, draft),
+    resolution: draft.get("videoResolution"),
+  };
+}
+
 /**
  * The camera as it would go out, with the chosen background, before
  * saving and outside the call: only this player sees it. It follows the
@@ -69,9 +84,10 @@ export function cameraPreview(
     note.hidden = false;
   };
   const start = (): void => {
-    const device = draft.get("videoInput");
-    const effect = draftVideoEffect(ctx, draft);
-    const key = `${device}|${effect ?? ""}`;
+    const wanted = wantedPreview(ctx, draft);
+    const key = wanted
+      ? `${wanted.device}|${wanted.effect ?? ""}|${wanted.resolution ?? ""}`
+      : "";
     if (key === shown) return;
     shown = key;
     request += 1;
@@ -79,8 +95,9 @@ export function cameraPreview(
     running?.stop();
     running = null;
     note.hidden = true;
+    if (!wanted) return;
     ctx.api.preview
-      .camera(video, { device, effect, onFailed: fail })
+      .camera(video, { ...wanted, onFailed: fail })
       .then((preview) => {
         if (disposed || request !== mine) preview.stop();
         else running = preview;

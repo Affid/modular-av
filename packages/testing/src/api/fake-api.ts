@@ -143,6 +143,7 @@ const COMMANDS: readonly (keyof AVCommands)[] = [
   "setAudioPipeline",
   "setInputSensitivity",
   "setGateFallback",
+  "setVideoResolution",
   "setDevice",
   "setBroadcastPermissions",
 ];

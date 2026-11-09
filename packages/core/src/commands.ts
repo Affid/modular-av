@@ -8,6 +8,7 @@ import type {
   InputSensitivity,
   MediaPermissions,
   Registry,
+  VideoResolution,
   VoiceMode,
 } from "@modular-av/api";
 import type { Controller } from "./controller.ts";
@@ -172,6 +173,12 @@ export function createCommands(
 
     setGateFallback: (fallback: GateFallback) =>
       change((w) => w.writeGateFallback(game, fallback)),
+
+    setVideoResolution: async (resolution: VideoResolution) => {
+      await change((w) => w.writeVideoResolution(game, resolution));
+      // The camera runs at the new size by then (or is off, saying why).
+      await controller().local.settled();
+    },
 
     leave: () => controller().session.stop("left"),
 

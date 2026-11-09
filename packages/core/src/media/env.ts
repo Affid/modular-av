@@ -7,6 +7,7 @@ import type {
   DeviceList,
   AudioEffectHost,
   AudioEffectHostOptions,
+  VideoResolution,
 } from "@modular-av/api";
 
 export interface MediaEnv {
@@ -19,7 +20,11 @@ export interface MediaEnv {
     deviceId: string,
     options?: { readonly noiseSuppression?: boolean },
   ): Promise<MediaStreamTrack>;
-  captureVideo(deviceId: string): Promise<MediaStreamTrack>;
+  /** Asks for the resolution's size, never insisting on it. */
+  captureVideo(
+    deviceId: string,
+    options?: { readonly resolution?: VideoResolution },
+  ): Promise<MediaStreamTrack>;
   createStream(tracks: readonly MediaStreamTrack[]): MediaStream;
   createAudioOutput(): AudioOutput;
   /** Sets a video element's source; never unmutes it. */

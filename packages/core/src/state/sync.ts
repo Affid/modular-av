@@ -16,6 +16,7 @@ import type { WritableStore } from "../store.ts";
 import { readSensitivity } from "../media/sensitivity.ts";
 import { readCutTails } from "../media/cut-tails.ts";
 import { readGateFallback } from "../media/gate-fallback.ts";
+import { readVideoResolution } from "../media/video-resolution.ts";
 import { savedEffects } from "../media/effect-choices.ts";
 import { readPlacement } from "../media/effect-places.ts";
 import { readLevels } from "../media/levels.ts";
@@ -104,6 +105,7 @@ function localState(deps: StateSyncDeps): LocalState {
     audioCutTails: readCutTails(deps.game),
     inputSensitivity: readSensitivity(deps.game),
     cameraHold: local.cameraHold,
+    videoResolution: readVideoResolution(deps.game),
     chosenDevices: chosenDevices(facts),
   };
 }
