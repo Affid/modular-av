@@ -32,8 +32,13 @@ const LIMITER = {
   release: 0.1,
 } as const;
 
+/** No more than twice: a stored value isn't trusted to be in range. */
+const MAX_GAIN = 2;
+
 let shared: AudioContext | null = null;
 let sharedSink = "default";
+/** The device the shared context couldn't switch to, until asked again. */
+let failedSink: string | null = null;
 
 function pageTarget(): BoosterTarget {
   shared ??= new AudioContext();
@@ -59,13 +64,28 @@ const canSelectSink = (
   context: AudioContext,
 ): context is AudioContext & SinkSelectable => "setSinkId" in context;
 
-/** Older Safari and Firefox can't send a context to another device. */
-function followSink(context: AudioContext, sinkId: string): void {
-  if (context !== shared || sinkId === sharedSink) return;
-  if (!canSelectSink(context)) return;
+/**
+ * Whether the shared context plays on `sinkId`, switching it there if it
+ * can. Older Safari and Firefox can't send a context to another device, and
+ * a switch can fail (unplugged): then the element plays at full volume on
+ * the chosen device instead of the boost on the wrong one.
+ */
+function followSink(
+  context: AudioContext,
+  sinkId: string,
+  onChange: () => void,
+): boolean {
+  if (context !== shared) return true;
+  if (sinkId === sharedSink) return failedSink !== sinkId;
+  if (!canSelectSink(context)) return sinkId === "default";
   sharedSink = sinkId;
-  const id = sinkId === "default" ? "" : sinkId;
-  context.setSinkId(id).catch(() => undefined);
+  failedSink = null;
+  context.setSinkId(sinkId === "default" ? "" : sinkId).catch(() => {
+    if (sharedSink !== sinkId) return;
+    failedSink = sinkId;
+    onChange();
+  });
+  return true;
 }
 
 /**
@@ -109,10 +129,13 @@ export function createBooster(
 
   return {
     sync(state) {
-      const boosted = state.volume > 1 && context.state === "running";
+      const boosted =
+        state.volume > 1 &&
+        context.state === "running" &&
+        followSink(context, state.sinkId, onChange);
       play(boosted ? state.track : null);
-      gain.gain.value = state.muted ? 0 : state.volume;
-      followSink(context, state.sinkId);
+      const volume = Number.isFinite(state.volume) ? state.volume : 1;
+      gain.gain.value = state.muted ? 0 : Math.min(MAX_GAIN, volume);
       return playing !== null;
     },
     dispose() {

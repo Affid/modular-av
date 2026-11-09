@@ -62,8 +62,11 @@ function createElementOutput(): AudioOutput {
       if (track) element.play().catch(() => undefined);
       change({ track });
     },
+    // Foundry's A/V settings hold it: plain data, not trusted to be in range.
     setVolume: (volume) => {
-      change({ volume });
+      change({
+        volume: Number.isFinite(volume) ? Math.min(2, Math.max(0, volume)) : 1,
+      });
     },
     setMuted: (muted) => {
       change({ muted });

@@ -88,8 +88,48 @@ test("leaves full volume and below to the element", async ({ page }) => {
   expect(heard.peak).toBeLessThan(0.001);
 });
 
+test("never boosts past twice, whatever volume is stored", async ({ page }) => {
+  const heard = await boost(page, { amplitude: 0.1, volume: 50 });
+
+  expect(heard.peak).toBeGreaterThan(0.17);
+  expect(heard.peak).toBeLessThan(0.25);
+});
+
 test("is silent while the player is muted", async ({ page }) => {
   const heard = await boost(page, { amplitude: 0.2, volume: 2, muted: true });
 
   expect(heard.peak).toBeLessThan(0.001);
+});
+
+test("hands back to the element when the chosen speakers can't be reached", async ({
+  page,
+}) => {
+  const after = await page.evaluate(async (modulePath) => {
+    const { createBooster } = (await import(modulePath)) as {
+      createBooster: typeof CreateBooster;
+    };
+    const sender = new AudioContext();
+    const [track] = sender
+      .createMediaStreamDestination()
+      .stream.getAudioTracks();
+    if (!track) throw new Error("no track");
+    // The page's own context: the one that follows the chosen speakers.
+    const booster = createBooster(() => undefined);
+    const state = { track, volume: 2, muted: false, sinkId: "no-such-device" };
+    // The context starts and plays, then the switch to the missing device fails.
+    let boosted = false;
+    let handedBack = false;
+    const until = performance.now() + 3000;
+    while (!handedBack && performance.now() < until) {
+      const playing = booster.sync(state);
+      boosted ||= playing;
+      handedBack = boosted && !playing;
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    booster.dispose();
+    await sender.close();
+    return { boosted, handedBack };
+  }, BOOST_MODULE);
+
+  expect(after).toEqual({ boosted: true, handedBack: true });
 });
