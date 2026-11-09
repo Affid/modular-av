@@ -1,4 +1,4 @@
-import { execFile } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { join } from "node:path";
 import { promisify } from "node:util";
 
@@ -32,10 +32,35 @@ async function webAnswers(): Promise<boolean> {
   }
 }
 
-/** Jicofo can place a conference once it has found the bridge. */
-async function bridgeReady(): Promise<boolean> {
-  const { stdout } = await compose("logs", "jicofo");
-  return stdout.includes("Added new videobridge");
+const BRIDGE_FOUND = "Added new videobridge";
+
+/**
+ * Jicofo can place a conference once it has found the bridge. Its log is
+ * read as a stream up to that line: a container kept between runs logs
+ * more than execFile buffers.
+ */
+function bridgeReady(): Promise<boolean> {
+  return new Promise((resolve, reject) => {
+    const logs = spawn(
+      "docker",
+      ["compose", "-f", JITSI_DOCKER.compose, "logs", "--no-color", "jicofo"],
+      { stdio: ["ignore", "pipe", "ignore"] },
+    );
+    let tail = "";
+    logs.stdout.setEncoding("utf8");
+    logs.stdout.on("data", (chunk: string) => {
+      const seen = tail + chunk;
+      if (seen.includes(BRIDGE_FOUND)) {
+        logs.kill();
+        resolve(true);
+      }
+      tail = seen.slice(-BRIDGE_FOUND.length);
+    });
+    logs.on("error", reject);
+    logs.on("close", () => {
+      resolve(false);
+    });
+  });
 }
 
 const ready = async (): Promise<boolean> =>
