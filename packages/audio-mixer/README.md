@@ -5,8 +5,8 @@ channel, and how loud. Requires `modular-av`.
 
 It holds no effects. It mixes the effect modules a world has turned on, such as
 `modular-av-mic-denoise`, `modular-av-audio-reverb`, `modular-av-audio-echo`,
-`modular-av-audio-eq` and `modular-av-audio-radio`, and says so when there are
-none.
+`modular-av-audio-eq`, `modular-av-audio-radio` and `modular-av-audio-boost`,
+and says so when there are none.
 
 Open it from the dock's quick controls, the Voice tab of the settings window, or
 Foundry's module settings.

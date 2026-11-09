@@ -24,6 +24,7 @@ const EFFECT_MODULES = [
   "modular-av-audio-echo",
   "modular-av-audio-eq",
   "modular-av-audio-radio",
+  "modular-av-audio-boost",
   "modular-av-livekit-krisp",
 ];
 
