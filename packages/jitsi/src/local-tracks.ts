@@ -135,6 +135,17 @@ function createEntries(): {
   };
 }
 
+/** lib-jitsi-meet's own default for the tallest video sent: no limit of ours. */
+const SENDER_MAX_HEIGHT = 2160;
+
+/**
+ * lib-jitsi-meet's replaceTrack keeps the encodings it chose for the old
+ * camera (a 480p bitrate and layers), so a larger camera went out small.
+ * Setting the sender limit again has it size them for the new one.
+ */
+const resizeLayers = (conference: JitsiConference): Promise<void> =>
+  conference.setSenderVideoConstraint(SENDER_MAX_HEIGHT);
+
 export function createLocalTracks(
   sdk: JitsiMeetJS,
   conference: () => JitsiConference | null,
@@ -164,6 +175,7 @@ export function createLocalTracks(
       );
       entries.set(published.id, entry);
       await release(old);
+      if (entry.source === "camera") await resizeLayers(joined());
     },
     async unpublish(published) {
       const entry = entries.take(published.id);

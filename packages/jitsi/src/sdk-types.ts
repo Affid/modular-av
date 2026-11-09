@@ -59,6 +59,8 @@ export interface JitsiConference {
   getParticipantById(id: string): JitsiParticipant | undefined;
   getParticipants(): JitsiParticipant[];
   setReceiverConstraints(constraints: ReceiverConstraints): void;
+  /** The tallest this client sends; also has the library size its layers anew. */
+  setSenderVideoConstraint(maxHeight: number): Promise<void>;
   setAudioSubscriptionMode(subscription: AudioSubscription): void;
   myUserId(): string;
   isModerator(): boolean;

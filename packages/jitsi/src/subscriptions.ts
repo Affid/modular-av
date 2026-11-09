@@ -63,6 +63,7 @@ export function createSubscriptions(
     if (current) sendTo(current, entries);
   };
   return {
+    // Sent at once: until the bridge hears from us it forwards 180p only.
     track(source, kind, remote) {
       const known = entries.get(keyOf(source));
       entries = new Map(entries).set(keyOf(source), {
@@ -72,6 +73,7 @@ export function createSubscriptions(
         source,
         remote: { participant: remote.participant, source: remote.source },
       });
+      apply();
     },
     remove(source) {
       const gone = (e: Subscribed): boolean =>
@@ -79,7 +81,9 @@ export function createSubscriptions(
         (!("sourceName" in source) ||
           e.source.sourceName === source.sourceName);
       const kept = [...entries].filter(([, e]) => !gone(e));
-      if (kept.length !== entries.size) entries = new Map(kept);
+      if (kept.length === entries.size) return;
+      entries = new Map(kept);
+      apply();
     },
     set(participant, source, options) {
       let changed = false;
