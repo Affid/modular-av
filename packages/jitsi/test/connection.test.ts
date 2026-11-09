@@ -452,6 +452,49 @@ describe("remote media", () => {
     ]);
   });
 
+  it("asks the bridge for a camera at full size as soon as it arrives", async () => {
+    // Arrange: the bridge's own default is 180p until it hears otherwise.
+    const s = setup();
+    await join(s);
+    s.conference().userJoins("ep-bob", "bob");
+
+    // Act
+    s.conference().emit(
+      EVENTS.CONFERENCE.TRACK_ADDED,
+      remoteTrack({
+        endpoint: "ep-bob",
+        kind: "video",
+        track: createFakeTrack("video"),
+      }),
+    );
+
+    // Assert
+    expect(s.conference().constraints).toEqual({
+      lastN: -1,
+      defaultConstraints: { maxHeight: 720 },
+      constraints: { "ep-bob-v0": { maxHeight: 720 } },
+    });
+  });
+
+  it("stops asking for a camera once its track went", async () => {
+    // Arrange
+    const s = setup();
+    await join(s);
+    s.conference().userJoins("ep-bob", "bob");
+    const camera = remoteTrack({
+      endpoint: "ep-bob",
+      kind: "video",
+      track: createFakeTrack("video"),
+    });
+    s.conference().emit(EVENTS.CONFERENCE.TRACK_ADDED, camera);
+
+    // Act
+    s.conference().emit(EVENTS.CONFERENCE.TRACK_REMOVED, camera);
+
+    // Assert
+    expect(s.conference().constraints?.constraints).toEqual({});
+  });
+
   it("asks the bridge for less, or nothing, of what the core doesn't show", async () => {
     // Arrange
     const s = setup();
@@ -583,6 +626,41 @@ describe("the core's own tracks", () => {
       "dispose",
     ]);
     expect(lastState(s)).toEqual(["disconnected", undefined]);
+  });
+
+  it("has Jitsi size a replaced camera's layers anew, at no lower limit", async () => {
+    // Arrange: lib-jitsi-meet's replaceTrack keeps the old camera's encodings.
+    const s = setup();
+    await join(s);
+    const mic = await s.service.publish(createFakeTrack("audio"), "microphone");
+    const cam = await s.service.publish(createFakeTrack("video"), "camera");
+
+    // Act
+    await s.service.replaceTrack(mic, createFakeTrack("audio"));
+    const afterMicrophone = [...s.conference().senderMaxHeights];
+    await s.service.replaceTrack(cam, createFakeTrack("video"));
+
+    // Assert: 2160 is the library's own default, so nothing is capped.
+    expect(afterMicrophone).toEqual([]);
+    expect(s.conference().senderMaxHeights).toEqual([2160]);
+  });
+
+  it("keeps a replaced camera sent, reporting it, when its layers can't be sized anew", async () => {
+    // Arrange
+    const s = setup();
+    await join(s);
+    const cam = await s.service.publish(createFakeTrack("video"), "camera");
+    const failure = new Error("media session failed");
+    s.conference().senderConstraintFailure = failure;
+    const camera2 = createFakeTrack("video");
+
+    // Act
+    const replacing = s.service.replaceTrack(cam, camera2);
+
+    // Assert: the core must still count the new camera as the one sent.
+    await expect(replacing).resolves.toBeUndefined();
+    expect(s.conference().replaced).toHaveLength(1);
+    expect(s.errors).toEqual([failure]);
   });
 
   it("mutes the microphone through Jitsi, never the camera", async () => {

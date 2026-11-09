@@ -137,11 +137,23 @@ const states = (events: readonly RecordedEvent[]): string[] =>
 export function serviceContract(options: ServiceContractOptions): void {
   const tokens = (options.auth ?? "token") === "token";
   const tokenRights = tokens && (options.publishRights ?? "token") === "token";
-  const peers = (browser: Browser, ...ids: string[]): Promise<Peer[]> =>
-    openPeers(browser, options, ...ids);
+  let opened: readonly Peer[] = [];
+  const peers = async (browser: Browser, ...ids: string[]): Promise<Peer[]> => {
+    const made = await openPeers(browser, options, ...ids);
+    opened = [...opened, ...made];
+    return made;
+  };
 
   test.describe(`service contract: ${options.service}`, () => {
     test.describe.configure({ mode: "parallel" });
+
+    // The browser outlives each test: a page left open keeps its camera,
+    // and Chrome gives every later capture that camera's size.
+    test.afterEach(async () => {
+      const closing = opened;
+      opened = [];
+      await Promise.all(closing.map((peer) => peer.context.close()));
+    });
 
     test("joins and sees the others", async ({ browser }) => {
       const [alice, bob] = await peers(browser, "alice", "bob");
