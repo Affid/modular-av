@@ -186,9 +186,13 @@ export class FakeConference extends Events implements JitsiConference {
   }
   /** Each height passed to `setSenderVideoConstraint`, in order. */
   readonly senderMaxHeights: number[] = [];
+  /** What `setSenderVideoConstraint` rejects with, if anything. */
+  senderConstraintFailure: Error | null = null;
   setSenderVideoConstraint(maxHeight: number): Promise<void> {
     this.senderMaxHeights.push(maxHeight);
-    return Promise.resolve();
+    return this.senderConstraintFailure
+      ? Promise.reject(this.senderConstraintFailure)
+      : Promise.resolve();
   }
   setAudioSubscriptionMode(subscription: AudioSubscription): void {
     this.audio = subscription;

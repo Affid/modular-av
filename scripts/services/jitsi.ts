@@ -33,6 +33,8 @@ async function webAnswers(): Promise<boolean> {
 }
 
 const BRIDGE_FOUND = "Added new videobridge";
+/** Enough of docker's error output to say why it failed. */
+const STDERR_KEPT = 2000;
 
 /**
  * Jicofo can place a conference once it has found the bridge. Its log is
@@ -44,21 +46,29 @@ function bridgeReady(): Promise<boolean> {
     const logs = spawn(
       "docker",
       ["compose", "-f", JITSI_DOCKER.compose, "logs", "--no-color", "jicofo"],
-      { stdio: ["ignore", "pipe", "ignore"] },
+      { stdio: ["ignore", "pipe", "pipe"] },
     );
     let tail = "";
+    let found = false;
+    let problem = "";
     logs.stdout.setEncoding("utf8");
     logs.stdout.on("data", (chunk: string) => {
       const seen = tail + chunk;
-      if (seen.includes(BRIDGE_FOUND)) {
+      if (!found && seen.includes(BRIDGE_FOUND)) {
+        found = true;
         logs.kill();
         resolve(true);
       }
       tail = seen.slice(-BRIDGE_FOUND.length);
     });
+    logs.stderr.setEncoding("utf8");
+    logs.stderr.on("data", (chunk: string) => {
+      problem = (problem + chunk).slice(-STDERR_KEPT);
+    });
     logs.on("error", reject);
-    logs.on("close", () => {
-      resolve(false);
+    logs.on("close", (code) => {
+      if (found || code === 0) resolve(found);
+      else reject(new Error(`docker compose logs failed: ${problem.trim()}`));
     });
   });
 }

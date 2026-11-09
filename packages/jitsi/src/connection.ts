@@ -222,7 +222,11 @@ function createLive(
     self: context.participant,
     options,
     emitter,
-    local: createLocalTracks(options.sdk, () => live.conference),
+    local: createLocalTracks(
+      options.sdk,
+      () => live.conference,
+      options.onError,
+    ),
     subscriptions: createSubscriptions(() => live.conference),
     refresh: createTokenRefresh(
       () => live.connection,

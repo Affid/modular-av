@@ -149,6 +149,7 @@ const resizeLayers = (conference: JitsiConference): Promise<void> =>
 export function createLocalTracks(
   sdk: JitsiMeetJS,
   conference: () => JitsiConference | null,
+  onError: (error: unknown) => void,
 ): LocalTracks {
   const entries = createEntries();
   /** After leaving: a publish still under way lets its track go. */
@@ -175,7 +176,11 @@ export function createLocalTracks(
       );
       entries.set(published.id, entry);
       await release(old);
-      if (entry.source === "camera") await resizeLayers(joined());
+      // The camera is sent by now: a failure here only leaves its layers
+      // sized for the old one, so it is reported, not thrown.
+      const current = conference();
+      if (entry.source === "camera" && current)
+        await resizeLayers(current).catch(onError);
     },
     async unpublish(published) {
       const entry = entries.take(published.id);

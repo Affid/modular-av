@@ -645,6 +645,24 @@ describe("the core's own tracks", () => {
     expect(s.conference().senderMaxHeights).toEqual([2160]);
   });
 
+  it("keeps a replaced camera sent, reporting it, when its layers can't be sized anew", async () => {
+    // Arrange
+    const s = setup();
+    await join(s);
+    const cam = await s.service.publish(createFakeTrack("video"), "camera");
+    const failure = new Error("media session failed");
+    s.conference().senderConstraintFailure = failure;
+    const camera2 = createFakeTrack("video");
+
+    // Act
+    const replacing = s.service.replaceTrack(cam, camera2);
+
+    // Assert: the core must still count the new camera as the one sent.
+    await expect(replacing).resolves.toBeUndefined();
+    expect(s.conference().replaced).toHaveLength(1);
+    expect(s.errors).toEqual([failure]);
+  });
+
   it("mutes the microphone through Jitsi, never the camera", async () => {
     const s = setup();
     await join(s);
