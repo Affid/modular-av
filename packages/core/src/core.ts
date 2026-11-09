@@ -129,6 +129,7 @@ function followPlayer(
         settings,
         effects,
         av: () => deps.game.webrtc?.settings ?? null,
+        onError: deps.onError,
       }),
     )
     .then(() => {

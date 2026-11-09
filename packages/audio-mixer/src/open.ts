@@ -46,7 +46,7 @@ function createMixer(api: ModularAV): Mixer {
   const layers = createLayers({
     api,
     writes,
-    store: foundryLayerStore(),
+    store: foundryLayerStore(api.settings),
     selfIsGM: game.user.isGM,
     // Through `format`, Foundry escapes it: a label isn't this module's text.
     notify: ({ label }) => {
@@ -75,7 +75,7 @@ function createMixer(api: ModularAV): Mixer {
     store: foundryPresetStore({
       user: () => game.user,
       getSetting: (key) => game.settings.get(MODULE_ID, key),
-      setSetting: (key, value) => game.settings.set(MODULE_ID, key, value),
+      setSetting: (key, value) => api.settings.set(MODULE_ID, key, value),
       onUserChange: onOwnUserChange,
     }),
   });

@@ -92,19 +92,31 @@ export function createEffectChoices(deps: EffectChoicesDeps): EffectChoices {
     local.setEffects(effects.list().filter(isAvailable), new Set(ids));
   };
 
+  /**
+   * Saves only the half that changed: saving the player's voice half when
+   * only a camera effect changed would claim it, and keep another
+   * browser's earlier voice choices from moving to the player.
+   */
   const save = async (ids: readonly string[]): Promise<void> => {
+    const before = saved();
     const mine = [...ids];
     saving = mine;
     apply(mine);
     const audio = (id: string): boolean => effects.get(id)?.kind === "audio";
+    const halves = [
+      { key: AUDIO_EFFECTS_SETTING, keep: audio },
+      { key: EFFECTS_SETTING, keep: (id: string) => !audio(id) },
+    ];
     try {
-      await Promise.all([
-        deps.save(AUDIO_EFFECTS_SETTING, mine.filter(audio)),
-        deps.save(
-          EFFECTS_SETTING,
-          mine.filter((id) => !audio(id)),
-        ),
-      ]);
+      await Promise.all(
+        halves.flatMap(({ key, keep }) => {
+          const next = mine.filter(keep);
+          const was = before.filter(keep);
+          const same =
+            next.length === was.length && next.every((id, i) => id === was[i]);
+          return same ? [] : [deps.save(key, next)];
+        }),
+      );
     } finally {
       if (saving === mine) saving = null;
     }

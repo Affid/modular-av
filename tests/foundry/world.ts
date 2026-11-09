@@ -241,6 +241,16 @@ export async function configureWorld(
   await gm.close();
 }
 
+/**
+ * Turns off every effect the player chose. Voice effects are the player's
+ * (kept on the server), so they outlive a test's browser context.
+ */
+export const turnOffEffects = (player: Player): Promise<void> =>
+  player.run(async (api) => {
+    for (const id of api.state.get().local.chosenEffects)
+      await api.commands.setEffectEnabled(id, false);
+  }, null);
+
 /** The loudest `listener` hears `speaker` over 4 s, in dBFS, on their tile. */
 export const loudness = (listener: Player, speaker: string): Promise<number> =>
   listener.run(

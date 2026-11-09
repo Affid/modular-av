@@ -47,16 +47,20 @@ function playerSaved(game: FoundryGame, id: string): boolean {
   return (user?.getSetting?.(id, game.userId) ?? undefined) !== undefined;
 }
 
+/** Each on its own: a value Foundry refuses is reported, and the rest move. */
 async function moveGeneric(
   game: FoundryGame,
   settings: CoreModuleSettings,
+  onError: (error: unknown) => void,
 ): Promise<void> {
   for (const id of settings.playerSettings()) {
     if (playerSaved(game, id)) continue;
     const value = browserValue(game, id);
     if (value === undefined) continue;
     const dot = id.indexOf(".");
-    await settings.set(id.slice(0, dot), id.slice(dot + 1), value);
+    await settings
+      .set(id.slice(0, dot), id.slice(dot + 1), value)
+      .catch(onError);
   }
 }
 
@@ -98,13 +102,15 @@ export interface MoveDeps {
   readonly settings: CoreModuleSettings;
   readonly effects: Pick<Registry<EffectDefinition>, "get">;
   readonly av: () => AVSettingsLike | null;
+  readonly onError: (error: unknown) => void;
 }
 
 /** Then the player's volumes fill in Foundry's own, where the core plays from. */
 export async function moveToPlayer(deps: MoveDeps): Promise<void> {
-  await moveGeneric(deps.game, deps.settings);
-  await moveAudioChoices(deps.game, deps.settings, deps.effects);
-  await moveVolumes(deps.game, deps.settings, deps.av());
+  const { game, settings, onError } = deps;
+  await moveGeneric(game, settings, onError);
+  await moveAudioChoices(game, settings, deps.effects).catch(onError);
+  await moveVolumes(game, settings, deps.av()).catch(onError);
   const av = deps.av();
   if (av) restoreVolumes(deps.game, av);
 }

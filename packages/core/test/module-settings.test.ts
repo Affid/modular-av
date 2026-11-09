@@ -195,6 +195,54 @@ describe("the core's own settings", () => {
     ]);
   });
 
+  it("don't claim the player's voice choices when only a camera effect changed", async () => {
+    // Arrange: a browser with no voice effects turns the camera's on.
+    const table = createTable();
+    table.join("gm", { secret: true });
+    const first = table.join("p1", { av: ALWAYS, effects: effects() });
+    await table.settle();
+    await first.api.commands.setEffectEnabled("blur", true);
+    await table.settle();
+    first.client.disconnect();
+
+    // Act: a browser that kept voice choices from before loads later.
+    const second = table.join("p1", {
+      av: ALWAYS,
+      effects: effects(),
+      stored: { "modular-av.effects": ["reverb"] },
+    });
+    await table.settle();
+
+    // Assert: they still moved to the player.
+    expect(second.api.state.get().local.chosenEffects).toContain("reverb");
+  });
+
+  it("move the rest when Foundry refuses one value", async () => {
+    // Arrange
+    const table = createTable();
+    table.join("gm", { secret: true });
+    const p1 = table.join("p1", {
+      stored: {
+        "modular-av.audioCutTails": true,
+        "modular-av.audioChannelLevel": 0.5,
+      },
+    });
+    const settings = p1.client.game.settings;
+    const set = settings.set.bind(settings);
+    vi.spyOn(settings, "set").mockImplementation((module, key, value) =>
+      key === "audioCutTails"
+        ? Promise.reject(new Error("refused"))
+        : set(module, key, value),
+    );
+
+    // Act
+    await table.settle();
+
+    // Assert
+    expect(p1.api.state.get().local.audioChannelLevel).toBe(0.5);
+    expect(p1.errors).toContainEqual(new Error("refused"));
+  });
+
   it("bring the player's volumes for the others to another browser", async () => {
     // Arrange
     const table = createTable();

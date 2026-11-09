@@ -64,8 +64,23 @@ test("a player's voice settings and volumes follow them to another browser", asy
   await expect
     .poll(async () => (await second.state()).local.audioCutTails)
     .toBe(true);
+  // Player2 isn't online: their volume is in Foundry's own A/V settings.
   await expect
-    .poll(async () => (await second.state()).participants[other]?.volume)
+    .poll(() =>
+      second.run(
+        (_api, game, id) =>
+          (
+            game.webrtc as unknown as {
+              settings: {
+                client: {
+                  users: Record<string, { volume?: number } | undefined>;
+                };
+              };
+            }
+          ).settings.client.users[id]?.volume,
+        other,
+      ),
+    )
     .toBe(0.3);
   expect(second.notices).toEqual([]);
 });
