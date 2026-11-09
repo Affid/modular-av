@@ -1865,8 +1865,10 @@ it is picked up explicitly.
 - **The core's entry is nearly full**: 115.2 of 116 KB after the audio
   mixer's additions (the modules window, the news check, the no-service
   notice, the settings window, the connection details and what writes this
-  device's settings load only when needed). The next core feature needs lazy
-  loading or a budget decision.
+  device's settings load only when needed). The camera's resolution (issue
+  #8) took it to 117.5 KB, so the budget went to 118,000 bytes: the choice
+  is read at start (state, the camera's capture), and writing it is already
+  lazy. The next core feature needs lazy loading or a budget decision.
 - **The modules window and other GMs**: it reads the installed modules
   when it opens; another GM applying meanwhile isn't seen until it is
   opened again (Apply reloads everyone, so only a window left open across

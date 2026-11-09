@@ -7,6 +7,7 @@ import type {
   InputSensitivity,
   MediaPermissions,
   Registry,
+  VideoResolution,
 } from "@modular-av/api";
 import { MODULE_ID } from "../constants.ts";
 import { AVCommandError } from "../errors.ts";
@@ -34,6 +35,10 @@ import {
   readSensitivity,
   SENSITIVITY_SETTING,
 } from "./sensitivity.ts";
+import {
+  isVideoResolution,
+  VIDEO_RESOLUTION_SETTING,
+} from "./video-resolution.ts";
 
 /**
  * Writes this device's voice settings, for the commands. Apart from reading
@@ -267,6 +272,18 @@ export async function writeGateFallback(
       { fallback: String(fallback) },
     );
   await game.settings.set(MODULE_ID, GATE_FALLBACK_SETTING, fallback);
+}
+
+/** Saves the size asked of this device's camera; throws for an unknown one. */
+export async function writeVideoResolution(
+  game: FoundryGame,
+  resolution: VideoResolution,
+): Promise<void> {
+  if (!isVideoResolution(resolution))
+    throw new AVCommandError("invalid-argument", "No such video resolution", {
+      resolution: String(resolution),
+    });
+  await game.settings.set(MODULE_ID, VIDEO_RESOLUTION_SETTING, resolution);
 }
 
 /** Merges a change into the saved sensitivity; throws for bad input. */

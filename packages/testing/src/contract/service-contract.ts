@@ -225,6 +225,28 @@ export function serviceContract(options: ServiceContractOptions): void {
         .toBeGreaterThan(20);
     });
 
+    test("carries a camera captured again at a larger size at that size", async ({
+      browser,
+    }) => {
+      // Arrange
+      const [alice, bob] = await peers(browser, "alice", "bob");
+      if (!alice || !bob) throw new Error("no peers");
+      await alice.join();
+      await bob.join();
+      expect(await alice.run((h) => h.publish(["camera"]))).toEqual([]);
+      await expect
+        .poll(() => bob.run((h) => h.videoSize("alice")), { timeout: 20_000 })
+        .toBe("640x480");
+
+      // Act
+      await alice.run((h) => h.replaceCamera(1280, 720));
+
+      // Assert: what arrives, which a sender may scale down, not the preview.
+      await expect
+        .poll(() => bob.run((h) => h.videoSize("alice")), { timeout: 30_000 })
+        .toBe("1280x720");
+    });
+
     test("carries the core's own tracks: a Web Audio microphone and a generated camera", async ({
       browser,
     }) => {

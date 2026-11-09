@@ -483,6 +483,31 @@ describe("the settings window's Voice tab", () => {
 });
 
 describe("the settings window's Video tab", () => {
+  it("offers the camera's resolution beside the camera, and saves it for this device", async () => {
+    // Arrange
+    const view = open({ state: avState({ participants: [me] }) });
+    view.tab("video");
+    const choice = view.select("videoResolution");
+
+    // Act
+    view.choose("videoResolution", "720p");
+    await view.save();
+
+    // Assert
+    expect([...(choice?.options ?? [])].map((o) => o.text)).toEqual([
+      "Browser's choice",
+      "360p",
+      "720p (HD)",
+      "1080p (Full HD)",
+    ]);
+    expect(choice?.closest(".mav-control")?.textContent).toContain(
+      "Resolution",
+    );
+    expect(view.api.calls).toEqual([
+      { command: "setVideoResolution", args: ["720p"] },
+    ]);
+  });
+
   const background = (id: string): VideoEffectDefinition => ({
     id,
     kind: "video",

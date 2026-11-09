@@ -78,6 +78,11 @@ export interface ServiceHarness {
   unpublish(source: TrackSource): Promise<void>;
   /** Publishes the same local track again, as the core does after a hold. */
   republish(source: TrackSource): Promise<void>;
+  /**
+   * As the core changes the camera's size: stops the published camera,
+   * captures it again at about this width and height, and replaces it.
+   */
+  replaceCamera(width: number, height: number): Promise<void>;
   setSubscription(
     participant: string,
     source: TrackSource,
@@ -93,6 +98,8 @@ export interface ServiceHarness {
   audioLevel(participant: string, ms: number): Promise<number>;
   /** Mean luminance (0-255) of a participant's remote camera frame; 0 without one. */
   videoBrightness(participant: string): Promise<number>;
+  /** "WxH" of a participant's remote camera as it plays here; "" without one. */
+  videoSize(participant: string): Promise<string>;
   /**
    * The connection's own stats (null), or a participant's; "none" if the
    * service can't tell, "failed" if it refused (e.g. not measured yet).

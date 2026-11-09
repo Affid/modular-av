@@ -8,6 +8,7 @@ import type {
   InputSensitivity,
   MediaPermissions,
   Registry,
+  VideoResolution,
   VoiceMode,
 } from "@modular-av/api";
 import type { Controller } from "./controller.ts";
@@ -172,6 +173,9 @@ export function createCommands(
 
     setGateFallback: (fallback: GateFallback) =>
       change((w) => w.writeGateFallback(game, fallback)),
+
+    setVideoResolution: (resolution: VideoResolution) =>
+      change((w) => w.writeVideoResolution(game, resolution)),
 
     leave: () => controller().session.stop("left"),
 

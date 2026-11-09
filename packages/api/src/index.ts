@@ -98,6 +98,7 @@ export type {
   SessionEndReason,
   SessionState,
   SessionStatus,
+  VideoResolution,
   VoiceMode,
 } from "./state.ts";
 export type { Store, SubscribeOptions } from "./store.ts";

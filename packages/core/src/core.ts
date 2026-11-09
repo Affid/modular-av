@@ -38,6 +38,10 @@ import {
   DEFAULT_GATE_FALLBACK,
   GATE_FALLBACK_SETTING,
 } from "./media/gate-fallback.ts";
+import {
+  DEFAULT_VIDEO_RESOLUTION,
+  VIDEO_RESOLUTION_SETTING,
+} from "./media/video-resolution.ts";
 import { validateEffect } from "./media/audio-places.ts";
 import { CUT_TAILS_SETTING } from "./media/cut-tails.ts";
 import {
@@ -133,6 +137,7 @@ export function installCore(deps: CoreDeps): InstalledCore {
   };
   clientSetting(SENSITIVITY_SETTING, Object, DEFAULT_SENSITIVITY);
   clientSetting(GATE_FALLBACK_SETTING, String, DEFAULT_GATE_FALLBACK);
+  clientSetting(VIDEO_RESOLUTION_SETTING, String, DEFAULT_VIDEO_RESOLUTION);
   clientSetting(CUT_TAILS_SETTING, Boolean, false);
   clientSetting(CHANNEL_LEVEL_SETTING, Number, 1);
   clientSetting(EFFECT_MIX_SETTING, Object, {});

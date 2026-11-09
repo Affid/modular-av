@@ -111,6 +111,13 @@ export type GateFallback = "send" | "mute";
  */
 export type MicrophoneHold = "gate-failed";
 
+/**
+ * The size this device's camera is asked for: the browser's own choice
+ * (often 640x480), or about this height in 16:9 at up to 30 frames a
+ * second. A camera that can't do it gives the nearest size it can.
+ */
+export type VideoResolution = "default" | "360p" | "720p" | "1080p";
+
 /** How the voice gate decides to open: following the noise, or a fixed level. */
 export interface InputSensitivity {
   readonly auto: boolean;
@@ -180,6 +187,8 @@ export interface LocalState {
   readonly inputSensitivity: InputSensitivity;
   /** Why the camera is kept off, if a video effect isn't sending. */
   readonly cameraHold: CameraHold | null;
+  /** For this device: the size its camera is asked for. */
+  readonly videoResolution: VideoResolution;
   /** The device chosen for each kind ("default": the system's), as saved in Foundry. */
   readonly chosenDevices: Readonly<Record<DeviceKind, string>>;
 }
