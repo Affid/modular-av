@@ -109,7 +109,8 @@ export interface AVCommands {
   setGateFallback(fallback: GateFallback): Promise<void>;
   /**
    * For this device: the size its camera is asked for. A running camera is
-   * captured again at once, so it pauses for a moment.
+   * captured again at once, so it pauses for a moment; resolves once it
+   * runs at the new size, or is off with the reason in `local`.
    */
   setVideoResolution(resolution: VideoResolution): Promise<void>;
   /** Saved in Foundry's A/V settings; "default" for the system default. */

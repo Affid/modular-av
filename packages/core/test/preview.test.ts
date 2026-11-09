@@ -168,6 +168,41 @@ describe("a camera preview", () => {
       }),
     ).rejects.toMatchObject({ name: "NotAllowedError" });
   });
+
+  it("asks for the resolution given, as the call would, and the browser's own size without one", async () => {
+    // Arrange
+    const { env, previews } = setup();
+
+    // Act
+    await previews.camera(createFakeVideoElement(), {
+      device: "default",
+      effect: null,
+      resolution: "720p",
+    });
+    await previews.camera(createFakeVideoElement(), {
+      device: "default",
+      effect: null,
+    });
+
+    // Assert
+    expect(env.videoCaptures.map((c) => c.resolution)).toEqual([
+      "720p",
+      "default",
+    ]);
+  });
+
+  it("refuses a resolution it doesn't know before the camera opens", async () => {
+    const { env, previews } = setup();
+
+    await expect(
+      previews.camera(createFakeVideoElement(), {
+        device: "default",
+        effect: null,
+        resolution: "4k" as never,
+      }),
+    ).rejects.toMatchObject({ code: "invalid-argument" });
+    expect(env.captures).toEqual([]);
+  });
 });
 
 describe("a microphone preview", () => {

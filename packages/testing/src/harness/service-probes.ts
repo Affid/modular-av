@@ -36,7 +36,6 @@ export async function peakLevel(
   return peak;
 }
 
-/** Mean luminance (0-255) of the next frame; 0 if none comes. */
 /** "WxH" of the next frame a track shows; "" if none comes. */
 export async function playedSize(track: MediaStreamTrack): Promise<string> {
   const video = document.createElement("video");
@@ -56,6 +55,7 @@ export async function playedSize(track: MediaStreamTrack): Promise<string> {
   return size;
 }
 
+/** Mean luminance (0-255) of the next frame; 0 if none comes. */
 export async function meanLuminance(track: MediaStreamTrack): Promise<number> {
   const video = document.createElement("video");
   video.muted = true;

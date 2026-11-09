@@ -19,7 +19,12 @@ import {
   NETWORK,
 } from "./errors.ts";
 import { joinConference, type JitsiServer, openConnection } from "./join.ts";
-import { createLocalTracks, type LocalTracks } from "./local-tracks.ts";
+import { frameSize } from "./frame-size.ts";
+import {
+  createLocalTracks,
+  type LocalTracks,
+  type MeasureFrame,
+} from "./local-tracks.ts";
 import type {
   JitsiConference,
   JitsiConnection,
@@ -36,6 +41,8 @@ export interface JitsiConnectionOptions {
   readonly server: JitsiServer;
   readonly now: () => number;
   readonly onError: (error: unknown) => void;
+  /** Sizes a camera that reports none; the next frame's size by default. */
+  readonly measureFrame?: MeasureFrame;
 }
 
 /**
@@ -225,6 +232,7 @@ function createLive(
     local: createLocalTracks(
       options.sdk,
       () => live.conference,
+      options.measureFrame ?? frameSize,
       options.onError,
     ),
     subscriptions: createSubscriptions(() => live.conference),

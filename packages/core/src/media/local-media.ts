@@ -72,8 +72,13 @@ export interface LocalMedia {
   setLevels(levels: VoiceLevels): void;
   /** Applied at once and to the microphone captured later. */
   setPlacement(placement: EffectPlacement): void;
-  /** Captures a running camera again at this size, and later ones too. */
+  /**
+   * Captures a running camera again at this size, or one still starting
+   * once it runs, and later ones too.
+   */
   setVideoResolution(resolution: VideoResolution): void;
+  /** Resolves once every capture asked for so far is done. */
+  settled(): Promise<void>;
   /**
    * Applied at once and to every track captured later. `voice` is what
    * enters the effects after the gate; it stays closed while a tail rings
@@ -153,7 +158,7 @@ export function createLocalMedia(
       gate,
       onChange: () => {
         changed();
-        recapture("audio");
+        if (outdated("audio")) recapture("audio");
       },
       onReplaced: deps.onReplaced,
       onError: deps.onError,
@@ -205,10 +210,10 @@ export function createLocalMedia(
    * Captures the same device again once how it should be captured changed,
    * after letting it go: Chrome gives an overlapping capture of a
    * microphone with other processing the raw device (no echo cancellation),
-   * and keeps a camera that is still open at its size.
+   * and keeps a camera that is still open at its size. Checked again when
+   * its turn comes: a capture under way may already be the right one.
    */
   const recapture = (kind: DeviceKindOf): void => {
-    if (!outdated(kind)) return;
     enqueue(async () => {
       const captured = outdated(kind);
       if (!captured) return;
@@ -404,9 +409,11 @@ export function createLocalMedia(
       mic?.setPlacement(next);
     },
     setVideoResolution(next) {
+      if (next === resolution) return;
       resolution = next;
       recapture("video");
     },
+    settled: () => queue,
     setOutbound(next, nextVoice = next.audio) {
       outbound = next;
       voice = nextVoice;

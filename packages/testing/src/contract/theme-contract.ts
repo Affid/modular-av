@@ -216,7 +216,7 @@ function accessibilityTests(driver: ThemeDriver, layout: string): void {
   test("meets WCAG AA: the dock, its popovers and the settings window", async ({
     page,
   }) => {
-    // Six axe scans: slow on a busy machine.
+    // Seven axe scans: slow on a busy machine.
     test.slow();
     await call(page, driver, layout);
 
@@ -236,6 +236,15 @@ function accessibilityTests(driver: ThemeDriver, layout: string): void {
     }
     await page.locator(".mav-dock-settings").click();
     await expect(page.locator(".mav-settings")).toBeVisible();
+    await expectAA(page, ".mav-settings");
+    // The Video tab: the camera, its resolution and its background. By the
+    // keyboard: a floating dock may cover the window's tabs.
+    const video = page
+      .locator(".mav-settings")
+      .getByRole("tab", { name: "Video" });
+    await video.focus();
+    await page.keyboard.press("Enter");
+    await expect(page.getByLabel("Resolution")).toBeVisible();
     await expectAA(page, ".mav-settings");
   });
 

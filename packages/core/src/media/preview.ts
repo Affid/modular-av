@@ -5,10 +5,11 @@ import type {
   VideoEffectDefinition,
 } from "@modular-av/api";
 import { AVCommandError } from "../errors.ts";
-import { captureDevice } from "./device-capture.ts";
+import { captureDevice, DEFAULT_CAPTURE } from "./device-capture.ts";
 import type { MediaEnv } from "./env.ts";
 import type { DevicePreviews } from "./lazy-previews.ts";
 import { METER_INTERVAL_MS } from "./meters.ts";
+import { isVideoResolution } from "./video-resolution.ts";
 
 export interface PreviewsDeps {
   readonly env: Pick<
@@ -91,9 +92,17 @@ function cameraPreview(deps: PreviewsDeps): DevicePreviews["camera"] {
     const definition = options.effect
       ? videoEffect(deps.effects, options.effect)
       : null;
+    const resolution = options.resolution ?? "default";
+    if (!isVideoResolution(resolution))
+      throw new AVCommandError("invalid-argument", "No such video resolution", {
+        resolution: String(resolution),
+      });
     const held = hold(env, element);
     try {
-      const { raw } = await captureDevice(env, "video", options.device);
+      const { raw } = await captureDevice(env, "video", options.device, {
+        ...DEFAULT_CAPTURE,
+        resolution,
+      });
       held.own(() => {
         raw.stop();
       });

@@ -46,6 +46,24 @@ describe("the camera's resolution", () => {
     );
   });
 
+  it("resolves once the running camera was captured again at the new size", async () => {
+    // Arrange
+    const table = createTable();
+    table.join("gm", { secret: true });
+    const p1 = table.join("p1", { av: ALWAYS });
+    await table.settle();
+    const before = p1.core.controller().local.camera;
+
+    // Act: nothing else runs the queue meanwhile.
+    await p1.api.commands.setVideoResolution("720p");
+
+    // Assert
+    expect(p1.env.videoCaptures.at(-1)?.resolution).toBe("720p");
+    const after = p1.core.controller().local.camera;
+    expect(after).not.toBeNull();
+    expect(after).not.toBe(before);
+  });
+
   it("captures a camera turned on later at the saved size", async () => {
     const table = createTable();
     table.join("gm", { secret: true });

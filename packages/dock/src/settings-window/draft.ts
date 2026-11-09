@@ -27,6 +27,8 @@ export interface Draft {
    */
   save(): Promise<void>;
   saving(): boolean;
+  /** Whether the save under way changes `key`, synced meanwhile or not. */
+  applying(key: DraftKey): boolean;
   /**
    * Follows what changed elsewhere (the quick controls): fields nobody
    * drafted take it, and Reset goes back to it.
@@ -54,35 +56,90 @@ const applyOne = (
 ): Promise<void> =>
   (FIELDS[key] as unknown as Field<DraftKey>).apply(ctx, value);
 
+type Reload = "everyone" | "self" | null;
+
+/** The fields this player may save that differ from what is saved. */
+const changedKeys = (
+  ctx: DockContext,
+  draft: DraftValues,
+  saved: DraftValues,
+): readonly DraftKey[] =>
+  KEYS.filter(
+    (key) => (ctx.isGM || !FIELDS[key].gm) && !same(draft[key], saved[key]),
+  );
+
+/** What saving `keys` reloads: every page (a GM's save), this one, or none. */
+function reloadsOf(ctx: DockContext, keys: readonly DraftKey[]): Reload {
+  const needs = keys.map((key) => FIELDS[key].reload);
+  if (needs.includes("everyone")) return ctx.isGM ? "everyone" : "self";
+  return needs.includes("self") ? "self" : null;
+}
+
+/** What is saved now; the fields nobody drafted follow it. */
+function synced(
+  ctx: DockContext,
+  draft: DraftValues,
+  saved: DraftValues,
+): { readonly saved: DraftValues; readonly draft: DraftValues } {
+  const now = readAll(ctx);
+  const untouched = KEYS.filter((key) => same(draft[key], saved[key]));
+  const follow = Object.fromEntries(untouched.map((k) => [k, now[k]]));
+  return { saved: now, draft: { ...draft, ...follow } };
+}
+
+/** A save: the draft as it was then, whatever is drafted meanwhile. */
+interface SaveRun {
+  readonly values: DraftValues;
+  readonly keys: readonly DraftKey[];
+  readonly reload: Reload;
+}
+
+/** Applies a save's fields in order, each reported once applied. */
+async function applyInOrder(
+  ctx: DockContext,
+  run: SaveRun,
+  onApplied: (key: DraftKey) => void,
+): Promise<void> {
+  for (const key of run.keys) {
+    await applyOne(ctx, key, run.values[key]);
+    onApplied(key);
+  }
+}
+
+function createListeners() {
+  let listeners: readonly (() => void)[] = [];
+  return {
+    notify: (): void => {
+      for (const listener of listeners) listener();
+    },
+    subscribe: (listener: () => void): (() => void) => {
+      listeners = [...listeners, listener];
+      return () => {
+        listeners = listeners.filter((l) => l !== listener);
+      };
+    },
+  };
+}
+
 export function createDraft(ctx: DockContext): Draft {
   let saved = readAll(ctx);
   let draft = saved;
   let saving: Promise<void> | null = null;
-  let listeners: readonly (() => void)[] = [];
-  const notify = (): void => {
-    for (const listener of listeners) listener();
-  };
-  const mine = (key: DraftKey): boolean => ctx.isGM || !FIELDS[key].gm;
-  const changed = (): readonly DraftKey[] =>
-    KEYS.filter((key) => mine(key) && !same(draft[key], saved[key]));
-  const reloads = (): "everyone" | "self" | null => {
-    const needs = changed().map((key) => FIELDS[key].reload);
-    if (needs.includes("everyone")) return ctx.isGM ? "everyone" : "self";
-    return needs.includes("self") ? "self" : null;
-  };
-  const apply = async (): Promise<void> => {
-    const reload = reloads();
+  let applying: readonly DraftKey[] = [];
+  const { notify, subscribe } = createListeners();
+  const changed = (): readonly DraftKey[] => changedKeys(ctx, draft, saved);
+  const reloads = (): Reload => reloadsOf(ctx, changed());
+  const apply = async (run: SaveRun): Promise<void> => {
     try {
-      for (const key of changed()) {
-        const value = draft[key];
-        await applyOne(ctx, key, value);
-        saved = { ...saved, [key]: value };
-      }
+      await applyInOrder(ctx, run, (key) => {
+        saved = { ...saved, [key]: run.values[key] };
+      });
     } finally {
       saving = null;
+      applying = [];
       notify();
     }
-    if (reload) ctx.reload(reload === "everyone");
+    if (run.reload) ctx.reload(run.reload === "everyone");
   };
   return {
     get: (key) => draft[key],
@@ -91,33 +148,26 @@ export function createDraft(ctx: DockContext): Draft {
       draft = { ...draft, [key]: value };
       notify();
     },
-    changed,
-    reloads,
+    ...{ changed, reloads, subscribe },
     reset() {
       draft = saved;
       notify();
     },
     save() {
       if (!saving) {
-        saving = apply();
+        // Saving shows before any field applies (the camera preview stops).
+        const run = { values: draft, keys: changed(), reload: reloads() };
+        applying = run.keys;
+        saving = Promise.resolve().then(() => apply(run));
         notify();
       }
       return saving;
     },
     saving: () => saving !== null,
+    applying: (key) => applying.includes(key),
     sync() {
-      const now = readAll(ctx);
-      const untouched = KEYS.filter((key) => same(draft[key], saved[key]));
-      const follow = Object.fromEntries(untouched.map((k) => [k, now[k]]));
-      saved = now;
-      draft = { ...draft, ...follow };
+      ({ saved, draft } = synced(ctx, draft, saved));
       notify();
-    },
-    subscribe(listener) {
-      listeners = [...listeners, listener];
-      return () => {
-        listeners = listeners.filter((l) => l !== listener);
-      };
     },
   };
 }

@@ -1,4 +1,5 @@
 import type { PublishedTrack, TrackSource } from "@modular-av/api";
+import type { FrameSize } from "./frame-size.ts";
 import type {
   JitsiConference,
   JitsiLocalTrack,
@@ -37,18 +38,29 @@ const KINDS: Partial<Record<TrackSource, "audio" | "video">> = {
   camera: "video",
 };
 
-/** The size a camera effect captures at (cam-background). */
-const EFFECT_CAPTURE = { width: 640, height: 480 } as const;
+/** Measures a frame of a track that reports no size; null if none came. */
+export type MeasureFrame = (
+  track: MediaStreamTrack,
+) => Promise<FrameSize | null>;
+
+/** A browser's usual camera size, for a track whose frames didn't come. */
+const USUAL_SIZE: FrameSize = { width: 640, height: 480 };
 
 /**
  * lib-jitsi-meet sizes its simulcast layers from the camera's size, and
  * falls back to its own getUserMedia constraints, which a track it didn't
  * capture lacks. An effect's output (a MediaStreamTrackGenerator) reports
- * no size at all: it is taken to be what effects capture.
+ * no size at all, and its frames follow the camera's resolution: measured.
  */
-function constraintsOf(track: MediaStreamTrack): VideoConstraints {
+async function constraintsOf(
+  track: MediaStreamTrack,
+  measure: MeasureFrame,
+): Promise<VideoConstraints> {
   const { width, height } = track.getSettings();
-  const size = width && height ? { width, height } : EFFECT_CAPTURE;
+  const size =
+    width && height
+      ? { width, height }
+      : ((await measure(track)) ?? USUAL_SIZE);
   return { width: { ideal: size.width }, height: { ideal: size.height } };
 }
 
@@ -59,23 +71,21 @@ async function release(entry: Entry): Promise<void> {
 }
 
 /** The core's track in a stream of its own, as lib-jitsi-meet takes it. */
-function wrap(
+async function wrap(
   sdk: JitsiMeetJS,
   track: MediaStreamTrack,
   source: TrackSource,
-): Entry {
+  measure: MeasureFrame,
+): Promise<Entry> {
   const kind = KINDS[source];
   if (!kind || kind !== track.kind)
     throw new Error(`Jitsi doesn't send ${source} tracks of ${track.kind}`);
+  const constraints =
+    kind === "video" ? await constraintsOf(track, measure) : null;
   const stream = new MediaStream([track]);
   const [jitsi] = sdk.createLocalTracksFromMediaStreams([
-    kind === "video"
-      ? {
-          stream,
-          mediaType: kind,
-          videoType: "camera",
-          constraints: constraintsOf(track),
-        }
+    constraints
+      ? { stream, mediaType: kind, videoType: "camera", constraints }
       : { stream, mediaType: kind },
   ]);
   if (!jitsi) throw new Error("lib-jitsi-meet made no track");
@@ -149,6 +159,7 @@ const resizeLayers = (conference: JitsiConference): Promise<void> =>
 export function createLocalTracks(
   sdk: JitsiMeetJS,
   conference: () => JitsiConference | null,
+  measure: MeasureFrame,
   onError: (error: unknown) => void,
 ): LocalTracks {
   const entries = createEntries();
@@ -161,7 +172,7 @@ export function createLocalTracks(
   };
   return {
     async publish(track, source) {
-      const entry = wrap(sdk, track, source);
+      const entry = await wrap(sdk, track, source, measure);
       await sendOrRelease(entry, async () => {
         await joined().addTrack(entry.jitsi);
         if (closed) throw new Error("The Jitsi call was left meanwhile");
@@ -170,7 +181,7 @@ export function createLocalTracks(
     },
     async replace(published, track) {
       const old = entries.find(published.id);
-      const entry = wrap(sdk, track, old.source);
+      const entry = await wrap(sdk, track, old.source, measure);
       await sendOrRelease(entry, () =>
         joined().replaceTrack(old.jitsi, entry.jitsi),
       );

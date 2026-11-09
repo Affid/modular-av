@@ -1,3 +1,5 @@
+import type { VideoResolution } from "./state.ts";
+
 /**
  * Local previews for a settings window, outside the call: never sent to
  * anyone, so a player can check a camera or a microphone before a session,
@@ -42,6 +44,13 @@ export interface CameraPreviewOptions {
   readonly device: string;
   /** A video effect's id, or null for the camera as it is. */
   readonly effect: string | null;
+  /**
+   * The size asked of the camera, as the call asks it; the browser's own
+   * without one. A browser opens a camera once for every capture of it, at
+   * the size the first asked, so a preview left open can keep the call's
+   * camera at its size: stop it while that changes.
+   */
+  readonly resolution?: VideoResolution;
   readonly onFailed?: (error: unknown) => void;
 }
 
