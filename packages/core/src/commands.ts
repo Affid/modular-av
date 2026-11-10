@@ -26,6 +26,9 @@ function avSettings(controller: Controller): AVSettingsLike {
   return settings;
 }
 
+/** Above 1, a quiet player is boosted, through a limiter. */
+const MAX_VOLUME = 2;
+
 const VOICE_MODES: readonly VoiceMode[] = ["always", "activity", "ptt"];
 
 /** Commands return promises: a failed check rejects, never throws. */
@@ -102,10 +105,10 @@ export function createCommands(
 
     setVolume: (participant: string, volume: number) =>
       attempt(() => {
-        if (!Number.isFinite(volume) || volume < 0 || volume > 1)
+        if (!Number.isFinite(volume) || volume < 0 || volume > MAX_VOLUME)
           throw new AVCommandError(
             "invalid-argument",
-            "Volume must be between 0 and 1",
+            "Volume must be between 0 and 2",
             { volume },
           );
         if (!game.users.get(participant))

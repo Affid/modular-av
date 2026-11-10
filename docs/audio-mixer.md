@@ -8,8 +8,8 @@ such as an echo for a cave. The words come from `docs/voice-routing.md`.
 The core holds the commands. The mixer is one client of them, and it ships no
 effects. Effects come in their own modules, so a world loads only what it
 installs: `modular-av-audio-reverb`, `modular-av-audio-echo`,
-`modular-av-audio-eq`, `modular-av-audio-radio`, `modular-av-mic-denoise`, and
-any other. The mixer
+`modular-av-audio-eq`, `modular-av-audio-radio`, `modular-av-audio-boost`,
+`modular-av-mic-denoise`, and any other. The mixer
 neither requires nor recommends them, because a Foundry recommendation prompts
 the GM to turn them on.
 

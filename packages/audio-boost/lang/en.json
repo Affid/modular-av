@@ -1,0 +1,9 @@
+{
+  "modular-av-audio-boost": {
+    "label": "Mic boost",
+    "controls": {
+      "boost": "Boost",
+      "evenness": "Even out"
+    }
+  }
+}

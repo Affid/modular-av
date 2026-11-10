@@ -1,0 +1,28 @@
+{
+  "id": "modular-av-audio-boost",
+  "title": "Modular A/V: Mic boost",
+  "description": "Raises a quiet microphone for everyone and evens out its peaks, ahead of the voice gate by default. Needs Modular A/V: Audio mixer, or anything else that calls the API, to be turned on.",
+  "authors": [{ "name": "Andrei Fedorov", "url": "https://github.com/Affid" }],
+  "url": "https://github.com/Affid/modular-av",
+  "bugs": "https://github.com/Affid/modular-av/issues",
+  "license": "LICENSE",
+  "compatibility": { "minimum": "14", "verified": "14.369" },
+  "esmodules": ["modular-av-audio-boost.js"],
+  "languages": [{ "lang": "en", "name": "English", "path": "lang/en.json" }],
+  "relationships": {
+    "requires": [{ "id": "modular-av", "type": "module" }]
+  },
+  "flags": {
+    "modular-av": {
+      "kind": "effect",
+      "icon": "fa-solid fa-volume-high",
+      "facts": [
+        {
+          "label": "Who turns it on",
+          "value": "Each player, in the Audio mixer"
+        },
+        { "label": "Works with", "value": "Every service" }
+      ]
+    }
+  }
+}

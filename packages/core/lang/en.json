@@ -197,6 +197,10 @@
           "title": "EQ",
           "what": "A three band equalizer for the voice. Needs the Audio mixer."
         },
+        "modular-av-audio-boost": {
+          "title": "Mic boost",
+          "what": "Raises a quiet microphone for everyone and evens out its peaks. Needs the Audio mixer."
+        },
         "modular-av-audio-radio": {
           "title": "Radio",
           "what": "A walkie-talkie for the voice, with static and squelch. Needs the Audio mixer."

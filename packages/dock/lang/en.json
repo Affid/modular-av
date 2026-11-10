@@ -95,6 +95,7 @@
     "menu": {
       "volume": "Volume",
       "volumeValue": "{percent}%",
+      "volumeBoosted": "{percent}%, boosted",
       "level": "Sound level",
       "hide": "Hide this player",
       "unhide": "Show this player",

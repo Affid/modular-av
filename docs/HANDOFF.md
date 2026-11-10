@@ -223,6 +223,7 @@ modular-av/
     audio-echo/       → "modular-av-audio-echo"
     audio-eq/         → "modular-av-audio-eq"
     audio-radio/      → "modular-av-audio-radio"
+    audio-boost/      → "modular-av-audio-boost"
     later: jitsi/, dock-scifi/, dock-fantasy/, dock-vines/, tokens/, embed/
   tools/              → token server template (see "Credentials")
   docs/
@@ -1868,7 +1869,10 @@ it is picked up explicitly.
   device's settings load only when needed). The camera's resolution (issue
   #8) took it to 117.5 KB, so the budget went to 118,000 bytes: the choice
   is read at start (state, the camera's capture), and writing it is already
-  lazy. The next core feature needs lazy loading or a budget decision.
+  lazy. Boosting a quiet player (issue #9) took it to 118.6 KB, so the
+  budget went to 119,000 bytes: the playback output must know a volume
+  above 1 to load the booster, which is lazy. The next core feature needs
+  lazy loading or a budget decision.
 - **The modules window and other GMs**: it reads the installed modules
   when it opens; another GM applying meanwhile isn't seen until it is
   opened again (Apply reloads everyone, so only a window left open across

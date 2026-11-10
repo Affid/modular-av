@@ -45,7 +45,10 @@ export interface AVCommands {
   setVideoEnabled(enabled: boolean): Promise<void>;
   /** Stops all playback and the microphone; self-reported to others. */
   setDeafened(deafened: boolean): Promise<void>;
-  /** This client's playback volume for a participant, 0 to 1. */
+  /**
+   * This client's playback volume for a participant, 0 to 2. Above 1 boosts
+   * a quiet player, through a limiter so the boost can't clip.
+   */
   setVolume(participant: ParticipantId, volume: number): Promise<void>;
   /**
    * Neither plays nor shows another participant on this client (Foundry's

@@ -67,6 +67,34 @@ describe("a participant's menu", () => {
     expect(api.meterSubscriptions[0]?.active).toBe(false);
   });
 
+  it("boosts a quiet player up to twice their volume, and says so", () => {
+    // Arrange
+    const loud = participantState({ id: "p1", name: "Player1", volume: 1.5 });
+    const { ctx, api } = testDock({
+      state: avState({ participants: [me, loud] }),
+    });
+    const menu = openParticipantMenu(ctx, "p1", anchor());
+    const slider = menu?.element.querySelector<HTMLInputElement>(
+      'input[type="range"]',
+    );
+    if (!slider) throw new Error("no slider");
+
+    // Act
+    const shown = slider.value;
+    slider.value = "200";
+    slider.dispatchEvent(new Event("input"));
+    slider.dispatchEvent(new Event("change"));
+
+    // Assert
+    expect([shown, slider.max]).toEqual(["150", "200"]);
+    expect(slider.getAttribute("aria-valuetext")).toBe("200%, boosted");
+    expect(api.calls).toContainEqual({
+      command: "setVolume",
+      args: ["p1", 2],
+    });
+    menu?.close();
+  });
+
   it("hides them for this player only", () => {
     const { ctx, api } = testDock({ state });
 

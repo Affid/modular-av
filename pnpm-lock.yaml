@@ -220,6 +220,19 @@ importers:
 
   packages/api: {}
 
+  packages/audio-boost:
+    dependencies:
+      '@modular-av/kit':
+        specifier: workspace:*
+        version: link:../kit
+    devDependencies:
+      '@modular-av/api':
+        specifier: workspace:*
+        version: link:../api
+      '@modular-av/testing':
+        specifier: workspace:*
+        version: link:../testing
+
   packages/audio-echo:
     dependencies:
       '@modular-av/kit':

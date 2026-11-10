@@ -1,0 +1,23 @@
+{
+  "name": "@modular-av/audio-boost",
+  "version": "0.11.0",
+  "private": true,
+  "description": "Modular A/V effect module: a boost and compressor for a quiet microphone.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p test/browser"
+  },
+  "dependencies": {
+    "@modular-av/kit": "workspace:*"
+  },
+  "devDependencies": {
+    "@modular-av/api": "workspace:*",
+    "@modular-av/testing": "workspace:*"
+  },
+  "modularAV": {
+    "entryBudgetBytes": 5000
+  }
+}
