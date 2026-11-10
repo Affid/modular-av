@@ -5,6 +5,10 @@ MediaPipe's selfie segmentation. Turn it on in the voice panel or the
 voice and video settings ("Camera background"). Requires `modular-av`,
 and Chrome, Edge or another Chromium browser.
 
+| As it is                                                                                 | Blur                                                                                | Replace                                                                                                |
+| ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| ![A player's camera with the room behind them](../../docs/images/cam-background-off.png) | ![The same camera with the room blurred](../../docs/images/cam-background-blur.png) | ![The same camera with a bookshelf in place of the room](../../docs/images/cam-background-replace.png) |
+
 - **Blur**, with a strength from light to strong.
 - **Replace**, with one of its images, Foundry's own backgrounds, or an
   image you choose: from Foundry's files if you may browse them, or by

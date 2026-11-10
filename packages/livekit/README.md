@@ -13,6 +13,8 @@ Cloud. Requires `modular-av`.
      each browser a GM uses to run the game.
 3. In Modular A/V's settings, choose LiveKit as the service.
 
+![The module's settings: the server URL, and the API key and secret kept in this browser only](../../docs/images/settings-livekit.png)
+
 ## How players join
 
 The secret never leaves the GM's browser. A player's browser asks a GM's

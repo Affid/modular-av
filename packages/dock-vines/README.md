@@ -7,6 +7,8 @@ palette for the dock, its menus and the settings window. It suits the
 dock's scattered layout best, and the dock offers it when the theme is
 chosen; it works in every layout.
 
+![Four cameras scattered to the corners of Foundry's screen, each framed in vine leaves](../../docs/images/dock-scattered-vines.png)
+
 ## Install
 
 Install it from Foundry's module browser with its manifest:

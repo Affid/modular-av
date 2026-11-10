@@ -17,9 +17,17 @@ sends. A "+" adds an effect from a searchable list; each card has its own on
 switch and a button for its settings. Below, every level of the chain on one row
 of faders. Everything works from the keyboard, and dragging a card moves it too.
 
+![The audio mixer: noise cancellation and EQ before the gate, the radio after it, echo and reverb on the sends, and a fader for each level](../../docs/images/audio-mixer.png)
+
 **Test my voice** records a few seconds of your voice with every effect and
 plays it back, so it needs no headphones and can't feed back. Mute yourself
 first and the table won't hear the test.
+
+A GM's window has a second tab, **The table**: a player's chain as they
+see it, read only, and a way to lay one of the GM's presets over the
+table's voices for a scene. The player is told, and can refuse.
+
+![The table tab: a preset to apply to everyone or one player, and Player1's chain below it](../../docs/images/audio-mixer-table.png)
 
 ## Inside this package
 

@@ -19,6 +19,7 @@ import {
 import {
   configureWorld,
   expectStatus,
+  idOf,
   openPlayer,
   type Player,
   turnOffEffects,
@@ -36,6 +37,9 @@ const CAST = [
 ] as const;
 /** Time for every camera to arrive and the speaking rings to settle. */
 const SETTLE_MS = 8_000;
+const BACKGROUND_MS = 15_000;
+/** Held back from releases: its settings don't belong in the pictures. */
+const UNRELEASED = "modular-av-livekit-krisp";
 
 const launch = (feed: string): Promise<Browser> =>
   chromium.launch({
@@ -142,6 +146,38 @@ async function showCanvas(player: Player): Promise<void> {
   });
 }
 
+/** Turns a module on or off for the world; returns what it was. */
+async function setModule(
+  browser: Browser,
+  id: string,
+  on: boolean,
+): Promise<boolean> {
+  const gm = await openPlayer(browser, "Gamemaster");
+  const was = await gm.page.evaluate(
+    async (to) => {
+      const g = globalThis as unknown as {
+        game: {
+          settings: {
+            get(ns: string, key: string): Record<string, boolean>;
+            set(ns: string, key: string, value: object): Promise<unknown>;
+          };
+        };
+      };
+      const current = g.game.settings.get("core", "moduleConfiguration");
+      const before = current[to.id] === true;
+      if (before !== to.on)
+        await g.game.settings.set("core", "moduleConfiguration", {
+          ...current,
+          [to.id]: to.on,
+        });
+      return before;
+    },
+    { id, on },
+  );
+  await gm.close();
+  return was;
+}
+
 /** The pause banner carries the game system's logo: not ours to publish. */
 const setPaused = (gm: Player, paused: boolean): Promise<void> =>
   gm.page.evaluate((to) => {
@@ -175,20 +211,71 @@ async function shootDock(viewer: Player): Promise<void> {
 }
 
 async function shootSettingsAndMixer(player: Player): Promise<void> {
+  const page = player.page;
+  await shot(page.locator("#camera-views .mav-dock-panel"), "voice-panel");
   await player.run(async (api) => {
     for (const id of ["rnnoise", "eq", "radio", "reverb", "echo"])
       if (api.effects.get(id)) await api.commands.setEffectEnabled(id, true);
   }, null);
-  await player.page.locator(".mav-dock-settings").click();
-  const settings = player.page.locator("#modular-av-settings");
+  await page.locator(".mav-dock-settings").click();
+  const settings = page.locator("#modular-av-settings");
   await settings.locator('[data-tab="voice"]').click();
+  await page.waitForTimeout(1_000);
+  await shot(settings, "settings-voice");
   await settings.getByRole("button", { name: "Audio mixer" }).click();
-  const mixer = player.page.locator("#modular-av-audio-mixer");
+  const mixer = page.locator("#modular-av-audio-mixer");
   await mixer.locator(".mav-mixer").waitFor();
-  await player.page.waitForTimeout(1_500);
+  await page.waitForTimeout(1_500);
   await shot(mixer, "audio-mixer");
   await mixer.locator('[data-action="close"]').first().click();
   await settings.locator('[data-action="close"]').first().click();
+}
+
+/** A GM's views: a player's menu, and that player's voice in the mixer. */
+async function shootGm(gm: Player, playerId: string): Promise<void> {
+  const page = gm.page;
+  const tile = page.locator(
+    `#camera-views .mav-dock-tile[data-participant-id="${playerId}"]`,
+  );
+  await tile.hover();
+  await tile.locator(".mav-dock-tile-menu").click();
+  await page.waitForTimeout(500);
+  await corner(page, "player-menu", 560, 760);
+  await page.keyboard.press("Escape");
+
+  await page.locator(".mav-dock-settings").click();
+  const settings = page.locator("#modular-av-settings");
+  await settings.locator('[data-tab="voice"]').click();
+  await settings.getByRole("button", { name: "Audio mixer" }).click();
+  const mixer = page.locator("#modular-av-audio-mixer");
+  await mixer.locator('[data-tab="table"]').click();
+  await mixer.locator('[data-field="player"]').selectOption(playerId);
+  await page.waitForTimeout(1_500);
+  await shot(mixer, "audio-mixer-table");
+  await mixer.locator('[data-action="close"]').first().click();
+  await settings.locator('[data-action="close"]').first().click();
+}
+
+/** A player's own camera as it is, blurred and with a background. */
+async function shootBackground(player: Player, ownId: string): Promise<void> {
+  const tile = player.page.locator(
+    `#camera-views .mav-dock-tile[data-participant-id="${ownId}"]`,
+  );
+  const set = (id: string, on: boolean): Promise<void> =>
+    player.run(
+      (api, _game, to) => api.commands.setEffectEnabled(to.id, to.on),
+      {
+        id,
+        on,
+      },
+    );
+  await shot(tile, "cam-background-off");
+  for (const mode of ["blur", "replace"]) {
+    await set(`background-${mode}`, true);
+    // Without a GPU the effect takes a while to start, and runs slowly.
+    await player.page.waitForTimeout(BACKGROUND_MS);
+    await shot(tile, `cam-background-${mode}`);
+  }
 }
 
 async function shootModules(gm: Player): Promise<void> {
@@ -198,10 +285,13 @@ async function shootModules(gm: Player): Promise<void> {
   }, null);
   await gm.page.locator('#sidebar-tabs [data-tab="settings"]').click();
   await gm.page.locator('button[data-app="configure"]').click();
-  await gm.page
-    .locator('#settings-config [data-tab="modular-av"]')
-    .first()
-    .click();
+  const config = gm.page.locator("#settings-config");
+  for (const service of ["livekit", "jitsi"]) {
+    await config.locator(`[data-tab="modular-av-${service}"]`).first().click();
+    await gm.page.waitForTimeout(500);
+    await shot(config, `settings-${service}`);
+  }
+  await config.locator('[data-tab="modular-av"]').first().click();
   await gm.page.getByRole("button", { name: "Plan your modules" }).click();
   const board = gm.page.locator("#modular-av-modules");
   await board.locator(".mav-board-next").waitFor();
@@ -227,8 +317,10 @@ async function main(): Promise<void> {
   const map = process.argv[3] ? resolve(process.argv[3]) : null;
   let players: readonly Player[] = [];
   let scene: DocsScene | null = null;
+  let unreleasedWasOn = false;
   try {
     await configureWorld(first, "p2p", "dock");
+    unreleasedWasOn = await setModule(first, UNRELEASED, false);
     for (const [index, member] of CAST.entries()) {
       const browser = browsers[index];
       if (!browser) throw new Error("No browser");
@@ -241,8 +333,10 @@ async function main(): Promise<void> {
       await expectStatus(player, "connected");
       await closeUserConfig(player.page);
     }
-    const [gm, p1] = players;
-    if (!gm || !p1) throw new Error("No players");
+    const [gm, p1, p2] = players;
+    if (!gm || !p1 || !p2) throw new Error("No players");
+    const p1Id = await idOf(gm, "Player1");
+    const p2Id = await idOf(gm, "Player2");
     await setPaused(gm, false);
     if (map) {
       scene = await createScene(gm, map);
@@ -252,7 +346,9 @@ async function main(): Promise<void> {
 
     // The dock last: it leaves the viewer's layout scattered.
     await shootSettingsAndMixer(p1);
+    await shootGm(gm, p1Id);
     await shootModules(gm);
+    await shootBackground(p2, p2Id);
     await shootDock(p1);
   } finally {
     // A logged-in user can't log in again: everyone leaves first.
@@ -267,6 +363,10 @@ async function main(): Promise<void> {
       await resetDock(player).catch(() => undefined);
       await player.close();
     }
+    if (unreleasedWasOn)
+      await setModule(first, UNRELEASED, true).catch((error: unknown) => {
+        console.error(`${UNRELEASED} wasn't turned back on:`, error);
+      });
     await configureWorld(first, "livekit", "foundry").catch(
       (error: unknown) => {
         console.error("The world wasn't set back:", error);

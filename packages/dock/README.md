@@ -5,6 +5,8 @@ voice and video settings window and badges in the player list. Requires
 `modular-av`; choose it in Modular A/V's settings ("Cameras shown by",
 "Voice and video settings window").
 
+![The dock on the left of Foundry's screen with four cameras, and its menu of places open](../../docs/images/dock-placement-menu.png)
+
 - **Dock**: beside Foundry's sidebar or floating, a grid or one player in
   focus, or in a window of its own: a normal window you can drag to another
   monitor and put full screen (every browser, unless a popup blocker
@@ -25,6 +27,8 @@ voice and video settings window and badges in the player list. Requires
   choose one in Voice & Video Settings, Appearance, or follow the world's.
   Making one: [docs/dock-theming.md](../../docs/dock-theming.md).
 - Keyboard and screen reader friendly.
+
+![A GM's menu for one player: their volume, hiding them, and blocking their voice or video](../../docs/images/player-menu.png)
 
 Its layout is kept per player, across devices. Coming from LiveKit
 AVClient, your layout comes along; see

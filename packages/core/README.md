@@ -18,6 +18,9 @@ the Discord-like dock, `modular-av-dock`.
   - Applying turns modules on and off for the world, and keeps a service
     on so calls keep working.
   - With no service enabled, a GM is told which exist.
+
+  ![Plan your modules: what is on air in a row on top, and the next setup below as stages](../../docs/images/plan-your-modules.png)
+
 - **What it guarantees**, whatever the other modules do: nothing you say
   while muted is sent, in every state of the connection (a reverb or
   echo rings out for up to 3 s of what already went out, unless you turn

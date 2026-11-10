@@ -48,6 +48,8 @@ module like this one haven't been checked.
      uses to run the game.
 2. In Modular A/V's settings, choose Jitsi as the service.
 
+![The module's settings: the server's address and domains, and the app id and secret kept in this browser only](../../docs/images/settings-jitsi.png)
+
 ## How players join
 
 The secret never leaves the GM's browser. A player's browser asks a GM's
