@@ -10,6 +10,7 @@ voice gate, and held it open.
 ## The channel
 
 ```mermaid
+%%{init: {"htmlLabels": false, "flowchart": {"htmlLabels": false}}}%%
 flowchart LR
   mic[Microphone] --> pre["Pre-gate inserts<br/>noise suppression first"]
   pre --> gate[Voice gate]
@@ -39,6 +40,7 @@ Every insert can have a dry:wet setting the core owns. The effect outputs
 only its processed signal, and the core mixes it with the dry one.
 
 ```mermaid
+%%{init: {"htmlLabels": false, "flowchart": {"htmlLabels": false}}}%%
 flowchart LR
   in[Signal in] --> delay["Dry delay<br/>effect's latency"]
   delay --> dry[Dry level]

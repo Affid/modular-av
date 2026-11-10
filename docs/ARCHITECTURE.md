@@ -9,6 +9,7 @@ A Foundry world has one voice and video call. Modular A/V splits the work
 of running it into four kinds of module around a core:
 
 ```mermaid
+%%{init: {"htmlLabels": false, "flowchart": {"htmlLabels": false}}}%%
 flowchart TB
   subgraph ui["UI modules"]
     dock["modular-av-dock<br/>camera dock, voice panel,<br/>settings window"]
@@ -126,6 +127,7 @@ The types, and what may change between versions, are in
 ## Inside the core
 
 ```mermaid
+%%{init: {"htmlLabels": false, "flowchart": {"htmlLabels": false}}}%%
 flowchart TB
   api["Extension points<br/>registries, state store, commands, media.attach, meters, windows, settings"]
   foundry["Foundry integration<br/>A/V client class, camera dock host, Foundry's A/V settings, keys"]
@@ -173,6 +175,7 @@ around the rest instead of replacing it:
 ### The session
 
 ```mermaid
+%%{init: {"htmlLabels": false, "flowchart": {"htmlLabels": false}}}%%
 stateDiagram-v2
   state "waiting-for-token" as wft
   state "waiting-for-gm" as wfg
@@ -229,6 +232,7 @@ to play media from them, which is how P2P and Jitsi enforce a block.
 ### Your microphone, camera and what you hear
 
 ```mermaid
+%%{init: {"htmlLabels": false, "flowchart": {"htmlLabels": false}}}%%
 flowchart LR
   mic[Microphone] --> pre["Before the gate<br/>noise cancellation,<br/>EQ, boost"]
   pre --> gate[Voice gate]

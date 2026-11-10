@@ -39,6 +39,7 @@ along: see [Moving from LiveKit AVClient](https://github.com/Affid/modular-av/wi
 ## How it fits together
 
 ```mermaid
+%%{init: {"htmlLabels": false, "flowchart": {"htmlLabels": false}}}%%
 flowchart LR
   effects["Effects<br/>any number"] --> core
   core["Core<br/>runs the call"] --> service["Service<br/>one per world"]

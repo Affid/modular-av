@@ -19,6 +19,7 @@ mixer the rest of the pipeline is API only.
 ## How it fits together
 
 ```mermaid
+%%{init: {"htmlLabels": false, "flowchart": {"htmlLabels": false}}}%%
 flowchart LR
   subgraph player[A player's browser]
     window[Mixer window] --> queue[One queue]
