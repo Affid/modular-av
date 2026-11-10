@@ -9,6 +9,13 @@ pnpm build && pnpm foundry:link
 node scripts/docs/screenshots.ts <directory with gm.y4m, p1.y4m, p2.y4m, p3.y4m> [map image]
 ```
 
+Then shrink them, which takes them to well under half the size with no
+visible change:
+
+```bash
+pngquant --quality 70-95 --speed 1 --strip --skip-if-larger --ext .png --force docs/images/*.png
+```
+
 The wiki shows copies of them, in its own `images/` folder.
 
 The two `theming-*` pictures are screenshots with outlines and numbers
