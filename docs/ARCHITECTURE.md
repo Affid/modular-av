@@ -10,13 +10,13 @@ of running it into four kinds of module around a core:
 
 ```mermaid
 flowchart TB
-  subgraph ui["UI modules: what you see"]
+  subgraph ui["UI modules"]
     dock["modular-av-dock<br/>camera dock, voice panel,<br/>settings window"]
     mixer["modular-av-audio-mixer<br/>window for the voice's effects"]
     theme["modular-av-dock-vines<br/>a theme for the dock"]
   end
 
-  subgraph effects["Effect modules: what happens to your mic and camera"]
+  subgraph effects["Effect modules"]
     denoise["mic-denoise"]
     voice["audio-reverb, -echo, -eq,<br/>-radio, -boost"]
     cambg["cam-background"]
@@ -24,7 +24,7 @@ flowchart TB
 
   core["modular-av (the core)<br/>runs the call, owns the rules"]
 
-  subgraph services["Service modules: what carries the call (one per world)"]
+  subgraph services["Service modules"]
     p2p["modular-av-p2p"]
     livekit["modular-av-livekit"]
     jitsi["modular-av-jitsi"]
@@ -174,22 +174,23 @@ around the rest instead of replacing it:
 
 ```mermaid
 stateDiagram-v2
+  state "waiting-for-token" as wft
+  state "waiting-for-gm" as wfg
   [*] --> idle
-  idle --> waiting_for_token: join
-  waiting_for_token --> waiting_for_gm: no GM answers
-  waiting_for_gm --> waiting_for_token: a GM logs in
-  waiting_for_token --> connecting: token in hand
+  idle --> wft: join
+  wft --> wfg: no GM answers
+  wfg --> wft: a GM logs in
+  wft --> connecting: token in hand
   connecting --> connected
   connected --> resuming: the service repairs a short drop
   resuming --> connected
   resuming --> retrying: the connection is lost
   connecting --> retrying: failed
-  retrying --> waiting_for_token: after the wait, with a fresh token
+  retrying --> wft: after the wait, with a fresh token
   connected --> left: a final reason
   left --> [*]
 ```
 
-The states in the API are spelt with hyphens (`"waiting-for-token"`).
 P2P needs no token and goes straight to `connecting`.
 
 Retries wait 1, 3, 5, 10 and 20 seconds, then 30 seconds for as long as
@@ -229,21 +230,16 @@ to play media from them, which is how P2P and Jitsi enforce a block.
 
 ```mermaid
 flowchart LR
-  mic[Microphone] --> pre["Before the gate<br/>noise cancellation, EQ, boost"]
+  mic[Microphone] --> pre["Before the gate<br/>noise cancellation,<br/>EQ, boost"]
   pre --> gate[Voice gate]
   gate --> mute[Mute]
   mute --> post["After the gate<br/>radio"]
-  post --> out((Track))
   post --> sends["Sends<br/>reverb, echo"]
-  sends --> out
-  out --> svc([Service])
+  post --> svc([Service])
+  sends --> svc
 
   cam[Camera] --> vfx["Video effect<br/>with a stall watchdog"]
-  vfx --> vout((Track))
-  vout --> svc
-
-  svc --> remote["Remote audio"]
-  remote --> play["Media elements<br/>your volume per player"]
+  vfx --> svc
 ```
 
 - **Microphone.** The core owns the chain: where each effect runs, how
