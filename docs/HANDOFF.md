@@ -422,10 +422,18 @@ and the mock service:
   It returns a detach function but also **cleans up by itself** when the
   element leaves the document (Foundry's dock re-attaches on every render
   and never detaches). UIs never attach audio: the core plays it.
-- **Windows and layers**: `api.windows.pip` (request, current owner,
-  release, an event when the document changes) and a shared popover layer,
-  because a page gets one Picture-in-Picture window at a time and two UI
-  modules must not fight over it.
+- **Windows and layers**: `api.windows.pip` and `api.windows.popup`
+  (request, current owner, release, an event when the document changes)
+  and a shared popover layer, because a page gets one Picture-in-Picture
+  window at a time and two UI modules must not fight over it. The popup is
+  a normal `window.open` window (issue #10): browsers turn full screen off
+  in Picture-in-Picture on purpose, and only Chrome and Edge have it, so
+  the dock opens the popup for "a window of its own" and keeps
+  Picture-in-Picture as "always on top". The core closes the popup on the
+  page's `pagehide`, and checks `closed` every second for a window closed
+  without one. Both get the same style mirror, tooltips and push to talk.
+  Not checked: Foundry's desktop (Electron) app, which may refuse or
+  redirect `window.open`; the dock then shows the refusal.
 - **Surfaces**, of two kinds:
   - **Exclusive**: `cameras` (where videos are shown, including the
     controls Foundry puts on each camera) and `settings` (the settings
@@ -1871,8 +1879,11 @@ it is picked up explicitly.
   is read at start (state, the camera's capture), and writing it is already
   lazy. Boosting a quiet player (issue #9) took it to 118.6 KB, so the
   budget went to 119,000 bytes: the playback output must know a volume
-  above 1 to load the booster, which is lazy. The next core feature needs
-  lazy loading or a budget decision.
+  above 1 to load the booster, which is lazy. The dock's popup window
+  (issue #10) took it to 120.0 KB, so the budget went to 120,500
+  bytes: a window must open within the click that asks for it, so its code
+  can't load first. The next core feature needs lazy loading or a budget
+  decision.
 - **The modules window and other GMs**: it reads the installed modules
   when it opens; another GM applying meanwhile isn't seen until it is
   opened again (Apply reloads everyone, so only a window left open across

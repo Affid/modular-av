@@ -41,6 +41,9 @@ const dock: UIDriver = {
   async openWindow(page) {
     await placement(page, "In a window of its own");
   },
+  async openOnTop(page) {
+    await placement(page, "In a window always on top");
+  },
   async showUntabbedSettings(page) {
     await page.getByRole("tab", { name: "More" }).click();
   },

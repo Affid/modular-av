@@ -146,31 +146,36 @@ test.describe("with LiveKit", () => {
     ).toBeVisible();
   });
 
-  test("the dock moves into its own window and back", async ({ browser }) => {
-    // Neither needs a call: no GM online to let Player1 join.
-    const p1 = track(await openPlayer(browser, "Player1"));
-    await expect(p1.page.locator("#camera-views .mav-dock")).toBeVisible();
+  for (const { kind, choice } of [
+    { kind: "popup", choice: "In a window of its own" },
+    { kind: "pip", choice: "In a window always on top" },
+  ] as const)
+    test(`the dock moves into its ${kind} window and back`, async ({
+      browser,
+    }) => {
+      // Neither needs a call: no GM online to let Player1 join.
+      const p1 = track(await openPlayer(browser, "Player1"));
+      await expect(p1.page.locator("#camera-views .mav-dock")).toBeVisible();
 
-    await p1.page.locator(".mav-dock-placement").click();
-    await p1.page
-      .getByRole("menuitemradio", { name: "In a window of its own" })
-      .click();
+      await p1.page.locator(".mav-dock-placement").click();
+      await p1.page.getByRole("menuitemradio", { name: choice }).click();
 
-    await expect
-      .poll(() =>
-        p1.run(
-          (api) =>
-            api.windows.pip.current?.document.querySelectorAll(".mav-dock-tile")
-              .length ?? 0,
-          null,
-        ),
-      )
-      .toBeGreaterThan(0);
-    await p1.run((api) => {
-      api.windows.pip.current?.close();
-    }, null);
-    await expect(p1.page.locator("#camera-views .mav-dock")).toBeVisible();
-  });
+      await expect
+        .poll(() =>
+          p1.run(
+            (api, _game, which) =>
+              api.windows[which].current?.document.querySelectorAll(
+                ".mav-dock-tile",
+              ).length ?? 0,
+            kind,
+          ),
+        )
+        .toBeGreaterThan(0);
+      await p1.run((api, _game, which) => {
+        api.windows[which].current?.close();
+      }, kind);
+      await expect(p1.page.locator("#camera-views .mav-dock")).toBeVisible();
+    });
 });
 
 test.describe("with P2P", () => {

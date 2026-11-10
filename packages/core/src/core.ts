@@ -55,7 +55,11 @@ import { INITIAL_STATE } from "./state/initial.ts";
 import { decoratePlayerList, startPlainStatus } from "./status/plain-status.ts";
 import { lazyStats } from "./session/lazy-stats.ts";
 import { createStore } from "./store.ts";
-import { createPipWindows, type WindowsEnv } from "./windows/pip.ts";
+import {
+  createPipWindows,
+  createPopupWindows,
+  type WindowsEnv,
+} from "./windows/page-windows.ts";
 import {
   chosenSurface,
   playersSurfaces,
@@ -178,6 +182,7 @@ export function installCore(deps: CoreDeps): InstalledCore {
     ),
     windows: Object.freeze({
       pip: createPipWindows(deps.windows, deps.onError),
+      popup: createPopupWindows(deps.windows, deps.onError),
     }),
     stats: lazyStats(async () =>
       (await import("./session/stats.ts")).createStats({

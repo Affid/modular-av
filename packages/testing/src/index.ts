@@ -112,6 +112,7 @@ export {
 } from "./rtc/fake-peer-connection.ts";
 export type { FakeDescription, FakeStats } from "./rtc/fake-peer-connection.ts";
 export { createFakeDocumentPip } from "./windows/fake-pip.ts";
+export { createFakePopups, type FakePopups } from "./windows/fake-popup.ts";
 export type { FakeDocumentPip, FakePipOptions } from "./windows/fake-pip.ts";
 export {
   avState,

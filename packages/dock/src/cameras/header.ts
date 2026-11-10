@@ -25,11 +25,46 @@ export interface Header {
   dispose(): void;
 }
 
+/** The dock's own window goes full screen, or back. */
+async function toggleFullscreen(doc: Document): Promise<void> {
+  if (doc.fullscreenElement) await doc.exitFullscreen();
+  else await doc.documentElement.requestFullscreen();
+}
+
+/**
+ * Follows the document the header is in (the dock's window, or Foundry's
+ * page) for full screen starting and ending, the Escape key included.
+ */
+function watchFullscreen(onChange: () => void): {
+  follow(doc: Document): void;
+  dispose(): void;
+} {
+  let watched: Document | null = null;
+  const stop = (): void => {
+    watched?.removeEventListener("fullscreenchange", onChange);
+    watched = null;
+  };
+  return {
+    follow(doc) {
+      if (watched === doc) return;
+      stop();
+      doc.addEventListener("fullscreenchange", onChange);
+      watched = doc;
+    },
+    dispose: stop,
+  };
+}
+
 function buttons(
   ctx: DockContext,
   doc: Document,
   handlers: HeaderHandlers,
-): Readonly<Record<"move" | "layout" | "placement" | "collapse", IconButton>> {
+): Readonly<
+  Record<
+    "move" | "layout" | "placement" | "fullscreen" | "collapse",
+    IconButton
+  >
+> {
   return {
     move: iconButton(doc, {
       className: "mav-dock-move",
@@ -49,6 +84,14 @@ function buttons(
       icon: "fa-up-right-from-square",
       onClick: (button) => {
         handlers.placement(button);
+      },
+    }),
+    fullscreen: iconButton(doc, {
+      className: "mav-dock-fullscreen",
+      label: ctx.t("dock.fullscreen"),
+      icon: "fa-expand",
+      onClick: (button) => {
+        toggleFullscreen(button.ownerDocument).catch(ctx.onError);
       },
     }),
     collapse: iconButton(doc, {
@@ -74,7 +117,9 @@ export function createHeader(
     doc,
     className: "mav-dock-tools",
     attrs: { role: "toolbar", "aria-label": ctx.t("dock.label") },
-    children: [b.move, b.layout, b.placement, b.collapse].map((x) => x.element),
+    children: [b.move, b.layout, b.placement, b.fullscreen, b.collapse].map(
+      (x) => x.element,
+    ),
   });
   const keys = roving(tools, { items: "button:not([hidden])" });
   const element = el("header", {
@@ -82,10 +127,28 @@ export function createHeader(
     className: "mav-dock-header",
     children: [status.element, count, tools],
   });
+  /** Only in the dock's own normal window, where the browser allows it. */
+  const showFullscreen = (where: Where): void => {
+    const doc = element.ownerDocument;
+    const full = Boolean(doc.fullscreenElement);
+    b.fullscreen.element.hidden = where !== "window" || !doc.fullscreenEnabled;
+    b.fullscreen.set({
+      label: ctx.t(full ? "dock.leaveFullscreen" : "dock.fullscreen"),
+      icon: full ? "fa-compress" : "fa-expand",
+    });
+  };
+  let shownWhere: Where | null = null;
+  const fullscreen = watchFullscreen(() => {
+    if (shownWhere) showFullscreen(shownWhere);
+    keys.refresh();
+  });
   return {
     element,
     move: b.move.element,
     show(state) {
+      shownWhere = state.where;
+      fullscreen.follow(element.ownerDocument);
+      showFullscreen(state.where);
       // Floating, it moves the dock; scattered, the voice panel.
       b.move.element.hidden =
         state.where !== "floating" && state.where !== "scattered";
@@ -111,6 +174,7 @@ export function createHeader(
     },
     dispose: () => {
       keys.dispose();
+      fullscreen.dispose();
     },
   };
 }

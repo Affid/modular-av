@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { avState, participantState } from "@modular-av/testing";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { camerasSurface } from "../src/cameras/dock.ts";
 import { fakeHost, settle, testDock, type TestDockOptions } from "./context.ts";
 
@@ -21,11 +21,10 @@ function dock(options: TestDockOptions = {}) {
   camerasSurface(test.ctx).mount(host);
   const root = host.element.querySelector<HTMLElement>(".mav-dock");
   if (!root) throw new Error("not mounted");
+  // From wherever the dock is: Foundry's page or a window of its own.
   const placement = async (name: string): Promise<void> => {
-    host.element
-      .querySelector<HTMLButtonElement>(".mav-dock-placement")
-      ?.click();
-    document
+    root.querySelector<HTMLButtonElement>(".mav-dock-placement")?.click();
+    root.ownerDocument
       .querySelector<HTMLButtonElement>(
         `[data-placement="${name}"][role="menuitemradio"]`,
       )
@@ -70,35 +69,84 @@ describe("where the dock is", () => {
     expect(saved.get("modular-av-dock.mode")).toBe("floating");
   });
 
-  it("offers its own window only where the browser can", () => {
+  it("offers a window of its own everywhere, and one always on top only where the browser can", () => {
     const { host } = dock();
 
     host.element
       .querySelector<HTMLButtonElement>(".mav-dock-placement")
       ?.click();
-    const item = document.querySelector<HTMLButtonElement>(
-      '[data-placement="window"]',
-    );
+    const item = (name: string) =>
+      document.querySelector<HTMLButtonElement>(`[data-placement="${name}"]`);
 
-    expect(item?.disabled).toBe(true);
+    expect(item("window")?.disabled).toBe(false);
+    expect(item("on-top")?.disabled).toBe(true);
     expect(document.body.textContent).toContain(
-      "A window of its own needs Chrome or Edge.",
+      "A window always on top needs Chrome or Edge.",
     );
   });
 
-  it("moves into its own window and comes back when it closes", async () => {
-    const { root, host, placement, api } = dock({ pip: true });
+  it("moves into a normal window of its own and comes back when it closes", async () => {
+    const { root, host, placement, api } = dock();
 
     await placement("window");
-    const pip = api.windows.pip.current;
+    const popup = api.windows.popup.current;
 
-    expect(pip?.owner).toBe("modular-av-dock");
-    expect(root.ownerDocument).toBe(pip?.document);
+    expect(popup?.owner).toBe("modular-av-dock");
+    expect(root.ownerDocument).toBe(popup?.document);
+    expect(root.dataset.placement).toBe("window");
     expect(host.placements.at(-1)).toBe("free");
-    pip?.close();
+    popup?.close();
     await settle();
     expect(root.parentElement).toBe(host.element);
     expect(root.dataset.placement).toBe("right");
+  });
+
+  it("moves into the window always on top, closing the other one", async () => {
+    const { root, placement, api } = dock({ pip: true });
+    await placement("window");
+    const popup = api.windows.popup.current;
+
+    await placement("on-top");
+
+    expect(api.windows.pip.current?.document).toBe(root.ownerDocument);
+    expect(root.dataset.placement).toBe("on-top");
+    expect(api.windows.popup.current).toBeNull();
+    expect(popup).not.toBeNull();
+  });
+
+  it("offers full screen in its normal window only", async () => {
+    // Arrange: happy-dom has no full screen; each window's document gets it.
+    const make = document.implementation.createHTMLDocument.bind(
+      document.implementation,
+    );
+    vi.spyOn(document.implementation, "createHTMLDocument").mockImplementation(
+      (title) =>
+        Object.defineProperty(make(title), "fullscreenEnabled", {
+          value: true,
+        }),
+    );
+    const { root, placement } = dock({ pip: true });
+    const button = () =>
+      root.querySelector<HTMLButtonElement>(".mav-dock-fullscreen");
+
+    // Act
+    const docked = button()?.hidden;
+    await placement("window");
+    const inWindow = button()?.hidden;
+    const asked = { count: 0 };
+    root.ownerDocument.documentElement.requestFullscreen = () => {
+      asked.count += 1;
+      return Promise.resolve();
+    };
+    button()?.click();
+    await placement("on-top");
+    const onTop = button()?.hidden;
+
+    // Assert
+    expect([docked, inWindow, onTop]).toEqual([true, false, true]);
+    expect(asked.count).toBe(1);
+    expect(button()?.getAttribute("aria-label")).toBe("Full screen");
+    vi.restoreAllMocks();
   });
 
   it("collapses to its header and panel, and remembers it", () => {

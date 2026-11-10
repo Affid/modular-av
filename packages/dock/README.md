@@ -6,8 +6,11 @@ voice and video settings window and badges in the player list. Requires
 "Voice and video settings window").
 
 - **Dock**: beside Foundry's sidebar or floating, a grid or one player in
-  focus, or in a window of its own (Picture-in-Picture, in Chrome and
-  Edge).
+  focus, or in a window of its own: a normal window you can drag to another
+  monitor and put full screen (every browser, unless a popup blocker
+  refuses it), or a window always on top of the others
+  (Picture-in-Picture, in Chrome and Edge, which can't go full screen). A
+  window closes with Foundry's page.
 - **Scattered over the screen**: each camera on its own, against a corner
   or edge or wherever you drag it, resized as you like, by mouse or
   keyboard; Foundry's sidebar, controls, hotbar and chat stay clear. A GM
