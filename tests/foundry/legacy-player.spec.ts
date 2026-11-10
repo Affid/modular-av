@@ -65,6 +65,8 @@ test("a player's sensitivity, noise model, dock and background come over", async
         tab.run(
           (api, game) => ({
             sensitivity: api.state.get().local.inputSensitivity,
+            // Voice effects are the player's, camera effects this browser's.
+            audioEffects: game.settings.get("modular-av", "audioEffects"),
             effects: game.settings.get("modular-av", "effects"),
             layout: game.settings.get("modular-av-dock", "tileLayout"),
             strength: game.settings.get(
@@ -78,7 +80,8 @@ test("a player's sensitivity, noise model, dock and background come over", async
     )
     .toEqual({
       sensitivity: { auto: false, threshold: -42 },
-      effects: expect.arrayContaining(["rnnoise", "background-blur"]),
+      audioEffects: expect.arrayContaining(["rnnoise"]),
+      effects: expect.arrayContaining(["background-blur"]),
       layout: "focus",
       strength: 0.3,
     });
