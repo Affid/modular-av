@@ -7,6 +7,7 @@ import type {
   GateFallback,
   InputSensitivity,
   MediaPermissions,
+  ModuleSettings,
   Registry,
   VideoResolution,
   VoiceMode,
@@ -51,14 +52,26 @@ export function createCommands(
   game: FoundryGame,
   controller: () => Controller,
   effects: Registry<EffectDefinition>,
+  settings: Pick<ModuleSettings, "set">,
 ): AVCommands {
   const self = (): string => controller().facts.selfId;
 
-  const change = async (
+  /**
+   * One at a time: the player's settings save on the server, so a change
+   * reading one while another saves would write over it.
+   */
+  let changes: Promise<unknown> = Promise.resolve();
+  const change = (
     write: (writes: typeof SettingWrites) => Promise<void>,
   ): Promise<void> => {
-    await write(await loadWrites());
-    controller().apply();
+    const run = changes
+      .catch(() => undefined)
+      .then(async () => {
+        await write(await loadWrites());
+        controller().apply();
+      });
+    changes = run;
+    return run;
   };
 
   /** Writes Foundry's client A/V settings, then applies what follows. */
@@ -103,8 +116,8 @@ export function createCommands(
 
     setDeafened: (deafened: boolean) => controller().setDeafened(deafened),
 
-    setVolume: (participant: string, volume: number) =>
-      attempt(() => {
+    async setVolume(participant: string, volume: number) {
+      await attempt(() => {
         if (!Number.isFinite(volume) || volume < 0 || volume > MAX_VOLUME)
           throw new AVCommandError(
             "invalid-argument",
@@ -116,7 +129,10 @@ export function createCommands(
             participant,
           });
         setClient(`users.${participant}.volume`, volume);
-      }),
+      });
+      // The player's copy, read in turn so two quick changes both stay.
+      await change((w) => w.writeVolume(game, settings, participant, volume));
+    },
 
     setHiddenByMe: (participant: string, hidden: boolean) =>
       attempt(() => {

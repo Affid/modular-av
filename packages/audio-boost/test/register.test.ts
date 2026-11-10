@@ -5,12 +5,12 @@ import type {
   ModularAV,
   RangeControl,
 } from "@modular-av/api";
-import type { SettingsApi } from "@modular-av/kit";
+import type { StoredSettings } from "@modular-av/kit";
 import { describe, expect, it, vi } from "vitest";
 import { compressorFor, MODULE_ID, registerBoost } from "../src/register.ts";
 import { registerSettings } from "../src/settings.ts";
 
-function fakeSettings(): SettingsApi {
+function fakeSettings(): StoredSettings {
   const values = new Map<string, unknown>();
   const changes = new Map<string, () => void>();
   return {
@@ -22,7 +22,7 @@ function fakeSettings(): SettingsApi {
     set(_module, key, value) {
       values.set(key, value);
       changes.get(key)?.();
-      return Promise.resolve(value);
+      return Promise.resolve();
     },
   };
 }

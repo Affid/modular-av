@@ -6,10 +6,12 @@ import type {
   GateFallback,
   InputSensitivity,
   MediaPermissions,
+  ModuleSettings,
   Registry,
   VideoResolution,
 } from "@modular-av/api";
-import { MODULE_ID } from "../constants.ts";
+import { MODULE_ID, VOLUMES_SETTING } from "../constants.ts";
+import { readVolumes } from "./volumes.ts";
 import { AVCommandError } from "../errors.ts";
 import type { FoundryGame } from "../foundry/globals.ts";
 import { CUT_TAILS_SETTING } from "./cut-tails.ts";
@@ -41,7 +43,7 @@ import {
 } from "./video-resolution.ts";
 
 /**
- * Writes this device's voice settings, for the commands. Apart from reading
+ * Writes the voice settings (the player's, and this device's), for the commands. Apart from reading
  * them so the entry stays small: this runs only when a player changes one.
  */
 
@@ -284,6 +286,19 @@ export async function writeVideoResolution(
       resolution: String(resolution),
     });
   await game.settings.set(MODULE_ID, VIDEO_RESOLUTION_SETTING, resolution);
+}
+
+/** The player's copy of a volume, merged into what they saved. */
+export async function writeVolume(
+  game: FoundryGame,
+  settings: Pick<ModuleSettings, "set">,
+  participant: string,
+  volume: number,
+): Promise<void> {
+  await settings.set(MODULE_ID, VOLUMES_SETTING, {
+    ...readVolumes(game),
+    [participant]: volume,
+  });
 }
 
 /** Merges a change into the saved sensitivity; throws for bad input. */

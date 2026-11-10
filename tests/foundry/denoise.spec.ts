@@ -11,6 +11,7 @@ import {
   openPlayer,
   type Player,
   setVoiceMode,
+  turnOffEffects,
 } from "./world.ts";
 
 test.describe.configure({ mode: "serial" });
@@ -49,6 +50,7 @@ async function call(
 ): Promise<{ gm: Player; p1: Player; p1Id: string }> {
   const gm = track(await openGm(browser));
   const p1 = track(await openPlayer(browser, "Player1"));
+  await turnOffEffects(p1);
   for (const player of [gm, p1]) await expectStatus(player, "connected");
   await setVoiceMode(p1, "always");
   return { gm, p1, p1Id: await idOf(gm, "Player1") };

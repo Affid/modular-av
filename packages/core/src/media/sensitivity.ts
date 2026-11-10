@@ -2,7 +2,7 @@ import type { InputSensitivity } from "@modular-av/api";
 import { MODULE_ID } from "../constants.ts";
 import type { FoundryGame } from "../foundry/globals.ts";
 
-/** How the voice gate opens on this device: a client setting. */
+/** How the voice gate opens on this device: a device setting. */
 export const SENSITIVITY_SETTING = "inputSensitivity";
 
 export const DEFAULT_SENSITIVITY: InputSensitivity = {

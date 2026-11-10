@@ -2,7 +2,12 @@
 // browser contexts with fake devices, read and drive the core through its
 // public API on `game.modules.get("modular-av").api`.
 import type { AVState, ModularAV } from "@modular-av/api";
-import { type Browser, expect, type Page } from "@playwright/test";
+import {
+  type Browser,
+  type BrowserContextOptions,
+  expect,
+  type Page,
+} from "@playwright/test";
 import { loadFoundryEnv } from "../../scripts/foundry/env.ts";
 import { joinAs } from "../../scripts/foundry/session.ts";
 import { JITSI_DOCKER } from "../../scripts/services/jitsi.ts";
@@ -60,18 +65,18 @@ export interface FoundryBinding {
   readonly modifiers?: readonly string[];
 }
 
+/** `context` adds to the browser context, such as a storage state to start from. */
 export async function openPlayer(
   browser: Browser,
   name: string,
+  context: BrowserContextOptions = {},
 ): Promise<Player> {
   // Only Chromium takes these; Firefox grants devices by its launch prefs.
   const chromium = browser.browserType().name() === "chromium";
-  const page = await joinAs(
-    browser,
-    FOUNDRY_URL,
-    name,
-    chromium ? { permissions: ["camera", "microphone"] } : {},
-  );
+  const page = await joinAs(browser, FOUNDRY_URL, name, {
+    ...(chromium ? { permissions: ["camera", "microphone"] } : {}),
+    ...context,
+  });
   return wrap(page, name);
 }
 
@@ -235,6 +240,16 @@ export async function configureWorld(
   );
   await gm.close();
 }
+
+/**
+ * Turns off every effect the player chose. Voice effects are the player's
+ * (kept on the server), so they outlive a test's browser context.
+ */
+export const turnOffEffects = (player: Player): Promise<void> =>
+  player.run(async (api) => {
+    for (const id of api.state.get().local.chosenEffects)
+      await api.commands.setEffectEnabled(id, false);
+  }, null);
 
 /** The loudest `listener` hears `speaker` over 4 s, in dBFS, on their tile. */
 export const loudness = (listener: Player, speaker: string): Promise<number> =>

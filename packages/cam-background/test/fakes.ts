@@ -1,10 +1,8 @@
+import type { ModuleSetting } from "@modular-av/api";
 import type { SettingsApi } from "../src/settings.ts";
 import { MODULE_ID } from "../src/settings.ts";
 
-type Config = Readonly<Record<string, unknown>> & {
-  readonly default?: unknown;
-  readonly onChange?: (value: unknown) => void;
-};
+type Config = ModuleSetting;
 
 /** Foundry's settings, as much as this module uses: stored per key. */
 export function fakeSettings(): SettingsApi & {
@@ -28,7 +26,7 @@ export function fakeSettings(): SettingsApi & {
       const id = full(namespace, key);
       values.set(id, value);
       configs.get(id)?.onChange?.(value);
-      return Promise.resolve(value);
+      return Promise.resolve();
     },
     configs: () =>
       Object.fromEntries(

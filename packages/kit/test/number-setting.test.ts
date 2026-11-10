@@ -1,42 +1,43 @@
 import { describe, expect, it } from "vitest";
-import { clientNumber, type SettingsApi } from "../src/number-setting.ts";
+import { savedNumber, type StoredSettings } from "../src/number-setting.ts";
 
 const RANGE = { min: 0.5, max: 3, value: 1.5 };
 
 function fakeSettings(saved?: unknown) {
   let onChange: (value: unknown) => void = () => undefined;
   let value = saved;
-  const scopes: unknown[] = [];
-  const settings: SettingsApi = {
-    register(_module, _key, config) {
-      scopes.push(config.scope);
-      if (saved === undefined) value = config.default;
-      onChange = config.onChange as (value: unknown) => void;
+  const storages: unknown[] = [];
+  const settings: StoredSettings = {
+    register(_module, _key, setting) {
+      storages.push(setting.storage);
+      if (saved === undefined) value = setting.default;
+      onChange = setting.onChange ?? (() => undefined);
     },
     get: () => value,
     set(_module, _key, next) {
       value = next;
       onChange(next);
-      return Promise.resolve(next);
+      return Promise.resolve();
     },
   };
-  return { settings, scopes };
+  return { settings, storages };
 }
 
-describe("a number saved on this device", () => {
-  it("starts at its default, in a client setting", () => {
-    const { settings, scopes } = fakeSettings();
+describe("a saved number", () => {
+  it("starts at its default, kept where it is declared", () => {
+    const { settings, storages } = fakeSettings();
 
-    const decay = clientNumber(settings, "my-module", "decay", RANGE);
+    const decay = savedNumber(settings, "my-module", "decay", RANGE, "player");
+    savedNumber(settings, "my-module", "rate", RANGE, "device");
 
     expect(decay.get()).toBe(1.5);
-    expect(scopes).toEqual(["client"]);
+    expect(storages).toEqual(["player", "device"]);
   });
 
   it("saves a change and tells who listens", async () => {
     // Arrange
     const { settings } = fakeSettings();
-    const decay = clientNumber(settings, "my-module", "decay", RANGE);
+    const decay = savedNumber(settings, "my-module", "decay", RANGE, "player");
     const heard: number[] = [];
     decay.subscribe((value) => heard.push(value));
 
@@ -50,7 +51,7 @@ describe("a number saved on this device", () => {
 
   it("stops telling a listener that left", async () => {
     const { settings } = fakeSettings();
-    const decay = clientNumber(settings, "my-module", "decay", RANGE);
+    const decay = savedNumber(settings, "my-module", "decay", RANGE, "player");
     const heard: number[] = [];
     decay.subscribe((value) => heard.push(value))();
 
@@ -67,14 +68,14 @@ describe("a number saved on this device", () => {
   ])("keeps within range when what is saved is %s", (_, saved, read) => {
     const { settings } = fakeSettings(saved);
 
-    expect(clientNumber(settings, "my-module", "decay", RANGE).get()).toBe(
-      read,
-    );
+    expect(
+      savedNumber(settings, "my-module", "decay", RANGE, "player").get(),
+    ).toBe(read);
   });
 
   it("refuses to save what is out of range, keeping within it", async () => {
     const { settings } = fakeSettings();
-    const decay = clientNumber(settings, "my-module", "decay", RANGE);
+    const decay = savedNumber(settings, "my-module", "decay", RANGE, "player");
 
     await decay.set(9);
 

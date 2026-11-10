@@ -6,6 +6,7 @@ import {
   TABLE_LAYER_SETTING,
   UNDO_SETTING,
 } from "../constants.ts";
+import type { ModuleSettings } from "@modular-av/api";
 import type { GmLayerStore } from "./gm-layers.ts";
 import type { LayerStore } from "./layers.ts";
 
@@ -28,17 +29,26 @@ function parseRefused(stored: unknown): readonly string[] {
   }
 }
 
-/** This client's part: a layer's flag, and its own undo record and refusals. */
-export const foundryLayerStore = (): LayerStore => ({
-  table: () => get(TABLE_LAYER_SETTING),
-  personal: () => game.user.getFlag(MODULE_ID, PERSONAL_LAYER_FLAG),
-  undo: () => get(UNDO_SETTING),
-  setUndo: (json) => set(UNDO_SETTING, json),
-  refused: () => parseRefused(get(REFUSED_SETTING)),
-  setRefused: (ids) => set(REFUSED_SETTING, JSON.stringify(ids)),
-  keptOut: () => get(KEPT_OUT_SETTING) === true,
-  setKeptOut: (out) => set(KEPT_OUT_SETTING, out),
-});
+/**
+ * This player's part: a layer's flag, and their undo record and refusals,
+ * saved through the core's settings (one at a time, once ready).
+ */
+export const foundryLayerStore = (
+  settings: Pick<ModuleSettings, "set">,
+): LayerStore => {
+  const save = (key: string, value: unknown): Promise<void> =>
+    settings.set(MODULE_ID, key, value);
+  return {
+    table: () => get(TABLE_LAYER_SETTING),
+    personal: () => game.user.getFlag(MODULE_ID, PERSONAL_LAYER_FLAG),
+    undo: () => get(UNDO_SETTING),
+    setUndo: (json) => save(UNDO_SETTING, json),
+    refused: () => parseRefused(get(REFUSED_SETTING)),
+    setRefused: (ids) => save(REFUSED_SETTING, JSON.stringify(ids)),
+    keptOut: () => get(KEPT_OUT_SETTING) === true,
+    setKeptOut: (out) => save(KEPT_OUT_SETTING, out),
+  };
+};
 
 /** A GM's part: a world setting, and flags on other users. */
 export const foundryGmStore = (): GmLayerStore => ({

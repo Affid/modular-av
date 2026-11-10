@@ -40,6 +40,11 @@ export interface FakeWorldOptions {
 export interface ConnectOptions {
   /** This browser's `core.rtcClientSettings`. */
   readonly av?: Partial<AVClientSettings>;
+  /**
+   * What this browser's localStorage already holds, by
+   * "<namespace>.<key>": settings saved here before this page loaded.
+   */
+  readonly stored?: Readonly<Record<string, unknown>>;
 }
 
 export type UserChanges = Partial<Omit<FakeUserData, "id">>;
@@ -212,6 +217,7 @@ export function createFakeWorld(options: FakeWorldOptions): FakeWorld {
       sharedStore(userId),
       () => ready(),
       new Map([["core.rtcWorldSettings", worldAVSetting(userId)]]),
+      connectOptions?.stored,
     );
     const handle = createClient({
       userId,

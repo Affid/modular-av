@@ -1,7 +1,7 @@
 import {
-  clientNumber,
+  savedNumber,
   type NumberSetting,
-  type SettingsApi,
+  type StoredSettings,
 } from "@modular-av/kit";
 import { MODULE_ID } from "./constants.ts";
 
@@ -14,10 +14,13 @@ export interface BoostSettings {
 export const BOOST_DB = { min: 0, max: 24, value: 6 } as const;
 export const EVENNESS = { min: 0, max: 1, value: 0.5 } as const;
 
-/** Per device: how quiet a microphone is belongs to the machine. */
-export function registerSettings(settings: SettingsApi): BoostSettings {
+/**
+ * How much to boost is the machine's (how quiet its microphone is), how
+ * evenly to speak is the player's taste.
+ */
+export function registerSettings(settings: StoredSettings): BoostSettings {
   return {
-    boost: clientNumber(settings, MODULE_ID, "boost", BOOST_DB),
-    evenness: clientNumber(settings, MODULE_ID, "evenness", EVENNESS),
+    boost: savedNumber(settings, MODULE_ID, "boost", BOOST_DB, "device"),
+    evenness: savedNumber(settings, MODULE_ID, "evenness", EVENNESS, "player"),
   };
 }

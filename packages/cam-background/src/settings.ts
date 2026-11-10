@@ -1,17 +1,14 @@
-import type { Observable } from "@modular-av/api";
+import type {
+  ModuleSettings,
+  Observable,
+  SettingStorage,
+  SettingType,
+} from "@modular-av/api";
 
 export const MODULE_ID = "modular-av-cam-background";
 
-/** The slice of Foundry's settings this module uses. */
-export interface SettingsApi {
-  register(
-    namespace: string,
-    key: string,
-    config: Readonly<Record<string, unknown>>,
-  ): void;
-  get(namespace: string, key: string): unknown;
-  set(namespace: string, key: string, value: unknown): Promise<unknown>;
-}
+/** The core's settings, as far as this module uses them. */
+export type SettingsApi = Pick<ModuleSettings, "register" | "get" | "set">;
 
 export type Quality = "standard" | "high";
 const QUALITIES: readonly Quality[] = ["standard", "high"];
@@ -56,48 +53,34 @@ export const PRESET_IMAGES: readonly ImageChoice[] = [
 const DEFAULT_IMAGE = PRESET_IMAGES[0]?.path ?? "";
 
 /**
- * Per device: what this computer can run and what this player likes.
- * Returns them as observables, told by each setting's `onChange`.
+ * What this computer can run stays with the device (the quality); what the
+ * player likes follows them (how strong the blur, which image). Returns
+ * them as observables, told by each setting's `onChange`.
  */
 export function registerSettings(
   settings: SettingsApi,
 ): CameraBackgroundSettings {
   const observed = settingsOf(settings);
-  const onChange = (key: string): void => {
-    observed.changed(key);
-  };
-  const client = (
+  const keep = (
     key: string,
-    config: Readonly<Record<string, unknown>>,
+    storage: SettingStorage,
+    type: SettingType,
+    value: unknown,
   ): void => {
     settings.register(MODULE_ID, key, {
-      scope: "client",
-      config: false,
-      ...config,
+      storage,
+      type,
+      default: value,
       onChange: () => {
-        onChange(key);
+        observed.changed(key);
       },
     });
   };
-  client(SETTINGS.quality, {
-    name: `${MODULE_ID}.settings.quality.name`,
-    hint: `${MODULE_ID}.settings.quality.hint`,
-    type: String,
-    choices: Object.fromEntries(
-      QUALITIES.map((q) => [q, `${MODULE_ID}.settings.quality.choices.${q}`]),
-    ),
-    default: "standard",
-  });
-  client(SETTINGS.strength, {
-    name: `${MODULE_ID}.settings.blurStrength.name`,
-    hint: `${MODULE_ID}.settings.blurStrength.hint`,
-    type: Number,
-    range: STRENGTH,
-    default: DEFAULT_STRENGTH,
-  });
-  client(SETTINGS.image, { type: String, default: DEFAULT_IMAGE });
-  client(SETTINGS.customImage, { type: String, default: "" });
-  client(SETTINGS.imported, { type: Boolean, default: false });
+  keep(SETTINGS.quality, "device", String, "standard");
+  keep(SETTINGS.strength, "player", Number, DEFAULT_STRENGTH);
+  keep(SETTINGS.image, "player", String, DEFAULT_IMAGE);
+  keep(SETTINGS.customImage, "player", String, "");
+  keep(SETTINGS.imported, "device", Boolean, false);
   return observed;
 }
 

@@ -1,5 +1,6 @@
-import type { ModularAV } from "@modular-av/api";
+import type { ModularAV, SettingType } from "@modular-av/api";
 import {
+  ACTIVE_SETTING,
   KEPT_OUT_SETTING,
   MODULE_ID,
   PERSONAL_LAYER_FLAG,
@@ -109,20 +110,25 @@ function reconcile(): void {
     .catch(reportError);
 }
 
-const clientSetting = (key: string, type: unknown, value: unknown): void => {
-  game.settings.register(MODULE_ID, key, {
-    scope: "client",
-    config: false,
-    type,
-    default: value,
-  });
-};
+/**
+ * The player's, like the voice settings they go with: the preset on, and
+ * where a GM's change of their voice stands (its undo, what they refused).
+ */
+function registerSettings(api: ModularAV): void {
+  const player = (key: string, type: SettingType, value: unknown): void => {
+    api.settings.register(MODULE_ID, key, {
+      storage: "player",
+      type,
+      default: value,
+    });
+  };
+  player(ACTIVE_SETTING, String, "");
+  player(UNDO_SETTING, String, "");
+  player(REFUSED_SETTING, String, "[]");
+  player(KEPT_OUT_SETTING, Boolean, false);
+}
 
 Hooks.once("init", () => {
-  clientSetting("activePreset", String, "");
-  clientSetting(UNDO_SETTING, String, "");
-  clientSetting(REFUSED_SETTING, String, "[]");
-  clientSetting(KEPT_OUT_SETTING, Boolean, false);
   game.settings.register(MODULE_ID, TABLE_LAYER_SETTING, {
     scope: "world",
     config: false,
@@ -140,6 +146,7 @@ Hooks.once("init", () => {
 
 Hooks.once("modularAV.register", (api: ModularAV) => {
   core = api;
+  registerSettings(api);
   registerMixer(api, open, () => {
     open("table");
   });

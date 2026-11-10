@@ -61,6 +61,8 @@ export interface ControllerDeps {
   /** The id in the world's service setting. */
   readonly selectedService: () => string;
   readonly renderDock: () => void;
+  /** Saves one of the core's settings, one at a time. */
+  readonly saveSetting: (key: string, value: unknown) => Promise<void>;
   readonly onError: (error: unknown) => void;
   readonly now: () => number;
   readonly randomId: () => string;
@@ -191,7 +193,7 @@ function buildParts(deps: ControllerDeps): Parts {
     onError: deps.onError,
   });
   choices = createEffectChoices({
-    ...{ game, env, effects: deps.effects, local },
+    ...{ game, env, effects: deps.effects, local, save: deps.saveSetting },
     features: () => rt.features,
     onError: deps.onError,
   });

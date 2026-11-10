@@ -69,11 +69,15 @@ async function openFromSettings(player: Player): Promise<Locator> {
   return mixer;
 }
 
-/** Reverb and echo off and out of the chain, reverb back on a send. */
+/**
+ * Every effect off and out of the chain, reverb back on a send. The voice
+ * choices are the player's (kept on the server), so they outlive a test's
+ * browser context: each test starts from this.
+ */
 const clearPipeline = (player: Player): Promise<void> =>
   player.run(async (api) => {
-    await api.commands.setEffectEnabled("reverb", false);
-    await api.commands.setEffectEnabled("echo", false);
+    for (const id of api.state.get().local.chosenEffects)
+      await api.commands.setEffectEnabled(id, false);
     await api.commands.setAudioPipeline({
       places: { reverb: "send", echo: "send" },
       order: { "pre-gate": [], "post-gate": [], send: [] },

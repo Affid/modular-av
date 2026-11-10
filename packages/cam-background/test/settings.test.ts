@@ -8,29 +8,21 @@ import {
 import { fakeSettings } from "./fakes.ts";
 
 describe("the camera background's settings", () => {
-  it("are this device's: quality, strength, the image and the player's own", () => {
+  it("keep the quality with the device, and the strength and images with the player", () => {
     const settings = fakeSettings();
 
     registerSettings(settings);
 
     expect(settings.configs()).toMatchObject({
-      quality: {
-        scope: "client",
+      quality: { storage: "device", type: String, default: "standard" },
+      blurStrength: { storage: "player", type: Number, default: 0.5 },
+      image: {
+        storage: "player",
         type: String,
-        default: "standard",
-        choices: {
-          standard: `${MODULE_ID}.settings.quality.choices.standard`,
-          high: `${MODULE_ID}.settings.quality.choices.high`,
-        },
+        default: PRESET_IMAGES[0]?.path,
       },
-      blurStrength: {
-        scope: "client",
-        type: Number,
-        default: 0.5,
-        range: { min: 0.1, max: 1, step: 0.05 },
-      },
-      image: { scope: "client", type: String, default: PRESET_IMAGES[0]?.path },
-      customImage: { scope: "client", type: String, default: "" },
+      customImage: { storage: "player", type: String, default: "" },
+      legacyImported: { storage: "device", type: Boolean, default: false },
     });
   });
 
