@@ -11,6 +11,10 @@ node scripts/docs/screenshots.ts <directory with gm.y4m, p1.y4m, p2.y4m, p3.y4m>
 
 The wiki shows copies of them, in its own `images/` folder.
 
+The two `theming-*` pictures are screenshots with outlines and numbers
+drawn over the elements the page really has; the key to the numbers is
+in `docs/dock-theming.md`.
+
 ## The people in them
 
 The camera pictures are stock clips from [Mixkit](https://mixkit.co),

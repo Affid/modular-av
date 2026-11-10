@@ -256,6 +256,123 @@ async function shootGm(gm: Player, playerId: string): Promise<void> {
   await settings.locator('[data-action="close"]').first().click();
 }
 
+interface Part {
+  readonly selector: string;
+  /** Where on its outline the number sits: 0 to 1 across, then down. */
+  readonly at: readonly [number, number];
+}
+
+const PART_COLORS = [
+  "#ffb000",
+  "#4cc9f0",
+  "#f72585",
+  "#90e040",
+  "#c77dff",
+  "#ff7b54",
+  "#ffffff",
+  "#2ec4b6",
+];
+
+/**
+ * Outlines each part where the page really has it and numbers it, takes
+ * the picture, and removes the outlines: docs/dock-theming.md has the key.
+ */
+async function annotated(
+  page: Page,
+  name: string,
+  parts: readonly Part[],
+): Promise<void> {
+  const clip = await page.evaluate(
+    ({ wanted, colors, margin }) => {
+      const overlay = document.createElement("div");
+      overlay.id = "docs-annotations";
+      overlay.style.cssText =
+        "position:fixed;inset:0;z-index:2147483647;pointer-events:none";
+      let box = { left: Infinity, top: Infinity, right: 0, bottom: 0 };
+      wanted.forEach((part, index) => {
+        const rect = document
+          .querySelector(part.selector)
+          ?.getBoundingClientRect();
+        if (!rect || rect.width === 0)
+          throw new Error(`Nothing to outline for ${part.selector}`);
+        const color = colors[index % colors.length] ?? "#fff";
+        const outline = document.createElement("div");
+        outline.style.cssText = `position:absolute;left:${String(rect.left)}px;top:${String(rect.top)}px;width:${String(rect.width)}px;height:${String(rect.height)}px;box-sizing:border-box;border:2px solid ${color};border-radius:3px`;
+        const badge = document.createElement("div");
+        badge.textContent = String(index + 1);
+        const clamp = (value: number, most: number): number =>
+          Math.min(Math.max(value, 2), most - 24);
+        const x = clamp(rect.left + rect.width * part.at[0] - 11, innerWidth);
+        const y = clamp(rect.top + rect.height * part.at[1] - 11, innerHeight);
+        badge.style.cssText = `position:absolute;left:${String(x)}px;top:${String(y)}px;width:22px;height:22px;border-radius:11px;background:${color};color:#000;font:bold 13px/22px sans-serif;text-align:center;box-shadow:0 0 0 2px #000`;
+        overlay.append(outline, badge);
+        box = {
+          left: Math.min(box.left, rect.left),
+          top: Math.min(box.top, rect.top),
+          right: Math.max(box.right, rect.right),
+          bottom: Math.max(box.bottom, rect.bottom),
+        };
+      });
+      document.body.append(overlay);
+      const left = Math.max(0, box.left - margin);
+      const top = Math.max(0, box.top - margin);
+      return {
+        x: left,
+        y: top,
+        width: Math.min(innerWidth, box.right + margin) - left,
+        height: Math.min(innerHeight, box.bottom + margin) - top,
+      };
+    },
+    { wanted: parts, colors: PART_COLORS, margin: 24 },
+  );
+  await page.screenshot({ path: join(OUT, `${name}.png`), clip });
+  await page.evaluate(() => {
+    document.getElementById("docs-annotations")?.remove();
+  });
+}
+
+/** The pictures of docs/dock-theming.md: the dock's parts, then a tile's. */
+async function shootThemingKey(
+  gm: Player,
+  muted: Player,
+  mutedId: string,
+): Promise<void> {
+  const page = gm.page;
+  const tile = `#camera-views .mav-dock-tile[data-participant-id="${mutedId}"]`;
+  await muted.run((api) => api.commands.setMuted(true), null);
+  await page.locator(`${tile}[data-muted]`).waitFor();
+  await page.mouse.move(700, 450);
+  await annotated(page, "theming-dock", [
+    { selector: "#camera-views .mav-dock", at: [1, 0.5] },
+    { selector: "#camera-views .mav-dock-header", at: [0.5, 0] },
+    { selector: "#camera-views .mav-dock-status", at: [1, 0.5] },
+    { selector: "#camera-views .mav-dock-tools", at: [0, 1] },
+    { selector: "#camera-views .mav-dock-tiles", at: [1, 0.25] },
+    { selector: tile, at: [0, 0] },
+    { selector: "#camera-views .mav-dock-panel", at: [0.5, 0] },
+    { selector: "#camera-views .mav-dock-buttons", at: [1, 1] },
+  ]);
+
+  await gm.run(async (_api, game) => {
+    await game.settings.set("modular-av-dock", "theme", "vines");
+  }, null);
+  await page.waitForTimeout(2_000);
+  await page.locator(tile).hover();
+  await page.waitForTimeout(500);
+  await annotated(page, "theming-tile", [
+    { selector: tile, at: [0, 0.5] },
+    { selector: `${tile} .mav-dock-tile-media`, at: [1, 0.5] },
+    { selector: `${tile} .mav-dock-tile-frame`, at: [0, 0] },
+    { selector: `${tile} .mav-dock-tile-name`, at: [0, 0] },
+    { selector: `${tile} .mav-dock-tile-indicators`, at: [1, 0] },
+    { selector: `${tile} .mav-dock-tile-menu`, at: [0, 1] },
+  ]);
+  await muted.run((api) => api.commands.setMuted(false), null);
+  await gm.run(async (_api, game) => {
+    await game.settings.set("modular-av-dock", "theme", "");
+  }, null);
+}
+
 /** A player's own camera as it is, blurred and with a background. */
 async function shootBackground(player: Player, ownId: string): Promise<void> {
   const tile = player.page.locator(
@@ -276,6 +393,9 @@ async function shootBackground(player: Player, ownId: string): Promise<void> {
     await player.page.waitForTimeout(BACKGROUND_MS);
     await shot(tile, `cam-background-${mode}`);
   }
+  await set("background-replace", false);
+  // The camera comes back without the effect a moment later.
+  await player.page.waitForTimeout(4_000);
 }
 
 async function shootModules(gm: Player): Promise<void> {
@@ -297,6 +417,8 @@ async function shootModules(gm: Player): Promise<void> {
   await board.locator(".mav-board-next").waitFor();
   await gm.page.waitForTimeout(1_000);
   await shot(board, "plan-your-modules");
+  await board.locator('[data-action="close"]').first().click();
+  await config.locator('[data-action="close"]').first().click();
 }
 
 async function main(): Promise<void> {
@@ -326,6 +448,8 @@ async function main(): Promise<void> {
       if (!browser) throw new Error("No browser");
       const player = await openPlayer(browser, member.user, {
         viewport: VIEWPORT,
+        // The GM's pictures point at small parts: twice the pixels.
+        ...(index === 0 ? { deviceScaleFactor: 2 } : {}),
       });
       players = [...players, player];
     }
@@ -349,6 +473,7 @@ async function main(): Promise<void> {
     await shootGm(gm, p1Id);
     await shootModules(gm);
     await shootBackground(p2, p2Id);
+    await shootThemingKey(gm, p2, p2Id);
     await shootDock(p1);
   } finally {
     // A logged-in user can't log in again: everyone leaves first.

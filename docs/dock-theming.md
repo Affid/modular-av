@@ -128,6 +128,39 @@ surface of its own, like the header),
 `--mav-dock-tile-color` (the player's colour), `--mav-meter-threshold` (0
 to 1), `--mav-popover-room`.
 
+## The parts, in pictures
+
+The dock, docked on the left, with one player muted:
+
+<img src="images/theming-dock.png" alt="The dock with its parts outlined and numbered" width="330">
+
+| No. | Class               | What it is                                    |
+| --- | ------------------- | --------------------------------------------- |
+| 1   | `.mav-dock`         | The dock                                      |
+| 2   | `.mav-dock-header`  | Its title bar                                 |
+| 3   | `.mav-dock-status`  | The call's state (`data-status`)              |
+| 4   | `.mav-dock-tools`   | Tile layout, placement and collapse           |
+| 5   | `.mav-dock-tiles`   | The list of tiles                             |
+| 6   | `.mav-dock-tile`    | One player's tile                             |
+| 7   | `.mav-dock-panel`   | The voice panel                               |
+| 8   | `.mav-dock-buttons` | Its row of buttons, each a `.mav-dock-button` |
+
+One tile under the vines theme, muted, with the pointer over it:
+
+<img src="images/theming-tile.png" alt="One tile with its parts outlined and numbered" width="420">
+
+| No. | Class                       | What it is                                                      |
+| --- | --------------------------- | --------------------------------------------------------------- |
+| 1   | `.mav-dock-tile`            | The tile; its states are attributes on it (`data-muted` here)   |
+| 2   | `.mav-dock-tile-media`      | The video and the avatar under it; here it fills the tile       |
+| 3   | `.mav-dock-tile-frame`      | The frame layer, reaching past the video by the theme's `reach` |
+| 4   | `.mav-dock-tile-name`       | The player's name                                               |
+| 5   | `.mav-dock-tile-indicators` | The states' icons, each a `.mav-indicator` (`data-indicator`)   |
+| 6   | `.mav-dock-tile-menu`       | The tile's menu button, shown on hover or focus                 |
+
+The outlines are drawn where the page has each element
+(`scripts/docs/screenshots.ts`), so they follow the dock.
+
 ## Classes
 
 | Class                                                                                                                                              | Element                                                                                                                                                                                                                                                     |
