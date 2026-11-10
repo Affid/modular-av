@@ -103,3 +103,11 @@ These hold whichever UI or service runs, and stay in every 1.x:
 `MountedSurface.unmount` isn't called yet (a cameras surface lives as
 long as Foundry's page), but a later minor version may call it: a
 surface's `unmount` must undo its mount completely.
+
+## Inside this package
+
+About 1,400 lines of TypeScript types in 16 files, one per part of the
+API (`service.ts`, `effects.ts`, `surfaces.ts`, `contributions.ts`,
+`commands.ts`, `state.ts` and so on). Nothing here runs: no module ships
+it, and it has no Foundry id. How the parts fit together is in
+[docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md).

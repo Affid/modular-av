@@ -48,6 +48,8 @@ module like this one haven't been checked.
      uses to run the game.
 2. In Modular A/V's settings, choose Jitsi as the service.
 
+![The module's settings: the server's address and domains, and the app id and secret kept in this browser only](../../docs/images/settings-jitsi.png)
+
 ## How players join
 
 The secret never leaves the GM's browser. A player's browser asks a GM's
@@ -78,6 +80,35 @@ statistics and log collection stay off. Like LiveKit's, Jitsi's client
 puts the token in the WebSocket's address, so it can show in that
 browser's console and in your server's logs while it is valid (ten
 minutes): don't log query strings on the server or its proxy.
+
+## Inside this package
+
+For someone reading the code. How the modules fit together is in
+[docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md).
+
+- **What it adds**: one service, registered with the core inside the
+  `modularAV.register` hook, and its Foundry settings: the server's
+  address and domains (world) and the app id and secret (this browser
+  only).
+- **How it works**: `src/token.ts` signs a player's token in the GM's
+  browser. `src/connection.ts`, `src/join.ts` and
+  `src/conference-events.ts` wrap a lib-jitsi-meet conference in the
+  core's `ServiceConnection`. `src/sdk.ts` starts lib-jitsi-meet with
+  its analytics, statistics and log collection off and its own ids kept
+  in memory.
+- **Code**: about 2,000 lines in 19 files. The entry file is held under
+  10 KB; lib-jitsi-meet loads when a call starts.
+- **Third-party code**: lib-jitsi-meet v2205.0.0 (Apache-2.0),
+  unmodified. It is downloaded at build time from Jitsi's own GitHub
+  release and checked against a fixed SHA-256 hash (`package.json`,
+  `modularAV.downloads`), and ships in the module's zip.
+- **Network**: the Jitsi server the GM entered, and nothing else.
+  **Storage**: the address in world settings; the app id and secret in
+  the GM's browser.
+- **Tests**: 10 unit test files (`pnpm vitest run packages/jitsi`) and 3
+  in a real browser (`pnpm playwright test packages/jitsi`). They
+  include the shared service contract from `@modular-av/testing`, which
+  also runs against a real Jitsi Meet in Docker (`pnpm test:services`).
 
 ## Licence
 

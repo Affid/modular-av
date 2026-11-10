@@ -17,7 +17,7 @@ import {
 } from "../../../../scripts/foundry/fake-camera.ts";
 
 /**
- * Memory over a long session (handoff §9: no growth over 2 hours), cheaply:
+ * Memory over a long session (no growth over 2 hours), cheaply:
  * the effect runs in the harness on the generated camera while the PSS of
  * every process of the browser (renderer with the worker, GPU process) and
  * the page's JS heap are sampled. In headless Chromium WebGL runs in

@@ -1,5 +1,5 @@
 /**
- * Windows a page has only one of each (handoff §3 "Windows and layers"), so
+ * Windows a page has only one of each (docs/ARCHITECTURE.md, "How a module plugs in"), so
  * UI modules don't fight over them.
  */
 

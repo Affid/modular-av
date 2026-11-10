@@ -19,6 +19,7 @@ mixer the rest of the pipeline is API only.
 ## How it fits together
 
 ```mermaid
+%%{init: {"htmlLabels": false, "flowchart": {"htmlLabels": false}}}%%
 flowchart LR
   subgraph player[A player's browser]
     window[Mixer window] --> queue[One queue]
@@ -208,7 +209,7 @@ sees both.
 
 A GM's real power over a player's voice stays `BROADCAST_AUDIO`, which the core
 enforces. A layer is a request carried out by the player's own client. As in the
-handoff's trust model, that guards against bugs and accidents, not a hostile
+core's trust model ([ARCHITECTURE.md](ARCHITECTURE.md)), that guards against bugs and accidents, not a hostile
 client.
 
 ## Warnings

@@ -13,7 +13,7 @@ import type {
 } from "../harness/service-types.ts";
 
 /**
- * The service contract (handoff §3 "Testing per module"), run against a
+ * The service contract (docs/ARCHITECTURE.md, "How it is tested"), run against a
  * real server: one browser context per player, each driving a connection
  * through the service harness page the way the core does.
  */

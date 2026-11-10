@@ -6,63 +6,90 @@ and effects for your microphone and camera. It reconnects by itself,
 never shows a state it isn't in (a mute that isn't applied, a blur that
 isn't running), and keeps your server's secret away from players.
 
-## Modules
+![Four players' cameras scattered over Foundry's screen, each framed in vine leaves by the vines theme](docs/images/dock-scattered-vines.png)
 
-The quickest start is the **starter set**: one install brings the dock,
-LiveKit and noise cancellation, and offers the camera background. Paste
-its manifest URL into Foundry's "Install Module" dialog:
+The user guide is the **[wiki](https://github.com/Affid/modular-av/wiki)**:
+[getting started](https://github.com/Affid/modular-av/wiki/Getting-Started),
+[choosing a service](https://github.com/Affid/modular-av/wiki/Choosing-a-Service),
+[troubleshooting](https://github.com/Affid/modular-av/wiki/Troubleshooting).
 
-```
-https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-starter-set/module.json
-```
+## Quick start
 
-It holds no code of its own; see its [page](packages/starter-set/README.md).
+1. In Foundry's Setup screen, open **Add-on Modules**, **Install Module**
+   and paste the starter set's manifest URL:
 
-Or pick your own: install the core, one service and the dock; add
-effects as you like.
-Paste a module's manifest URL into Foundry's "Install Module" dialog:
-Foundry offers what it needs with it (installing the dock brings the
-core). Then, as a GM, open **Plan your modules** in the core's module
-settings: it shows every module, which ones this world runs, and gives
-the links for the rest.
+   ```
+   https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-starter-set/module.json
+   ```
 
-Which service? Players' browsers linked directly (`modular-av-p2p`) for
-up to about six players, nothing to run; LiveKit Cloud or your own
-LiveKit server (`modular-av-livekit`) for larger tables; your own Jitsi
-Meet server (`modular-av-jitsi`) if you run one.
+   It brings the core, the dock, LiveKit and noise cancellation, and
+   offers the camera background.
 
-| Module                      | What it does                                                           | Manifest URL                                                                                         |
-| --------------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `modular-av`                | The core: needed by all the others.                                    | `https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av/module.json`                |
-| `modular-av-livekit`        | Calls over your LiveKit server or LiveKit Cloud.                       | `https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-livekit/module.json`        |
-| `modular-av-p2p`            | Calls directly between players' browsers, no server: for small tables. | `https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-p2p/module.json`            |
-| `modular-av-jitsi`          | Calls over your own Jitsi Meet server (with token authentication).     | `https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-jitsi/module.json`          |
-| `modular-av-dock`           | The camera dock, voice panel and settings window.                      | `https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-dock/module.json`           |
-| `modular-av-dock-vines`     | A theme for the dock: vine leaves around the cameras.                  | `https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-dock-vines/module.json`     |
-| `modular-av-mic-denoise`    | Noise cancellation in your browser: RNNoise, Speex or GTCRN.           | `https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-mic-denoise/module.json`    |
-| `modular-av-cam-background` | Blurs or replaces your camera's background, in your browser.           | `https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-cam-background/module.json` |
-| `modular-av-audio-mixer`    | A mixer for your voice: effects, order, levels, presets, a GM's view.  | `https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-audio-mixer/module.json`    |
-| `modular-av-audio-reverb`   | A reverb for the voice.                                                | `https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-audio-reverb/module.json`   |
-| `modular-av-audio-echo`     | An echo for the voice.                                                 | `https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-audio-echo/module.json`     |
-| `modular-av-audio-eq`       | A three band equalizer for the voice.                                  | `https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-audio-eq/module.json`       |
-| `modular-av-audio-radio`    | A walkie-talkie for the voice: static and squelch.                     | `https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-audio-radio/module.json`    |
-| `modular-av-audio-boost`    | Raises a quiet microphone and evens out its peaks.                     | `https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-audio-boost/module.json`    |
+2. Launch your world and enable **Modular A/V: Starter set**.
+3. Enter your LiveKit server's address, key and secret
+   ([how](https://github.com/Affid/modular-av/wiki/LiveKit)).
 
-Each module's own page: [core](packages/core/README.md),
-[LiveKit](packages/livekit/README.md), [P2P](packages/p2p/README.md),
-[Jitsi](packages/jitsi/README.md), [dock](packages/dock/README.md),
-[vines theme](packages/dock-vines/README.md),
-[noise cancellation](packages/mic-denoise/README.md),
-[camera background](packages/cam-background/README.md),
-[audio mixer](packages/audio-mixer/README.md),
-[reverb](packages/audio-reverb/README.md), [echo](packages/audio-echo/README.md),
-[EQ](packages/audio-eq/README.md), [radio](packages/audio-radio/README.md),
-[mic boost](packages/audio-boost/README.md).
-`modular-av-livekit-krisp` (Krisp on LiveKit Cloud) is held back from
-releases for now; see its [README](packages/livekit-krisp/README.md).
+No server? Skip the starter set and install `modular-av-dock` and
+`modular-av-p2p` (their URLs are [below](#modules)): players' browsers
+talk directly, for up to about six players.
 
 Coming from LiveKit AVClient? Your server and each player's choices come
-along: see [docs/MIGRATING.md](docs/MIGRATING.md).
+along: see [Moving from LiveKit AVClient](https://github.com/Affid/modular-av/wiki/Moving-from-LiveKit-AVClient).
+
+## How it fits together
+
+```mermaid
+%%{init: {"htmlLabels": false, "flowchart": {"htmlLabels": false}}}%%
+flowchart LR
+  effects["Effects<br/>any number"] --> core
+  core["Core<br/>runs the call"] --> service["Service<br/>one per world"]
+  core --> dock["Dock<br/>shows the call"]
+  theme["Theme"] -.-> dock
+```
+
+Every module needs the core. A world takes one service, and may add the
+dock, a theme for it and any number of effects. Once the core is in a
+world, a GM can open **Plan your modules** in its settings: it shows
+every module, which ones the world runs, and gives the links for the
+rest.
+
+## Which service?
+
+|            | P2P                   | LiveKit                     | Jitsi                      |
+| ---------- | --------------------- | --------------------------- | -------------------------- |
+| Server     | None                  | LiveKit Cloud or your own   | Your own Jitsi Meet        |
+| Table size | Up to about 6 players | Any size                    | What your server handles   |
+| You set    | Nothing               | Address, API key and secret | Address, app id and secret |
+
+## Modules
+
+Each module installs on its own. Its manifest URL is this, with the
+module's id in place of `<id>`:
+
+```
+https://raw.githubusercontent.com/Affid/modular-av/manifests/<id>/module.json
+```
+
+| Kind    | Module id                                                        | What it does                                                           |
+| ------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Core    | [`modular-av`](packages/core/README.md)                          | Needed by all the others                                               |
+| Service | [`modular-av-p2p`](packages/p2p/README.md)                       | Calls directly between players' browsers, no server                    |
+| Service | [`modular-av-livekit`](packages/livekit/README.md)               | Calls over your LiveKit server or LiveKit Cloud                        |
+| Service | [`modular-av-jitsi`](packages/jitsi/README.md)                   | Calls over your own Jitsi Meet server (with token authentication)      |
+| Cameras | [`modular-av-dock`](packages/dock/README.md)                     | The camera dock, voice panel and settings window                       |
+| Theme   | [`modular-av-dock-vines`](packages/dock-vines/README.md)         | Vine leaves around the cameras                                         |
+| Effect  | [`modular-av-mic-denoise`](packages/mic-denoise/README.md)       | Noise cancellation in your browser: RNNoise, Speex or GTCRN            |
+| Effect  | [`modular-av-cam-background`](packages/cam-background/README.md) | Blurs or replaces your camera's background, in your browser            |
+| Effect  | [`modular-av-audio-reverb`](packages/audio-reverb/README.md)     | A reverb for the voice                                                 |
+| Effect  | [`modular-av-audio-echo`](packages/audio-echo/README.md)         | An echo for the voice                                                  |
+| Effect  | [`modular-av-audio-eq`](packages/audio-eq/README.md)             | A three band equalizer for the voice                                   |
+| Effect  | [`modular-av-audio-radio`](packages/audio-radio/README.md)       | A walkie-talkie for the voice: static and squelch                      |
+| Effect  | [`modular-av-audio-boost`](packages/audio-boost/README.md)       | Raises a quiet microphone and evens out its peaks                      |
+| Mixer   | [`modular-av-audio-mixer`](packages/audio-mixer/README.md)       | A window for your voice's effects: order, levels, presets, a GM's view |
+| Set     | [`modular-av-starter-set`](packages/starter-set/README.md)       | No code: one install for the usual setup                               |
+
+`modular-av-livekit-krisp` (Krisp on LiveKit Cloud) is held back from
+releases for now; see its [README](packages/livekit-krisp/README.md).
 
 ## Browsers
 
@@ -87,38 +114,20 @@ works).
 
 ## For developers
 
-The design and the reasons behind it are in
-[docs/HANDOFF.md](docs/HANDOFF.md).
+Start with [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): how the core,
+services, effects and UIs fit together, in ten minutes. The other
+documents are listed in [docs/](docs/README.md).
 
-| Directory                 | Package                      | Foundry id                  |
-| ------------------------- | ---------------------------- | --------------------------- |
-| `packages/api`            | `@modular-av/api`            | (types only)                |
-| `packages/core`           | `@modular-av/core`           | `modular-av`                |
-| `packages/kit`            | `@modular-av/kit`            | (library)                   |
-| `packages/dock`           | `@modular-av/dock`           | `modular-av-dock`           |
-| `packages/dock-vines`     | `@modular-av/dock-vines`     | `modular-av-dock-vines`     |
-| `packages/livekit`        | `@modular-av/livekit`        | `modular-av-livekit`        |
-| `packages/livekit-krisp`  | `@modular-av/livekit-krisp`  | `modular-av-livekit-krisp`  |
-| `packages/p2p`            | `@modular-av/p2p`            | `modular-av-p2p`            |
-| `packages/jitsi`          | `@modular-av/jitsi`          | `modular-av-jitsi`          |
-| `packages/mic-denoise`    | `@modular-av/mic-denoise`    | `modular-av-mic-denoise`    |
-| `packages/starter-set`    | `@modular-av/starter-set`    | `modular-av-starter-set`    |
-| `packages/cam-background` | `@modular-av/cam-background` | `modular-av-cam-background` |
-| `packages/audio-mixer`    | `@modular-av/audio-mixer`    | `modular-av-audio-mixer`    |
-| `packages/audio-reverb`   | `@modular-av/audio-reverb`   | `modular-av-audio-reverb`   |
-| `packages/audio-echo`     | `@modular-av/audio-echo`     | `modular-av-audio-echo`     |
-| `packages/audio-eq`       | `@modular-av/audio-eq`       | `modular-av-audio-eq`       |
-| `packages/audio-radio`    | `@modular-av/audio-radio`    | `modular-av-audio-radio`    |
-| `packages/audio-boost`    | `@modular-av/audio-boost`    | `modular-av-audio-boost`    |
-| `packages/testing`        | `@modular-av/testing`        | (library)                   |
-
-### Development
+Each directory in `packages/` is one module: `packages/livekit` is
+`@modular-av/livekit` on npm and `modular-av-livekit` in Foundry
+(`packages/core` is plain `modular-av`). `api`, `kit` and `testing` are
+libraries with no Foundry id.
 
 Requires Node 22.18+ and pnpm.
 
 ```bash
 pnpm install
-pnpm verify            # everything CI would run, locally
+pnpm verify        # everything CI would run, locally
 pnpm test          # unit tests (Vitest)
 pnpm test:browser  # browser tests (Playwright, fake devices; noise models in the "effects" project)
 pnpm test:services # service contracts: LiveKit, coturn (P2P) and Jitsi in Docker

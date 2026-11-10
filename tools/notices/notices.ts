@@ -97,7 +97,7 @@ export async function readPackage(dir: string): Promise<BundledPackage> {
   };
 }
 
-/** Licences every module zip may contain (handoff §2). */
+/** Licences every module zip may contain (docs/LICENSING.md). */
 export const ALLOWED_LICENSES: ReadonlySet<string> = new Set([
   "MIT",
   "ISC",

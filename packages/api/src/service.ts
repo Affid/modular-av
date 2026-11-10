@@ -1,5 +1,5 @@
 /**
- * Service plugin interfaces (handoff §3 "Plugin interfaces"), settled in
+ * Service plugin interfaces (docs/ARCHITECTURE.md, "How a module plugs in"), settled in
  * milestone 2 against LiveKit and milestone 4 against a P2P mesh.
  */
 

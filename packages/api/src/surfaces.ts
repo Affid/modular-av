@@ -1,5 +1,5 @@
 /**
- * Surfaces (handoff §3 "Extension points"): where a UI module shows the
+ * Surfaces (docs/ARCHITECTURE.md, "How a module plugs in"): where a UI module shows the
  * call. `cameras` and `settings` are exclusive, picked per world by the GM
  * (a player may override `cameras`) and fixed at load; `players` is
  * additive. The core hosts every surface in Foundry, so UI modules never

@@ -12,7 +12,7 @@ import { extractFromTarGz } from "./tar.ts";
  * `modularAV.downloads`, published path → `{ url, sha256 }`, a versioned
  * URL and the file's hash. The build and the test harness fetch each once
  * into a cache outside the repository and check it, so nothing is
- * vendored (handoff §2) and a changed file can't slip in. `extract`
+ * vendored (docs/LICENSING.md) and a changed file can't slip in. `extract`
  * takes one file out of a `.tgz` (a release asset that is no npm
  * package, e.g. lib-jitsi-meet); the hash is then the archive's.
  */

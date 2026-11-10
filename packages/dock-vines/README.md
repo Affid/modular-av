@@ -7,6 +7,8 @@ palette for the dock, its menus and the settings window. It suits the
 dock's scattered layout best, and the dock offers it when the theme is
 chosen; it works in every layout.
 
+![Four cameras scattered to the corners of Foundry's screen, each framed in vine leaves](../../docs/images/dock-scattered-vines.png)
+
 ## Install
 
 Install it from Foundry's module browser with its manifest:
@@ -28,6 +30,22 @@ there too.
   stay clear of the leaves, text and icons meet WCAG AA, and nothing moves
   when your system asks for reduced motion.
 - Its stylesheet loads only while the theme is chosen.
+
+## Inside this package
+
+For someone reading the code. How the modules fit together is in
+[docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md).
+
+- **What it adds**: one theme, registered with the dock's
+  `themes.register` (`src/index.ts`, 29 lines).
+- **Code**: that file, a stylesheet of about 90 lines
+  (`public/vines.css`) and one SVG. No logic of its own. The entry file
+  is held under 2 KB and the stylesheet under 8 KB.
+- **Third-party code**: none. **Network**: none. **Storage**: none.
+- **Tests**: one browser test file (`pnpm playwright test
+packages/dock-vines`) that runs the shared theme contract from
+  `@modular-av/testing` in every layout and state: contrast, faces left
+  clear, every state still shown, nothing moving under reduced motion.
 
 ## Licence
 

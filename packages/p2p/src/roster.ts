@@ -3,7 +3,7 @@ import type { ParticipantId } from "@modular-av/api";
 /**
  * One connection of a user to the call. `joinedAt` is the sender's clock,
  * so a modified client could claim an early place; the trust model
- * (handoff §3) accepts that.
+ * (docs/ARCHITECTURE.md) accepts that.
  */
 export interface Presence {
   readonly user: ParticipantId;

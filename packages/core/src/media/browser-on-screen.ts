@@ -17,8 +17,8 @@ interface Observers {
 }
 
 /**
- * One intersection and one resize observer per document, as the handoff
- * asks, made with that document's window: an element in the
+ * One intersection and one resize observer per document,
+ * made with that document's window: an element in the
  * Picture-in-Picture window is seen against that window. An element moved
  * to another document (into or out of that window) is followed there.
  */

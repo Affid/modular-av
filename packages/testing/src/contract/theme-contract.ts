@@ -1,6 +1,5 @@
 /**
- * The theme contract for `modular-av-dock` (handoff §3 "Rules for
- * themes"): what every theme keeps, checked automatically in every layout
+ * The theme contract for `modular-av-dock` (docs/dock-theming.md): what every theme keeps, checked automatically in every layout
  * and state, since screenshot baselines exist only for the dock's own
  * look. A theme module runs it from a Playwright spec:
  *

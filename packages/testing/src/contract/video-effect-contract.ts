@@ -9,7 +9,7 @@ import {
 import type {} from "../harness/types.ts";
 
 /**
- * The effects contract (handoff §3 "Testing per module") for video
+ * The effects contract (docs/ARCHITECTURE.md, "How it is tested") for video
  * effects, run in the browser tier's "camera" project: the real effect
  * with the core and the mock service, on the generated camera. It checks
  * what the core guarantees with this effect (only its frames go out, the
@@ -30,9 +30,9 @@ export interface VideoEffectContractOptions {
   readonly minFps: number;
 }
 
-/** Most of the page's main thread an effect may take (handoff §9). */
+/** Most of the page's main thread an effect may take. */
 export const MAIN_THREAD_BUDGET = 0.15;
-/** Longest main-thread task allowed, while starting too (handoff §9). */
+/** Longest main-thread task allowed, while starting too. */
 export const LONG_TASK_MS = 50;
 const START_TIMEOUT_MS = 30_000;
 /** How often what is sent is sampled. */
