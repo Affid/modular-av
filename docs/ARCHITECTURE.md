@@ -12,33 +12,36 @@ of running it into four kinds of module around a core:
 %%{init: {"htmlLabels": false, "flowchart": {"htmlLabels": false}}}%%
 flowchart TB
   subgraph ui["UI modules"]
-    dock["modular-av-dock<br/>camera dock, voice panel,<br/>settings window"]
-    mixer["modular-av-audio-mixer<br/>window for the voice's effects"]
-    theme["modular-av-dock-vines<br/>a theme for the dock"]
+    dock["dock<br/>camera dock, voice panel,<br/>settings window"]
+    mixer["audio-mixer<br/>window for the<br/>voice's effects"]
+    theme["dock-vines<br/>a theme for the dock"]
   end
 
   subgraph effects["Effect modules"]
     denoise["mic-denoise"]
-    voice["audio-reverb, -echo, -eq,<br/>-radio, -boost"]
+    voice["audio-reverb<br/>audio-echo<br/>audio-eq<br/>audio-radio<br/>audio-boost"]
     cambg["cam-background"]
   end
 
-  core["modular-av (the core)<br/>runs the call, owns the rules"]
+  core["core<br/>runs the call,<br/>owns the rules"]
 
   subgraph services["Service modules"]
-    p2p["modular-av-p2p"]
-    livekit["modular-av-livekit"]
-    jitsi["modular-av-jitsi"]
+    p2p["p2p"]
+    livekit["livekit"]
+    jitsi["jitsi"]
   end
 
-  foundry["Foundry VTT<br/>users, permissions, settings, socket"]
+  foundry["Foundry VTT<br/>users, permissions,<br/>settings, socket"]
 
   ui -- "read state, send commands" --> core
   effects -- "register an effect" --> core
-  core -- "tracks to send, tracks received" --> services
-  core <-- "A/V client, settings, socket" --> foundry
+  core -- "tracks out and in" --> services
+  core <-- "A/V client, socket" --> foundry
   theme -. "restyles" .-> dock
 ```
+
+Names in the pictures are short: `dock` is `modular-av-dock`, and the
+core is `modular-av` itself.
 
 | Kind    | Its job                                               | It never                                    |
 | ------- | ----------------------------------------------------- | ------------------------------------------- |
