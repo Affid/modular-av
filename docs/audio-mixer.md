@@ -208,7 +208,7 @@ sees both.
 
 A GM's real power over a player's voice stays `BROADCAST_AUDIO`, which the core
 enforces. A layer is a request carried out by the player's own client. As in the
-handoff's trust model, that guards against bugs and accidents, not a hostile
+core's trust model ([ARCHITECTURE.md](ARCHITECTURE.md)), that guards against bugs and accidents, not a hostile
 client.
 
 ## Warnings

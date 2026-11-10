@@ -1,4 +1,4 @@
-// The 1.0 smoke pass in Firefox (handoff §19): a GM in Chrome and a player
+// The 1.0 smoke pass in Firefox (docs/ROADMAP.md): a GM in Chrome and a player
 // in Firefox at one table, with the dock: joining, media both ways, seeing,
 // muting and the settings window. Skipped when Playwright's Firefox isn't
 // installed (`npx playwright install firefox`).

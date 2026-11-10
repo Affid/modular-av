@@ -1,7 +1,7 @@
 # Third-party notices
 
 Modular A/V is licensed under the MIT License (see `LICENSE`). It contains no
-code under the Hippocratic License; see `docs/HANDOFF.md` §2 for the rules.
+code under the Hippocratic License; see `docs/LICENSING.md` for the rules.
 
 Each Foundry module ships its own `THIRD-PARTY-NOTICES.md` inside its zip,
 listing the third-party code bundled into that module and its licence. A

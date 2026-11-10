@@ -28,7 +28,7 @@ voice and video settings window and badges in the player list. Requires
 
 Its layout is kept per player, across devices. Coming from LiveKit
 AVClient, your layout comes along; see
-[MIGRATING.md](../../docs/MIGRATING.md).
+[Moving from LiveKit AVClient](https://github.com/Affid/modular-av/wiki/Moving-from-LiveKit-AVClient).
 
 ## Licence
 

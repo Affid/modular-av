@@ -1,6 +1,6 @@
 # Local setup
 
-Test tiers (handoff §3 "Testing per module"): unit tests and browser tests
+Test tiers ([ARCHITECTURE.md](ARCHITECTURE.md), "How it is tested"): unit tests and browser tests
 run anywhere with `pnpm verify`; the service contract (`pnpm test:services`)
 needs Docker; the end-to-end tier (`pnpm test:foundry`) runs against a real
 Foundry in WSL, which needs a licence and so never runs in public CI.

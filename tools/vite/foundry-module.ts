@@ -69,7 +69,7 @@ function foundryFiles(
       const refused = disallowed(bundled);
       if (refused.length > 0)
         this.error(
-          `bundles code under licences no module may ship (handoff §2): ${refused
+          `bundles code under licences no module may ship (docs/LICENSING.md): ${refused
             .map((p) => `${p.name} (${p.license})`)
             .join(", ")}`,
         );

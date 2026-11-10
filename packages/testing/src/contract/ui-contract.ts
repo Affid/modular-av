@@ -1,5 +1,5 @@
 /**
- * The UI contract (handoff §3): what every UI module must show and let the
+ * The UI contract (docs/ARCHITECTURE.md, "How it is tested"): what every UI module must show and let the
  * player do, checked in a real browser with the core and the mock service.
  * A UI module runs it from a Playwright spec with a small driver.
  *

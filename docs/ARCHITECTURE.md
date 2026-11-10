@@ -1,8 +1,7 @@
 # Architecture
 
 How Modular A/V is put together, for someone about to read or change the
-code. It takes about ten minutes. The reasons behind each decision, and
-what was tried first, are in the [design log](HANDOFF.md).
+code. It takes about ten minutes.
 
 ## The idea in one picture
 
@@ -307,12 +306,12 @@ module that passes its contract fits the rest.
 
 ## Where to read next
 
-| You want to                    | Read                                                   |
-| ------------------------------ | ------------------------------------------------------ |
-| Write a module against the API | [`packages/api`](../packages/api/README.md)            |
-| Understand the voice chain     | [voice-routing.md](voice-routing.md)                   |
-| Work on the mixer              | [audio-mixer.md](audio-mixer.md)                       |
-| Make a theme for the dock      | [dock-theming.md](dock-theming.md)                     |
-| Run Foundry locally            | [LOCAL-SETUP.md](LOCAL-SETUP.md)                       |
-| Cut a release                  | [RELEASING.md](RELEASING.md)                           |
-| Know why it is built this way  | [HANDOFF.md](HANDOFF.md), the design log, and `plans/` |
+| You want to                    | Read                                        |
+| ------------------------------ | ------------------------------------------- |
+| Write a module against the API | [`packages/api`](../packages/api/README.md) |
+| Understand the voice chain     | [voice-routing.md](voice-routing.md)        |
+| Work on the mixer              | [audio-mixer.md](audio-mixer.md)            |
+| Make a theme for the dock      | [dock-theming.md](dock-theming.md)          |
+| Run Foundry locally            | [LOCAL-SETUP.md](LOCAL-SETUP.md)            |
+| Cut a release                  | [RELEASING.md](RELEASING.md)                |
+| See what is left before 1.0    | [ROADMAP.md](ROADMAP.md)                    |

@@ -89,7 +89,7 @@ function createElementOutput(): AudioOutput {
 type Watched = ReadonlyMap<Element, () => void>;
 
 /**
- * One observer per document, as the handoff asks, not one per element. An
+ * One observer per document, not one per element. An
  * element moved to another document (the Picture-in-Picture window) is
  * watched there from then on, and back again; another window's document
  * is let go once nothing in it is watched.

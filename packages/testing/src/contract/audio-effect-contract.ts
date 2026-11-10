@@ -3,7 +3,7 @@ import { expect, type Page, test } from "@playwright/test";
 import type {} from "../harness/types.ts";
 
 /**
- * The effects contract (handoff §3 "Testing per module") for audio
+ * The effects contract (docs/ARCHITECTURE.md, "How it is tested") for audio
  * effects, run in the browser tier's "effects" project: the real effect in
  * the core's capture context, on a fake microphone that never goes quiet.
  */
@@ -22,7 +22,7 @@ export interface AudioEffectContractOptions {
 /**
  * Most of one core's time an effect may take, by the cost it declares,
  * rendered offline. About twice what the noise models took on a fast
- * desktop (handoff §14), so a label that lies fails, not a busy machine.
+ * desktop, so a label that lies fails, not a busy machine.
  */
 export const COST_BUDGETS: Readonly<Record<EffectCost, number>> = {
   light: 0.05,

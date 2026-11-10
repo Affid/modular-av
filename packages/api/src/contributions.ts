@@ -1,5 +1,5 @@
 /**
- * Contributions (handoff §3 "Extension points"): small declared items any
+ * Contributions (docs/ARCHITECTURE.md, "How a module plugs in"): small declared items any
  * module adds and every UI renders in its own style. Declarations are
  * fixed once registered; what changes comes through their observables,
  * which a UI subscribes to only while the item is shown.

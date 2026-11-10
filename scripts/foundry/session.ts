@@ -21,7 +21,7 @@ export async function joinAs(
     ...contextOptions,
   });
   // Foundry's "no canvas" client setting: headless Chrome draws the canvas
-  // in software, and three pages of it starved the A/V tests (handoff §14).
+  // in software, and three pages of it starved the A/V tests.
   await context.addInitScript(() => {
     localStorage.setItem("core.noCanvas", "true");
   });

@@ -39,7 +39,7 @@ the Discord-like dock, `modular-av-dock`.
 
 Foundry's own A/V settings (mode, devices, push to talk, relay server)
 still apply. Coming from LiveKit AVClient: see
-[MIGRATING.md](../../docs/MIGRATING.md).
+[Moving from LiveKit AVClient](https://github.com/Affid/modular-av/wiki/Moving-from-LiveKit-AVClient).
 
 ## Privacy: the one request to GitHub
 

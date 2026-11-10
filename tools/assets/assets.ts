@@ -8,7 +8,7 @@ import { join } from "node:path";
  * package.json as `modularAV.assets`, published path → package export,
  * e.g. `"models/rnnoise.wasm": "@sapphi-red/web-noise-suppressor/rnnoise.wasm"`.
  * The build copies them into `dist/` and the test harness serves them, so
- * nothing is vendored (handoff §2). Published path → absolute source file.
+ * nothing is vendored (docs/LICENSING.md). Published path → absolute source file.
  */
 export type AssetMap = ReadonlyMap<string, string>;
 

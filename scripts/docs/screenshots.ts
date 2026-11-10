@@ -161,7 +161,6 @@ async function resetDock(player: Player): Promise<void> {
 
 async function shootDock(viewer: Player): Promise<void> {
   const page = viewer.page;
-  await corner(page, "dock-docked", 300, VIEWPORT.height);
   await page.locator(".mav-dock-placement").click();
   await page.waitForTimeout(500);
   await corner(page, "dock-placement-menu", 450, 410);

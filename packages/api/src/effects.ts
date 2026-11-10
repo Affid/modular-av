@@ -1,5 +1,5 @@
 /**
- * Effect plugin interfaces (handoff §3 "Plugin interfaces"). Effect modules
+ * Effect plugin interfaces (docs/ARCHITECTURE.md, "How a module plugs in"). Effect modules
  * register their own Foundry settings under their own id and read them in
  * their effect; the core only turns effects on and off and chains them.
  */

@@ -34,7 +34,7 @@ No server? Skip the starter set and install `modular-av-dock` and
 talk directly, for up to about six players.
 
 Coming from LiveKit AVClient? Your server and each player's choices come
-along: see [docs/MIGRATING.md](docs/MIGRATING.md).
+along: see [Moving from LiveKit AVClient](https://github.com/Affid/modular-av/wiki/Moving-from-LiveKit-AVClient).
 
 ## How it fits together
 

@@ -25,7 +25,7 @@ the GM" meanwhile.
 Coming from LiveKit AVClient, which kept the secret where every player
 could read it: the first time a GM opens the world, this module offers
 to bring the old server over and to remove the old setting. Replace your
-key afterwards; see [MIGRATING.md](../../docs/MIGRATING.md).
+key afterwards; see [Moving from LiveKit AVClient](https://github.com/Affid/modular-av/wiki/Moving-from-LiveKit-AVClient).
 
 ## Licence
 

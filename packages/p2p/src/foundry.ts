@@ -78,7 +78,7 @@ export function foundryServiceDeps(
     channel: options.channel,
     settings: readSettings(game.settings),
     turn: () => turnOf(game),
-    // Foundry's own reconnect on a TURN change never fires (handoff §10).
+    // Foundry's own reconnect on a TURN change never fires.
     onIceChange: (listener) =>
       listen(hooks, "updateSetting", (setting: { key?: unknown }) => {
         const key = typeof setting.key === "string" ? setting.key : "";
