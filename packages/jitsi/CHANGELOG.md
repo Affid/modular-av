@@ -1,5 +1,33 @@
 # @modular-av/jitsi
 
+## 0.12.0
+
+### Patch Changes
+
+- a1e7d21: Players can raise their camera's resolution, for this device: the
+  browser's choice (as before, usually 640x480), 360p, 720p or 1080p, under
+  Voice & Video Settings, Video, "Resolution". The camera is asked for that
+  size, never forced to it, so a camera that can't do it opens at the
+  nearest size it has. A running camera is captured again at once, after
+  letting the old capture go, since Chrome keeps a camera that is still open
+  at its size. The settings window's preview shows the chosen size and lets
+  the camera go while a new size is saved, so it can't keep the call's camera
+  small. The API adds `VideoResolution`, `LocalState.videoResolution`,
+  `commands.setVideoResolution` (resolved once the camera runs at the new
+  size) and a camera preview's `resolution`; the service contract checks
+  that a camera captured again at a larger size arrives larger. Jitsi is told
+  a video effect's camera at the size of its frames, which follow the
+  resolution, instead of always 640x480.
+- e5d3822: Jitsi sends cameras at their full quality. Each player now tells the bridge
+  what they want of a camera as soon as it arrives; before, the bridge heard
+  nothing until a tile changed size or was hidden, and kept to its own default
+  of 180p (a large tile could even stay black). A camera that changes during
+  the call (another device, a new size, a camera effect turning on or off) is
+  now sent at its own size: lib-jitsi-meet kept the bitrate and layers it had
+  chosen for the first one, so a 720p camera went out at 640x360. The service
+  contract closes each test's pages, so a camera left open by one test no
+  longer sets the size of the next one's.
+
 ## 0.11.0
 
 No changes in this release.

@@ -1,5 +1,56 @@
 # @modular-av/testing
 
+## 0.12.0
+
+### Minor Changes
+
+- a1e7d21: Players can raise their camera's resolution, for this device: the
+  browser's choice (as before, usually 640x480), 360p, 720p or 1080p, under
+  Voice & Video Settings, Video, "Resolution". The camera is asked for that
+  size, never forced to it, so a camera that can't do it opens at the
+  nearest size it has. A running camera is captured again at once, after
+  letting the old capture go, since Chrome keeps a camera that is still open
+  at its size. The settings window's preview shows the chosen size and lets
+  the camera go while a new size is saved, so it can't keep the call's camera
+  small. The API adds `VideoResolution`, `LocalState.videoResolution`,
+  `commands.setVideoResolution` (resolved once the camera runs at the new
+  size) and a camera preview's `resolution`; the service contract checks
+  that a camera captured again at a larger size arrives larger. Jitsi is told
+  a video effect's camera at the size of its frames, which follow the
+  resolution, instead of always 640x480.
+- 7285fb1: The dock opens in a normal window of its own, which can be dragged to
+  another monitor and go full screen (a button in its header), in every
+  browser. Picture-in-Picture stays as "In a window always on top", in Chrome
+  and Edge; browsers don't let it go full screen. A window closes with
+  Foundry's page. The API adds `windows.popup` beside `windows.pip`, both
+  `PageWindows` (`PipWindow` and its kin stay as names for the same types);
+  the UI contract checks "a window of its own" against the popup, and the
+  window always on top for a UI that offers it (`UIDriver.openOnTop`).
+- 21186e7: A player's setup follows them to another address or browser. Modules
+  declare where each setting is kept through the core's new `api.settings`:
+  `"player"` (Foundry's user scope, on the server) or `"device"` (this
+  browser). The voice effects a player turns on and how they run (places,
+  order, levels), the effects' values, the camera background's strength and
+  image, the mixer's preset, the mic boost's Even out and their volumes for
+  the others are the player's. Microphone sensitivity, the gate fallback, the
+  camera's resolution, the mic boost's level, camera effects, blur and Krisp
+  quality and devices stay with the device. When the game is ready,
+  what a browser kept before moves to the player once, unless the player
+  already has their own, so nobody loses their setup on the update. The kit's
+  `clientNumber` became `savedNumber`, which takes the storage.
+
+### Patch Changes
+
+- e5d3822: Jitsi sends cameras at their full quality. Each player now tells the bridge
+  what they want of a camera as soon as it arrives; before, the bridge heard
+  nothing until a tile changed size or was hidden, and kept to its own default
+  of 180p (a large tile could even stay black). A camera that changes during
+  the call (another device, a new size, a camera effect turning on or off) is
+  now sent at its own size: lib-jitsi-meet kept the bitrate and layers it had
+  chosen for the first one, so a 720p camera went out at 640x360. The service
+  contract closes each test's pages, so a camera left open by one test no
+  longer sets the size of the next one's.
+
 ## 0.11.0
 
 No changes in this release.

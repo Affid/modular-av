@@ -1,5 +1,50 @@
 # @modular-av/api
 
+## 0.12.0
+
+### Minor Changes
+
+- a1e7d21: Players can raise their camera's resolution, for this device: the
+  browser's choice (as before, usually 640x480), 360p, 720p or 1080p, under
+  Voice & Video Settings, Video, "Resolution". The camera is asked for that
+  size, never forced to it, so a camera that can't do it opens at the
+  nearest size it has. A running camera is captured again at once, after
+  letting the old capture go, since Chrome keeps a camera that is still open
+  at its size. The settings window's preview shows the chosen size and lets
+  the camera go while a new size is saved, so it can't keep the call's camera
+  small. The API adds `VideoResolution`, `LocalState.videoResolution`,
+  `commands.setVideoResolution` (resolved once the camera runs at the new
+  size) and a camera preview's `resolution`; the service contract checks
+  that a camera captured again at a larger size arrives larger. Jitsi is told
+  a video effect's camera at the size of its frames, which follow the
+  resolution, instead of always 640x480.
+- 7285fb1: The dock opens in a normal window of its own, which can be dragged to
+  another monitor and go full screen (a button in its header), in every
+  browser. Picture-in-Picture stays as "In a window always on top", in Chrome
+  and Edge; browsers don't let it go full screen. A window closes with
+  Foundry's page. The API adds `windows.popup` beside `windows.pip`, both
+  `PageWindows` (`PipWindow` and its kin stay as names for the same types);
+  the UI contract checks "a window of its own" against the popup, and the
+  window always on top for a UI that offers it (`UIDriver.openOnTop`).
+- 21186e7: A player's setup follows them to another address or browser. Modules
+  declare where each setting is kept through the core's new `api.settings`:
+  `"player"` (Foundry's user scope, on the server) or `"device"` (this
+  browser). The voice effects a player turns on and how they run (places,
+  order, levels), the effects' values, the camera background's strength and
+  image, the mixer's preset, the mic boost's Even out and their volumes for
+  the others are the player's. Microphone sensitivity, the gate fallback, the
+  camera's resolution, the mic boost's level, camera effects, blur and Krisp
+  quality and devices stay with the device. When the game is ready,
+  what a browser kept before moves to the player once, unless the player
+  already has their own, so nobody loses their setup on the update. The kit's
+  `clientNumber` became `savedNumber`, which takes the storage.
+- 5e01a9a: A quiet player can be boosted: the volume in a participant's menu goes up to
+  200%, for this client, and is remembered like the volume was. Above 100% the
+  core plays them through Web Audio and a limiter just under full scale, so the
+  boost can't clip; its code loads with the first boost. Until the browser lets
+  that audio run (a page loaded without a click may have to wait for one), they
+  play at 100%. `commands.setVolume` takes 0 to 2.
+
 ## 0.11.0
 
 No changes in this release.
