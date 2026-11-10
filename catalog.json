@@ -11,6 +11,31 @@
       "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av/module.json"
     },
     {
+      "id": "modular-av-audio-boost",
+      "title": "Modular A/V: Mic boost",
+      "description": "Raises a quiet microphone for everyone and evens out its peaks, ahead of the voice gate by default. Needs Modular A/V: Audio mixer, or anything else that calls the API, to be turned on.",
+      "kind": "effect",
+      "requires": [
+        {
+          "id": "modular-av",
+          "minimum": "0.12.0"
+        }
+      ],
+      "facts": [
+        {
+          "label": "Who turns it on",
+          "value": "Each player, in the Audio mixer"
+        },
+        {
+          "label": "Works with",
+          "value": "Every service"
+        }
+      ],
+      "icon": "fa-solid fa-volume-high",
+      "version": "0.12.0",
+      "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-audio-boost/module.json"
+    },
+    {
       "id": "modular-av-audio-echo",
       "title": "Modular A/V: Echo",
       "description": "An echo for the voice channel: a canyon, a distant call, a spirit. Needs Modular A/V: Audio mixer, or anything else that calls the API, to be turned on.",
