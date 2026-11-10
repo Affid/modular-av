@@ -1,5 +1,14 @@
 # Handoff: Modular A/V
 
+> **What this file is today.** It began as the brief for building Modular
+> A/V out of an earlier fork of LiveKit AVClient, and grew into the
+> project's design log: the reasons behind each decision, lessons learnt,
+> and findings per milestone. Parts of the early sections describe plans
+> that have since changed (Jitsi and the vines theme are built; manifests
+> are served from the `manifests` branch, not GitHub Pages). For how the
+> code is put together now, read [ARCHITECTURE.md](ARCHITECTURE.md)
+> first. "This repository" in the first paragraph means the fork.
+
 This is for a new Claude Code session that will build **Modular A/V**, a new
 family of Foundry VTT voice and video modules, **in a new repository**, run
 locally (WSL) with its own Foundry VTT and communication servers. It sums up
