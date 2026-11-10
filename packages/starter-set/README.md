@@ -34,3 +34,14 @@ Every module in the set is a module of its own: turn any of them off, or
 add others (another service, a theme), as with any Foundry module. The
 GM's **Plan your modules** board in the core's settings plans them one by
 one; the starter set isn't listed there, as it only installs others.
+
+## Inside this package
+
+There is no code here: no script, no stylesheet, no language file. The
+package is a `module.json` that requires four modules and recommends a
+fifth, and Foundry does the rest. It is released as a manifest alone
+(`tools/release/manifest-only.ts`).
+
+## Licence
+
+MIT.

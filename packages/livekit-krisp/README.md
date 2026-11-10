@@ -32,6 +32,26 @@ leave this module off.
   Higher quality removes more noise and takes more of the computer. It
   applies the next time Krisp starts.
 
+## Inside this package
+
+For someone reading the code. How the modules fit together is in
+[docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md).
+
+- **Not released**: the build refuses to release it
+  (`modularAV.releaseHold` in `package.json`) until LiveKit confirms in
+  writing that a Foundry module may load Krisp for its users.
+- **What it adds**: one audio effect in the noise cancellation group,
+  offered only when the LiveKit module reports the call is on LiveKit
+  Cloud, and one setting for its quality.
+- **Code**: about 460 lines in 7 files. `src/loader.ts` is the download
+  with its fixed hash; `src/effect.ts` runs Krisp in the core's audio
+  chain.
+- **Third-party code**: none in the zip. LiveKit's package is fetched by
+  the player's browser, as described above.
+- **Tests**: 4 unit test files (`pnpm vitest run
+packages/livekit-krisp`) and 1 in a real browser (`pnpm playwright
+test packages/livekit-krisp`).
+
 ## Licence
 
 This module's code is MIT. `@livekit/krisp-noise-filter` is LiveKit's and

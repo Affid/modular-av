@@ -29,6 +29,22 @@ there too.
   when your system asks for reduced motion.
 - Its stylesheet loads only while the theme is chosen.
 
+## Inside this package
+
+For someone reading the code. How the modules fit together is in
+[docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md).
+
+- **What it adds**: one theme, registered with the dock's
+  `themes.register` (`src/index.ts`, 29 lines).
+- **Code**: that file, a stylesheet of about 90 lines
+  (`public/vines.css`) and one SVG. No logic of its own. The entry file
+  is held under 2 KB and the stylesheet under 8 KB.
+- **Third-party code**: none. **Network**: none. **Storage**: none.
+- **Tests**: one browser test file (`pnpm playwright test
+packages/dock-vines`) that runs the shared theme contract from
+  `@modular-av/testing` in every layout and state: contrast, faces left
+  clear, every state still shown, nothing moving under reduced motion.
+
 ## Licence
 
 MIT, artwork included: the vine leaves (`public/frames/vine-corner.svg`)

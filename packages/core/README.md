@@ -9,14 +9,15 @@ the Discord-like dock, `modular-av-dock`.
   `modular-av-p2p` (no server, small tables) or `modular-av-jitsi` (your
   own Jitsi Meet server). The GM picks one per world.
 - **Plan your modules** (GMs, in the module settings and the Voice &
-  Video Settings window): the call as a chain of stages (effects, the
-  service, the cameras and the dock's theme), with what the world runs
-  now on air beside your next setup. Build it stage by stage or start
-  from a ready-made build; the window gives the links to install on
-  Foundry's Setup screen (to copy, save as a file or whisper to
-  yourself), then turns modules on and off for the world, keeping a
-  service on so calls keep working. With no service enabled, a GM is
-  told which exist.
+  Video Settings window): the call drawn as a chain of stages (effects,
+  the service, the cameras, the dock's theme), with what the world runs
+  now beside your next setup.
+  - Build the next setup stage by stage, or start from a ready-made one.
+  - The window gives the links to install on Foundry's Setup screen: to
+    copy, save as a file or whisper to yourself.
+  - Applying turns modules on and off for the world, and keeps a service
+    on so calls keep working.
+  - With no service enabled, a GM is told which exist.
 - **What it guarantees**, whatever the other modules do: nothing you say
   while muted is sent, in every state of the connection (a reverb or
   echo rings out for up to 3 s of what already went out, unless you turn
@@ -50,6 +51,39 @@ tell of updates and new ones, as Foundry's own update checks do. GitHub
 sees that browser's address; no cookies or page address go with it.
 Players never ask. Turn **Check GitHub for module updates** off and the
 window shows the modules this version knows.
+
+## Inside this package
+
+For someone reading the code.
+[docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md) is the guide to this
+package: its layers, how a session runs, how a player gets a token, and
+what happens to the microphone and camera.
+
+- **What it adds to Foundry**: the A/V client class
+  (`CONFIG.WebRTC.clientClass`), a thin host in place of Foundry's
+  camera dock, its settings, a socket, and the API other modules
+  register with (`game.modules.get("modular-av").api`).
+- **Code**: about 15,500 lines in 109 files. `src/media/` (about a
+  third) is the microphone chain, the camera and playback;
+  `src/modules/` is the Plan your modules window; `src/foundry/` is
+  everything that touches Foundry's classes; `src/session/`, `src/call/`
+  and `src/auth/` run the call and the token relay. Two audio worklets
+  (`public/worklets/`) are the voice gate and the host that runs effect
+  modules' audio code. The entry file is held under 124.5 KB; windows,
+  statistics and the microphone and camera chains load when first
+  needed.
+- **Third-party code**: none. It bundles helpers from `@modular-av/kit`
+  and implements the types in [`@modular-av/api`](../api/README.md),
+  both this repository's own.
+- **Network**: the one request to GitHub described above. Everything
+  else goes through Foundry's own connection or the service module.
+- **Storage**: world settings for the GM's choices, user settings for
+  what follows a player, and the browser for what belongs to a device.
+- **Tests**: 56 unit test files (`pnpm vitest run packages/core`) and 13
+  in a real browser (`pnpm playwright test packages/core`). The unit
+  tests run against a fake Foundry and a mock service from
+  `@modular-av/testing`; the whole of it is also driven in a real
+  Foundry world (`pnpm test:foundry`).
 
 ## Licence
 
