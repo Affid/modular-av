@@ -1,6 +1,7 @@
 import type { DeviceKind, DeviceList } from "@modular-av/api";
 import type { Booster, OutputState } from "./browser-boost.ts";
 import { canWatchFrames, watchFrames } from "./browser-frames.ts";
+import { captureDisplay } from "./browser-display.ts";
 import { createOnScreenWatcher } from "./browser-on-screen.ts";
 import type { AudioOutput, MediaEnv } from "./env.ts";
 import { resolutionConstraints } from "./video-resolution.ts";
@@ -197,6 +198,7 @@ export function createBrowserMediaEnv(
       capture("audio", deviceId, { noiseSuppression }),
     captureVideo: (deviceId, { resolution = "default" } = {}) =>
       capture("video", deviceId, resolutionConstraints(resolution)),
+    captureDisplay,
     createStream: (tracks) => new MediaStream([...tracks]),
     createAudioOutput: createElementOutput,
     showVideo(element, stream) {

@@ -2,6 +2,7 @@ import { createFakeWorld } from "@modular-av/testing";
 import { describe, expect, it } from "vitest";
 import { TOKEN_TTL_SECONDS, tokenRequestFor } from "../src/call/call.ts";
 import { createAVFacts } from "../src/foundry/av-facts.ts";
+import { registerScreenShareSetting } from "../src/media/screen-rule.ts";
 
 const USERS = [
   { id: "gm", name: "Gamemaster", role: 4 },
@@ -11,6 +12,7 @@ const USERS = [
 
 function gmClient(mode = 3) {
   const client = createFakeWorld({ users: USERS, av: { mode } }).connect("gm");
+  registerScreenShareSetting(client.game, () => undefined);
   client.runLifecycle();
   return client;
 }
@@ -22,7 +24,7 @@ describe("what a GM signs", () => {
     expect(tokenRequestFor(game, createAVFacts(game), "p4")).toEqual({
       participant: "p4",
       room: "test-world",
-      canPublish: { audio: false, video: false },
+      canPublish: { audio: false, video: false, screen: false },
       ttlSeconds: TOKEN_TTL_SECONDS,
     });
   });
@@ -33,6 +35,19 @@ describe("what a GM signs", () => {
 
     expect(game.users.get("p1")?.active).toBe(false);
     expect(tokenRequestFor(game, createAVFacts(game), "p1")).not.toBeNull();
+  });
+
+  it("lets a token publish a screen where the world's rule allows it", async () => {
+    const { game } = gmClient();
+
+    const before = tokenRequestFor(game, createAVFacts(game), "p1");
+    await game.settings.set("modular-av", "screenShare", "gm");
+    const after = tokenRequestFor(game, createAVFacts(game), "p1");
+    const gm = tokenRequestFor(game, createAVFacts(game), "gm");
+
+    expect(before?.canPublish.screen).toBe(true);
+    expect(after?.canPublish.screen).toBe(false);
+    expect(gm?.canPublish.screen).toBe(true);
   });
 
   it("signs nothing for unknown users or with A/V disabled", () => {

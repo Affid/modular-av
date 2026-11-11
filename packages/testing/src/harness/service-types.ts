@@ -1,6 +1,7 @@
 import type {
   ConnectionStats,
-  MediaPermissions,
+  PublishRights,
+  ScreenShareCapability,
   ServiceDefinition,
   ServiceErrorCode,
   TrackSource,
@@ -19,7 +20,7 @@ export type CreateDefinition = (
 export interface JoinOptions {
   readonly participant: string;
   readonly room: string;
-  readonly canPublish: MediaPermissions;
+  readonly canPublish: PublishRights;
   readonly ttlSeconds: number;
   /** Use this token instead of signing one (e.g. an expired one). */
   readonly token?: string;
@@ -70,6 +71,11 @@ export interface ServiceHarness {
   sign(options: JoinOptions): Promise<string>;
   join(options: JoinOptions): Promise<JoinResult>;
   publish(sources: readonly ("microphone" | "camera")[]): Promise<string[]>;
+  /**
+   * Publishes a stand-in screen share (the fake camera, and the fake
+   * microphone as its sound when `audio`); the service can't tell.
+   */
+  publishScreen(audio: boolean): Promise<string[]>;
   /** Publishes tracks made as the core makes them (Web Audio, a generator). */
   publishCoreTracks(): Promise<string[]>;
   setMuted(source: TrackSource, muted: boolean): Promise<void>;
@@ -94,10 +100,19 @@ export interface ServiceHarness {
   localTracks(): TrackView[];
   /** What the connection says it offers (`capabilities.features`), null if unknown. */
   features(): readonly string[] | null;
-  /** Peak level (0-1) of a participant's remote microphone over `ms`; 0 without one. */
-  audioLevel(participant: string, ms: number): Promise<number>;
-  /** Mean luminance (0-255) of a participant's remote camera frame; 0 without one. */
-  videoBrightness(participant: string): Promise<number>;
+  /** What the connection says it carries of a screen share, null if nothing. */
+  screenShare(): ScreenShareCapability | null;
+  /** Peak level (0-1) of a participant's remote microphone (or `source`) over `ms`; 0 without one. */
+  audioLevel(
+    participant: string,
+    ms: number,
+    source?: "microphone" | "screen-audio",
+  ): Promise<number>;
+  /** Mean luminance (0-255) of a participant's remote camera (or `source`) frame; 0 without one. */
+  videoBrightness(
+    participant: string,
+    source?: "camera" | "screen",
+  ): Promise<number>;
   /** "WxH" of a participant's remote camera as it plays here; "" without one. */
   videoSize(participant: string): Promise<string>;
   /**

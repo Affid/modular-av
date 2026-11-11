@@ -69,8 +69,10 @@ way, without leaving the call.
   peer-to-peer mode is off).
 - Who is speaking comes from each player's own voice detection, shared
   over Foundry.
-- Screen sharing, end-to-end encryption, the lobby, recording and
-  transcription aren't supported.
+- A shared screen arrives without its sound: Jitsi carries one sound
+  track per player, their microphone.
+- End-to-end encryption, the lobby, recording and transcription aren't
+  supported.
 - Servers much older or newer than the tested one may not work: Jitsi
   publishes no rule for which versions of its client and server work
   together.

@@ -14,7 +14,12 @@ interface End {
   changes: number;
 }
 
-const NONE: OutgoingTracks = { microphone: null, camera: null };
+const NONE: OutgoingTracks = {
+  microphone: null,
+  camera: null,
+  screen: null,
+  "screen-audio": null,
+};
 
 /** Two links whose messages reach each other in order, a task later. */
 function pair(
@@ -80,8 +85,8 @@ describe("a link", () => {
 
     // Act
     const { polite, impolite } = pair({
-      polite: { microphone: mic, camera: cam },
-      impolite: { microphone: createFakeTrack("audio"), camera: null },
+      polite: { ...NONE, microphone: mic, camera: cam },
+      impolite: { ...NONE, microphone: createFakeTrack("audio"), camera: null },
     });
     await settle();
 
@@ -103,7 +108,7 @@ describe("a link", () => {
   it("stops and resumes a source with the same remote track", async () => {
     const mic = createFakeTrack("audio");
     const { polite, impolite } = pair({
-      polite: { microphone: mic, camera: null },
+      polite: { ...NONE, microphone: mic, camera: null },
     });
     await settle();
     const before = impolite.link.remoteTracks()[0]?.track;
@@ -139,7 +144,7 @@ describe("a link", () => {
   it("refuses a source by negotiating it inactive, and keeps listing it", async () => {
     // Arrange
     const { polite, impolite } = pair({
-      impolite: { microphone: createFakeTrack("audio"), camera: null },
+      impolite: { ...NONE, microphone: createFakeTrack("audio"), camera: null },
     });
     await settle();
     const sending = (): (string | null)[] =>
@@ -177,7 +182,7 @@ describe("a link", () => {
 
   it("ignores sources on the wrong kind of line or on its own lines", async () => {
     const { polite } = pair({
-      impolite: { microphone: createFakeTrack("audio"), camera: null },
+      impolite: { ...NONE, microphone: createFakeTrack("audio"), camera: null },
     });
     await settle();
     const own = polite.pc.getTransceivers().find((t) => t.kind === "video");
@@ -218,7 +223,7 @@ describe("a link", () => {
 
   it("sends its sources with each description", async () => {
     const { sent } = pair({
-      polite: { microphone: createFakeTrack("audio"), camera: null },
+      polite: { ...NONE, microphone: createFakeTrack("audio"), camera: null },
     });
     await settle();
 
@@ -234,7 +239,13 @@ describe("a link", () => {
     // Arrange: everything from the polite side is lost for a while
     let losing = false;
     const { polite, impolite } = pair(
-      { impolite: { microphone: createFakeTrack("audio"), camera: null } },
+      {
+        impolite: {
+          ...NONE,
+          microphone: createFakeTrack("audio"),
+          camera: null,
+        },
+      },
       (from) => losing && from === 0,
     );
     await settle();
@@ -304,9 +315,48 @@ describe("a link", () => {
     ]);
   });
 
+  it("carries a screen share and its sound apart from the camera", async () => {
+    const screen = createFakeTrack("video");
+    const { polite, impolite } = pair({
+      polite: {
+        ...NONE,
+        camera: createFakeTrack("video"),
+        screen,
+        "screen-audio": createFakeTrack("audio"),
+      },
+    });
+    await settle();
+
+    expect(sources(impolite)).toEqual([
+      "camera:video",
+      "screen-audio:audio",
+      "screen:video",
+    ]);
+    expect(
+      impolite.link.remoteTracks().find((t) => t.source === "screen")?.track,
+    ).toBeDefined();
+    expect(polite.pc.getTransceivers().map((t) => t.sender.track)).toContain(
+      screen,
+    );
+  });
+
+  it("shares a screen started later on the line already open", async () => {
+    const { polite, impolite, sent } = pair();
+    await settle();
+    const descriptions = (): number =>
+      sent.filter(([, m]) => m.type === "description").length;
+    const before = descriptions();
+
+    await polite.link.setTrack("screen", createFakeTrack("video"));
+    await settle();
+
+    expect(sources(impolite)).toEqual(["screen:video"]);
+    expect(descriptions()).toBe(before);
+  });
+
   it("limits the camera's bitrate once its line is negotiated", async () => {
     const { polite } = pair({
-      polite: { microphone: null, camera: createFakeTrack("video") },
+      polite: { ...NONE, camera: createFakeTrack("video") },
     });
     const limits = { maxBitrate: 300_000, scaleResolutionDownBy: 2 };
     await polite.link.limitVideo(limits);
@@ -317,6 +367,25 @@ describe("a link", () => {
     const camera = polite.pc.getTransceivers().find((t) => t.kind === "video");
     expect(camera?.sender.getParameters().encodings).toEqual([
       { active: true, ...limits },
+    ]);
+  });
+
+  it("gives a screen share twice the camera's bitrate, at full size", async () => {
+    const { polite } = pair({
+      polite: { ...NONE, screen: createFakeTrack("video") },
+    });
+    await settle();
+
+    await polite.link.limitVideo({
+      maxBitrate: 300_000,
+      scaleResolutionDownBy: 2,
+    });
+
+    const screen = polite.pc
+      .getTransceivers()
+      .find((t) => t.sender.track?.kind === "video");
+    expect(screen?.sender.getParameters().encodings).toEqual([
+      { active: true, maxBitrate: 600_000, scaleResolutionDownBy: 1 },
     ]);
   });
 
@@ -343,7 +412,7 @@ describe("a link", () => {
 
   it("tells its owner about changes and sends its sources once each", async () => {
     const { polite, sent } = pair({
-      polite: { microphone: createFakeTrack("audio"), camera: null },
+      polite: { ...NONE, microphone: createFakeTrack("audio"), camera: null },
     });
     await settle();
 

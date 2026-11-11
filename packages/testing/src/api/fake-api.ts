@@ -147,6 +147,8 @@ const COMMANDS: readonly (keyof AVCommands)[] = [
   "setInputSensitivity",
   "setGateFallback",
   "setVideoResolution",
+  "startScreenShare",
+  "stopScreenShare",
   "setDevice",
   "setBroadcastPermissions",
 ];

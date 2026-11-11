@@ -82,6 +82,7 @@ describe("deafened badges", () => {
       connected: true,
       hasAudio: false,
       hasVideo: false,
+      hasScreen: false,
       speaking: false,
       muted: false,
       hidden: false,

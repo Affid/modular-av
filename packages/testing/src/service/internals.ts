@@ -1,6 +1,7 @@
 import type {
   ParticipantId,
   RemoteTrack,
+  ScreenShareCapability,
   ServiceConnectionState,
   ServiceError,
   ServiceEvents,
@@ -37,6 +38,8 @@ export interface Hub {
   readonly updatesTokens: boolean;
   readonly features: readonly string[];
   readonly needsToken: boolean;
+  /** What connections carry of a screen share; null: none. */
+  readonly screenShare: ScreenShareCapability | null;
   join(member: Member): void;
   leave(member: Member): void;
   /** Who is in a room now. */

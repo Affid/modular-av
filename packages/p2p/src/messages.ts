@@ -9,7 +9,7 @@ export const PROTOCOL = 1;
 /** Far above a real offer with four media lines. */
 export const MAX_SDP_LENGTH = 65_536;
 export const MAX_CANDIDATE_LENGTH = 1_024;
-/** Each side's microphone and camera: four lines, with room for screen share. */
+/** Each side's microphone, camera, screen and screen sound: eight lines. */
 export const MAX_MEDIA_LINES = 8;
 const MAX_SOURCES = 4;
 const MAX_MLINE_INDEX = 15;

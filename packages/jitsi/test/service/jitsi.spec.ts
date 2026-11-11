@@ -5,6 +5,7 @@ import {
 } from "../../../../scripts/services/jitsi.ts";
 
 serviceContract({
+  screenShare: { audio: false },
   service: "jitsi",
   params: {
     url: JITSI_DOCKER.serviceUrl,

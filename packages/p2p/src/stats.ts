@@ -102,6 +102,14 @@ export interface VideoLimits {
   readonly scaleResolutionDownBy: number;
 }
 
+/**
+ * A screen share gets twice the camera's bitrate and keeps its size: text
+ * on a map or a handout must stay readable, and it changes little.
+ */
+export function screenLimits(camera: VideoLimits): VideoLimits {
+  return { maxBitrate: camera.maxBitrate * 2, scaleResolutionDownBy: 1 };
+}
+
 /** Each link encodes the camera again, so every link gets a share. */
 export function videoLimits(links: number): VideoLimits {
   const share = Math.floor(VIDEO_BUDGET_BPS / Math.max(1, links));

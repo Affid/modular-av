@@ -1,8 +1,8 @@
 import type {
   ConnectionQuality,
   DeviceList,
-  MediaPermissions,
   ParticipantId,
+  PublishRights,
   ServiceCapabilities,
   ServiceConnection,
   SessionState,
@@ -35,7 +35,7 @@ export interface Runtime {
   speaking: ReadonlyMap<ParticipantId, boolean>;
   quality: ReadonlyMap<ParticipantId, ConnectionQuality>;
   /** The local player's rights when last applied: a change needs a new token. */
-  rights: MediaPermissions | null;
+  rights: PublishRights | null;
   devices: DeviceList;
 }
 

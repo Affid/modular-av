@@ -85,6 +85,7 @@ export function mayRingOut(input: OutboundInput): boolean {
 export function createPlaybackPolicy(
   facts: AVFacts,
   isDeafened: () => boolean,
+  mayShare: (id: ParticipantId) => boolean,
 ): PlaybackPolicy {
   const refusedByMe = (id: ParticipantId): boolean =>
     facts.entry(id).blocked ?? false;
@@ -100,6 +101,7 @@ export function createPlaybackPolicy(
       !refusedByMe(id) &&
       !(facts.entry(id).hidden ?? false) &&
       facts.canBroadcast(id).video,
+    canShare: mayShare,
     volume: (id) => facts.entry(id).volume ?? 1,
     sinkId: () => facts.sinkId(),
   };

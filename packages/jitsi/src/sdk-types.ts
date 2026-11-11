@@ -89,7 +89,7 @@ export interface VideoConstraints {
 export interface LocalTrackInfo {
   readonly stream: MediaStream;
   readonly mediaType: "audio" | "video";
-  readonly videoType?: "camera";
+  readonly videoType?: "camera" | "desktop";
   /** What it would ask getUserMedia for; it sizes simulcast layers from it. */
   readonly constraints?: VideoConstraints;
 }

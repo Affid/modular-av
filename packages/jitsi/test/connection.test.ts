@@ -431,13 +431,14 @@ describe("who is in the call", () => {
 });
 
 describe("remote media", () => {
-  it("reports cameras and microphones as the participant's, not screens", async () => {
+  it("reports microphones, cameras and shared screens as the participant's", async () => {
     // Arrange
     const s = setup();
     await join(s);
     s.conference().userJoins("ep-bob", "bob");
     const mic = createFakeTrack("audio");
     const camera = createFakeTrack("video");
+    const screen = createFakeTrack("video");
 
     // Act
     for (const t of [
@@ -447,7 +448,7 @@ describe("remote media", () => {
         endpoint: "ep-bob",
         kind: "video",
         videoType: "desktop",
-        track: createFakeTrack("video"),
+        track: screen,
       }),
     ])
       s.conference().emit(EVENTS.CONFERENCE.TRACK_ADDED, t);
@@ -456,6 +457,7 @@ describe("remote media", () => {
     expect(s.seen.added).toEqual([
       { participant: "bob", source: "microphone", track: mic },
       { participant: "bob", source: "camera", track: camera },
+      { participant: "bob", source: "screen", track: screen },
     ]);
   });
 
@@ -739,13 +741,28 @@ describe("the core's own tracks", () => {
     expect(fakeTrackInfo(camera).readyState).toBe("live");
   });
 
-  it("refuses a screen share or a track of the wrong kind", async () => {
+  it("sends a screen share as Jitsi's desktop video, beside the camera", async () => {
+    const s = setup();
+    await join(s);
+
+    await s.service.publish(createFakeTrack("video"), "camera");
+    await s.service.publish(createFakeTrack("video"), "screen");
+
+    expect(s.sdk.localTracks.map((t) => t.info.videoType)).toEqual([
+      "camera",
+      "desktop",
+    ]);
+    expect(s.service.capabilities.get().screenShare).toEqual({ audio: false });
+  });
+
+  it("refuses a screen's own sound or a track of the wrong kind", async () => {
+    // Jitsi carries one sound track per participant: the microphone.
     const s = setup();
     await join(s);
 
     await expect(
-      s.service.publish(createFakeTrack("video"), "screen"),
-    ).rejects.toThrow(/screen/);
+      s.service.publish(createFakeTrack("audio"), "screen-audio"),
+    ).rejects.toThrow(/screen-audio/);
     await expect(
       s.service.publish(createFakeTrack("audio"), "camera"),
     ).rejects.toThrow(/camera/);

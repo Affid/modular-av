@@ -3,8 +3,11 @@ import type { Sources } from "./messages.ts";
 import type { PeerConnectionLike, TransceiverLike } from "./peer.ts";
 import type { VideoLimits } from "./stats.ts";
 
-/** What the core publishes: one track per kind, the same for the session. */
-export type OutgoingSource = "microphone" | "camera";
+/**
+ * What the core publishes: one track per source. Each has its line from
+ * the start, so a screen share starting later needs no new negotiation.
+ */
+export type OutgoingSource = TrackSource;
 export type OutgoingTracks = Readonly<
   Record<OutgoingSource, MediaStreamTrack | null>
 >;
@@ -18,6 +21,8 @@ export interface RemoteSourceTrack {
 const OUTGOING = [
   { source: "microphone", kind: "audio" },
   { source: "camera", kind: "video" },
+  { source: "screen", kind: "video" },
+  { source: "screen-audio", kind: "audio" },
 ] as const;
 
 const KIND: Readonly<Record<TrackSource, "audio" | "video">> = {

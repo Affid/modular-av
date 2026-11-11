@@ -79,7 +79,7 @@ export class FakeLocalTrack implements JitsiLocalTrack {
   };
   getParticipantId = (): string => "local";
   getSourceName = (): string => `local-${this.info.mediaType}`;
-  getVideoType = (): "camera" | undefined => this.info.videoType;
+  getVideoType = (): "camera" | "desktop" | undefined => this.info.videoType;
   isLocal = (): boolean => true;
   mute = (): Promise<void> => {
     this.calls.push("mute");

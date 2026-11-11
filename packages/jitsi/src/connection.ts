@@ -52,6 +52,8 @@ export interface JitsiConnectionOptions {
 const CAPABILITIES: ServiceCapabilities = {
   speakingDetection: false,
   features: [],
+  // A second video of another kind; one sound track per participant only.
+  screenShare: { audio: false },
 };
 
 const capabilities: ServiceConnection["capabilities"] = {

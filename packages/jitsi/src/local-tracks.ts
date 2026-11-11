@@ -36,6 +36,7 @@ interface Entry {
 const KINDS: Partial<Record<TrackSource, "audio" | "video">> = {
   microphone: "audio",
   camera: "video",
+  screen: "video",
 };
 
 /** Measures a frame of a track that reports no size; null if none came. */
@@ -85,7 +86,12 @@ async function wrap(
   const stream = new MediaStream([track]);
   const [jitsi] = sdk.createLocalTracksFromMediaStreams([
     constraints
-      ? { stream, mediaType: kind, videoType: "camera", constraints }
+      ? {
+          stream,
+          mediaType: kind,
+          videoType: source === "screen" ? "desktop" : "camera",
+          constraints,
+        }
       : { stream, mediaType: kind },
   ]);
   if (!jitsi) throw new Error("lib-jitsi-meet made no track");

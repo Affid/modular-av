@@ -7,6 +7,7 @@ import {
 const target = livekitTarget();
 
 serviceContract({
+  screenShare: { audio: true },
   service: "livekit",
   params: { url: target.url },
   secrets: { key: target.apiKey, secret: target.apiSecret },

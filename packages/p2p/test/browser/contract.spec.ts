@@ -2,4 +2,10 @@
 // server at all, so it runs in the browser tier (pnpm test:browser).
 import { serviceContract } from "@modular-av/testing/contract";
 
-serviceContract({ service: "p2p", params: {}, secrets: {}, auth: "none" });
+serviceContract({
+  service: "p2p",
+  params: {},
+  secrets: {},
+  auth: "none",
+  screenShare: { audio: true },
+});

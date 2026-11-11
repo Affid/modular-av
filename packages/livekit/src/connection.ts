@@ -3,12 +3,15 @@ import type {
   ServiceCapabilities,
   ServiceConnection,
   ServiceContext,
+  TrackSource,
 } from "@modular-av/api";
 import {
   type LocalTrackPublication,
   type RemoteParticipant,
   Room,
   RoomEvent,
+  ScreenSharePresets,
+  type TrackPublishOptions,
   VideoPresets,
   VideoQuality,
 } from "livekit-client";
@@ -42,6 +45,16 @@ export interface LiveKitConnectionOptions {
 
 const CAPABILITIES: ServiceCapabilities = {
   speakingDetection: true,
+  screenShare: { audio: true },
+};
+
+/**
+ * A share at the size the core captures (up to 1080p at 15 fps). Its sound
+ * is music or a video's track: no DTX, which would cut its quiet parts.
+ */
+const PUBLISH_OPTIONS: Partial<Record<TrackSource, TrackPublishOptions>> = {
+  screen: { screenShareEncoding: ScreenSharePresets.h1080fps15.encoding },
+  "screen-audio": { dtx: false, red: false },
 };
 
 const QUALITIES = {
@@ -174,6 +187,7 @@ export function createLiveKitConnection(
     },
     async publish(track, source) {
       const publication = await room.localParticipant.publishTrack(track, {
+        ...PUBLISH_OPTIONS[source],
         source: SOURCES[source],
       });
       publications = new Map(publications).set(

@@ -18,7 +18,7 @@
     "@modular-av/testing": "workspace:*"
   },
   "modularAV": {
-    "entryBudgetBytes": 124500,
+    "entryBudgetBytes": 130500,
     "catalog": true
   }
 }

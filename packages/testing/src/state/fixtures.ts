@@ -25,6 +25,7 @@ export function participantState(
     connected: true,
     hasAudio: true,
     hasVideo: true,
+    hasScreen: false,
     speaking: false,
     muted: false,
     hidden: false,
@@ -65,6 +66,13 @@ export function localState(changes: Partial<LocalState> = {}): LocalState {
     audioCutTails: false,
     inputSensitivity: { auto: true, threshold: -50 },
     cameraHold: null,
+    screenShare: {
+      active: false,
+      audio: false,
+      available: false,
+      audioAvailable: false,
+      rule: "video",
+    },
     videoResolution: "default",
     chosenDevices: {
       audioInput: "default",

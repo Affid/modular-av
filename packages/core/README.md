@@ -28,6 +28,11 @@ the Discord-like dock, `modular-av-dock`.
   enforced by every player's browser; a camera effect that isn't running
   keeps the camera off; it reconnects by itself, with a fresh token each
   time.
+- **Screen sharing**: share a screen, a window or a browser tab beside
+  your camera, with a tab's sound where the browser allows it (Chrome,
+  Edge). LiveKit and P2P carry the sound; Jitsi carries the picture
+  only. A GM's block
+  on your video stops a share too.
 - **Your microphone**: its own voice gate for voice activity (automatic,
   or a level you set), push to talk with Foundry's key, a warning when
   you speak while muted. Reverb and delay from effect modules ring out
@@ -39,6 +44,8 @@ the Discord-like dock, `modular-av-dock`.
 - **Cameras shown by** (world, and per player): Foundry's camera dock or a
   module's, such as the dock.
 - **Voice and video settings window** (world): Foundry's or a module's.
+- **Who may share their screen** (world): everyone who may send video
+  (the default), Gamemasters only, or nobody.
 - **Check GitHub for module updates** (world, on): see below.
 
 Foundry's own A/V settings (mode, devices, push to talk, relay server)
@@ -72,7 +79,7 @@ what happens to the microphone and camera.
   everything that touches Foundry's classes; `src/session/`, `src/call/`
   and `src/auth/` run the call and the token relay. Two audio worklets
   (`public/worklets/`) are the voice gate and the host that runs effect
-  modules' audio code. The entry file is held under 124.5 KB; windows,
+  modules' audio code. The entry file is held under 130.5 KB; windows,
   statistics and the microphone and camera chains load when first
   needed.
 - **Third-party code**: none. It bundles helpers from `@modular-av/kit`

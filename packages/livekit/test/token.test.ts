@@ -1,3 +1,4 @@
+import type { PublishRights } from "@modular-av/api";
 import { describe, expect, it } from "vitest";
 import { signLiveKitToken } from "../src/token.ts";
 
@@ -29,7 +30,7 @@ async function hmac(secret: string, data: string): Promise<string> {
     .replace(/=+$/, "");
 }
 
-async function sign(canPublish = { audio: true, video: true }) {
+async function sign(canPublish: PublishRights = { audio: true, video: true }) {
   const token = await signLiveKitToken(
     { participant: "user-1", room: "world-1", canPublish, ttlSeconds: 600 },
     { apiKey: KEY, apiSecret: SECRET },
@@ -81,6 +82,29 @@ describe("LiveKit join tokens", () => {
     });
     expect(none).toMatchObject({
       video: { canPublish: false, canPublishSources: [] },
+    });
+  });
+
+  it("grants a screen share and its sound under the screen right", async () => {
+    const all = decode(
+      (await sign({ audio: true, video: true, screen: true })).payload,
+    );
+    const silent = decode(
+      (await sign({ audio: false, video: true, screen: true })).payload,
+    );
+
+    expect(all).toMatchObject({
+      video: {
+        canPublishSources: [
+          "microphone",
+          "camera",
+          "screen_share",
+          "screen_share_audio",
+        ],
+      },
+    });
+    expect(silent).toMatchObject({
+      video: { canPublishSources: ["camera", "screen_share"] },
     });
   });
 

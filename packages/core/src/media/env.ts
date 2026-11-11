@@ -25,6 +25,12 @@ export interface MediaEnv {
     deviceId: string,
     options?: { readonly resolution?: VideoResolution },
   ): Promise<MediaStreamTrack>;
+  /**
+   * Opens the browser's screen picker; rejects as `getDisplayMedia` does
+   * (NotAllowedError also when it was closed). Call it before any await
+   * after a click: the picker needs the click's user activation.
+   */
+  captureDisplay(options: { readonly audio: boolean }): Promise<DisplayCapture>;
   createStream(tracks: readonly MediaStreamTrack[]): MediaStream;
   createAudioOutput(): AudioOutput;
   /** Sets a video element's source; never unmutes it. */
@@ -67,6 +73,12 @@ export interface MediaEnv {
    * the returned function is called. Reads a clone: `track` is untouched.
    */
   watchFrames(track: MediaStreamTrack, onFrame: () => void): () => void;
+}
+
+/** A shared screen: its picture, and its sound if asked for and offered. */
+export interface DisplayCapture {
+  readonly video: MediaStreamTrack;
+  readonly audio: MediaStreamTrack | null;
 }
 
 /** Whether an element is seen, and how tall it is in device pixels (0: unknown). */

@@ -15,7 +15,12 @@ import {
 import type { CandidateInit, SessionDescription } from "./messages.ts";
 import { createNegotiation, type Negotiation } from "./negotiation.ts";
 import type { PeerConnectionLike } from "./peer.ts";
-import { type PacketTotals, readStats, type VideoLimits } from "./stats.ts";
+import {
+  type PacketTotals,
+  readStats,
+  screenLimits,
+  type VideoLimits,
+} from "./stats.ts";
 
 export type {
   OutgoingSource,
@@ -123,10 +128,12 @@ const directions = (p: Parts): void => {
   applyDirections(p.deps.pc, p.own, p.s.remoteSources, p.s.refused);
 };
 
-const limit = (p: Parts): Promise<void> =>
-  p.s.limits
-    ? limitSender(p.own.bySource.get("camera"), p.s.limits)
-    : Promise.resolve();
+const limit = async (p: Parts): Promise<void> => {
+  const { limits } = p.s;
+  if (!limits) return;
+  await limitSender(p.own.bySource.get("camera"), limits);
+  await limitSender(p.own.bySource.get("screen"), screenLimits(limits));
+};
 
 /** What this side says about its lines, and remembers having said. */
 function announce(p: Parts): Announcement {

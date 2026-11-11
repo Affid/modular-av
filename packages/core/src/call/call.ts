@@ -16,9 +16,12 @@ import type {
 import type { MediaEnv } from "../media/env.ts";
 import type { LocalMedia } from "../media/local-media.ts";
 import type { RemoteMedia } from "../media/remote-media.ts";
+import { publishRights } from "../media/screen-rule.ts";
+
 import { createSession, type Session } from "../session/session.ts";
 import type { Channels } from "../socket.ts";
 import type { Runtime } from "./runtime.ts";
+import type { ScreenControl } from "./screen-control.ts";
 
 /** Join tokens are only used to join: LiveKit refreshes them while connected. */
 export const TOKEN_TTL_SECONDS = 600;
@@ -32,6 +35,7 @@ export interface CallDeps {
   readonly rt: Runtime;
   readonly local: LocalMedia;
   readonly remote: RemoteMedia;
+  readonly screen: Pick<ScreenControl, "video" | "audio">;
   readonly service: () => ServiceDefinition | undefined;
   /** What goes out, a ringing tail included. */
   readonly outbound: () => MediaPermissions;
@@ -59,7 +63,7 @@ export function tokenRequestFor(
   return {
     participant,
     room: game.world.id,
-    canPublish: facts.canBroadcast(participant),
+    canPublish: publishRights(game, facts, participant),
     ttlSeconds: TOKEN_TTL_SECONDS,
   };
 }
@@ -135,7 +139,7 @@ function connectionTracker(
 
 /** The session, its token relay and the service's remote events. */
 export function createCall(deps: CallDeps): Session {
-  const { game, facts, rt, local, remote } = deps;
+  const { game, facts, rt, local, remote, screen } = deps;
   // The relay reports through the session, the one owner of its status.
   let session: Session | null = null;
   const relay = createRelay(deps, (waiting) => {
@@ -146,8 +150,13 @@ export function createCall(deps: CallDeps): Session {
     service: deps.service,
     room: () => ({ name: game.world.id }),
     requestToken: (signal) => relay.request(signal),
-    localTracks: () => ({ microphone: local.microphone, camera: local.camera }),
-    canPublish: () => facts.canBroadcast(facts.selfId),
+    localTracks: () => ({
+      microphone: local.microphone,
+      camera: local.camera,
+      screen: screen.video,
+      screenAudio: screen.audio,
+    }),
+    canPublish: () => publishRights(game, facts, facts.selfId),
     outbound: deps.outbound,
     afterMediaSync: () => {
       local.setOutbound(deps.outbound(), deps.voiceOpen());

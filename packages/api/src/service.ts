@@ -13,9 +13,20 @@ export interface Observable<T> {
   subscribe(listener: (value: T) => void): () => void;
 }
 
+/** What a connection carries of a shared screen. */
+export interface ScreenShareCapability {
+  /** The shared tab's or system's sound, as a `"screen-audio"` track of its own. */
+  readonly audio: boolean;
+}
+
 export interface ServiceCapabilities {
   /** It reports who is speaking (`speaking` events). */
   readonly speakingDetection: boolean;
+  /**
+   * It publishes and receives `"screen"` tracks (and `"screen-audio"` ones
+   * when `audio` is true). Absent: it carries no screen share.
+   */
+  readonly screenShare?: ScreenShareCapability;
   /**
    * What else this connection offers, named by the service and prefixed
    * with its id, e.g. "livekit-cloud". Effects that need one name it in
@@ -68,11 +79,22 @@ export interface RoomSpec {
   readonly name: string;
 }
 
+/**
+ * What a token lets its holder publish. `screen` allows a `"screen"` track,
+ * and with `audio` a `"screen-audio"` one; a core older than screen sharing
+ * leaves it out, which allows neither.
+ */
+export interface PublishRights {
+  readonly audio: boolean;
+  readonly video: boolean;
+  readonly screen?: boolean;
+}
+
 /** Built by the GM's core from what Foundry's server says, never from the request. */
 export interface TokenRequest {
   readonly participant: ParticipantId;
   readonly room: string;
-  readonly canPublish: { readonly audio: boolean; readonly video: boolean };
+  readonly canPublish: PublishRights;
   readonly ttlSeconds: number;
 }
 

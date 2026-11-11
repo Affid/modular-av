@@ -11,6 +11,7 @@ import type {
   SettingType,
   SurfaceDefinition,
 } from "@modular-av/api";
+import { registerScreenShareSetting } from "./media/screen-rule.ts";
 import { createCommands } from "./commands.ts";
 import { validateContribution, validateSurface } from "./contributions.ts";
 import { MODULE_ID, SERVICE_SETTING, VOLUMES_SETTING } from "./constants.ts";
@@ -266,6 +267,9 @@ export function installCore(deps: CoreDeps): InstalledCore {
     for (const registry of registries) registry.close();
     registerServiceSetting(game, services.api.list());
     registerSurfaceSettings(game, surfaces.api.list());
+    registerScreenShareSetting(game, () => {
+      current?.apply();
+    });
     const placement = createPlacement(
       () => game.webrtc?.settings ?? null,
       deps.ui,
