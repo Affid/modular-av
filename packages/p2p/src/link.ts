@@ -15,12 +15,7 @@ import {
 import type { CandidateInit, SessionDescription } from "./messages.ts";
 import { createNegotiation, type Negotiation } from "./negotiation.ts";
 import type { PeerConnectionLike } from "./peer.ts";
-import {
-  type PacketTotals,
-  readStats,
-  screenLimits,
-  type VideoLimits,
-} from "./stats.ts";
+import { type PacketTotals, readStats, type VideoPlan } from "./stats.ts";
 
 export type {
   OutgoingSource,
@@ -67,7 +62,7 @@ export interface Link {
   setRefused(source: TrackSource, refused: boolean): void;
   /** What the other side sends, by source, whether refused or not. */
   remoteTracks(): readonly RemoteSourceTrack[];
-  limitVideo(limits: VideoLimits): Promise<void>;
+  limitVideo(limits: VideoPlan): Promise<void>;
   stats(): Promise<ConnectionStats>;
   setConfiguration(configuration: RTCConfiguration): void;
   /**
@@ -111,7 +106,7 @@ interface LinkFields {
   sentSources: string | null;
   totals: PacketTotals;
   /** Applied again after each negotiation: a line gets encodings then. */
-  limits: VideoLimits | null;
+  limits: VideoPlan | null;
 }
 
 interface Parts {
@@ -131,8 +126,8 @@ const directions = (p: Parts): void => {
 const limit = async (p: Parts): Promise<void> => {
   const { limits } = p.s;
   if (!limits) return;
-  await limitSender(p.own.bySource.get("camera"), limits);
-  await limitSender(p.own.bySource.get("screen"), screenLimits(limits));
+  await limitSender(p.own.bySource.get("camera"), limits.camera);
+  await limitSender(p.own.bySource.get("screen"), limits.screen);
 };
 
 /** What this side says about its lines, and remembers having said. */

@@ -28,5 +28,6 @@ leaving the call. The API adds `ParticipantState.hasScreen`,
 124,500 to 130,500 bytes. The service contract checks that a
 share and its sound arrive apart from the camera, and that a token
 without the screen right is refused. P2P opens the lines for a share when
-a link starts, so a share needs no new negotiation; it gets twice the
-camera's bitrate at full size. Closes #7.
+a link starts, so a share needs no new negotiation; it is sent at full
+size with twice the camera's part of each link's upload, taken from the
+same upload budget as the camera. Closes #7.

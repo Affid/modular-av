@@ -359,10 +359,11 @@ describe("a link", () => {
       polite: { ...NONE, camera: createFakeTrack("video") },
     });
     const limits = { maxBitrate: 300_000, scaleResolutionDownBy: 2 };
-    await polite.link.limitVideo(limits);
+    const plan = { camera: limits, screen: limits };
+    await polite.link.limitVideo(plan);
     await settle();
 
-    await polite.link.limitVideo(limits);
+    await polite.link.limitVideo(plan);
 
     const camera = polite.pc.getTransceivers().find((t) => t.kind === "video");
     expect(camera?.sender.getParameters().encodings).toEqual([
@@ -370,15 +371,15 @@ describe("a link", () => {
     ]);
   });
 
-  it("gives a screen share twice the camera's bitrate, at full size", async () => {
+  it("limits a screen share by its own part of the upload", async () => {
     const { polite } = pair({
       polite: { ...NONE, screen: createFakeTrack("video") },
     });
     await settle();
 
     await polite.link.limitVideo({
-      maxBitrate: 300_000,
-      scaleResolutionDownBy: 2,
+      camera: { maxBitrate: 300_000, scaleResolutionDownBy: 2 },
+      screen: { maxBitrate: 600_000, scaleResolutionDownBy: 1 },
     });
 
     const screen = polite.pc

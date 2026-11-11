@@ -46,7 +46,10 @@ export function mayReplace(st: MeshState, user: ParticipantId): boolean {
 
 /** Each connected link's share of the upload for video. */
 export function applyLimits(st: MeshState): void {
-  const limits = videoLimits(st.peers.size);
+  const limits = videoLimits(st.peers.size, {
+    camera: st.outgoing.camera !== null,
+    screen: st.outgoing.screen !== null,
+  });
   for (const { link } of st.peers.values())
     if (link.state === "connected")
       link.limitVideo(limits).catch(st.deps.onError);

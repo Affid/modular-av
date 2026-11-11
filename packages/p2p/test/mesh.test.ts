@@ -429,6 +429,37 @@ describe("the mesh", () => {
     ]);
   });
 
+  it("shares the same upload between the camera and a screen share", async () => {
+    // Arrange
+    const alice = member("alice", "s-a");
+    const camera = createFakeTrack("video");
+    const screen = createFakeTrack("video");
+    await alice.mesh.setTrack("camera", camera);
+    const bob = member("bob", "s-b");
+    const carol = member("carol", "s-c");
+    alice.mesh.hello();
+    bob.mesh.hello();
+    carol.mesh.hello();
+    await settle();
+
+    // Act
+    await alice.mesh.setTrack("screen", screen);
+    await settle();
+
+    const sent = (track: MediaStreamTrack): unknown =>
+      alice.pcs[0]
+        ?.getTransceivers()
+        .find((t) => t.sender.track === track)
+        ?.sender.getParameters().encodings;
+    // Assert: each of the two links gets 1.2 Mbit/s, a third for the camera.
+    expect(sent(camera)).toEqual([
+      { active: true, maxBitrate: 400_000, scaleResolutionDownBy: 1 },
+    ]);
+    expect(sent(screen)).toEqual([
+      { active: true, maxBitrate: 800_000, scaleResolutionDownBy: 1 },
+    ]);
+  });
+
   it("hands new ICE servers to the other links when one refuses them", async () => {
     const alice = member("alice", "s-a");
     alice.mesh.hello();

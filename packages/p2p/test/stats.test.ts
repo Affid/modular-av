@@ -77,18 +77,48 @@ describe("rate", () => {
 
 describe("videoLimits", () => {
   it("shares the upload between the links, within bounds", () => {
-    expect(videoLimits(1)).toEqual({
+    expect(videoLimits(1).camera).toEqual({
       maxBitrate: 800_000,
       scaleResolutionDownBy: 1,
     });
-    expect(videoLimits(4)).toEqual({
+    expect(videoLimits(4).camera).toEqual({
       maxBitrate: 600_000,
       scaleResolutionDownBy: 1,
     });
-    expect(videoLimits(5)).toEqual({
+    expect(videoLimits(5).camera).toEqual({
       maxBitrate: 480_000,
       scaleResolutionDownBy: 2,
     });
-    expect(videoLimits(20).maxBitrate).toBe(150_000);
+    expect(videoLimits(20).camera.maxBitrate).toBe(150_000);
+  });
+
+  it("takes a screen share out of the same upload, at twice the camera's part", () => {
+    const both = videoLimits(4, { camera: true, screen: true });
+    expect(both.camera).toEqual({
+      maxBitrate: 200_000,
+      scaleResolutionDownBy: 1,
+    });
+    expect(both.screen).toEqual({
+      maxBitrate: 400_000,
+      scaleResolutionDownBy: 1,
+    });
+    // 4 links x (200 + 400) kbit/s: the whole budget, not three of them.
+    expect(4 * (both.camera.maxBitrate + both.screen.maxBitrate)).toBe(
+      2_400_000,
+    );
+  });
+
+  it("gives a share the camera's part too while the camera is off", () => {
+    const alone = videoLimits(4, { camera: false, screen: true });
+    expect(alone.screen).toEqual({
+      maxBitrate: 600_000,
+      scaleResolutionDownBy: 1,
+    });
+  });
+
+  it("keeps a share at full size past the links where the camera halves", () => {
+    const many = videoLimits(5, { camera: true, screen: true });
+    expect(many.camera.scaleResolutionDownBy).toBe(2);
+    expect(many.screen.scaleResolutionDownBy).toBe(1);
   });
 });
