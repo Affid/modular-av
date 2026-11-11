@@ -147,6 +147,15 @@ describe("shared screens", () => {
     expect(screen?.querySelector(".mav-meter")).toBeNull();
   });
 
+  it("keeps another player large by default while the local player shares", () => {
+    const { host } = mounted(
+      avState({ participants: [{ ...me, hasScreen: true }, p1] }),
+    );
+
+    const large = host.element.querySelector<HTMLElement>("[data-focused]");
+    expect(large?.dataset.tileKey).toBe("p1");
+  });
+
   it("drops the screen's tile when the share stops", async () => {
     const { host, api } = mounted(sharing);
 

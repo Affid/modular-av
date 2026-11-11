@@ -202,8 +202,10 @@ export function createTileList(
   };
 
   const markFocus = (): void => {
-    // The local player's tile comes first: by default, the first other.
-    const [own, firstOther] = tiles.keys();
+    // The local player's tiles come first (their camera, then their own
+    // share): by default, the first tile of another player.
+    const [own] = tiles.keys();
+    const firstOther = [...tiles.keys()].find((key) => owners.get(key) !== own);
     const id = focused && tiles.has(focused) ? focused : (firstOther ?? own);
     for (const [tileId, tile] of tiles)
       tile.element.toggleAttribute("data-focused", tileId === id);
