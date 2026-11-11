@@ -1,4 +1,4 @@
-import type { ParticipantId } from "@modular-av/api";
+import type { ParticipantId, VideoSource } from "@modular-av/api";
 import {
   createMeter,
   el,
@@ -14,9 +14,13 @@ import type { TileFlags, TileView } from "../view/tile-view.ts";
 export interface TileHandlers {
   /** The player asked for this participant's menu. */
   menu(participant: ParticipantId, anchor: HTMLElement): void;
-  /** The player picked this tile to show large. */
-  focus(participant: ParticipantId): void;
+  /** The player picked this tile (by its key) to show large. */
+  focus(key: string): void;
 }
+
+/** A tile's key: the participant's id for the camera, with ":screen" for a share. */
+export const tileKey = (id: ParticipantId, source: VideoSource): string =>
+  source === "camera" ? id : `${id}:${source}`;
 
 /** Another module's badge (an indicator contribution), shown as text. */
 export interface Badge {
@@ -93,6 +97,7 @@ const handle = (
 function build(
   doc: Document,
   id: ParticipantId,
+  source: VideoSource,
   handlers: TileHandlers,
 ): { element: HTMLElement; video: HTMLVideoElement; parts: Parts } {
   const video = el("video", {
@@ -132,7 +137,11 @@ function build(
   const element = el("li", {
     doc,
     className: "mav-dock-tile",
-    attrs: { "data-participant-id": id },
+    attrs: {
+      "data-participant-id": id,
+      "data-source": source,
+      "data-tile-key": tileKey(id, source),
+    },
     children: [
       media,
       el("div", {
@@ -154,7 +163,7 @@ function build(
     handlers.menu(id, menu);
   });
   media.addEventListener("dblclick", () => {
-    handlers.focus(id);
+    handlers.focus(tileKey(id, source));
   });
   return {
     element,
@@ -164,25 +173,32 @@ function build(
 }
 
 /**
- * One participant's tile. Its video is attached once and kept by the core
- * (shown or not as the state says); the tile only writes what changed.
- * The local player's tile has a level meter, fed only while it is shown.
+ * One participant's camera or shared screen. Its video is attached once
+ * and kept by the core (shown or not as the state says); the tile only
+ * writes what changed. The local player's camera tile has a level meter,
+ * fed only while it is shown.
  */
 export function createTile(
   ctx: DockContext,
   doc: Document,
   id: ParticipantId,
   handlers: TileHandlers,
+  source: VideoSource = "camera",
 ): Tile {
-  const { element, video, parts } = build(doc, id, handlers);
-  const detach = ctx.api.media.attach(id, "camera", video);
+  const { element, video, parts } = build(doc, id, source, handlers);
+  const detach = ctx.api.media.attach(id, source, video);
+  const screen = source === "screen";
   let last: TileView | null = null;
   let unmeter: (() => void) | null = null;
 
   const updateIdentity = (view: TileView): void => {
-    const name = view.isLocal
+    const own = view.isLocal
       ? ctx.t("tile.you", { name: view.name })
       : view.name;
+    const shared = view.isLocal
+      ? ctx.t("tile.yourScreen")
+      : ctx.t("tile.screen", { name: view.name });
+    const name = screen ? shared : own;
     parts.name.textContent = name;
     setLabel(parts.name, view.name, { trusted: false });
     for (const [button, key] of [
@@ -215,7 +231,7 @@ export function createTile(
         last.color !== view.color
       )
         updateIdentity(view);
-      if (view.isLocal && !unmeter) addMeter();
+      if (view.isLocal && !screen && !unmeter) addMeter();
       for (const [flag, attribute] of Object.entries(FLAG_ATTRIBUTES))
         element.toggleAttribute(attribute, view.flags[flag as keyof TileFlags]);
       element.dataset.video = view.video;

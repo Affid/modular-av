@@ -18,9 +18,11 @@ voice and video settings window and badges in the player list. Requires
   keyboard; Foundry's sidebar, controls, hotbar and chat stay clear. A GM
   can save the arrangement as a scene's layout for everyone; a player who
   moves a camera there keeps their own, and can go back to the scene's.
-- **Voice panel**: mute, deafen, camera, the input level and sensitivity,
-  and the effects other modules add (noise cancellation, camera
-  background).
+- **Voice panel**: mute, deafen, camera, sharing your screen, the input
+  level and sensitivity, and the effects other modules add (noise
+  cancellation, camera background).
+- **Shared screens**: each in a tile of its own after the player's camera,
+  shown whole; double-click one to show it large.
 - **Players**: who is speaking, muted, deafened or blocked, a volume per
   player and a menu for GMs.
 - **Themes**: other modules add them (such as `modular-av-dock-vines`);

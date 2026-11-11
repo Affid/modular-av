@@ -38,7 +38,19 @@ interface Toggles {
   readonly mute: IconButton;
   readonly deafen: IconButton;
   readonly video: IconButton;
+  readonly screen: IconButton;
 }
+
+/** Closing the browser's picker is the player's choice, not a failure. */
+const unlessCancelled = async (share: () => Promise<void>): Promise<void> => {
+  try {
+    await share();
+  } catch (error: unknown) {
+    if (error instanceof DOMException && error.name === "NotAllowedError")
+      return;
+    throw error;
+  }
+};
 
 /** Mute, deafen and camera; each runs a core command against the state. */
 function toggles(ctx: DockContext, doc: Document, go: Go): Toggles {
@@ -62,6 +74,14 @@ function toggles(ctx: DockContext, doc: Document, go: Go): Toggles {
     video: toggle("mav-dock-video", () =>
       commands.setVideoEnabled(!local().videoEnabled),
     ),
+    // The browser lets its picker open only from the click itself.
+    screen: toggle("mav-dock-screen", () => {
+      const share = local().screenShare;
+      if (share.active) return commands.stopScreenShare();
+      return unlessCancelled(() =>
+        commands.startScreenShare({ audio: share.audioAvailable }),
+      );
+    }),
   };
 }
 
@@ -86,6 +106,13 @@ function renderLocal(
     ...view.video,
     label: ctx.t(view.video.pressed ? "panel.cameraOff" : "panel.cameraOn"),
     icon: view.video.pressed ? "fa-video" : "fa-video-slash",
+  });
+  t.screen.element.hidden = view.screen.hidden;
+  t.screen.set({
+    pressed: view.screen.pressed,
+    disabled: view.screen.disabled,
+    label: ctx.t(view.screen.pressed ? "panel.stopShare" : "panel.share"),
+    icon: "fa-display",
   });
   syncIndicators(ctx, warnings, view.warnings);
 }
@@ -211,6 +238,7 @@ export function createVoicePanel(
     t.deafen,
     t.video,
     menuArrow(ctx, doc, "camera", handlers),
+    t.screen,
     quick,
     settings,
     ...sessionButtons(ctx, doc, go, status),
@@ -236,6 +264,7 @@ export function createVoicePanel(
     (s) => s.local,
     () => {
       renderLocal(ctx, t, warnings);
+      keys.refresh();
     },
   );
   renderLocal(ctx, t, warnings);

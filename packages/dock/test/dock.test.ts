@@ -112,6 +112,119 @@ describe("the dock's tiles", () => {
   });
 });
 
+describe("shared screens", () => {
+  const sharing = avState({
+    participants: [me, { ...p1, hasScreen: true }],
+  });
+
+  it("shows a shared screen in a tile of its own, after the player's camera", () => {
+    const { host, api } = mounted(sharing);
+
+    const tiles = Array.from(
+      host.element.querySelectorAll<HTMLElement>(".mav-dock-tile"),
+      (t) => `${t.dataset.participantId ?? ""}:${t.dataset.source ?? ""}`,
+    );
+    expect(tiles).toEqual(["me:camera", "p1:camera", "p1:screen"]);
+    const screen = host.element.querySelector('[data-source="screen"]');
+    expect(screen?.querySelector(".mav-dock-tile-name")?.textContent).toBe(
+      "Player1's screen",
+    );
+    expect(screen?.getAttribute("data-video")).toBe("on");
+    expect(
+      api.attachments.map((a) => [a.participant, a.source]),
+    ).toContainEqual(["p1", "screen"]);
+  });
+
+  it("names the player's own share as theirs", () => {
+    const { host } = mounted(
+      avState({ participants: [{ ...me, hasScreen: true }] }),
+    );
+
+    const screen = host.element.querySelector('[data-source="screen"]');
+    expect(screen?.querySelector(".mav-dock-tile-name")?.textContent).toBe(
+      "Your screen",
+    );
+    expect(screen?.querySelector(".mav-meter")).toBeNull();
+  });
+
+  it("drops the screen's tile when the share stops", async () => {
+    const { host, api } = mounted(sharing);
+
+    api.setState((s) => ({
+      ...s,
+      participants: { ...s.participants, p1 },
+    }));
+    await settle();
+
+    expect(host.element.querySelector('[data-source="screen"]')).toBeNull();
+    expect(
+      host.element.querySelector('[data-participant-id="p1"]'),
+    ).not.toBeNull();
+  });
+});
+
+const shareable = {
+  active: false,
+  audio: false,
+  available: true,
+  audioAvailable: true,
+  rule: "video",
+} as const;
+
+describe("the share button", () => {
+  it("shares the screen with its sound, and stops it, as the core says", async () => {
+    // Arrange
+    const state = avState({
+      participants: [me],
+      local: { screenShare: shareable },
+    });
+    const { button, api } = mounted(state);
+
+    // Act
+    button("screen")?.click();
+    api.setState((s) => ({
+      ...s,
+      local: { ...s.local, screenShare: { ...shareable, active: true } },
+    }));
+    await settle();
+
+    // Assert
+    expect(api.calls).toContainEqual({
+      command: "startScreenShare",
+      args: [{ audio: true }],
+    });
+    expect(button("screen")?.getAttribute("aria-pressed")).toBe("true");
+    expect(button("screen")?.getAttribute("aria-label")).toBe(
+      "Stop sharing your screen",
+    );
+    button("screen")?.click();
+    expect(api.calls.at(-1)).toEqual({ command: "stopScreenShare", args: [] });
+  });
+
+  it("is hidden where no share can start", () => {
+    const { button } = mounted();
+
+    expect(button("screen")?.hidden).toBe(true);
+  });
+
+  it("says nothing when the player closes the browser's picker", async () => {
+    const state = avState({
+      participants: [me],
+      local: { screenShare: shareable },
+    });
+    const { button, api, host } = mounted(state);
+    api.failNext(
+      "startScreenShare",
+      new DOMException("Permission denied", "NotAllowedError"),
+    );
+
+    button("screen")?.click();
+    await settle();
+
+    expect(host.element.querySelector(".mav-dock-alert")?.textContent).toBe("");
+  });
+});
+
 describe("the voice panel", () => {
   it("runs the core's commands and shows what the core says", async () => {
     // Arrange

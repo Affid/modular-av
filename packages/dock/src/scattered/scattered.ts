@@ -113,7 +113,9 @@ function clearPlace(element: HTMLElement): void {
 const tilesIn = (list: HTMLElement): HTMLElement[] =>
   Array.from(list.querySelectorAll<HTMLElement>(TILE));
 
-const idOf = (tile: HTMLElement): string => tile.dataset.participantId ?? "";
+/** A camera's spot is saved under its player's id, a share's with ":screen". */
+const idOf = (tile: HTMLElement): string =>
+  tile.dataset.tileKey ?? tile.dataset.participantId ?? "";
 
 /** A tile's saved spot: own entries only, whatever the id. */
 const spotFor = (arrangement: Arrangement, id: string): Spot | undefined =>

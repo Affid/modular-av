@@ -2,6 +2,8 @@ import type {
   AVState,
   IndicatorContribution,
   ParticipantId,
+  ParticipantState,
+  VideoSource,
 } from "@modular-av/api";
 import {
   el,
@@ -15,13 +17,14 @@ import {
 } from "@modular-av/kit";
 import type { DockContext } from "../context.ts";
 import type { TileLayout } from "../settings.ts";
-import { orderTiles, tileView } from "../view/tile-view.ts";
+import { orderTiles, screenView, tileView } from "../view/tile-view.ts";
 import { wheelSideways } from "./wheel.ts";
 import {
   type Badge,
   createTile,
   type Tile,
   type TileHandlers,
+  tileKey,
 } from "./tile.ts";
 
 /** What the list's custom properties say: the grid, or one player large. */
@@ -64,8 +67,8 @@ export interface TileList {
   setScattered(scattered: boolean): void;
   /** How far a theme's frames reach past tiles (fractions of their width). */
   setFrameReach(reach: Insets): void;
-  /** The tile shown large in the focus layout. */
-  focus(participant: ParticipantId): void;
+  /** The tile shown large in the focus layout, by its key. */
+  focus(key: string): void;
   /** How many tiles there are now. */
   readonly count: number;
   /** The list moved to another window (Picture-in-Picture): watch it there. */
@@ -82,10 +85,23 @@ const slice = (s: AVState): Slice => [s.participants, s.local];
 const sameSlice = (a: Slice, b: Slice): boolean =>
   a[0] === b[0] && a[1] === b[1];
 
-/** Those in the call, and the local player whatever their state. */
-const shown = (s: AVState) =>
+interface Shown {
+  readonly key: string;
+  readonly participant: ParticipantState;
+  readonly source: VideoSource;
+}
+
+/**
+ * Those in the call, and the local player whatever their state; a
+ * player's shared screen right after their camera.
+ */
+const shown = (s: AVState): readonly Shown[] =>
   orderTiles(
     Object.values(s.participants).filter((p) => p.connected || p.isLocal),
+  ).flatMap((p) =>
+    (p.hasScreen ? (["camera", "screen"] as const) : (["camera"] as const)).map(
+      (source) => ({ key: tileKey(p.id, source), participant: p, source }),
+    ),
   );
 
 /**
@@ -102,8 +118,11 @@ export function createTileList(
     className: "mav-dock-tiles",
     attrs: { "aria-label": ctx.t("dock.tiles") },
   });
-  let tiles = new Map<ParticipantId, Tile>();
-  let focused: ParticipantId | null = null;
+  /** By key: a player's id for their camera, with ":screen" for a share. */
+  let tiles = new Map<string, Tile>();
+  /** Which tile each key is a tile of. */
+  let owners = new Map<string, ParticipantId>();
+  let focused: string | null = null;
   let horizontal = false;
   let scattered = false;
   let reach: Insets = NO_INSETS;
@@ -119,6 +138,9 @@ export function createTileList(
     .list()
     .filter((c): c is IndicatorContribution => c.kind === "indicator");
   let active = new Map<string, ReadonlySet<ParticipantId>>();
+  /** Badges are about the player: on their camera's tile, not on a share's. */
+  const badgesFor = (key: string): readonly Badge[] =>
+    (owners.get(key) ?? key) === key ? badgesOf(key) : [];
   const badgesOf = (id: ParticipantId): readonly Badge[] =>
     indicators
       .filter((c) => active.get(c.id)?.has(id))
@@ -126,7 +148,7 @@ export function createTileList(
   const offIndicators = indicators.map((c) => {
     const apply = (ids: ReadonlySet<ParticipantId>): void => {
       active = new Map(active).set(c.id, ids);
-      for (const [id, tile] of tiles) tile.setBadges(badgesOf(id));
+      for (const [key, tile] of tiles) tile.setBadges(badgesFor(key));
     };
     try {
       active = new Map(active).set(c.id, c.active.get());
@@ -188,32 +210,37 @@ export function createTileList(
   };
 
   /** The strip back to its start, where the focused tile now is. */
-  const focusOn = (participant: ParticipantId): void => {
-    focused = participant;
+  const focusOn = (key: string): void => {
+    focused = key;
     markFocus();
     if (horizontal) element.scrollLeft = 0;
   };
 
-  const newTile = (id: ParticipantId): Tile => {
-    const tile = createTile(ctx, doc, id, {
-      menu: handlers.menu,
-      focus: focusOn,
-    });
+  const newTile = (item: Shown): Tile => {
+    const tile = createTile(
+      ctx,
+      doc,
+      item.participant.id,
+      { menu: handlers.menu, focus: focusOn },
+      item.source,
+    );
     tile.setScattered(scattered);
     return tile;
   };
 
   const sync = (state: AVState): void => {
-    const people = shown(state);
-    const next = new Map<ParticipantId, Tile>();
-    for (const p of people) {
-      const tile = tiles.get(p.id) ?? newTile(p.id);
-      tile.update(tileView(p, state.local));
-      next.set(p.id, tile);
+    const items = shown(state);
+    const next = new Map<string, Tile>();
+    for (const item of items) {
+      const tile = tiles.get(item.key) ?? newTile(item);
+      const view = tileView(item.participant, state.local);
+      tile.update(item.source === "screen" ? screenView(view) : view);
+      next.set(item.key, tile);
     }
+    owners = new Map(items.map((i) => [i.key, i.participant.id]));
     const counted = next.size !== tiles.size;
-    for (const [id, tile] of tiles) if (!next.has(id)) tile.dispose();
-    for (const [id, tile] of next) tile.setBadges(badgesOf(id));
+    for (const [key, tile] of tiles) if (!next.has(key)) tile.dispose();
+    for (const [key, tile] of next) tile.setBadges(badgesFor(key));
     placeInOrder(
       element,
       [...next.values()].map((t) => t.element),
