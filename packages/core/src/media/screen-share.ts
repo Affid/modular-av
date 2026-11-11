@@ -12,6 +12,8 @@ export interface ScreenShare {
   start(audio: boolean): Promise<void>;
   /** Stops and frees the shared screen. */
   stop(): void;
+  /** Lets go of the share's sound only; the picture goes on. */
+  stopAudio(): void;
   /** The share started, stopped or lost its sound. */
   onChange(listener: () => void): () => void;
 }
@@ -25,6 +27,11 @@ export function createScreenShare(
   env: Pick<MediaEnv, "captureDisplay">,
 ): ScreenShare {
   let current: DisplayCapture | null = null;
+  /**
+   * The share's sound while it runs. Kept apart from `current`, which
+   * stays the picked capture itself: its tracks' ends are told by it.
+   */
+  let sound: MediaStreamTrack | null = null;
   let unwatch = (): void => undefined;
   /** Counts starts and stops: a pick that resolves after either is dropped. */
   let generation = 0;
@@ -39,6 +46,7 @@ export function createScreenShare(
     unwatch();
     stopAll(current);
     current = null;
+    sound = null;
     return true;
   };
 
@@ -48,8 +56,8 @@ export function createScreenShare(
       if (current === capture && release()) notify();
     };
     const onAudioEnded = (): void => {
-      if (current !== capture) return;
-      current = { ...capture, audio: null };
+      if (current !== capture || !sound) return;
+      sound = null;
       notify();
     };
     capture.video.addEventListener("ended", onVideoEnded);
@@ -65,7 +73,7 @@ export function createScreenShare(
       return current?.video ?? null;
     },
     get audio() {
-      return current?.audio ?? null;
+      return sound;
     },
     async start(audio) {
       generation += 1;
@@ -77,12 +85,19 @@ export function createScreenShare(
       }
       release();
       current = picked;
+      sound = picked.audio;
       unwatch = watch(picked);
       notify();
     },
     stop() {
       generation += 1;
       if (release()) notify();
+    },
+    stopAudio() {
+      if (!sound) return;
+      sound.stop();
+      sound = null;
+      notify();
     },
     onChange(listener) {
       const registration = { listener };

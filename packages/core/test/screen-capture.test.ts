@@ -26,6 +26,43 @@ describe("the shared screen", () => {
     expect(changed).toHaveBeenCalledTimes(2);
   });
 
+  it("ends when the sound ends first and the picture after it", async () => {
+    // Arrange: the browser's "Stop sharing" ends both tracks, in any order.
+    const share = createScreenShare(createFakeMediaEnv());
+    const changed = vi.fn();
+    await share.start(true);
+    share.onChange(changed);
+    const { video, audio } = share;
+
+    // Act
+    if (audio) endFakeTrack(audio);
+    if (video) endFakeTrack(video);
+
+    // Assert
+    expect(share.video).toBeNull();
+    expect(share.audio).toBeNull();
+    expect(changed).toHaveBeenCalledTimes(2);
+  });
+
+  it("stops only the sound when asked, and keeps the picture", async () => {
+    // Arrange
+    const share = createScreenShare(createFakeMediaEnv());
+    const changed = vi.fn();
+    await share.start(true);
+    share.onChange(changed);
+    const sound = share.audio;
+
+    // Act
+    share.stopAudio();
+    share.stopAudio();
+
+    // Assert
+    expect(sound && fakeTrackInfo(sound).readyState).toBe("ended");
+    expect(share.audio).toBeNull();
+    expect(share.video).not.toBeNull();
+    expect(changed).toHaveBeenCalledTimes(1);
+  });
+
   it("drops a pick that comes back after the share was stopped", async () => {
     // Arrange: the picker is still open when the player stops.
     let resolve: (capture: FakeDisplayCapture) => void = () => undefined;

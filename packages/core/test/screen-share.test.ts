@@ -319,6 +319,29 @@ describe("what a player may share", () => {
     expect(gm.api.state.get().participants.p1?.hasScreen).toBe(true);
   });
 
+  it("stops capturing the screen's sound when the GM takes the player's audio", async () => {
+    // Arrange
+    const { table, gm, p1 } = await inCall();
+    await p1.api.commands.startScreenShare({ audio: true });
+    await table.settle();
+    const shared = p1.env.displayCaptures[0];
+
+    // Act
+    await gm.api.commands.setBroadcastPermissions("p1", { audio: false });
+    await table.settle();
+
+    // Assert: the picture goes on, the sound is let go.
+    expect(shared?.audio && fakeTrackInfo(shared.audio).readyState).toBe(
+      "ended",
+    );
+    expect(shared && fakeTrackInfo(shared.video).readyState).toBe("live");
+    expect(p1.api.state.get().local.screenShare).toMatchObject({
+      active: true,
+      audio: false,
+    });
+    expect(gm.api.state.get().participants.p1?.hasScreen).toBe(true);
+  });
+
   it("lets only GMs share when the GM chose so", async () => {
     // Arrange
     const { table, gm, p1 } = await inCall();

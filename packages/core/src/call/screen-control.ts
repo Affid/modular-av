@@ -16,8 +16,9 @@ export interface ScreenControl {
   start(audio: boolean): Promise<void>;
   stop(): void;
   /**
-   * Stops a share the call, the service or the rules no longer allow, and
-   * loads the sharing code once a share is possible.
+   * Stops a share the call, the service or the rules no longer allow (or
+   * only its sound, when only that can't go out), and loads the sharing
+   * code once a share is possible.
    */
   enforce(): void;
   state(): ScreenShareState;
@@ -126,8 +127,10 @@ export function createScreenControl(deps: ScreenControlDeps): ScreenControl {
       const { status } = rt.session;
       const ended = status === "left" || status === "idle";
       // Unknown while reconnecting: the share waits for the call to return.
-      const unsupported = rt.capabilities !== null && !capability();
-      if (ended || unsupported || !allowed()) share.stop();
+      const known = rt.capabilities !== null;
+      if (ended || (known && !capability()) || !allowed()) share.stop();
+      // Sound nobody may be sent isn't captured either.
+      else if (known && !audioAvailable()) share.stopAudio();
     },
     state: () => ({
       active: (share?.video ?? null) !== null,
