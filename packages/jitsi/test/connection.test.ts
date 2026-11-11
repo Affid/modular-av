@@ -37,6 +37,7 @@ interface Recorded {
   readonly joined: ParticipantId[];
   readonly left: ParticipantId[];
   readonly added: RemoteTrack[];
+  readonly removed: RemoteTrack[];
   readonly quality: [ParticipantId, string][];
   tokenWarnings: number;
 }
@@ -69,6 +70,7 @@ function setup(self = "alice", measured: Measured = null): Setup {
     joined: [],
     left: [],
     added: [],
+    removed: [],
     quality: [],
     tokenWarnings: 0,
   };
@@ -76,6 +78,7 @@ function setup(self = "alice", measured: Measured = null): Setup {
   service.on("participantJoined", (p) => seen.joined.push(p));
   service.on("participantLeft", (p) => seen.left.push(p));
   service.on("trackAdded", (t) => seen.added.push(t));
+  service.on("trackRemoved", (t) => seen.removed.push(t));
   service.on("quality", (p, q) => seen.quality.push([p, q]));
   service.on("tokenExpiring", () => {
     seen.tokenWarnings += 1;
@@ -461,6 +464,85 @@ describe("remote media", () => {
     ]);
   });
 
+  it("takes a share back when its sender stops it, and shows it again", async () => {
+    // Arrange: lib-jitsi-meet keeps a stopped source and signals it muted.
+    const s = setup();
+    await join(s);
+    s.conference().userJoins("ep-bob", "bob");
+    const screen = createFakeTrack("video");
+    let muted = false;
+    const share = remoteTrack({
+      endpoint: "ep-bob",
+      kind: "video",
+      videoType: "desktop",
+      track: screen,
+      isMuted: () => muted,
+    });
+    const shown = { participant: "bob", source: "screen", track: screen };
+    s.conference().emit(EVENTS.CONFERENCE.TRACK_ADDED, share);
+    // The library reports the mute state once more as a track arrives.
+    s.conference().emit(EVENTS.CONFERENCE.TRACK_MUTE_CHANGED, share);
+
+    // Act
+    muted = true;
+    s.conference().emit(EVENTS.CONFERENCE.TRACK_MUTE_CHANGED, share);
+    const stopped = {
+      removed: [...s.seen.removed],
+      asked: s.conference().constraints?.constraints,
+    };
+    muted = false;
+    s.conference().emit(EVENTS.CONFERENCE.TRACK_MUTE_CHANGED, share);
+
+    // Assert
+    expect(stopped.removed).toEqual([shown]);
+    expect(stopped.asked).toEqual({});
+    expect(s.seen.added).toEqual([shown, shown]);
+    expect(s.conference().constraints?.constraints).toEqual({
+      "ep-bob-v1": { maxHeight: 720 },
+    });
+  });
+
+  it("shows no video that arrives stopped, and reports its end only once", async () => {
+    // Arrange: joining after a share ended, its source is still there.
+    const s = setup();
+    await join(s);
+    s.conference().userJoins("ep-bob", "bob");
+    const share = remoteTrack({
+      endpoint: "ep-bob",
+      kind: "video",
+      videoType: "desktop",
+      track: createFakeTrack("video"),
+      isMuted: () => true,
+    });
+
+    // Act
+    s.conference().emit(EVENTS.CONFERENCE.TRACK_ADDED, share);
+    s.conference().emit(EVENTS.CONFERENCE.TRACK_MUTE_CHANGED, share);
+    s.conference().emit(EVENTS.CONFERENCE.TRACK_REMOVED, share);
+
+    // Assert
+    expect(s.seen.added).toEqual([]);
+    expect(s.seen.removed).toEqual([]);
+  });
+
+  it("keeps a muted microphone's track: its mute is the core's own signal", async () => {
+    const s = setup();
+    await join(s);
+    s.conference().userJoins("ep-bob", "bob");
+    const mic = remoteTrack({
+      endpoint: "ep-bob",
+      kind: "audio",
+      track: createFakeTrack("audio"),
+      isMuted: () => true,
+    });
+
+    s.conference().emit(EVENTS.CONFERENCE.TRACK_ADDED, mic);
+    s.conference().emit(EVENTS.CONFERENCE.TRACK_MUTE_CHANGED, mic);
+
+    expect(s.seen.added).toHaveLength(1);
+    expect(s.seen.removed).toEqual([]);
+  });
+
   it("asks the bridge for a camera at full size as soon as it arrives", async () => {
     // Arrange: the bridge's own default is 180p until it hears otherwise.
     const s = setup();
@@ -667,6 +749,20 @@ describe("the core's own tracks", () => {
       "dispose",
     ]);
     expect(lastState(s)).toEqual(["disconnected", undefined]);
+  });
+
+  it("has Jitsi tell the others of an unpublished track while its stream still holds it", async () => {
+    // Arrange: the library says nothing of a track whose stream is empty.
+    const s = setup();
+    await join(s);
+    const screen = await s.service.publish(createFakeTrack("video"), "screen");
+
+    // Act
+    await s.service.unpublish(screen);
+
+    // Assert
+    expect(s.conference().removedWhileLive).toEqual([true]);
+    expect(s.sdk.localTracks[0]?.calls.at(-1)).toBe("dispose");
   });
 
   it("has Jitsi size a replaced camera's layers anew, at no lower limit", async () => {

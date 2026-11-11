@@ -201,7 +201,12 @@ export function createLocalTracks(
     },
     async unpublish(published) {
       const entry = entries.take(published.id);
-      if (entry) await release(entry);
+      if (!entry) return;
+      // Taken out of the call while its stream still holds the track:
+      // lib-jitsi-meet tells the others only of a track it finds live,
+      // and a share's tile would stay with them otherwise.
+      await conference()?.removeTrack(entry.jitsi);
+      await release(entry);
     },
     /** Audio only, in the direction the core already set `enabled`. */
     async setMuted(published, muted) {

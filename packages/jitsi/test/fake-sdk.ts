@@ -33,6 +33,7 @@ const CONFERENCE = {
   KICKED: "conference.kicked",
   TRACK_ADDED: "conference.trackAdded",
   TRACK_REMOVED: "conference.trackRemoved",
+  TRACK_MUTE_CHANGED: "conference.trackMuteChanged",
   USER_JOINED: "conference.userJoined",
   USER_LEFT: "conference.userLeft",
 } as const;
@@ -81,6 +82,7 @@ export class FakeLocalTrack implements JitsiLocalTrack {
   getSourceName = (): string => `local-${this.info.mediaType}`;
   getVideoType = (): "camera" | "desktop" | undefined => this.info.videoType;
   isLocal = (): boolean => true;
+  isMuted = (): boolean => false;
   mute = (): Promise<void> => {
     this.calls.push("mute");
     // Audio: lib-jitsi-meet writes `enabled`; video would stop the stream.
@@ -108,16 +110,21 @@ export interface RemoteTrackInit {
   readonly kind: "audio" | "video";
   readonly videoType?: "camera" | "desktop";
   readonly track: MediaStreamTrack;
+  /** Its sender's mute signal; never muted when left out. */
+  readonly isMuted?: () => boolean;
 }
 
 export const remoteTrack = (init: RemoteTrackInit): JitsiTrack => ({
   getType: () => init.kind,
   getTrack: () => init.track,
   getParticipantId: () => init.endpoint,
-  getSourceName: () => `${init.endpoint}-${init.kind[0] ?? ""}0`,
+  // As the bridge names them: a share is its owner's second video.
+  getSourceName: () =>
+    `${init.endpoint}-${init.kind[0] ?? ""}${init.videoType === "desktop" ? "1" : "0"}`,
   getVideoType: () =>
     init.kind === "video" ? (init.videoType ?? "camera") : undefined,
   isLocal: () => false,
+  isMuted: () => init.isMuted?.() ?? false,
 });
 
 export const participant = (
@@ -133,6 +140,8 @@ export class FakeConference extends Events implements JitsiConference {
   left = false;
   readonly added: JitsiLocalTrack[] = [];
   readonly removed: JitsiLocalTrack[] = [];
+  /** For each removal, whether the track's stream still held its track. */
+  readonly removedWhileLive: boolean[] = [];
   readonly replaced: [JitsiLocalTrack | null, JitsiLocalTrack | null][] = [];
   constraints: ReceiverConstraints | null = null;
   audio: AudioSubscription | null = null;
@@ -166,6 +175,10 @@ export class FakeConference extends Events implements JitsiConference {
   }
   removeTrack(track: JitsiLocalTrack): Promise<void> {
     this.removed.push(track);
+    this.removedWhileLive.push(
+      track instanceof FakeLocalTrack &&
+        track.info.stream.getTracks().length > 0,
+    );
     return Promise.resolve();
   }
   replaceTrack(

@@ -82,11 +82,39 @@ function createReports(closed: () => boolean): {
   };
 }
 
+/** The remote sources told to the core and not taken back since. */
+function createReported(): {
+  add(source: BridgeSource): boolean;
+  remove(source: BridgeSource): boolean;
+  forget(endpoint: string): void;
+} {
+  let reported: readonly BridgeSource[] = [];
+  const same = (a: BridgeSource, b: BridgeSource): boolean =>
+    a.endpoint === b.endpoint && a.sourceName === b.sourceName;
+  return {
+    add(source) {
+      if (reported.some((r) => same(r, source))) return false;
+      reported = [...reported, source];
+      return true;
+    },
+    remove(source) {
+      const kept = reported.filter((r) => !same(r, source));
+      const removed = kept.length !== reported.length;
+      reported = kept;
+      return removed;
+    },
+    forget(endpoint) {
+      reported = reported.filter((r) => r.endpoint !== endpoint);
+    },
+  };
+}
+
 interface Wiring {
   readonly conference: JitsiConference;
   readonly hooks: ConferenceHooks;
   readonly roster: Roster;
   readonly reports: ReturnType<typeof createReports>;
+  readonly reported: ReturnType<typeof createReported>;
 }
 
 /** A newer endpoint of someone present: they left, and joined again. */
@@ -95,7 +123,10 @@ function joinOf(w: Wiring) {
     const joined = w.roster.join(endpoint, participant);
     if (!joined) return;
     const { id, replaced } = joined;
-    for (const old of replaced) w.hooks.onTrackGone({ endpoint: old });
+    for (const old of replaced) {
+      w.reported.forget(old);
+      w.hooks.onTrackGone({ endpoint: old });
+    }
     if (replaced.length > 0)
       w.reports.later(() => {
         w.hooks.emitter.emit("participantLeft", id);
@@ -108,6 +139,7 @@ function joinOf(w: Wiring) {
 
 function leaveOf(w: Wiring) {
   return (endpoint: string): void => {
+    w.reported.forget(endpoint);
     w.hooks.onTrackGone({ endpoint });
     const id = w.roster.leave(endpoint);
     if (id)
@@ -117,22 +149,35 @@ function leaveOf(w: Wiring) {
   };
 }
 
-/** A remote track of a vouched participant, after their join. */
-function trackOf(w: Wiring, name: "trackAdded" | "trackRemoved") {
+/**
+ * A remote track of a vouched participant, after their join. A video
+ * its sender took away stays in the conference, signalled as muted (the
+ * library keeps the source for the next one): that is its end here, and
+ * its unmuting a new start. A microphone's mute is the core's own
+ * signal, and its track stays.
+ */
+function trackOf(w: Wiring, name: "trackAdded" | "trackRemoved" | "muted") {
   const join = joinOf(w);
   return (t: JitsiTrack): void => {
     if (t.isLocal()) return;
+    const video = t.getType() === "video";
+    if (name === "muted" && !video) return;
     const endpoint = t.getParticipantId();
     const participant = w.conference.getParticipantById(endpoint);
     if (name === "trackAdded" && participant) join(endpoint, participant);
     const id = w.roster.idOf(endpoint);
-    const remote = id ? remoteTrack(id, t) : null;
-    if (!remote) return;
+    if (!id) return;
+    const remote = remoteTrack(id, t);
     const source = { endpoint, sourceName: t.getSourceName() };
-    if (name === "trackAdded") w.hooks.onTrack(source, t.getType(), remote);
+    const present = name !== "trackRemoved" && !(video && t.isMuted());
+    const changed = present
+      ? w.reported.add(source)
+      : w.reported.remove(source);
+    if (!changed) return;
+    if (present) w.hooks.onTrack(source, t.getType(), remote);
     else w.hooks.onTrackGone(source);
     w.reports.later(() => {
-      w.hooks.emitter.emit(name, remote);
+      w.hooks.emitter.emit(present ? "trackAdded" : "trackRemoved", remote);
     });
   };
 }
@@ -181,6 +226,7 @@ export function wireConference(
     hooks,
     roster: createRoster(hooks),
     reports: createReports(hooks.closed),
+    reported: createReported(),
   };
   const events = sdk.events.conference;
   const on = (event: string | undefined, listener: Listener): void => {
@@ -190,6 +236,7 @@ export function wireConference(
   on(events.USER_LEFT, leaveOf(w));
   on(events.TRACK_ADDED, trackOf(w, "trackAdded"));
   on(events.TRACK_REMOVED, trackOf(w, "trackRemoved"));
+  on(events.TRACK_MUTE_CHANGED, trackOf(w, "muted"));
   wireState(sdk, w, on);
   return {
     roster: w.roster,

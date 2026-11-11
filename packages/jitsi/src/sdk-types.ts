@@ -24,6 +24,8 @@ export interface JitsiTrack {
   getSourceName(): string;
   getVideoType(): "camera" | "desktop" | undefined;
   isLocal(): boolean;
+  /** A remote track: its sender signalled it muted, or took it away. */
+  isMuted(): boolean;
 }
 
 export interface JitsiLocalTrack extends JitsiTrack {

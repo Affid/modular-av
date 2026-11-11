@@ -440,6 +440,12 @@ export function serviceContract(options: ServiceContractOptions): void {
       await alice.run((h) => h.unpublish("screen"));
       await expect.poll(sources).not.toContain("alice:screen");
       expect(await sources()).toContain("alice:camera");
+      // A second share arrives like the first.
+      expect(await alice.run((h) => h.publishScreen(false))).toEqual([]);
+      await expect.poll(sources).toContain("alice:screen");
+      await expect
+        .poll(() => bob.run((h) => h.videoBrightness("alice", "screen")))
+        .toBeGreaterThan(20);
     });
 
     test("refuses a screen share outside the token's rights", async ({
