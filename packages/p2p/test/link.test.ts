@@ -390,6 +390,38 @@ describe("a link", () => {
     ]);
   });
 
+  it("applies limits that come at once one after the other, the last winning", async () => {
+    // Arrange
+    const camera = createFakeTrack("video");
+    const screen = createFakeTrack("video");
+    const { polite } = pair({ polite: { ...NONE, camera, screen } });
+    await settle();
+    const plan = (cameraBitrate: number, screenBitrate: number) => ({
+      camera: { maxBitrate: cameraBitrate, scaleResolutionDownBy: 2 },
+      screen: { maxBitrate: screenBitrate, scaleResolutionDownBy: 1 },
+    });
+    const encodings = (track: MediaStreamTrack) =>
+      polite.pc
+        .getTransceivers()
+        .find((t) => t.sender.track === track)
+        ?.sender.getParameters().encodings;
+
+    // Act
+    await Promise.all([
+      polite.link.limitVideo(plan(300_000, 600_000)),
+      polite.link.limitVideo(plan(200_000, 500_000)),
+    ]);
+
+    // Assert
+    expect(polite.errors).toEqual([]);
+    expect(encodings(camera)).toEqual([
+      { active: true, maxBitrate: 200_000, scaleResolutionDownBy: 2 },
+    ]);
+    expect(encodings(screen)).toEqual([
+      { active: true, maxBitrate: 500_000, scaleResolutionDownBy: 1 },
+    ]);
+  });
+
   it("reads its stats, takes new ICE servers and closes", async () => {
     // Arrange
     const { polite } = pair();

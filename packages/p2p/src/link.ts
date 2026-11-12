@@ -107,6 +107,8 @@ interface LinkFields {
   totals: PacketTotals;
   /** Applied again after each negotiation: a line gets encodings then. */
   limits: VideoPlan | null;
+  /** The last limits run, which the next one waits for. */
+  limiting: Promise<void>;
 }
 
 interface Parts {
@@ -123,11 +125,22 @@ const directions = (p: Parts): void => {
   applyDirections(p.deps.pc, p.own, p.s.remoteSources, p.s.refused);
 };
 
-const limit = async (p: Parts): Promise<void> => {
+const applyLimits = async (p: Parts): Promise<void> => {
   const { limits } = p.s;
   if (!limits) return;
   await limitSender(p.own.bySource.get("camera"), limits.camera);
   await limitSender(p.own.bySource.get("screen"), limits.screen);
+};
+
+/**
+ * One at a time: Chrome refuses a sender's setParameters while its last
+ * one is pending. Each run reads the limits when it starts, so the latest
+ * win.
+ */
+const limit = (p: Parts): Promise<void> => {
+  const run = p.s.limiting.then(() => applyLimits(p));
+  p.s.limiting = run.catch(() => undefined);
+  return run;
 };
 
 /** What this side says about its lines, and remembers having said. */
@@ -203,6 +216,7 @@ function createParts(deps: LinkDeps): Parts {
     sentSources: null,
     totals: { lost: 0, received: 0 },
     limits: null,
+    limiting: Promise.resolve(),
   };
   const open =
     <A extends unknown[]>(fn: (...args: A) => void) =>

@@ -74,10 +74,30 @@ export class FakeSender {
     return structuredClone(this.parameters);
   }
 
+  /**
+   * Like Chrome's, it takes a task, and refuses a call while one is still
+   * pending (checked in Chrome 2026-11-12, with getParameters() called just
+   * before each).
+   */
   setParameters(parameters: RTCRtpSendParameters): Promise<void> {
-    this.parameters = structuredClone(parameters);
-    return Promise.resolve();
+    if (this.#setting)
+      return Promise.reject(
+        invalidState(
+          "Failed to set parameters since getParameters() has never been called on this sender",
+        ),
+      );
+    this.#setting = true;
+    const next = structuredClone(parameters);
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        this.parameters = next;
+        this.#setting = false;
+        resolve();
+      }, 0);
+    });
   }
+
+  #setting = false;
 }
 
 export class FakeTransceiver {
