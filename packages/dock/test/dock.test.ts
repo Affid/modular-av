@@ -130,6 +130,13 @@ describe("shared screens", () => {
       "Player1's screen",
     );
     expect(screen?.getAttribute("data-video")).toBe("on");
+    const labels = Array.from(
+      screen?.querySelectorAll("[aria-label]") ?? [],
+      (e) => e.getAttribute("aria-label"),
+    );
+    expect(labels).toContain("Player1's screen");
+    expect(labels).toContain("Options for Player1's screen");
+    expect(labels).not.toContain("Options for Player1");
     expect(
       api.attachments.map((a) => [a.participant, a.source]),
     ).toContainEqual(["p1", "screen"]);

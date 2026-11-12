@@ -200,13 +200,17 @@ export function createTile(
       : ctx.t("tile.screen", { name: view.name });
     const name = screen ? shared : own;
     parts.name.textContent = name;
-    setLabel(parts.name, view.name, { trusted: false });
+    // A share's tile and controls are told apart from the camera's.
+    const subject = screen
+      ? ctx.t("tile.screen", { name: view.name })
+      : view.name;
+    setLabel(parts.name, subject, { trusted: false });
     for (const [button, key] of [
       [parts.menu, "tile.options"],
       [parts.move, "tile.move"],
       [parts.resize, "tile.resize"],
     ] as const)
-      setLabel(button, ctx.t(key, { name: view.name }), { trusted: false });
+      setLabel(button, ctx.t(key, { name: subject }), { trusted: false });
     parts.media.querySelector(".mav-dock-tile-avatar")?.remove();
     parts.media.append(avatarOf(doc, view));
     if (view.color && HEX.test(view.color))
