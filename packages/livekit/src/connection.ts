@@ -21,7 +21,12 @@ import { fromConnectError } from "./errors.ts";
 import { LiveKitServiceError } from "./failure.ts";
 import { SOURCES, wireRoom } from "./room-events.ts";
 import type { Rooms } from "./rooms.ts";
-import { fromReceivers, fromSender, type PacketTotals } from "./stats.ts";
+import {
+  fromReceivers,
+  fromSender,
+  microphoneOf,
+  type PacketTotals,
+} from "./stats.ts";
 
 const NO_PACKETS: PacketTotals = { lost: 0, received: 0 };
 
@@ -225,9 +230,7 @@ export function createLiveKitConnection(
     },
     on: (event, handler) => emitter.on(event, handler),
     async getStats() {
-      const mic = [...publications.values()].find(
-        (p) => p.audioTrack !== undefined,
-      )?.audioTrack;
+      const mic = microphoneOf(publications.values());
       return fromSender(await mic?.getSenderStats());
     },
     async getParticipantStats(participant) {
