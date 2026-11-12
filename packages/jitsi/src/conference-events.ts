@@ -6,7 +6,7 @@ import type {
 } from "@modular-av/api";
 import type { Emitter } from "./emitter.ts";
 import { fromConferenceError, type Attempt } from "./errors.ts";
-import { remoteTrack } from "./remote.ts";
+import { remoteTrack, sourceOf } from "./remote.ts";
 import { createRoster, type Roster } from "./roster.ts";
 import type {
   JitsiConference,
@@ -82,29 +82,38 @@ function createReports(closed: () => boolean): {
   };
 }
 
-/** The remote sources told to the core and not taken back since. */
+interface Told {
+  readonly source: BridgeSource;
+  readonly remote: RemoteTrack;
+}
+
+/** The remote tracks told to the core and not taken back since. */
 function createReported(): {
-  add(source: BridgeSource): boolean;
-  remove(source: BridgeSource): boolean;
+  find(source: BridgeSource): RemoteTrack | undefined;
+  /** False for a source already told. */
+  add(source: BridgeSource, remote: RemoteTrack): boolean;
+  /** What was told of the source, now taken back. */
+  remove(source: BridgeSource): RemoteTrack | undefined;
   forget(endpoint: string): void;
 } {
-  let reported: readonly BridgeSource[] = [];
-  const same = (a: BridgeSource, b: BridgeSource): boolean =>
-    a.endpoint === b.endpoint && a.sourceName === b.sourceName;
+  let reported: readonly Told[] = [];
+  const of = (source: BridgeSource) => (told: Told) =>
+    told.source.endpoint === source.endpoint &&
+    told.source.sourceName === source.sourceName;
   return {
-    add(source) {
-      if (reported.some((r) => same(r, source))) return false;
-      reported = [...reported, source];
+    find: (source) => reported.find(of(source))?.remote,
+    add(source, remote) {
+      if (reported.some(of(source))) return false;
+      reported = [...reported, { source, remote }];
       return true;
     },
     remove(source) {
-      const kept = reported.filter((r) => !same(r, source));
-      const removed = kept.length !== reported.length;
-      reported = kept;
-      return removed;
+      const told = reported.find(of(source));
+      reported = reported.filter((r) => r !== told);
+      return told?.remote;
     },
     forget(endpoint) {
-      reported = reported.filter((r) => r.endpoint !== endpoint);
+      reported = reported.filter((r) => r.source.endpoint !== endpoint);
     },
   };
 }
@@ -115,6 +124,9 @@ interface Wiring {
   readonly roster: Roster;
   readonly reports: ReturnType<typeof createReports>;
   readonly reported: ReturnType<typeof createReported>;
+  /** The track event for a video's type, and the tracks listened to. */
+  readonly retyped: string | undefined;
+  readonly watched: WeakSet<JitsiTrack>;
 }
 
 /** A newer endpoint of someone present: they left, and joined again. */
@@ -149,15 +161,43 @@ function leaveOf(w: Wiring) {
   };
 }
 
+/** Takes back what was told of a source, if anything was. */
+function takeBack(w: Wiring, source: BridgeSource): void {
+  const remote = w.reported.remove(source);
+  if (!remote) return;
+  w.hooks.onTrackGone(source);
+  w.reports.later(() => {
+    w.hooks.emitter.emit("trackRemoved", remote);
+  });
+}
+
+/** Tells of a source's track, unless it was told already. */
+function tell(w: Wiring, source: BridgeSource, t: JitsiTrack): void {
+  const id = w.roster.idOf(source.endpoint);
+  if (!id) return;
+  const remote = remoteTrack(id, t);
+  if (!w.reported.add(source, remote)) return;
+  w.hooks.onTrack(source, t.getType(), remote);
+  w.reports.later(() => {
+    w.hooks.emitter.emit("trackAdded", remote);
+  });
+}
+
+type TrackChange = "trackAdded" | "trackRemoved" | "muted" | "retyped";
+
 /**
  * A remote track of a vouched participant, after their join. A video
  * its sender took away stays in the conference, signalled as muted (the
  * library keeps the source for the next one): that is its end here, and
  * its unmuting a new start. A microphone's mute is the core's own
- * signal, and its track stays.
+ * signal, and its track stays. The library can learn that a video is a
+ * share after telling of it: it is then told again, as the share.
  */
-function trackOf(w: Wiring, name: "trackAdded" | "trackRemoved" | "muted") {
+function trackOf(w: Wiring, name: TrackChange) {
   const join = joinOf(w);
+  const retyped = (t: JitsiTrack) => (): void => {
+    trackOf(w, "retyped")(t);
+  };
   return (t: JitsiTrack): void => {
     if (t.isLocal()) return;
     const video = t.getType() === "video";
@@ -165,20 +205,16 @@ function trackOf(w: Wiring, name: "trackAdded" | "trackRemoved" | "muted") {
     const endpoint = t.getParticipantId();
     const participant = w.conference.getParticipantById(endpoint);
     if (name === "trackAdded" && participant) join(endpoint, participant);
-    const id = w.roster.idOf(endpoint);
-    if (!id) return;
-    const remote = remoteTrack(id, t);
+    if (name === "trackAdded" && video && w.retyped && !w.watched.has(t)) {
+      w.watched.add(t);
+      t.on(w.retyped, retyped(t));
+    }
     const source = { endpoint, sourceName: t.getSourceName() };
+    const told = w.reported.find(source);
+    if (name === "retyped" && (!told || told.source === sourceOf(t))) return;
     const present = name !== "trackRemoved" && !(video && t.isMuted());
-    const changed = present
-      ? w.reported.add(source)
-      : w.reported.remove(source);
-    if (!changed) return;
-    if (present) w.hooks.onTrack(source, t.getType(), remote);
-    else w.hooks.onTrackGone(source);
-    w.reports.later(() => {
-      w.hooks.emitter.emit(present ? "trackAdded" : "trackRemoved", remote);
-    });
+    if (!present || name === "retyped") takeBack(w, source);
+    if (present) tell(w, source, t);
   };
 }
 
@@ -227,6 +263,8 @@ export function wireConference(
     roster: createRoster(hooks),
     reports: createReports(hooks.closed),
     reported: createReported(),
+    retyped: sdk.events.track?.TRACK_VIDEOTYPE_CHANGED,
+    watched: new WeakSet(),
   };
   const events = sdk.events.conference;
   const on = (event: string | undefined, listener: Listener): void => {

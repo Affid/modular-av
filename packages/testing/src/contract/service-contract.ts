@@ -446,6 +446,18 @@ export function serviceContract(options: ServiceContractOptions): void {
       await expect
         .poll(() => bob.run((h) => h.videoBrightness("alice", "screen")))
         .toBeGreaterThan(20);
+      // The camera, turned off and on during the share, comes back beside it.
+      await alice.run((h) => h.unpublish("camera"));
+      await expect.poll(sources).not.toContain("alice:camera");
+      expect(await alice.run((h) => h.publish(["camera"]))).toEqual([]);
+      await expect.poll(sources).toContain("alice:camera");
+      expect(await sources()).toContain("alice:screen");
+      await expect
+        .poll(() => bob.run((h) => h.videoBrightness("alice")))
+        .toBeGreaterThan(20);
+      await expect
+        .poll(() => bob.run((h) => h.videoBrightness("alice", "screen")))
+        .toBeGreaterThan(20);
     });
 
     test("refuses a screen share outside the token's rights", async ({

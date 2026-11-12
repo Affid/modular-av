@@ -98,6 +98,32 @@ async function wrap(
   return { source, stream, track, jitsi };
 }
 
+const VIDEO_NUMBER = /-v(\d+)$/;
+
+const videoNumber = (entry: Entry): number =>
+  Number(VIDEO_NUMBER.exec(entry.jitsi.getSourceName())?.[1] ?? -1);
+
+/**
+ * lib-jitsi-meet numbers the videos sent and takes the number for the
+ * video's place among them: with the first one removed, the second one's
+ * name points at nothing, and a camera turned on again gets the share's
+ * name. Whether another video sent stands after this one.
+ */
+const standsBeforeAnother = (entry: Entry, sent: readonly Entry[]): boolean =>
+  entry.jitsi.getType() === "video" &&
+  sent.some((other) => videoNumber(other) > videoNumber(entry));
+
+/**
+ * Stops sending a video and keeps its place, the way the library mutes
+ * a camera of its own (its `mute()` would stop the core's track): out
+ * of the connection, signalled as muted, still in the conference.
+ */
+async function park(conference: JitsiConference, entry: Entry): Promise<void> {
+  await conference._removeLocalTrackFromPc(entry.jitsi);
+  entry.jitsi._sendMuteStatus(true);
+  entry.stream.removeTrack(entry.track);
+}
+
 /** Runs `send`; if it fails, lets the new wrapper go before rethrowing. */
 async function sendOrRelease(
   entry: Entry,
@@ -118,6 +144,7 @@ function createEntries(): {
   find(id: string): Entry;
   take(id: string): Entry | undefined;
   takeAll(): Entry[];
+  all(): readonly Entry[];
 } {
   let entries = new Map<string, Entry>();
   let next = 0;
@@ -148,6 +175,7 @@ function createEntries(): {
       entries = new Map();
       return all;
     },
+    all: () => [...entries.values()],
   };
 }
 
@@ -171,6 +199,8 @@ export function createLocalTracks(
   const entries = createEntries();
   /** After leaving: a publish still under way lets its track go. */
   let closed = false;
+  /** Videos no longer sent whose place is kept, by what they showed. */
+  let parked = new Map<TrackSource, Entry>();
   const joined = (): JitsiConference => {
     const current = conference();
     if (!current) throw new Error("Not in a Jitsi conference");
@@ -179,10 +209,17 @@ export function createLocalTracks(
   return {
     async publish(track, source) {
       const entry = await wrap(sdk, track, source, measure);
+      const kept = parked.get(source);
       await sendOrRelease(entry, async () => {
-        await joined().addTrack(entry.jitsi);
+        // Into the place kept for it, if it was sent before.
+        if (kept) await joined().replaceTrack(kept.jitsi, entry.jitsi);
+        else await joined().addTrack(entry.jitsi);
         if (closed) throw new Error("The Jitsi call was left meanwhile");
       });
+      if (kept) {
+        parked = new Map([...parked].filter(([, e]) => e !== kept));
+        await kept.jitsi.dispose();
+      }
       return { id: entries.add(source, entry), source };
     },
     async replace(published, track) {
@@ -202,11 +239,20 @@ export function createLocalTracks(
     async unpublish(published) {
       const entry = entries.take(published.id);
       if (!entry) return;
+      const current = conference();
+      if (current && standsBeforeAnother(entry, entries.all())) {
+        await park(current, entry);
+        parked = new Map(parked).set(entry.source, entry);
+        return;
+      }
       // Taken out of the call while its stream still holds the track:
       // lib-jitsi-meet tells the others only of a track it finds live,
       // and a share's tile would stay with them otherwise.
-      await conference()?.removeTrack(entry.jitsi);
-      await release(entry);
+      try {
+        await current?.removeTrack(entry.jitsi);
+      } finally {
+        await release(entry);
+      }
     },
     /** Audio only, in the direction the core already set `enabled`. */
     async setMuted(published, muted) {
@@ -216,7 +262,12 @@ export function createLocalTracks(
     },
     async releaseAll() {
       closed = true;
-      await Promise.all(entries.takeAll().map(release));
+      const kept = [...parked.values()];
+      parked = new Map();
+      await Promise.all([
+        ...entries.takeAll().map(release),
+        ...kept.map((entry) => entry.jitsi.dispose()),
+      ]);
     },
   };
 }
