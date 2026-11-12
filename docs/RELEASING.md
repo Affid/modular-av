@@ -95,6 +95,42 @@ after Foundry approves a listing, or one whose sending failed):
 Foundry refuses more than one release of a package a minute (HTTP 429);
 the error says how long to wait.
 
+## Development builds
+
+To try a branch on a real server before it's released (a PR, say),
+`pnpm release:dev` publishes the checkout as the GitHub prerelease `dev`:
+
+- `pnpm release:dev [module-id...]` builds the named modules (every one
+  not held back if none is named), plus the family modules they require,
+  into `release/dev/` and shows what it would publish;
+- `pnpm release:dev [module-id...] --yes` deletes the last `dev` release
+  and its tag, and creates it again at HEAD with each module's
+  `<module-id>.zip` and `<module-id>.json` (its manifest).
+
+The tree must be clean and HEAD pushed, so the release matches a commit
+on GitHub. Each build gets the version `<version>-dev.<UTC time>` (e.g.
+`0.12.0-dev.20261112153045`) and "(dev)" in its title. Foundry counts it
+newer than the version it's built from and older than the next release,
+so it never offers the released version as an "update", and the next
+release replaces it. Family modules it requires point at their dev
+manifests, so installing the dock's installs the core's.
+
+Install in Foundry with the manifest URL, the same for every dev build:
+
+```
+https://github.com/Affid/modular-av/releases/download/dev/<module-id>.json
+```
+
+A module installed that way updates to the next dev build from Foundry's
+Update button. The core doesn't: it's listed on foundryvtt.com, and
+Foundry looks for a listed package's updates there. Install it again from
+the manifest URL instead; if Foundry won't install over it, uninstall it
+first (a world keeps its settings).
+
+It isn't private: anyone can see the release on GitHub. But nothing
+leads players to it. It is never on the `manifests` branch or in
+`catalog.json`, never sent to foundryvtt.com, and never marked latest.
+
 ## Versions from 1.0
 
 The 1.0 release is the last in lockstep: every package gets a major

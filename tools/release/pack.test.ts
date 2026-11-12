@@ -49,6 +49,27 @@ describe("packModule", () => {
     });
   });
 
+  it("zips the manifest a caller makes from the built one", async () => {
+    // Act
+    const { manifest, zip } = await packModule(
+      dist,
+      "modular-av",
+      "0.1.0",
+      (built) => ({ ...built, version: "0.1.0-dev.1" }),
+    );
+
+    // Assert
+    const inZip: unknown = JSON.parse(
+      strFromU8(unzipSync(zip)["module.json"] ?? new Uint8Array()),
+    );
+    expect(manifest).toEqual({
+      id: "modular-av",
+      title: "Modular A/V",
+      version: "0.1.0-dev.1",
+    });
+    expect(inZip).toEqual(manifest);
+  });
+
   it("gives the same bytes for the same build", async () => {
     const first = await packModule(dist, "modular-av", "0.1.0");
     await new Promise((resolve) => setTimeout(resolve, 2100));
