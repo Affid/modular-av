@@ -1,5 +1,15 @@
 # @modular-av/dock
 
+## 0.13.1
+
+### Patch Changes
+
+- 777b065: The voice panel's buttons fit on one row again in a dock of the default
+  width: the screen share button had pushed the leave button onto a row of
+  its own. The buttons sit a little closer together, 2px apart, set by the
+  new `--mav-dock-button-gap` token.
+- @modular-av/kit@0.13.1
+
 ## 0.13.0
 
 ### Minor Changes

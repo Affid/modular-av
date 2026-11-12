@@ -1,6 +1,6 @@
 {
   "name": "@modular-av/audio-mixer",
-  "version": "0.13.0",
+  "version": "0.13.1",
   "private": true,
   "description": "Modular A/V: a mixer for the voice channel, with presets and a GM's view of the table.",
   "license": "MIT",

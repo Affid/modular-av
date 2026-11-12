@@ -1,5 +1,12 @@
 # @modular-av/core
 
+## 0.13.1
+
+### Patch Changes
+
+- @modular-av/api@0.13.1
+  - @modular-av/kit@0.13.1
+
 ## 0.13.0
 
 ### Minor Changes
