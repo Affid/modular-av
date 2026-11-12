@@ -143,7 +143,7 @@
       "requires": [
         {
           "id": "modular-av",
-          "minimum": "0.12.0"
+          "minimum": "0.13.0"
         }
       ],
       "facts": [
@@ -157,7 +157,7 @@
         }
       ],
       "icon": "fa-solid fa-mountain",
-      "version": "0.12.0",
+      "version": "0.13.0",
       "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-audio-reverb/module.json"
     },
     {
