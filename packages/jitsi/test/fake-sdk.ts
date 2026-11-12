@@ -33,8 +33,13 @@ const CONFERENCE = {
   KICKED: "conference.kicked",
   TRACK_ADDED: "conference.trackAdded",
   TRACK_REMOVED: "conference.trackRemoved",
+  TRACK_MUTE_CHANGED: "conference.trackMuteChanged",
   USER_JOINED: "conference.userJoined",
   USER_LEFT: "conference.userLeft",
+} as const;
+
+const TRACK = {
+  TRACK_VIDEOTYPE_CHANGED: "track.videoTypeChanged",
 } as const;
 
 const QUALITY = {
@@ -68,9 +73,11 @@ class Events {
 export class FakeLocalTrack implements JitsiLocalTrack {
   readonly calls: string[] = [];
   readonly info: LocalTrackInfo;
+  private name = "";
   constructor(info: LocalTrackInfo) {
     this.info = info;
   }
+  on = (): void => undefined;
   getType = (): "audio" | "video" => this.info.mediaType;
   getTrack = (): MediaStreamTrack => {
     const [track] = this.info.stream.getTracks();
@@ -78,9 +85,26 @@ export class FakeLocalTrack implements JitsiLocalTrack {
     return track;
   };
   getParticipantId = (): string => "local";
-  getSourceName = (): string => `local-${this.info.mediaType}`;
-  getVideoType = (): "camera" | undefined => this.info.videoType;
+  getSourceName = (): string => this.name;
+  setSourceName = (name: string): void => {
+    this.name = name;
+  };
+  getVideoType = (): "camera" | "desktop" | undefined => this.info.videoType;
   isLocal = (): boolean => true;
+  /**
+   * As lib-jitsi-meet decides it: a video whose stream holds no live
+   * track (stopped by the core, or taken out of it) counts as muted.
+   */
+  isMuted = (): boolean =>
+    this.info.mediaType === "video" &&
+    !this.info.stream.getTracks().some((t) => t.readyState === "live");
+  /** The mute state in presence; a signal that changes nothing isn't sent. */
+  private signalledMuted = false;
+  _sendMuteStatus = (muted: boolean): void => {
+    if (muted === this.signalledMuted) return;
+    this.signalledMuted = muted;
+    this.calls.push(muted ? "signal muted" : "signal unmuted");
+  };
   mute = (): Promise<void> => {
     this.calls.push("mute");
     // Audio: lib-jitsi-meet writes `enabled`; video would stop the stream.
@@ -108,17 +132,37 @@ export interface RemoteTrackInit {
   readonly kind: "audio" | "video";
   readonly videoType?: "camera" | "desktop";
   readonly track: MediaStreamTrack;
+  /** Its sender's mute signal; never muted when left out. */
+  readonly isMuted?: () => boolean;
 }
 
-export const remoteTrack = (init: RemoteTrackInit): JitsiTrack => ({
-  getType: () => init.kind,
-  getTrack: () => init.track,
-  getParticipantId: () => init.endpoint,
-  getSourceName: () => `${init.endpoint}-${init.kind[0] ?? ""}0`,
-  getVideoType: () =>
-    init.kind === "video" ? (init.videoType ?? "camera") : undefined,
-  isLocal: () => false,
-});
+export interface FakeRemoteTrack extends JitsiTrack {
+  /** The library learns the video's type after the track arrived. */
+  retype(videoType: "camera" | "desktop"): void;
+}
+
+export const remoteTrack = (init: RemoteTrackInit): FakeRemoteTrack => {
+  const events = new Events();
+  let videoType = init.videoType ?? "camera";
+  // As the bridge names them: a share is its owner's second video.
+  const index = init.videoType === "desktop" ? "1" : "0";
+  return {
+    on: (event, listener) => {
+      events.on(event, listener);
+    },
+    getType: () => init.kind,
+    getTrack: () => init.track,
+    getParticipantId: () => init.endpoint,
+    getSourceName: () => `${init.endpoint}-${init.kind[0] ?? ""}${index}`,
+    getVideoType: () => (init.kind === "video" ? videoType : undefined),
+    isLocal: () => false,
+    isMuted: () => init.isMuted?.() ?? false,
+    retype(next) {
+      videoType = next;
+      events.emit(TRACK.TRACK_VIDEOTYPE_CHANGED, next);
+    },
+  };
+};
 
 export const participant = (
   endpoint: string,
@@ -133,7 +177,13 @@ export class FakeConference extends Events implements JitsiConference {
   left = false;
   readonly added: JitsiLocalTrack[] = [];
   readonly removed: JitsiLocalTrack[] = [];
+  /** For each removal, whether the track's stream still held its track. */
+  readonly removedWhileLive: boolean[] = [];
   readonly replaced: [JitsiLocalTrack | null, JitsiLocalTrack | null][] = [];
+  /** What `removeTrack` rejects with, if anything. */
+  removalFailure: Error | null = null;
+  /** The tracks in the conference now. */
+  private local: readonly JitsiLocalTrack[] = [];
   constraints: ReceiverConstraints | null = null;
   audio: AudioSubscription | null = null;
   participants: JitsiParticipant[] = [];
@@ -160,18 +210,43 @@ export class FakeConference extends Events implements JitsiConference {
     this.left = true;
     return Promise.resolve();
   }
+  /** As the library does: named after how many of its kind are sent. */
   addTrack(track: JitsiLocalTrack): Promise<void> {
+    const kind = track.getType();
+    const count = this.local.filter((t) => t.getType() === kind).length;
+    if (track instanceof FakeLocalTrack)
+      track.setSourceName(
+        `${this.myUserId()}-${kind[0] ?? ""}${String(count)}`,
+      );
+    this.local = [...this.local, track];
     this.added.push(track);
     return Promise.resolve();
   }
   removeTrack(track: JitsiLocalTrack): Promise<void> {
+    if (this.removalFailure) return Promise.reject(this.removalFailure);
+    // The library signals a removed video muted only if it finds it live.
+    if (track instanceof FakeLocalTrack && !track.isMuted())
+      track._sendMuteStatus(true);
+    this.local = this.local.filter((t) => t !== track);
     this.removed.push(track);
+    this.removedWhileLive.push(
+      track instanceof FakeLocalTrack &&
+        track.info.stream.getTracks().length > 0,
+    );
     return Promise.resolve();
+  }
+  /** Tracks no longer sent that keep their place in the conference. */
+  readonly parked: JitsiLocalTrack[] = [];
+  _removeLocalTrackFromPc(track: JitsiLocalTrack): Promise<unknown> {
+    this.parked.push(track);
+    return Promise.resolve([]);
   }
   replaceTrack(
     a: JitsiLocalTrack | null,
     b: JitsiLocalTrack | null,
   ): Promise<void> {
+    if (a && b instanceof FakeLocalTrack) b.setSourceName(a.getSourceName());
+    this.local = this.local.map((t) => (t === a && b ? b : t));
     this.replaced.push([a, b]);
     return Promise.resolve();
   }
@@ -309,10 +384,11 @@ export function createFakeSdk(): FakeSdk {
       connection: CONNECTION,
       conference: CONFERENCE,
       connectionQuality: QUALITY,
+      track: TRACK,
     },
     errors: { connection: {}, conference: {} },
   };
   return sdk;
 }
 
-export const EVENTS = { CONNECTION, CONFERENCE, QUALITY } as const;
+export const EVENTS = { CONNECTION, CONFERENCE, QUALITY, TRACK } as const;

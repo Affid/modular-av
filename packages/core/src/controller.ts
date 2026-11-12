@@ -11,6 +11,10 @@ import type {
 import { createCall } from "./call/call.ts";
 import { createRuntime, type Runtime } from "./call/runtime.ts";
 import {
+  createScreenControl,
+  type ScreenControl,
+} from "./call/screen-control.ts";
+import {
   createVoiceActivity,
   type VoiceActivity,
 } from "./call/voice-activity.ts";
@@ -31,6 +35,7 @@ import { readPlacement } from "./media/effect-places.ts";
 import { readLevels } from "./media/levels.ts";
 import { createTailHold } from "./media/tail-hold.ts";
 import { createRemoteMedia, type RemoteMedia } from "./media/remote-media.ts";
+import { mayShareScreen, publishRights } from "./media/screen-rule.ts";
 import type { DeviceChoice } from "./media/local-media.ts";
 import {
   computeOutbound,
@@ -75,6 +80,7 @@ export interface Controller {
   readonly facts: AVFacts;
   readonly local: LocalMedia;
   readonly remote: RemoteMedia;
+  readonly screen: ScreenControl;
   service(): ServiceDefinition | undefined;
   /** The live connection, or null between connections. */
   connection(): ServiceConnection | null;
@@ -113,6 +119,7 @@ interface Parts {
   readonly reacquire: () => Promise<void>;
   readonly voice: VoiceActivity;
   readonly choices: EffectChoices;
+  readonly screen: ScreenControl;
 }
 
 /**
@@ -120,13 +127,19 @@ interface Parts {
  * whatever changed them (their user, their role's permissions, the world's
  * mode). Tokens carry the rights, so the session must rejoin.
  */
-function rightsChanged(rt: Runtime, facts: AVFacts): boolean {
-  const rights = facts.canBroadcast(facts.selfId);
+function rightsChanged(
+  rt: Runtime,
+  game: FoundryGame,
+  facts: AVFacts,
+): boolean {
+  const rights = publishRights(game, facts, facts.selfId);
   const before = rt.rights;
   rt.rights = rights;
   return (
     before !== null &&
-    (before.audio !== rights.audio || before.video !== rights.video)
+    (before.audio !== rights.audio ||
+      before.video !== rights.video ||
+      before.screen !== rights.screen)
   );
 }
 
@@ -199,7 +212,11 @@ function buildParts(deps: ControllerDeps): Parts {
   });
   const remote = createRemoteMedia(
     env,
-    createPlaybackPolicy(facts, () => rt.deafened),
+    createPlaybackPolicy(
+      facts,
+      () => rt.deafened,
+      (id) => mayShareScreen(game, facts, id),
+    ),
     (participant, source, options) => {
       rt.connection?.setSubscription(participant, source, options);
     },
@@ -228,9 +245,17 @@ function buildParts(deps: ControllerDeps): Parts {
     const mayRing = mayRingOut(outboundInput()) && !readCutTails(game);
     return { ...wanted, audio: hold.update(wanted.audio, mayRing) };
   };
+  const screen = createScreenControl({
+    ...{ game, facts, rt, env, onError: deps.onError },
+    onChange: () => {
+      remote.setLocalScreen(facts.selfId, screen.video);
+      apply();
+    },
+  });
   const refreshState = createStateSync({
     ...{ store: deps.store, game, facts, rt, local, remote },
     ...{ service, outbound, microphoneHeld, effects: deps.effects },
+    screenShare: () => screen.state(),
     isSupported: choices.isSupported,
     isAvailable: choices.isAvailable,
   });
@@ -238,13 +263,14 @@ function buildParts(deps: ControllerDeps): Parts {
   const devices = createDeviceSync(deps, { facts, rt, local }, refreshState);
   const session = createCall({
     ...deps,
-    ...{ facts, rt, local, remote, service },
+    ...{ facts, rt, local, remote, service, screen },
     outbound: sent,
     voiceOpen: () => outbound().audio,
     // The session's status decides which devices run.
     refreshState: () => {
       refreshState();
       devices.sync();
+      screen.enforce();
     },
     onFeatures: () => {
       choices.apply();
@@ -255,6 +281,7 @@ function buildParts(deps: ControllerDeps): Parts {
   const announce = createActivityAnnouncer(game, facts, local, microphoneHeld);
   const apply = (): void => {
     devices.sync();
+    screen.enforce();
     local.setGate(gateConfig(facts, readSensitivity(game)));
     // A moved effect starts at the level it has there.
     local.setLevels(readLevels(game, deps.effects));
@@ -264,7 +291,7 @@ function buildParts(deps: ControllerDeps): Parts {
     remote.refresh();
     // Tokens carry the rights; without one, publishing follows them as is.
     const rejoin =
-      rightsChanged(rt, facts) && service()?.needsToken() !== false;
+      rightsChanged(rt, game, facts) && service()?.needsToken() !== false;
     if (rejoin) session.restart();
     else session.syncMedia();
     voice?.sync();
@@ -280,7 +307,7 @@ function buildParts(deps: ControllerDeps): Parts {
   choices.apply();
   return {
     ...{ deps, facts, rt, local, remote, session, service, apply, reacquire },
-    ...{ refresh: refreshState, voice, choices },
+    ...{ refresh: refreshState, voice, choices, screen },
   };
 }
 
@@ -362,6 +389,7 @@ export function createController(deps: ControllerDeps): Controller {
   };
   return {
     ...{ store: deps.store, session, facts, local, remote, apply },
+    screen: parts.screen,
     service: parts.service,
     connection: () => rt.connection,
     reacquire: parts.reacquire,

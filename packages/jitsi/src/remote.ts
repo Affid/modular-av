@@ -18,18 +18,20 @@ export function identityOf(
   return typeof id === "string" && id.length > 0 ? id : null;
 }
 
-/** A camera or microphone track; screen shares aren't carried. */
-export function sourceOf(track: JitsiTrack): TrackSource | null {
+/**
+ * A participant's microphone, camera or shared screen. Jitsi carries one
+ * sound track per participant, so a screen's sound never comes apart.
+ */
+export function sourceOf(track: JitsiTrack): TrackSource {
   if (track.getType() === "audio") return "microphone";
-  return track.getVideoType() === "desktop" ? null : "camera";
+  return track.getVideoType() === "desktop" ? "screen" : "camera";
 }
 
 export function remoteTrack(
   participant: ParticipantId,
   track: JitsiTrack,
-): RemoteTrack | null {
-  const source = sourceOf(track);
-  return source ? { participant, source, track: track.getTrack() } : null;
+): RemoteTrack {
+  return { participant, source: sourceOf(track), track: track.getTrack() };
 }
 
 /** Heights asked of the bridge per quality (its simulcast layers). */

@@ -5,6 +5,7 @@ import type {
   LocalState,
   MediaPermissions,
   Registry,
+  ScreenShareState,
   ServiceDefinition,
 } from "@modular-av/api";
 import type { Runtime } from "../call/runtime.ts";
@@ -36,6 +37,7 @@ export interface StateSyncDeps {
   readonly effects: Registry<EffectDefinition>;
   readonly isSupported: (definition: EffectDefinition) => boolean;
   readonly isAvailable: (definition: EffectDefinition) => boolean;
+  readonly screenShare: () => ScreenShareState;
 }
 
 const OFF: EffectState = { status: "off", error: null };
@@ -105,6 +107,7 @@ function localState(deps: StateSyncDeps): LocalState {
     audioCutTails: readCutTails(deps.game),
     inputSensitivity: readSensitivity(deps.game),
     cameraHold: local.cameraHold,
+    screenShare: deps.screenShare(),
     videoResolution: readVideoResolution(deps.game),
     chosenDevices: chosenDevices(facts),
   };

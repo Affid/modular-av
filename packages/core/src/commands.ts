@@ -9,6 +9,7 @@ import type {
   MediaPermissions,
   ModuleSettings,
   Registry,
+  ScreenShareOptions,
   VideoResolution,
   VoiceMode,
 } from "@modular-av/api";
@@ -198,6 +199,22 @@ export function createCommands(
       // The camera runs at the new size by then (or is off, saying why).
       await controller().local.settled();
     },
+
+    startScreenShare: (options: ScreenShareOptions = {}) => {
+      // No await before the picker: it needs the click's user activation.
+      try {
+        return controller().screen.start(options.audio === true);
+      } catch (error: unknown) {
+        return Promise.reject(
+          error instanceof Error ? error : new Error(String(error)),
+        );
+      }
+    },
+
+    stopScreenShare: () =>
+      attempt(() => {
+        controller().screen.stop();
+      }),
 
     leave: () => controller().session.stop("left"),
 

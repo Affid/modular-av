@@ -3,6 +3,7 @@ export type {
   AVCommands,
   CommandError,
   CommandErrorCode,
+  ScreenShareOptions,
 } from "./commands.ts";
 export type {
   ButtonControl,
@@ -54,8 +55,10 @@ export type {
   Observable,
   ParticipantId,
   PublishedTrack,
+  PublishRights,
   RemoteTrack,
   RoomSpec,
+  ScreenShareCapability,
   ServiceCapabilities,
   ServiceConnection,
   ServiceConnectionState,
@@ -94,6 +97,8 @@ export type {
   MediaPermissions,
   MicrophoneHold,
   ParticipantState,
+  ScreenShareRule,
+  ScreenShareState,
   ServiceState,
   SessionEndReason,
   SessionState,

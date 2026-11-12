@@ -43,7 +43,11 @@ export interface FakeHostedAudioEffect extends HostedAudioEffect {
 
 export interface FakeMediaEnvOptions {
   /** DOMException names to reject captures with, per kind. */
-  readonly deny?: { readonly audio?: string; readonly video?: string };
+  readonly deny?: {
+    readonly audio?: string;
+    readonly video?: string;
+    readonly display?: string;
+  };
   /** Whether frames can be watched (MediaStreamTrackProcessor); default true. */
   readonly watchFrames?: boolean;
   /** False plays a browser without k-rate gains; default true. */
@@ -84,6 +88,12 @@ export interface FakeVideoCapture {
   readonly previousLive: boolean;
 }
 
+/** A screen share the picker gave: its picture, and its sound if asked and offered. */
+export interface FakeDisplayCapture {
+  readonly video: MediaStreamTrack;
+  readonly audio: MediaStreamTrack | null;
+}
+
 export interface FakeMediaEnv {
   captureAudio(
     deviceId: string,
@@ -93,6 +103,10 @@ export interface FakeMediaEnv {
     deviceId: string,
     options?: { readonly resolution?: VideoResolution },
   ): Promise<MediaStreamTrack>;
+  /** Plays the screen picker: rejects with `deny.display`, else shares. */
+  captureDisplay(options: {
+    readonly audio: boolean;
+  }): Promise<FakeDisplayCapture>;
   createStream(tracks: readonly MediaStreamTrack[]): MediaStream;
   createAudioOutput(): FakeAudioOutput;
   showVideo(element: Element, stream: MediaStream | null): void;
@@ -128,13 +142,20 @@ export interface FakeMediaEnv {
   /** Each microphone capture asked for, with its processing options. */
   readonly audioCaptures: readonly FakeAudioCapture[];
   readonly videoCaptures: readonly FakeVideoCapture[];
+  /** Each screen share the picker gave, in order. */
+  readonly displayCaptures: readonly FakeDisplayCapture[];
+  /** Whether the picked screen has sound to share (a window has none). */
+  setDisplayAudio(offered: boolean): void;
   readonly outputs: readonly FakeAudioOutput[];
   /** The tracks an element currently shows. */
   shownOn(element: Element): readonly MediaStreamTrack[];
   /** Plays the browser removing an element from its document. */
   removeElement(element: Element): void;
   goOnline(): void;
-  setDenied(kind: "audio" | "video", name: string | undefined): void;
+  setDenied(
+    kind: "audio" | "video" | "display",
+    name: string | undefined,
+  ): void;
   /** Captures of this device fail with NotFoundError while unplugged. */
   setUnplugged(kind: "audio" | "video", deviceId: string, out: boolean): void;
   /** Plays a frame arriving on a watched track. */
@@ -195,6 +216,8 @@ export function createFakeMediaEnv(
   let captures: readonly string[] = [];
   let audioCaptures: readonly FakeAudioCapture[] = [];
   let videoCaptures: readonly FakeVideoCapture[] = [];
+  let displayCaptures: readonly FakeDisplayCapture[] = [];
+  let displayAudio = true;
   let lastVideo: MediaStreamTrack | null = null;
   let outputs: readonly FakeAudioOutput[] = [];
   let shown = new Map<Element, MediaStream | null>();
@@ -250,6 +273,17 @@ export function createFakeMediaEnv(
       const track = await capture("video", deviceId);
       lastVideo = track;
       return track;
+    },
+    captureDisplay({ audio }) {
+      if (deny.display)
+        return Promise.reject(new DOMException("Denied", deny.display));
+      const shared: FakeDisplayCapture = {
+        video: createFakeTrack("video", "screen"),
+        audio:
+          audio && displayAudio ? createFakeTrack("audio", "screen") : null,
+      };
+      displayCaptures = [...displayCaptures, shared];
+      return Promise.resolve(shared);
     },
     createStream: createFakeStream,
     createAudioOutput() {
@@ -385,6 +419,12 @@ export function createFakeMediaEnv(
     },
     get videoCaptures() {
       return videoCaptures;
+    },
+    get displayCaptures() {
+      return displayCaptures;
+    },
+    setDisplayAudio(offered) {
+      displayAudio = offered;
     },
     get outputs() {
       return outputs;

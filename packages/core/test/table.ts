@@ -26,6 +26,7 @@ import { vi } from "vitest";
 import { type InstalledCore, installCore } from "../src/core.ts";
 // Loaded lazily by the core; preloaded so its import resolves within settle().
 import "../src/media/microphone.ts";
+import "../src/media/screen-share.ts";
 import en from "../lang/en.json" with { type: "json" };
 
 /** A table of players, each a browser tab running the core. */
@@ -61,7 +62,11 @@ export interface TabOptions {
   readonly noService?: boolean;
   /** Register this instead of the mock service's definition. */
   readonly service?: ServiceDefinition;
-  readonly deny?: { readonly audio?: string; readonly video?: string };
+  readonly deny?: {
+    readonly audio?: string;
+    readonly video?: string;
+    readonly display?: string;
+  };
   readonly effects?: readonly EffectDefinition[];
   /** Runs in the register hook, after the service and effects. */
   readonly register?: (api: ModularAV) => void;

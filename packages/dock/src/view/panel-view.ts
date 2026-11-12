@@ -15,6 +15,11 @@ export interface ToggleView {
   readonly disabled: boolean;
 }
 
+/** Pressed: sharing. Hidden where no share can start and none runs. */
+export interface ScreenToggleView extends ToggleView {
+  readonly hidden: boolean;
+}
+
 export interface PanelView {
   /** Pressed: muted. */
   readonly mute: ToggleView;
@@ -22,6 +27,7 @@ export interface PanelView {
   readonly deafen: ToggleView;
   /** Pressed: the camera is sent. */
   readonly video: ToggleView;
+  readonly screen: ScreenToggleView;
   readonly warnings: readonly Warning[];
 }
 
@@ -55,6 +61,11 @@ export function panelView(local: LocalState): PanelView {
     video: {
       pressed: local.videoEnabled && local.hasCamera && !local.cameraHold,
       disabled: !local.canPublish.video,
+    },
+    screen: {
+      pressed: local.screenShare.active,
+      disabled: false,
+      hidden: !local.screenShare.active && !local.screenShare.available,
     },
     warnings: warnings(local),
   };

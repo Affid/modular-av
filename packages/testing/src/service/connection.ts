@@ -1,7 +1,9 @@
 import type {
   ParticipantId,
+  PublishRights,
   PublishedTrack,
   RemoteTrack,
+  ScreenShareCapability,
   ServiceCapabilities,
   ServiceConnection,
   ServiceConnectionState,
@@ -13,13 +15,31 @@ import { createEmitter } from "./emitter.ts";
 import { type Hub, type Member, MockServiceFailure } from "./internals.ts";
 import { verifyMockToken } from "./token.ts";
 
-const AUDIO_SOURCES: readonly TrackSource[] = ["microphone", "screen-audio"];
 const STATS = { roundTripMs: 20, packetLoss: 0 } as const;
 const PARTICIPANT_STATS = {
   roundTripMs: 30,
   packetLoss: 0,
   jitterMs: 5,
 } as const;
+
+/** What a token and the service's screen share allow of a source. */
+function mayPublish(
+  rights: PublishRights,
+  source: TrackSource,
+  screenShare: ScreenShareCapability | null,
+): boolean {
+  const screen = (rights.screen ?? false) && screenShare !== null;
+  switch (source) {
+    case "microphone":
+      return rights.audio;
+    case "camera":
+      return rights.video;
+    case "screen":
+      return screen;
+    case "screen-audio":
+      return screen && rights.audio && screenShare.audio;
+  }
+}
 
 /** Read through a call: the signal can change while a connect awaits. */
 const isAborted = (signal: AbortSignal): boolean => signal.aborted;
@@ -42,6 +62,7 @@ export function createMockConnection(
   });
   const base: ServiceCapabilities = {
     speakingDetection: true,
+    ...(hub.screenShare ? { screenShare: hub.screenShare } : {}),
   };
   // Like a server's edition, the features are known once joined.
   let capabilities = base;
@@ -52,7 +73,7 @@ export function createMockConnection(
   };
   let state: ServiceConnectionState = "idle";
   let member: Member | undefined;
-  let canPublish = { audio: false, video: false };
+  let canPublish: PublishRights = { audio: false, video: false };
   let publications: readonly Publication[] = [];
   let nextPublication = 1;
 
@@ -127,7 +148,7 @@ export function createMockConnection(
             { participant, room: room.name },
             hub.now(),
           )
-        : { canPublish: { audio: true, video: true } };
+        : { canPublish: { audio: true, video: true, screen: true } };
       if ("code" in claims) {
         setState("failed", claims);
         throw new MockServiceFailure(claims);
@@ -150,10 +171,7 @@ export function createMockConnection(
     async publish(track, source) {
       await roundTrip();
       const self = requireMember();
-      const allowed = AUDIO_SOURCES.includes(source)
-        ? canPublish.audio
-        : canPublish.video;
-      if (!allowed)
+      if (!mayPublish(canPublish, source, hub.screenShare))
         throw new Error(`Publishing ${source} is not allowed by the token`);
       const publication = {
         id: `${participant}-${String(nextPublication++)}`,

@@ -29,6 +29,21 @@ const ms = (seconds: number | undefined): number | undefined =>
 const loss = (lost: number, total: number): ConnectionStats =>
   total > 0 ? { packetLoss: lost / total } : {};
 
+/**
+ * The microphone among what this client sends. A share's sound is audio
+ * too, and says nothing of how the voice travels.
+ */
+export function microphoneOf<Track>(
+  publications: Iterable<{
+    readonly source: string;
+    readonly audioTrack?: Track | undefined;
+  }>,
+): Track | undefined {
+  for (const publication of publications)
+    if (publication.source === "microphone") return publication.audioTrack;
+  return undefined;
+}
+
 /** This client's connection, from the microphone's sender (as the server sees it). */
 export function fromSender(report: SenderReport | undefined): ConnectionStats {
   if (!report) return {};

@@ -15,6 +15,8 @@ import { createOnScreen, qualityFor } from "./on-screen.ts";
 export interface PlaybackPolicy {
   canHear(participant: ParticipantId): boolean;
   canSee(participant: ParticipantId): boolean;
+  /** The world's rule lets them share a screen (and the GM's video permission). */
+  canShare(participant: ParticipantId): boolean;
   volume(participant: ParticipantId): number;
   sinkId(): string;
 }
@@ -31,6 +33,11 @@ export interface RemoteMedia {
     participant: ParticipantId,
     track: MediaStreamTrack | null,
   ): void;
+  /** The local screen share, shown under the local participant's id. */
+  setLocalScreen(
+    participant: ParticipantId,
+    track: MediaStreamTrack | null,
+  ): void;
   attach(
     participant: ParticipantId,
     source: VideoSource,
@@ -38,8 +45,8 @@ export interface RemoteMedia {
   ): () => void;
   /** A video-only stream of what this client may show, for Foundry's dock. */
   videoStream(participant: ParticipantId): MediaStream | null;
-  /** Present and allowed. */
-  has(participant: ParticipantId, kind: "audio" | "video"): boolean;
+  /** Present and allowed: the microphone, the camera, a shared screen. */
+  has(participant: ParticipantId, kind: "audio" | "video" | "screen"): boolean;
   /** The microphone this client plays of them, if it may. */
   audioTrack(participant: ParticipantId): MediaStreamTrack | null;
   /** Presence or permission of some track changed. */
@@ -66,6 +73,24 @@ const sameOptions = (
   b: SubscriptionOptions,
 ): boolean => a?.enabled === b.enabled && a.maxQuality === b.maxQuality;
 
+interface LocalVideo {
+  readonly participant: ParticipantId;
+  readonly track: MediaStreamTrack;
+}
+
+/** What this client agrees to play of one track. */
+function allows(
+  policy: PlaybackPolicy,
+  participant: ParticipantId,
+  source: TrackSource,
+): boolean {
+  const shared = source === "screen" || source === "screen-audio";
+  if (shared && !policy.canShare(participant)) return false;
+  return isAudio(source)
+    ? policy.canHear(participant)
+    : policy.canSee(participant);
+}
+
 interface Attachment {
   readonly participant: ParticipantId;
   readonly source: VideoSource;
@@ -87,8 +112,7 @@ export function createRemoteMedia(
   onError: (error: unknown) => void,
 ): RemoteMedia {
   let tracks = new Map<string, RemoteTrack>();
-  let local: { participant: ParticipantId; track: MediaStreamTrack } | null =
-    null;
+  let local: Partial<Record<VideoSource, LocalVideo>> = {};
   let playing = new Map<string, Playing>();
   let attachments: readonly Attachment[] = [];
   const streams = new WeakMap<MediaStreamTrack, MediaStream>();
@@ -107,9 +131,9 @@ export function createRemoteMedia(
     participant: ParticipantId,
     source: VideoSource,
   ): MediaStreamTrack | null => {
-    if (local?.participant === participant)
-      return source === "camera" ? local.track : null;
-    if (!policy.canSee(participant)) return null;
+    const own = local[source];
+    if (own?.participant === participant) return own.track;
+    if (!allows(policy, participant, source)) return null;
     return tracks.get(key(participant, source))?.track ?? null;
   };
 
@@ -122,7 +146,9 @@ export function createRemoteMedia(
         track: null,
         sinkId: null,
       };
-      const track = policy.canHear(remote.participant) ? remote.track : null;
+      const track = allows(policy, remote.participant, remote.source)
+        ? remote.track
+        : null;
       if (current.track !== track) current.output.play(track);
       current.output.setVolume(policy.volume(remote.participant));
       const sinkId = policy.sinkId();
@@ -145,11 +171,10 @@ export function createRemoteMedia(
     id: string,
     remote: RemoteTrack,
   ): SubscriptionOptions => {
-    if (isAudio(remote.source))
-      return { enabled: policy.canHear(remote.participant) };
+    const allowed = allows(policy, remote.participant, remote.source);
+    if (isAudio(remote.source)) return { enabled: allowed };
     const wanted = onScreen.wanted(id);
-    if (!policy.canSee(remote.participant) || !wanted.shown)
-      return { enabled: false };
+    if (!allowed || !wanted.shown) return { enabled: false };
     const maxQuality = qualityFor(wanted.height);
     return maxQuality ? { enabled: true, maxQuality } : { enabled: true };
   };
@@ -172,6 +197,16 @@ export function createRemoteMedia(
     syncAudio();
     syncVideo();
     syncSubscriptions();
+    for (const { listener } of listeners) listener();
+  };
+
+  const setLocal = (
+    source: VideoSource,
+    participant: ParticipantId,
+    track: MediaStreamTrack | null,
+  ): void => {
+    local = { ...local, [source]: track ? { participant, track } : undefined };
+    syncVideo();
     for (const { listener } of listeners) listener();
   };
 
@@ -214,9 +249,10 @@ export function createRemoteMedia(
     },
     refresh: sync,
     setLocalVideo(participant, track) {
-      local = track ? { participant, track } : null;
-      syncVideo();
-      for (const { listener } of listeners) listener();
+      setLocal("camera", participant, track);
+    },
+    setLocalScreen(participant, track) {
+      setLocal("screen", participant, track);
     },
     attach(participant, source, element) {
       for (const a of attachments.filter((x) => x.element === element))
@@ -254,6 +290,7 @@ export function createRemoteMedia(
     },
     has(participant, kind) {
       if (kind === "video") return videoTrack(participant, "camera") !== null;
+      if (kind === "screen") return videoTrack(participant, "screen") !== null;
       return (
         policy.canHear(participant) &&
         tracks.has(key(participant, "microphone"))

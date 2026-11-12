@@ -25,7 +25,10 @@ export interface ProjectionInput {
   readonly speaking: ReadonlyMap<ParticipantId, boolean>;
   /** From the service, per participant. */
   readonly quality: ReadonlyMap<ParticipantId, ConnectionQuality>;
-  hasMedia(participant: ParticipantId, kind: "audio" | "video"): boolean;
+  hasMedia(
+    participant: ParticipantId,
+    kind: "audio" | "video" | "screen",
+  ): boolean;
 }
 
 export const DEAFENED_FLAG = "deafened";
@@ -81,6 +84,9 @@ function participant(
     hasVideo: isLocal
       ? local.hasCamera && local.videoEnabled
       : input.hasMedia(user.id, "video"),
+    hasScreen: isLocal
+      ? local.screenShare.active
+      : input.hasMedia(user.id, "screen"),
     speaking: isLocal ? (activity.speaking ?? false) : remoteSpeaking,
     muted: isLocal ? local.muted : (activity.muted ?? false),
     hidden: isLocal ? !local.videoEnabled : (activity.hidden ?? false),

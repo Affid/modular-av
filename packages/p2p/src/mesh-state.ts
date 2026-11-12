@@ -58,7 +58,12 @@ export function createMeshState(deps: MeshDeps): MeshState {
     deps,
     roster: createRoster(deps.self),
     peers: new Map(),
-    outgoing: { microphone: null, camera: null },
+    outgoing: {
+      microphone: null,
+      camera: null,
+      screen: null,
+      "screen-audio": null,
+    },
     refusals: new Map(),
     timers: new Map(),
     replacedAt: new Map(),

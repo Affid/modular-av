@@ -47,7 +47,7 @@ from inside Foundry, the foundryvtt.com listing of the core, and the
 release steps for independent versions.
 
 **Not blocking 1.0**: the Krisp module, the long functions and the flaky
-test below, Jitsi as a Service, screen share, cameras on tokens and an
+test below, Jitsi as a Service, cameras on tokens and an
 external call mode.
 
 ## Waiting on someone else
@@ -64,9 +64,9 @@ external call mode.
 
 ### The core
 
-- **The entry is nearly full**: 124.2 KB of a 124,500 byte budget
-  (`pnpm size:check`). The next core feature needs lazy loading or a
-  budget decision.
+- **The entry is nearly full**: 130.3 KB of a 130,500 byte budget
+  (`pnpm size:check`), raised from 124,500 for screen sharing. The next
+  core feature needs lazy loading or a budget decision.
 - **Functions over 50 lines**, mostly factories from the first
   milestones: `createLocalMedia`, `createSession`, `createEffectRunner`,
   `createRemoteMedia`, `createMicrophone`, `createCamera`, and helpers in
@@ -119,8 +119,6 @@ external call mode.
 
 ### P2P
 
-- **No screen share**: it needs a line per source, added by
-  renegotiation.
 - **`maxQuality` is ignored.**
 - **No GM-signed TURN credentials.**
 - **The event emitter is copied** in the mock service, LiveKit and P2P: a
@@ -135,7 +133,10 @@ external call mode.
 - **Jitsi as a Service** (8x8): tokens signed with the app's private key
   would work from the GM's browser, but its terms for a module where each
   table brings its own account weren't reachable.
-- **No screen share, and no servers without tokens.**
+- **A shared screen's sound isn't carried**: Jitsi sends one sound track
+  per participant, and mixing the share into the microphone would mute
+  it with the player.
+- **No servers without tokens.**
 - **Only Jitsi stable 11248 is tested**; Jitsi publishes no rule for
   which client and server versions work together.
 - **A participant without an identity from the server is ignored**, not

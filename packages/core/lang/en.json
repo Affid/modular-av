@@ -18,6 +18,15 @@
         "name": "Voice and video settings window",
         "hint": "The module whose window opens for the voice and video settings."
       },
+      "screenShare": {
+        "name": "Who may share their screen",
+        "hint": "Screen sharing works on services that carry it (LiveKit, P2P, Jitsi). A player who may not send video can't share a screen either.",
+        "choices": {
+          "video": "Everyone who may send video",
+          "gm": "Gamemasters only",
+          "nobody": "Nobody"
+        }
+      },
       "choices": {
         "foundryDock": "Foundry's camera dock",
         "foundrySettings": "Foundry's settings",

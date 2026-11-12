@@ -1,4 +1,12 @@
-import type { AVState } from "@modular-av/api";
+import type { AVState, ScreenShareState } from "@modular-av/api";
+
+export const NO_SCREEN_SHARE: ScreenShareState = {
+  active: false,
+  audio: false,
+  available: false,
+  audioAvailable: false,
+  rule: "video",
+};
 
 /** The state before Foundry's `setup`, when no user is known yet. */
 export const INITIAL_STATE: AVState = {
@@ -30,6 +38,7 @@ export const INITIAL_STATE: AVState = {
     audioCutTails: false,
     inputSensitivity: { auto: true, threshold: -50 },
     cameraHold: null,
+    screenShare: NO_SCREEN_SHARE,
     videoResolution: "default",
     chosenDevices: {
       audioInput: "default",

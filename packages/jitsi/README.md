@@ -69,8 +69,10 @@ way, without leaving the call.
   peer-to-peer mode is off).
 - Who is speaking comes from each player's own voice detection, shared
   over Foundry.
-- Screen sharing, end-to-end encryption, the lobby, recording and
-  transcription aren't supported.
+- A shared screen arrives without its sound: Jitsi carries one sound
+  track per player, their microphone.
+- End-to-end encryption, the lobby, recording and transcription aren't
+  supported.
 - Servers much older or newer than the tested one may not work: Jitsi
   publishes no rule for which versions of its client and server work
   together.
@@ -109,6 +111,32 @@ For someone reading the code. How the modules fit together is in
   in a real browser (`pnpm playwright test packages/jitsi`). They
   include the shared service contract from `@modular-av/testing`, which
   also runs against a real Jitsi Meet in Docker (`pnpm test:services`).
+
+### Upgrading lib-jitsi-meet
+
+The module relies on how this version behaves inside, beyond its public
+API. Before changing the version in `package.json`
+(`modularAV.downloads`), check these against the new source, then run
+`pnpm test:services` against the Docker Jitsi server.
+
+- **Two private methods** (`src/local-tracks.ts`):
+  `conference._removeLocalTrackFromPc(track)` and
+  `track._sendMuteStatus(true)`. lib-jitsi-meet names a video by its
+  place among those sent, so a camera removed during a share breaks the
+  share's name and comes back under it. The module keeps the camera's
+  place instead, the way the library mutes a camera of its own. Its
+  public `mute()` can't be used: it stops the core's track.
+- **A removed video stays, signalled as muted**
+  (`src/conference-events.ts`): the others get no `TRACK_REMOVED`, so
+  a remote video that turns muted is reported as gone, and as back when
+  it is unmuted.
+- **A removal is only announced for a live track**
+  (`src/local-tracks.ts`): the track leaves the conference before its
+  stream is emptied.
+
+The contract test "carries a screen share and its sound apart from the
+camera" covers all three: it stops a share, shares again, and turns the
+camera off and on during the share.
 
 ## Licence
 

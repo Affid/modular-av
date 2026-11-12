@@ -73,7 +73,7 @@ function harness(
         }),
       );
     },
-    localTracks: () => h.tracks,
+    localTracks: () => ({ ...h.tracks, screen: null, screenAudio: null }),
     canPublish: () => h.canPublish,
     outbound: () => h.outbound,
     afterMediaSync: () => undefined,
@@ -242,7 +242,7 @@ describe("session lifecycle", () => {
         new Promise((resolve) => {
           release = resolve;
         }),
-      localTracks: () => base.tracks,
+      localTracks: () => ({ ...base.tracks, screen: null, screenAudio: null }),
       canPublish: () => base.canPublish,
       outbound: () => base.outbound,
       afterMediaSync: () => undefined,

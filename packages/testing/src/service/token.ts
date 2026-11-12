@@ -1,11 +1,15 @@
-import type { ServiceError, TokenRequest } from "@modular-av/api";
+import type {
+  PublishRights,
+  ServiceError,
+  TokenRequest,
+} from "@modular-av/api";
 
 const PREFIX = "mock.";
 
 export interface MockTokenClaims {
   readonly participant: string;
   readonly room: string;
-  readonly canPublish: { readonly audio: boolean; readonly video: boolean };
+  readonly canPublish: PublishRights;
   readonly expiresAt: number;
 }
 

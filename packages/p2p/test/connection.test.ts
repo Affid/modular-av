@@ -134,6 +134,7 @@ describe("joining", () => {
     expect(bob.events).toContain("participantJoined alice");
     expect(alice.connection.capabilities.get()).toEqual({
       speakingDetection: false,
+      screenShare: { audio: true },
     });
     expect([alice.errors, bob.errors]).toEqual([[], []]);
   });
@@ -261,9 +262,25 @@ describe("media", () => {
     expect(added).toEqual(["trackAdded alice:microphone"]);
     expect(bob.events.at(-1)).toBe("trackRemoved alice:microphone");
     expect(fakeTrackInfo(mic).stopCalls).toBe(0);
-    await expect(
-      alice.connection.publish(createFakeTrack("video"), "screen"),
-    ).rejects.toThrow(/screen/);
+  });
+
+  it("carries a screen share and its sound, and says it can", async () => {
+    const alice = player("alice");
+    const bob = player("bob");
+    await join(alice);
+    await join(bob);
+
+    await alice.connection.publish(createFakeTrack("video"), "screen");
+    await alice.connection.publish(createFakeTrack("audio"), "screen-audio");
+    await settle(0);
+
+    expect(alice.connection.capabilities.get().screenShare).toEqual({
+      audio: true,
+    });
+    expect(bob.events.filter((e) => e.startsWith("trackAdded"))).toEqual([
+      "trackAdded alice:screen",
+      "trackAdded alice:screen-audio",
+    ]);
   });
 
   it("refuses a participant's source when the core says so", async () => {

@@ -60,6 +60,27 @@ function localWarnings(local: LocalState): Indicator[] {
   ];
 }
 
+/**
+ * The tile of a participant's shared screen: shown only while it arrives,
+ * so always on; the voice's states stay on their camera's tile.
+ */
+export function screenView(view: TileView): TileView {
+  return {
+    ...view,
+    video: "on",
+    flags: {
+      speaking: false,
+      muted: false,
+      deafened: false,
+      blockedAudio: false,
+      blockedVideo: false,
+      connected: true,
+      hiddenByMe: false,
+    },
+    indicators: [],
+  };
+}
+
 /** A participant's tile: blocked only by a GM, never by the world's mode. */
 export function tileView(p: ParticipantState, local: LocalState): TileView {
   const flags: TileFlags = {

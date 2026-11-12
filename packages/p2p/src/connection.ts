@@ -31,14 +31,12 @@ export const LOST_AFTER_MS = 30_000;
 
 const CAPABILITIES: ServiceCapabilities = {
   speakingDetection: false,
+  screenShare: { audio: true },
 };
 
 const FULL: ServiceError = { code: "full", final: true };
 const DUPLICATE: ServiceError = { code: "duplicate", final: true };
 const NETWORK: ServiceError = { code: "network", final: false };
-
-const isOutgoing = (source: TrackSource): source is OutgoingSource =>
-  source === "microphone" || source === "camera";
 
 const aborted = (): DOMException =>
   new DOMException("The connection attempt was aborted", "AbortError");
@@ -177,12 +175,10 @@ type Publishing = Pick<
 
 /** The core's tracks go to every link; they are never stopped here. */
 function publishing(c: Fields): Publishing {
-  const current = (source: TrackSource, id: string): source is OutgoingSource =>
-    isOutgoing(source) && c.published.get(source) === id;
+  const current = (source: TrackSource, id: string): boolean =>
+    c.published.get(source) === id;
   return {
     async publish(track, source) {
-      if (!isOutgoing(source))
-        throw new Error(`The P2P service can't send ${source} yet`);
       const id = c.deps.randomId();
       c.published = new Map(c.published).set(source, id);
       await c.live?.mesh.setTrack(source, track);

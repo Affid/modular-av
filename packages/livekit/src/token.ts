@@ -23,9 +23,12 @@ const encodeJson = (value: unknown): string =>
 
 /** LiveKit's video grant: join one room, publish only what Foundry allows. */
 function videoGrant(request: TokenRequest): Readonly<Record<string, unknown>> {
+  const { audio, video, screen = false } = request.canPublish;
   const sources = [
-    ...(request.canPublish.audio ? ["microphone"] : []),
-    ...(request.canPublish.video ? ["camera"] : []),
+    ...(audio ? ["microphone"] : []),
+    ...(video ? ["camera"] : []),
+    ...(screen ? ["screen_share"] : []),
+    ...(screen && audio ? ["screen_share_audio"] : []),
   ];
   return {
     room: request.room,

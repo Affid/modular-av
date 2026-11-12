@@ -258,6 +258,14 @@ flowchart LR
   fails, the camera stays off and the UI says so; the raw picture is
   never sent in its place. Swapping effects starts the new one before
   the old one stops.
+- **Your screen.** A share is published beside the camera, as its own
+  `"screen"` track (and `"screen-audio"` for its sound), to services that
+  say they carry one. The world's rule ("Who may share their screen") and
+  the GM's video permission decide who may share: a token carries the
+  right, the core stops a share the rules no longer allow, and every
+  other browser refuses a share from someone they leave out. Its capture
+  code loads once a share is possible, so a click opens the browser's
+  picker at once.
 - **What you hear.** The core plays every remote voice, so a call is
   heard with no UI module at all. UIs attach video only. A video that
   isn't on screen stops downloading.

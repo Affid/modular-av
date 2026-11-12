@@ -39,6 +39,8 @@
     "tile": {
       "options": "Options for {name}",
       "you": "{name} (you)",
+      "screen": "{name}'s screen",
+      "yourScreen": "Your screen",
       "focus": "Show {name} large",
       "move": "Move {name}'s tile (arrow keys)",
       "resize": "Resize {name}'s tile (left and right arrow keys)"
@@ -85,6 +87,8 @@
       "undeafen": "Undeafen",
       "cameraOn": "Show your camera",
       "cameraOff": "Hide your camera",
+      "share": "Share your screen",
+      "stopShare": "Stop sharing your screen",
       "quick": "More controls",
       "micMenu": "Microphone options",
       "cameraMenu": "Camera options",

@@ -103,10 +103,12 @@ function createHarness(definition: ServiceDefinition): ServiceHarness {
   /** Publishes each track; returns "source: reason" for those refused. */
   const publishAll = async (
     tracks: readonly MediaStreamTrack[],
+    sourceOf: (track: MediaStreamTrack) => TrackSource = (track) =>
+      track.kind === "audio" ? "microphone" : "camera",
   ): Promise<string[]> => {
     const failures: string[] = [];
     for (const track of tracks) {
-      const source = track.kind === "audio" ? "microphone" : "camera";
+      const source = sourceOf(track);
       try {
         const published = await live().publish(track, source);
         local = new Map(local).set(source, { track, published });
@@ -151,6 +153,15 @@ function createHarness(definition: ServiceDefinition): ServiceHarness {
       });
       return publishAll(stream.getTracks());
     },
+    async publishScreen(audio) {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio,
+      });
+      return publishAll(stream.getTracks(), (track) =>
+        track.kind === "audio" ? "screen-audio" : "screen",
+      );
+    },
     async publishCoreTracks() {
       return publishAll([await coreMicrophone(), await coreCamera()]);
     },
@@ -165,6 +176,19 @@ function createHarness(definition: ServiceDefinition): ServiceHarness {
     async unpublish(source) {
       const entry = local.get(source);
       if (entry) await live().unpublish(entry.published);
+    },
+    async endScreen() {
+      const shared = (["screen", "screen-audio"] as const).flatMap((source) => {
+        const entry = local.get(source);
+        return entry ? [{ source, entry }] : [];
+      });
+      for (const { entry } of shared) entry.track.stop();
+      for (const { source, entry } of shared) {
+        await live().unpublish(entry.published);
+        const rest = new Map(local);
+        rest.delete(source);
+        local = rest;
+      }
     },
     async republish(source) {
       const entry = local.get(source);
@@ -199,6 +223,7 @@ function createHarness(definition: ServiceDefinition): ServiceHarness {
         enabled: t.track.enabled,
       })),
     features: () => live().capabilities.get().features ?? null,
+    screenShare: () => live().capabilities.get().screenShare ?? null,
     localTracks: (): TrackView[] =>
       [...local].map(([source, { track }]) => ({
         participant: "",
@@ -206,12 +231,12 @@ function createHarness(definition: ServiceDefinition): ServiceHarness {
         readyState: track.readyState,
         enabled: track.enabled,
       })),
-    audioLevel: (participant, ms) => {
-      const track = remoteTrack(participant, "microphone");
+    audioLevel: (participant, ms, source = "microphone") => {
+      const track = remoteTrack(participant, source);
       return track ? peakLevel(track, ms) : Promise.resolve(0);
     },
-    videoBrightness: (participant) => {
-      const track = remoteTrack(participant, "camera");
+    videoBrightness: (participant, source = "camera") => {
+      const track = remoteTrack(participant, source);
       return track ? meanLuminance(track) : Promise.resolve(0);
     },
     videoSize: (participant) => {

@@ -27,6 +27,8 @@ interface Rules {
   deaf: boolean;
   refusedAudio: readonly string[];
   refusedVideo: readonly string[];
+  /** Not allowed to share a screen. */
+  refusedShare: readonly string[];
   volumes: Readonly<Record<string, number>>;
   sink: string;
 }
@@ -37,6 +39,7 @@ function setup(rules: Partial<Rules> = {}) {
     deaf: false,
     refusedAudio: [],
     refusedVideo: [],
+    refusedShare: [],
     volumes: {},
     sink: "default",
     ...rules,
@@ -44,6 +47,7 @@ function setup(rules: Partial<Rules> = {}) {
   const policy: PlaybackPolicy = {
     canHear: (p) => !current.deaf && !current.refusedAudio.includes(p),
     canSee: (p) => !current.refusedVideo.includes(p),
+    canShare: (p) => !current.refusedShare.includes(p),
     volume: (p) => current.volumes[p] ?? 1,
     sinkId: () => current.sink,
   };
@@ -139,6 +143,7 @@ describe("remote audio", () => {
       {
         canHear: () => true,
         canSee: () => true,
+        canShare: () => true,
         volume: () => 1,
         sinkId: () => "gone",
       },
@@ -223,12 +228,80 @@ describe("remote video", () => {
     expect(env.shownOn(element)).toEqual([]);
   });
 
+  it("shows the local screen share under the local id", () => {
+    const { env, media } = setup();
+    const element = createFakeVideoElement();
+    const screen = createFakeTrack("video");
+    media.attach("me", "screen", element);
+
+    media.setLocalScreen("me", screen);
+
+    expect(env.shownOn(element)).toEqual([screen]);
+    expect(media.has("me", "screen")).toBe(true);
+    media.setLocalScreen("me", null);
+    expect(env.shownOn(element)).toEqual([]);
+  });
+
   it("reuses one stream per track", () => {
     const { media } = setup();
     media.add(remote("p1", "camera"));
 
     expect(media.videoStream("p1")).toBe(media.videoStream("p1"));
     expect(media.videoStream("nobody")).toBeNull();
+  });
+});
+
+describe("screen shares", () => {
+  it("shows a screen apart from the camera and plays its sound", () => {
+    // Arrange
+    const { env, media } = setup();
+    const screen = remote("p1", "screen");
+    const sound = remote("p1", "screen-audio");
+    const camera = createFakeVideoElement();
+    const shared = createFakeVideoElement();
+    media.attach("p1", "camera", camera);
+    media.attach("p1", "screen", shared);
+
+    // Act
+    media.add(screen);
+    media.add(sound);
+
+    // Assert
+    expect(env.shownOn(shared)).toEqual([screen.track]);
+    expect(env.shownOn(camera)).toEqual([]);
+    expect(media.has("p1", "screen")).toBe(true);
+    expect(media.has("p1", "video")).toBe(false);
+    expect(env.outputs.map((o) => o.state.track)).toEqual([sound.track]);
+  });
+
+  it("refuses a share from someone not allowed to share", () => {
+    const { env, media, change, subscriptions } = setup();
+    const element = createFakeVideoElement();
+    media.attach("p1", "screen", element);
+    media.add(remote("p1", "screen"));
+    media.add(remote("p1", "screen-audio"));
+    media.add(remote("p1", "microphone"));
+
+    change({ refusedShare: ["p1"] });
+
+    expect(env.shownOn(element)).toEqual([]);
+    expect(media.has("p1", "screen")).toBe(false);
+    expect(media.has("p1", "audio")).toBe(true);
+    expect(env.outputs.filter((o) => o.state.track)).toHaveLength(1);
+    expect(subscriptions).toHaveBeenCalledWith("p1", "screen-audio", {
+      enabled: false,
+    });
+  });
+
+  it("hides a share with the camera of someone not to be seen", () => {
+    const { env, media, change } = setup();
+    const element = createFakeVideoElement();
+    media.attach("p1", "screen", element);
+    media.add(remote("p1", "screen"));
+
+    change({ refusedVideo: ["p1"] });
+
+    expect(env.shownOn(element)).toEqual([]);
   });
 });
 

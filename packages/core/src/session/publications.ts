@@ -1,6 +1,7 @@
 import type {
   MediaPermissions,
   PublishedTrack,
+  PublishRights,
   ServiceConnection,
   TrackSource,
 } from "@modular-av/api";
@@ -8,6 +9,9 @@ import type {
 export interface LocalTracks {
   readonly microphone: MediaStreamTrack | null;
   readonly camera: MediaStreamTrack | null;
+  /** A shared screen, and its sound. */
+  readonly screen: MediaStreamTrack | null;
+  readonly screenAudio: MediaStreamTrack | null;
 }
 
 interface Publication {
@@ -17,13 +21,40 @@ interface Publication {
   readonly muted: boolean | null;
 }
 
-const SOURCES = [
-  { source: "microphone", kind: "audio" },
-  { source: "camera", kind: "video" },
-] as const satisfies readonly {
-  source: TrackSource;
-  kind: keyof MediaPermissions;
-}[];
+interface SourcePlan {
+  readonly source: TrackSource;
+  track(tracks: LocalTracks): MediaStreamTrack | null;
+  allowed(rights: PublishRights): boolean;
+  /** Mute signalling: a share has none, it stops instead. */
+  muted(outbound: MediaPermissions): boolean;
+}
+
+const SOURCES: readonly SourcePlan[] = [
+  {
+    source: "microphone",
+    track: (t) => t.microphone,
+    allowed: (r) => r.audio,
+    muted: (o) => !o.audio,
+  },
+  {
+    source: "camera",
+    track: (t) => t.camera,
+    allowed: (r) => r.video,
+    muted: (o) => !o.video,
+  },
+  {
+    source: "screen",
+    track: (t) => t.screen,
+    allowed: (r) => r.screen ?? false,
+    muted: () => false,
+  },
+  {
+    source: "screen-audio",
+    track: (t) => t.screenAudio,
+    allowed: (r) => (r.screen ?? false) && r.audio,
+    muted: () => false,
+  },
+];
 
 /**
  * Keeps one connection's published tracks in line with the local tracks,
@@ -32,7 +63,7 @@ const SOURCES = [
 export interface Publications {
   sync(
     tracks: LocalTracks,
-    canPublish: MediaPermissions,
+    canPublish: PublishRights,
     outbound: MediaPermissions,
   ): Promise<void>;
 }
@@ -78,11 +109,14 @@ export function createPublications(
         // One at a time (they share `current`), but one failing source
         // never keeps the other from syncing.
         let failure: Error | null = null;
-        for (const { source, kind } of SOURCES) {
-          const track =
-            source === "microphone" ? tracks.microphone : tracks.camera;
+        for (const plan of SOURCES) {
           try {
-            await syncOne(source, track, canPublish[kind], !outbound[kind]);
+            await syncOne(
+              plan.source,
+              plan.track(tracks),
+              plan.allowed(canPublish),
+              plan.muted(outbound),
+            );
           } catch (error: unknown) {
             failure ??=
               error instanceof Error

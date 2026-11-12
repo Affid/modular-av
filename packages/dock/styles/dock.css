@@ -366,6 +366,12 @@
   object-fit: cover;
 }
 
+/* A shared screen is shown whole: a cropped map or handout loses its edges. */
+.mav-dock-tile[data-source="screen"] .mav-dock-tile-video {
+  object-fit: contain;
+  background: #000;
+}
+
 /* Laid out even when hidden: the core sees what is on screen. */
 .mav-dock-tile:not([data-video="on"]) .mav-dock-tile-video {
   visibility: hidden;

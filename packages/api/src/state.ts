@@ -66,6 +66,11 @@ export interface ParticipantState {
   /** A track arrived and this client is allowed to play it. */
   readonly hasAudio: boolean;
   readonly hasVideo: boolean;
+  /**
+   * A screen share arrived and this client may show it; for the local
+   * player, they are sharing. `media.attach(id, "screen", el)` shows it.
+   */
+  readonly hasScreen: boolean;
   readonly speaking: boolean;
   /** Self-reported through Foundry. */
   readonly muted: boolean;
@@ -117,6 +122,29 @@ export type MicrophoneHold = "gate-failed";
  * second. A camera that can't do it gives the nearest size it can.
  */
 export type VideoResolution = "default" | "360p" | "720p" | "1080p";
+
+/**
+ * Who may share a screen in this world, a GM's choice: those allowed to
+ * send video, only the GMs among them, or nobody.
+ */
+export type ScreenShareRule = "video" | "gm" | "nobody";
+
+/** The local player's screen share. */
+export interface ScreenShareState {
+  /** A screen, window or tab is being shared. */
+  readonly active: boolean;
+  /** Its sound goes out too. */
+  readonly audio: boolean;
+  /**
+   * A share may start now: in a call whose service carries one, and the
+   * world's rule and the GM's video permission allow this player.
+   */
+  readonly available: boolean;
+  /** The service carries the shared sound as well. */
+  readonly audioAvailable: boolean;
+  /** The world's rule, shown as a reason when `available` is false. */
+  readonly rule: ScreenShareRule;
+}
 
 /** How the voice gate decides to open: following the noise, or a fixed level. */
 export interface InputSensitivity {
@@ -188,6 +216,7 @@ export interface LocalState {
   readonly inputSensitivity: InputSensitivity;
   /** Why the camera is kept off, if a video effect isn't sending. */
   readonly cameraHold: CameraHold | null;
+  readonly screenShare: ScreenShareState;
   /** For this device: the size its camera is asked for. */
   readonly videoResolution: VideoResolution;
   /** The device chosen for each kind ("default": the system's), as saved in Foundry. */

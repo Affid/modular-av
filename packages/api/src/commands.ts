@@ -39,6 +39,11 @@ export interface AudioPipelineChange {
   readonly channelLevel?: number;
 }
 
+export interface ScreenShareOptions {
+  /** Share the tab's or system's sound too, where the browser and service can. */
+  readonly audio?: boolean;
+}
+
 /** Everything a UI can do. Each returns once done. */
 export interface AVCommands {
   setMuted(muted: boolean): Promise<void>;
@@ -118,6 +123,17 @@ export interface AVCommands {
    * runs at the new size, or is off with the reason in `local`.
    */
   setVideoResolution(resolution: VideoResolution): Promise<void>;
+  /**
+   * Opens the browser's picker and shares the screen, window or tab chosen,
+   * replacing a share already running. Call it from a click: browsers show
+   * the picker only then. Rejects with a CommandError: "not-ready" outside
+   * a call, "unsupported" when the service carries no screen share,
+   * "forbidden" when the player may not share; otherwise with the
+   * browser's error ("NotAllowedError" also when the picker was closed).
+   */
+  startScreenShare(options?: ScreenShareOptions): Promise<void>;
+  /** Stops sharing; resolves at once when nothing is shared. */
+  stopScreenShare(): Promise<void>;
   /** Saved in Foundry's A/V settings; "default" for the system default. */
   setDevice(kind: DeviceKind, deviceId: string): Promise<void>;
   /** GM only: Foundry's `BROADCAST_AUDIO` / `BROADCAST_VIDEO`. */

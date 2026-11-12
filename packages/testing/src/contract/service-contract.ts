@@ -45,9 +45,14 @@ export interface ServiceContractOptions {
   };
   /** What a connection to this server reports it offers once joined. */
   readonly features?: readonly string[];
+  /**
+   * What it carries of a screen share, as its connection must report it;
+   * null for a service that carries none.
+   */
+  readonly screenShare: { readonly audio: boolean } | null;
 }
 
-const BOTH = { audio: true, video: true } as const;
+const BOTH = { audio: true, video: true, screen: true } as const;
 const AUDIBLE = 0.01;
 const SILENT = 0.002;
 
@@ -62,9 +67,15 @@ export interface Peer {
   level(participant: string): Promise<number>;
 }
 
+/** What opening a player's page needs of the contract's options. */
+export type PeerOptions = Pick<
+  ServiceContractOptions,
+  "service" | "params" | "secrets"
+>;
+
 async function openPeer(
   browser: Browser,
-  options: ServiceContractOptions,
+  options: PeerOptions,
   id: string,
   room: string,
 ): Promise<Peer> {
@@ -124,7 +135,7 @@ async function openPeer(
 /** One browser context per player, all in a fresh room. */
 export function openPeers(
   browser: Browser,
-  options: ServiceContractOptions,
+  options: PeerOptions,
   ...ids: string[]
 ): Promise<Peer[]> {
   const room = `contract-${crypto.randomUUID()}`;
@@ -379,6 +390,103 @@ export function serviceContract(options: ServiceContractOptions): void {
       await expect
         .poll(() => bob.run((h) => h.remoteTracks().map((t) => t.source)))
         .toEqual(["microphone"]);
+    });
+
+    test("carries a screen share and its sound apart from the camera", async ({
+      browser,
+    }) => {
+      // Arrange
+      const expected = options.screenShare;
+      const [alice, bob, carol] = await peers(browser, "alice", "bob", "carol");
+      if (!alice || !bob || !carol) throw new Error("no peers");
+      await alice.join();
+      await bob.join();
+      expect(await alice.run((h) => h.screenShare())).toEqual(expected);
+      test.skip(expected === null, "the service carries no screen share");
+      const audio = expected?.audio ?? false;
+      const sourcesAt = (peer: Peer) => (): Promise<string[]> =>
+        peer.run((h) =>
+          h
+            .remoteTracks()
+            .map((t) => `${t.participant}:${t.source}`)
+            .sort(),
+        );
+      const sources = sourcesAt(bob);
+
+      // Act
+      expect(await alice.run((h) => h.publish(["camera"]))).toEqual([]);
+      // `run` sends the function as text: no closures over `audio`.
+      const failures = await (audio
+        ? alice.run((h) => h.publishScreen(true))
+        : alice.run((h) => h.publishScreen(false)));
+
+      // Assert
+      expect(failures).toEqual([]);
+      await expect
+        .poll(sources)
+        .toEqual([
+          "alice:camera",
+          "alice:screen",
+          ...(audio ? ["alice:screen-audio"] : []),
+        ]);
+      await expect
+        .poll(() => bob.run((h) => h.videoBrightness("alice", "screen")))
+        .toBeGreaterThan(20);
+      if (audio)
+        await expect
+          .poll(() =>
+            bob.run((h) => h.audioLevel("alice", 1500, "screen-audio")),
+          )
+          .toBeGreaterThan(AUDIBLE);
+      // Ended as the core ends it: its tracks stopped first.
+      await alice.run((h) => h.endScreen());
+      await expect.poll(sources).not.toContain("alice:screen");
+      expect(await sources()).toContain("alice:camera");
+      // Someone joining after it ended gets the camera, and no share.
+      await carol.join();
+      await expect.poll(sourcesAt(carol)).toEqual(["alice:camera"]);
+      await carol.page.waitForTimeout(2_000);
+      expect(await sourcesAt(carol)()).toEqual(["alice:camera"]);
+      await carol.run((h) => h.leave());
+      // A second share arrives like the first.
+      expect(await alice.run((h) => h.publishScreen(false))).toEqual([]);
+      await expect.poll(sources).toContain("alice:screen");
+      await expect
+        .poll(() => bob.run((h) => h.videoBrightness("alice", "screen")))
+        .toBeGreaterThan(20);
+      // The camera, turned off and on during the share, comes back beside it.
+      await alice.run((h) => h.unpublish("camera"));
+      await expect.poll(sources).not.toContain("alice:camera");
+      expect(await alice.run((h) => h.publish(["camera"]))).toEqual([]);
+      await expect.poll(sources).toContain("alice:camera");
+      expect(await sources()).toContain("alice:screen");
+      await expect
+        .poll(() => bob.run((h) => h.videoBrightness("alice")))
+        .toBeGreaterThan(20);
+      await expect
+        .poll(() => bob.run((h) => h.videoBrightness("alice", "screen")))
+        .toBeGreaterThan(20);
+    });
+
+    test("refuses a screen share outside the token's rights", async ({
+      browser,
+    }) => {
+      test.skip(!tokenRights, "the service's tokens carry no publish rights");
+      test.skip(options.screenShare === null, "no screen share");
+      const [alice, bob] = await peers(browser, "alice", "bob");
+      if (!alice || !bob) throw new Error("no peers");
+      await alice.join({ canPublish: { audio: true, video: true } });
+      await bob.join();
+
+      const failures = await alice.run((h) => h.publishScreen(false));
+
+      expect(failures).toHaveLength(1);
+      expect(failures[0]).toMatch(/^screen:/);
+      await expect
+        .poll(() => bob.run((h) => h.remoteTracks().length), {
+          timeout: 3_000,
+        })
+        .toBe(0);
     });
 
     test("ends the older connection of a duplicate identity for good", async ({

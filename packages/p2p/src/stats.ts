@@ -102,11 +102,44 @@ export interface VideoLimits {
   readonly scaleResolutionDownBy: number;
 }
 
-/** Each link encodes the camera again, so every link gets a share. */
-export function videoLimits(links: number): VideoLimits {
-  const share = Math.floor(VIDEO_BUDGET_BPS / Math.max(1, links));
+/** Which video this player sends now. */
+export interface SentVideo {
+  readonly camera: boolean;
+  readonly screen: boolean;
+}
+
+/** The limits of each video line of a link. */
+export interface VideoPlan {
+  readonly camera: VideoLimits;
+  readonly screen: VideoLimits;
+}
+
+/**
+ * A screen share gets twice the camera's part: text on a map or a handout
+ * must stay readable. It keeps its size for the same reason.
+ */
+const SCREEN_PARTS = 2;
+const CAMERA_ONLY: SentVideo = { camera: true, screen: false };
+
+/**
+ * Each link encodes the video again, so every link gets a share of the
+ * upload; a link's share is split between the camera and a screen share
+ * while both are sent, so sharing never adds to what the upload carries.
+ */
+export function videoLimits(
+  links: number,
+  sent: SentVideo = CAMERA_ONLY,
+): VideoPlan {
+  const parts = (sent.camera ? 1 : 0) + (sent.screen ? SCREEN_PARTS : 0);
+  const part = Math.floor(
+    VIDEO_BUDGET_BPS / Math.max(1, links) / Math.max(1, parts),
+  );
+  const maxBitrate = Math.min(VIDEO_BPS.max, Math.max(VIDEO_BPS.min, part));
   return {
-    maxBitrate: Math.min(VIDEO_BPS.max, Math.max(VIDEO_BPS.min, share)),
-    scaleResolutionDownBy: links > FULL_SIZE_LINKS ? 2 : 1,
+    camera: {
+      maxBitrate,
+      scaleResolutionDownBy: links > FULL_SIZE_LINKS ? 2 : 1,
+    },
+    screen: { maxBitrate: maxBitrate * SCREEN_PARTS, scaleResolutionDownBy: 1 },
   };
 }

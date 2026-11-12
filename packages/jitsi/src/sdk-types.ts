@@ -18,15 +18,24 @@ export interface JitsiParticipant {
 }
 
 export interface JitsiTrack {
+  /** Its own events (`events.track`), apart from the conference's. */
+  on(event: string, listener: Listener): void;
   getType(): "audio" | "video";
   getTrack(): MediaStreamTrack;
   getParticipantId(): string;
   getSourceName(): string;
   getVideoType(): "camera" | "desktop" | undefined;
   isLocal(): boolean;
+  /** A remote track: its sender signalled it muted, or took it away. */
+  isMuted(): boolean;
 }
 
 export interface JitsiLocalTrack extends JitsiTrack {
+  /**
+   * Private to the library: tells the others the track is muted, as its
+   * own `mute()` does after taking a camera out of the connection.
+   */
+  _sendMuteStatus(muted: boolean): void;
   mute(): Promise<void>;
   unmute(): Promise<void>;
   /** Stops the stream it was given: never called on core tracks. */
@@ -56,6 +65,11 @@ export interface JitsiConference {
     oldTrack: JitsiLocalTrack | null,
     newTrack: JitsiLocalTrack | null,
   ): Promise<void>;
+  /**
+   * Private to the library: stops sending a track and keeps its place in
+   * the conference, as its own video mute does. Never rejects.
+   */
+  _removeLocalTrackFromPc(track: JitsiLocalTrack): Promise<unknown>;
   getParticipantById(id: string): JitsiParticipant | undefined;
   getParticipants(): JitsiParticipant[];
   setReceiverConstraints(constraints: ReceiverConstraints): void;
@@ -89,7 +103,7 @@ export interface VideoConstraints {
 export interface LocalTrackInfo {
   readonly stream: MediaStream;
   readonly mediaType: "audio" | "video";
-  readonly videoType?: "camera";
+  readonly videoType?: "camera" | "desktop";
   /** What it would ask getUserMedia for; it sizes simulcast layers from it. */
   readonly constraints?: VideoConstraints;
 }
@@ -121,6 +135,7 @@ export interface JitsiMeetJS {
     readonly connection: EventNames;
     readonly conference: EventNames;
     readonly connectionQuality: EventNames;
+    readonly track?: EventNames;
   };
   readonly errors: {
     readonly connection: EventNames;

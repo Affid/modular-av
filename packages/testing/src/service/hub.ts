@@ -1,6 +1,7 @@
 import type {
   ConnectionQuality,
   ParticipantId,
+  ScreenShareCapability,
   ServiceDefinition,
   ServiceError,
   SubscriptionOptions,
@@ -22,6 +23,8 @@ export interface MockServiceOptions {
   readonly features?: readonly string[];
   /** False: connections have no `updateToken`, like LiveKit's and P2P's. */
   readonly updatesTokens?: boolean;
+  /** What connections carry of a screen share (default: picture and sound); null: none. */
+  readonly screenShare?: ScreenShareCapability | null;
 }
 
 /**
@@ -103,6 +106,8 @@ export function createMockServiceHub(
     updatesTokens: options.updatesTokens ?? true,
     features: options.features ?? [],
     needsToken: options.needsToken ?? true,
+    screenShare:
+      options.screenShare === undefined ? { audio: true } : options.screenShare,
     participants: (room) => membersOf(room).map((m) => m.participant),
     join(member) {
       membersOf(member.room)

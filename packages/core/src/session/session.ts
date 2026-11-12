@@ -1,6 +1,7 @@
 import type {
   MediaPermissions,
   ParticipantId,
+  PublishRights,
   RoomSpec,
   ServiceConnection,
   ServiceConnectionState,
@@ -24,7 +25,7 @@ export interface SessionDeps {
   room(): RoomSpec;
   requestToken(signal: AbortSignal): Promise<string>;
   localTracks(): LocalTracks;
-  canPublish(): MediaPermissions;
+  canPublish(): PublishRights;
   outbound(): MediaPermissions;
   /**
    * After each sync with the service: services may write `track.enabled`

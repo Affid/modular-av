@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fromReceivers, fromSender } from "../src/stats.ts";
+import { fromReceivers, fromSender, microphoneOf } from "../src/stats.ts";
 
 describe("LiveKit's own connection", () => {
   it("reads the round trip, jitter and loss the server reports for the microphone", () => {
@@ -17,6 +17,17 @@ describe("LiveKit's own connection", () => {
   it("says nothing without a microphone or a report", () => {
     expect(fromSender(undefined)).toEqual({});
     expect(fromSender({ timestamp: 1 })).toEqual({});
+  });
+});
+
+describe("the microphone among what is sent", () => {
+  it("passes over a share's sound published before it", () => {
+    const shared = { source: "screen_share_audio", audioTrack: "shared" };
+    const camera = { source: "camera", audioTrack: undefined };
+    const microphone = { source: "microphone", audioTrack: "voice" };
+
+    expect(microphoneOf([shared, camera, microphone])).toBe("voice");
+    expect(microphoneOf([shared, camera])).toBeUndefined();
   });
 });
 

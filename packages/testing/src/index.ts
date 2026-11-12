@@ -74,6 +74,7 @@ export {
 export type {
   FakeAudioCapture,
   FakeVideoCapture,
+  FakeDisplayCapture,
   FakeAudioOutput,
   FakeHostedAudioEffect,
   FakeAudioOutputState,
