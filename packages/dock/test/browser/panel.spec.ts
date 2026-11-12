@@ -60,6 +60,37 @@ for (const placement of ["Docked on the left", "Docked at the top"]) {
   });
 }
 
+/** The distinct tops of the panel's shown buttons: one per row. */
+const rowsOf = (page: Page): Promise<number> =>
+  page
+    .locator(".mav-dock-buttons > :not([hidden])")
+    .evaluateAll(
+      (buttons) =>
+        new Set(
+          buttons.map((button) =>
+            Math.round(button.getBoundingClientRect().top),
+          ),
+        ).size,
+    );
+
+for (const placement of [
+  "Docked on the left",
+  "Docked at the top",
+  "Floating",
+]) {
+  test(`${placement}, the panel's buttons fit on one row`, async ({ page }) => {
+    await call(page);
+    await page.locator(".mav-dock-placement").click();
+    await page.getByRole("menuitemradio", { name: placement }).click();
+
+    // Every button of a call, screen sharing's too.
+    await expect(
+      page.getByRole("button", { name: "Share your screen" }),
+    ).toBeVisible();
+    expect(await rowsOf(page)).toBe(1);
+  });
+}
+
 test("the microphone's arrow closes its menu when clicked again", async ({
   page,
 }) => {

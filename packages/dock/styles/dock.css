@@ -28,11 +28,15 @@
   --mav-dock-gap: 6px;
   --mav-dock-width: 300px;
   --mav-dock-height: 225px;
+  /* The gap between the panel's buttons: small enough that its row of
+     seven fits a 300px dock on one line. */
+  --mav-dock-button-gap: 2px;
   /* Docked at the top or bottom: the header's and the panel's width, the
-     panel's row in it: six buttons and two half-width menu arrows, each
-     arrow joined to its button by a 1px seam instead of the 4px gap. */
+     panel's row in it: seven buttons and two half-width menu arrows, each
+     arrow joined to its button by a 1px seam instead of the gap. */
   --mav-dock-side: calc(
-    7 * var(--mav-dock-button) + 5 * 4px + 2 * 1px + 2 * var(--mav-dock-gap)
+    8 * var(--mav-dock-button) + 6 * var(--mav-dock-button-gap) + 2 * 1px + 2 *
+      var(--mav-dock-gap)
   );
   --mav-dock-tile-bg: #111214;
   --mav-dock-ring: 3px;
@@ -198,7 +202,7 @@
 .mav-dock-buttons {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: var(--mav-dock-button-gap);
 }
 
 /* ---- Buttons ---- */
@@ -499,7 +503,7 @@
    half a button, joined to its button by a hairline. */
 .mav-dock-menu-arrow {
   width: calc(var(--mav-dock-button) / 2);
-  margin-inline-start: -3px;
+  margin-inline-start: calc(1px - var(--mav-dock-button-gap));
   border-start-start-radius: 0;
   border-end-start-radius: 0;
   font-size: 0.7em;
