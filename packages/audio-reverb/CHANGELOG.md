@@ -1,5 +1,11 @@
 # @modular-av/audio-reverb
 
+## 0.13.0
+
+### Patch Changes
+
+- @modular-av/kit@0.13.0
+
 ## 0.12.0
 
 ### Minor Changes
