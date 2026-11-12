@@ -22,14 +22,23 @@ async function listFiles(dir: string): Promise<readonly string[]> {
     .sort();
 }
 
+type ToManifest = (
+  built: Readonly<Record<string, unknown>>,
+) => Record<string, unknown>;
+
 /**
- * Zips a built module for release. The zip's `module.json` gets the stable
- * manifest URL and this release's download URL, so installs update.
+ * Zips a built module for release. By default the zip's `module.json` gets
+ * the stable manifest URL and this release's download URL, so installs
+ * update; `toManifest` makes another one (a dev build's).
  */
 export async function packModule(
   distDir: string,
   id: string,
   version: string,
+  toManifest: ToManifest = (built) => ({
+    ...built,
+    ...releaseUrls(id, version),
+  }),
 ): Promise<PackedModule> {
   const built = JSON.parse(
     await readFile(join(distDir, "module.json"), "utf8"),
@@ -43,7 +52,7 @@ export async function packModule(
       `dist/module.json has version ${String(built.version)}, expected ${version}`,
     );
   }
-  const manifest = { ...built, ...releaseUrls(id, version) };
+  const manifest = toManifest(built);
   const files = await listFiles(distDir);
   const contents = await Promise.all(
     files.map(async (file) =>

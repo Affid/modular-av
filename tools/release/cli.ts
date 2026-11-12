@@ -4,7 +4,7 @@
 //   node tools/release/cli.ts publish <module-id>       show what would happen
 //   node tools/release/cli.ts publish <module-id> --yes tag, release, update manifests, list
 //   node tools/release/cli.ts listing <module-id> [--yes] check (or send) a released version on foundryvtt.com
-import { execFileSync } from "node:child_process";
+//   node tools/release/cli.ts dev [module-id...] [--yes] build the checkout as the `dev` prerelease
 import {
   copyFile,
   mkdir,
@@ -22,17 +22,12 @@ import { releaseHold } from "./hold.ts";
 import { listingRelease, listingTokenKey, submitListing } from "./listing.ts";
 import { MANIFESTS_BRANCH, REPOSITORY, tagFor } from "./manifest.ts";
 import { packModule } from "./pack.ts";
+import { devModules } from "./dev.ts";
+import { publishDev } from "./dev-publish.ts";
 import { pendingReleases } from "./pending.ts";
+import { capture, run, succeeds } from "./shell.ts";
 
 const OUT = join(ROOT, "release");
-
-function run(command: string, args: readonly string[], cwd = ROOT): void {
-  execFileSync(command, args, { cwd, stdio: "inherit" });
-}
-
-function capture(command: string, args: readonly string[], cwd = ROOT): string {
-  return execFileSync(command, args, { cwd, encoding: "utf8" }).trim();
-}
 
 async function pack(
   mod: ModulePackage,
@@ -49,19 +44,6 @@ async function pack(
     `${mod.id} ${mod.version}: ${relative(ROOT, zip)} (${String(packed.zip.length)} bytes)`,
   );
   return { zip, manifest };
-}
-
-function succeeds(
-  command: string,
-  args: readonly string[],
-  cwd = ROOT,
-): boolean {
-  try {
-    execFileSync(command, args, { cwd, stdio: "ignore" });
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 /** The commit a tag points at locally, or undefined if there is no such tag. */
@@ -282,7 +264,30 @@ async function listPending(mods: readonly ModulePackage[]): Promise<void> {
   for (const m of pending) console.log(`${m.id} ${m.version}`);
 }
 
-const [command, id] = process.argv.slice(2);
+/**
+ * The modules named on the command line (every module not held back if
+ * none is), with the family modules they require; none may be held back.
+ */
+async function devSelection(): Promise<readonly ModulePackage[]> {
+  const named = process.argv.slice(3).filter((a) => !a.startsWith("--"));
+  const requires = new Map(
+    await Promise.all(
+      modules.map(async (m) => [m.id, await familyRequires(m)] as const),
+    ),
+  );
+  const ids = devModules(
+    named.length > 0 ? named : selected.map((m) => m.id),
+    requires,
+  );
+  const chosen = modules.filter((m) => ids.has(m.id));
+  const holds = await Promise.all(chosen.map((m) => releaseHold(m.dir)));
+  const blocked = chosen.filter((_, i) => holds[i]).map((m) => m.id);
+  if (blocked.length > 0)
+    throw new Error(`Held back from releases: ${blocked.join(", ")}`);
+  return chosen;
+}
+
+const [command, id] = process.argv.slice(2).filter((a) => !a.startsWith("--"));
 const modules = await listModulePackages();
 const named = id ? modules.filter((m) => m.id === id) : modules;
 if (id && named.length === 0) throw new Error(`No module "${id}" in packages/`);
@@ -304,9 +309,13 @@ if (command === "pending") {
   await publish(selected[0], process.argv.includes("--yes"));
 } else if (command === "listing" && id && selected[0]) {
   await listReleased(selected[0], process.argv.includes("--yes"));
+} else if (command === "dev") {
+  console.log(
+    await publishDev(await devSelection(), process.argv.includes("--yes")),
+  );
 } else {
   console.error(
-    "Usage: cli.ts pending | pack [module-id] | publish <module-id> [--yes] | listing <module-id> [--yes]",
+    "Usage: cli.ts pending | pack [module-id] | publish <module-id> [--yes] | listing <module-id> [--yes] | dev [module-id...] [--yes]",
   );
   process.exitCode = 1;
 }
