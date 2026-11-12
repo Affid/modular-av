@@ -245,9 +245,13 @@ export function createLocalTracks(
         parked = new Map(parked).set(entry.source, entry);
         return;
       }
-      // Taken out of the call while its stream still holds the track:
-      // lib-jitsi-meet tells the others only of a track it finds live,
-      // and a share's tile would stay with them otherwise.
+      // The others see a removed video end by its mute signal, which
+      // lib-jitsi-meet sends only for a track it finds live: not for one
+      // the core stopped first (a share ending does), or whose stream is
+      // empty. Their last frame would stay. Sent before the removal,
+      // which takes the track out of the conference it signals through.
+      if (current && entry.jitsi.getType() === "video")
+        entry.jitsi._sendMuteStatus(true);
       try {
         await current?.removeTrack(entry.jitsi);
       } finally {

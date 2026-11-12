@@ -91,8 +91,18 @@ export class FakeLocalTrack implements JitsiLocalTrack {
   };
   getVideoType = (): "camera" | "desktop" | undefined => this.info.videoType;
   isLocal = (): boolean => true;
-  isMuted = (): boolean => false;
+  /**
+   * As lib-jitsi-meet decides it: a video whose stream holds no live
+   * track (stopped by the core, or taken out of it) counts as muted.
+   */
+  isMuted = (): boolean =>
+    this.info.mediaType === "video" &&
+    !this.info.stream.getTracks().some((t) => t.readyState === "live");
+  /** The mute state in presence; a signal that changes nothing isn't sent. */
+  private signalledMuted = false;
   _sendMuteStatus = (muted: boolean): void => {
+    if (muted === this.signalledMuted) return;
+    this.signalledMuted = muted;
     this.calls.push(muted ? "signal muted" : "signal unmuted");
   };
   mute = (): Promise<void> => {
@@ -214,6 +224,9 @@ export class FakeConference extends Events implements JitsiConference {
   }
   removeTrack(track: JitsiLocalTrack): Promise<void> {
     if (this.removalFailure) return Promise.reject(this.removalFailure);
+    // The library signals a removed video muted only if it finds it live.
+    if (track instanceof FakeLocalTrack && !track.isMuted())
+      track._sendMuteStatus(true);
     this.local = this.local.filter((t) => t !== track);
     this.removed.push(track);
     this.removedWhileLive.push(

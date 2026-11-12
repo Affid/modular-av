@@ -177,6 +177,19 @@ function createHarness(definition: ServiceDefinition): ServiceHarness {
       const entry = local.get(source);
       if (entry) await live().unpublish(entry.published);
     },
+    async endScreen() {
+      const shared = (["screen", "screen-audio"] as const).flatMap((source) => {
+        const entry = local.get(source);
+        return entry ? [{ source, entry }] : [];
+      });
+      for (const { entry } of shared) entry.track.stop();
+      for (const { source, entry } of shared) {
+        await live().unpublish(entry.published);
+        const rest = new Map(local);
+        rest.delete(source);
+        local = rest;
+      }
+    },
     async republish(source) {
       const entry = local.get(source);
       if (!entry) return;

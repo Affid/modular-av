@@ -809,6 +809,23 @@ describe("the core's own tracks", () => {
     expect(s.sdk.localTracks[0]?.calls.at(-1)).toBe("dispose");
   });
 
+  it("has the others drop a share the core stopped before unpublishing it", async () => {
+    // Arrange: the library signals a removed video muted only if it finds
+    // it live, and the core stops a share's track before unpublishing it.
+    const s = setup();
+    await join(s);
+    const track = createFakeTrack("video");
+    const screen = await s.service.publish(track, "screen");
+    track.stop();
+
+    // Act
+    await s.service.unpublish(screen);
+
+    // Assert
+    expect(s.sdk.localTracks[0]?.calls).toEqual(["signal muted", "dispose"]);
+    expect(s.conference().removed).toEqual([s.sdk.localTracks[0]]);
+  });
+
   it("lets go of a track Jitsi failed to take out of the call", async () => {
     // Arrange
     const s = setup();
@@ -823,7 +840,7 @@ describe("the core's own tracks", () => {
 
     // Assert
     await expect(unpublishing).rejects.toBe(failure);
-    expect(s.sdk.localTracks[0]?.calls).toEqual(["dispose"]);
+    expect(s.sdk.localTracks[0]?.calls).toEqual(["signal muted", "dispose"]);
     expect(fakeTrackInfo(camera).readyState).toBe("live");
   });
 

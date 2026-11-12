@@ -397,20 +397,21 @@ export function serviceContract(options: ServiceContractOptions): void {
     }) => {
       // Arrange
       const expected = options.screenShare;
-      const [alice, bob] = await peers(browser, "alice", "bob");
-      if (!alice || !bob) throw new Error("no peers");
+      const [alice, bob, carol] = await peers(browser, "alice", "bob", "carol");
+      if (!alice || !bob || !carol) throw new Error("no peers");
       await alice.join();
       await bob.join();
       expect(await alice.run((h) => h.screenShare())).toEqual(expected);
       test.skip(expected === null, "the service carries no screen share");
       const audio = expected?.audio ?? false;
-      const sources = (): Promise<string[]> =>
-        bob.run((h) =>
+      const sourcesAt = (peer: Peer) => (): Promise<string[]> =>
+        peer.run((h) =>
           h
             .remoteTracks()
             .map((t) => `${t.participant}:${t.source}`)
             .sort(),
         );
+      const sources = sourcesAt(bob);
 
       // Act
       expect(await alice.run((h) => h.publish(["camera"]))).toEqual([]);
@@ -437,9 +438,16 @@ export function serviceContract(options: ServiceContractOptions): void {
             bob.run((h) => h.audioLevel("alice", 1500, "screen-audio")),
           )
           .toBeGreaterThan(AUDIBLE);
-      await alice.run((h) => h.unpublish("screen"));
+      // Ended as the core ends it: its tracks stopped first.
+      await alice.run((h) => h.endScreen());
       await expect.poll(sources).not.toContain("alice:screen");
       expect(await sources()).toContain("alice:camera");
+      // Someone joining after it ended gets the camera, and no share.
+      await carol.join();
+      await expect.poll(sourcesAt(carol)).toEqual(["alice:camera"]);
+      await carol.page.waitForTimeout(2_000);
+      expect(await sourcesAt(carol)()).toEqual(["alice:camera"]);
+      await carol.run((h) => h.leave());
       // A second share arrives like the first.
       expect(await alice.run((h) => h.publishScreen(false))).toEqual([]);
       await expect.poll(sources).toContain("alice:screen");
