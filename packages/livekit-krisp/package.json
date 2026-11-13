@@ -16,7 +16,6 @@
     "@modular-av/testing": "workspace:*"
   },
   "modularAV": {
-    "entryBudgetBytes": 10000,
-    "releaseHold": "Waiting for LiveKit to confirm a Foundry module may load @livekit/krisp-noise-filter for its users (docs/ROADMAP.md)."
+    "entryBudgetBytes": 10000
   }
 }

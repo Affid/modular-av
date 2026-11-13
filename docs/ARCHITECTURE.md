@@ -284,7 +284,7 @@ A pnpm workspace. A package's directory is its Foundry id without the
 | `kit`                                      | Helpers UI modules bundle (no Foundry id)            |
 | `testing`                                  | Fake Foundry, mock service, shared test suites       |
 | `p2p`, `livekit`, `jitsi`                  | Services                                             |
-| `livekit-krisp`                            | Krisp on LiveKit Cloud, held back from releases      |
+| `livekit-krisp`                            | Effect: Krisp, offered on LiveKit Cloud only         |
 | `dock`, `dock-vines`                       | The dock and a theme for it                          |
 | `audio-mixer`                              | A window over the voice's effects; planned with them |
 | `mic-denoise`, `audio-*`, `cam-background` | Effects                                              |

@@ -79,6 +79,7 @@ https://raw.githubusercontent.com/Affid/modular-av/manifests/<id>/module.json
 | Cameras | [`modular-av-dock`](packages/dock/README.md)                     | The camera dock, voice panel and settings window                       |
 | Theme   | [`modular-av-dock-vines`](packages/dock-vines/README.md)         | Vine leaves around the cameras                                         |
 | Effect  | [`modular-av-mic-denoise`](packages/mic-denoise/README.md)       | Noise cancellation in your browser: RNNoise, Speex or GTCRN            |
+| Effect  | [`modular-av-livekit-krisp`](packages/livekit-krisp/README.md)   | Adds LiveKit's Krisp to noise cancellation, on LiveKit Cloud           |
 | Effect  | [`modular-av-cam-background`](packages/cam-background/README.md) | Blurs or replaces your camera's background, in your browser            |
 | Effect  | [`modular-av-audio-reverb`](packages/audio-reverb/README.md)     | A reverb for the voice                                                 |
 | Effect  | [`modular-av-audio-echo`](packages/audio-echo/README.md)         | An echo for the voice                                                  |
@@ -87,9 +88,6 @@ https://raw.githubusercontent.com/Affid/modular-av/manifests/<id>/module.json
 | Effect  | [`modular-av-audio-boost`](packages/audio-boost/README.md)       | Raises a quiet microphone and evens out its peaks                      |
 | Mixer   | [`modular-av-audio-mixer`](packages/audio-mixer/README.md)       | A window for your voice's effects: order, levels, presets, a GM's view |
 | Set     | [`modular-av-starter-set`](packages/starter-set/README.md)       | No code: one install for the usual setup                               |
-
-`modular-av-livekit-krisp` (Krisp on LiveKit Cloud) is held back from
-releases for now; see its [README](packages/livekit-krisp/README.md).
 
 ## Browsers
 
