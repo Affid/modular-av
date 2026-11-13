@@ -1,7 +1,6 @@
 {
   "modular-av-livekit-krisp": {
     "label": "Krisp (LiveKit Cloud)",
-    "section": "Krisp noise filter",
     "settings": {
       "quality": {
         "name": "Krisp model quality",

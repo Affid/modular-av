@@ -1,7 +1,8 @@
 import type { ModularAV, Observable } from "@modular-av/api";
 import type { LiveKitModuleApi } from "@modular-av/livekit/api";
-import { createKrispDefinition, krispSection } from "./definition.ts";
+import { createKrispDefinition } from "./definition.ts";
 import { createKrispLoader } from "./loader.ts";
+import { createQualityControl, type QualityControl } from "./quality.ts";
 import { readQuality, registerSettings, type SettingsApi } from "./settings.ts";
 
 /** The slice of Foundry's globals this module uses. */
@@ -34,8 +35,14 @@ function liveKitRoom(): Observable<object | null> | null {
   return api?.room ?? null;
 }
 
+let quality: QualityControl | null = null;
+
 Hooks.once("init", () => {
-  registerSettings(game.settings);
+  const control = createQualityControl(game.settings);
+  quality = control;
+  registerSettings(game.settings, () => {
+    control.changed();
+  });
 });
 
 Hooks.once("modularAV.register", (api: ModularAV) => {
@@ -50,5 +57,5 @@ Hooks.once("modularAV.register", (api: ModularAV) => {
       onError: reportError,
     }),
   );
-  api.contributions.register(krispSection);
+  if (quality) api.contributions.register(quality.control);
 });

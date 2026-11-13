@@ -25,12 +25,13 @@ interface GroupSpec {
   readonly alerts: HTMLElement | null;
 }
 
+/** The group's own name (even for one effect, e.g. Krisp alone), else the effect's. */
 function groupLabel(ctx: DockContext, spec: GroupSpec): string {
-  const [only] = spec.group;
-  if (spec.group.length === 1 && only) return ctx.text(only.label);
   const key = `effects.group-${spec.name}`;
   const text = ctx.t(key);
-  return text.endsWith(key) ? spec.name : text;
+  if (!text.endsWith(key)) return text;
+  const [only] = spec.group;
+  return spec.group.length === 1 && only ? ctx.text(only.label) : spec.name;
 }
 
 /** Off and each effect, as a list or as buttons; `set` shows a choice. */
