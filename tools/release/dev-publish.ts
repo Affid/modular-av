@@ -6,7 +6,7 @@ import {
   DEV_TAG,
   type DevModule,
   devManifest,
-  devManifestUrl,
+  devInstallUrl,
   devNotes,
   devVersion,
 } from "./dev.ts";
@@ -122,6 +122,6 @@ export async function publishDev(
       ...problems.map((p) => `\nFirst fix: ${p}`),
     ].join("");
   replaceDevRelease(commit, assets, notes);
-  const urls = built.map((m) => `  ${devManifestUrl(m.id)}`);
+  const urls = built.map((m) => `  ${devInstallUrl(m.id, m.version)}`);
   return `Published. Install or update in Foundry with:\n${urls.join("\n")}`;
 }

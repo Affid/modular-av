@@ -29,6 +29,20 @@ export function devManifestUrl(id: string): string {
 }
 
 /**
+ * An address unique to one build. GitHub may answer a release download
+ * address it has seen with the file it found then for up to an hour, even
+ * after the dev release is replaced; an address it hasn't seen gets the
+ * current file. The query is ignored otherwise.
+ */
+const forBuild = (url: string, version: string): string =>
+  `${url}?v=${encodeURIComponent(version)}`;
+
+/** The manifest URL to install one dev build from, never an older one. */
+export function devInstallUrl(id: string, version: string): string {
+  return forBuild(devManifestUrl(id), version);
+}
+
+/**
  * The version of a dev build, stamped with the UTC time. Foundry's
  * `isNewerVersion` counts `0.12.0-dev.<stamp>` newer than 0.12.0 and every
  * earlier dev build, and older than 0.12.1 or 0.13.0, so the next release
@@ -42,10 +56,11 @@ export function devVersion(version: string, at: Date): string {
 function devRelationships(
   relationships: Json,
   family: ReadonlySet<string>,
+  version: string,
 ): Json {
   const toDev = (entry: unknown): unknown =>
     isJson(entry) && typeof entry.id === "string" && family.has(entry.id)
-      ? { ...entry, manifest: devManifestUrl(entry.id) }
+      ? { ...entry, manifest: devInstallUrl(entry.id, version) }
       : entry;
   const rewritten = RELATION_KINDS.filter((kind) =>
     Array.isArray(relationships[kind]),
@@ -59,7 +74,9 @@ function devRelationships(
 /**
  * A built `module.json` as a dev build: its version, the dev release's URLs,
  * "(dev)" in the title, and family modules in the same build (`family`)
- * installed from the dev release too.
+ * installed from the dev release too. The zip's and the family manifests'
+ * addresses are unique to the build; `manifest`, which Foundry checks for
+ * updates, stays the same for every build.
  */
 export function devManifest(
   built: Json,
@@ -69,7 +86,7 @@ export function devManifest(
   const id = built.id;
   if (typeof id !== "string") throw new Error("The manifest has no module id");
   const relationships = isJson(built.relationships)
-    ? { relationships: devRelationships(built.relationships, family) }
+    ? { relationships: devRelationships(built.relationships, family, version) }
     : {};
   return {
     ...built,
@@ -77,7 +94,7 @@ export function devManifest(
     title: `${typeof built.title === "string" ? built.title : id} (dev)`,
     version,
     manifest: devManifestUrl(id),
-    download: devAssetUrl(id, "zip"),
+    download: forBuild(devAssetUrl(id, "zip"), version),
   };
 }
 
@@ -105,7 +122,7 @@ export function devNotes(
   modules: readonly DevModule[],
 ): string {
   const lines = modules.map(
-    (m) => `- ${m.id} ${m.version}: ${devManifestUrl(m.id)}`,
+    (m) => `- ${m.id} ${m.version}: ${devInstallUrl(m.id, m.version)}`,
   );
   return [
     `Development build of \`${branch}\` at ${commit}, for testing only.`,

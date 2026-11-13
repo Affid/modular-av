@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  devInstallUrl,
   devManifest,
   devManifestUrl,
   devModules,
@@ -31,6 +32,14 @@ describe("devManifestUrl", () => {
   });
 });
 
+describe("devInstallUrl", () => {
+  it("is the manifest URL made unique to the build, which no cache has seen", () => {
+    expect(devInstallUrl("modular-av-dock", "0.12.0-dev.1")).toBe(
+      "https://github.com/Affid/modular-av/releases/download/dev/modular-av-dock.json?v=0.12.0-dev.1",
+    );
+  });
+});
+
 describe("devManifest", () => {
   const built = {
     id: "modular-av-dock",
@@ -57,7 +66,7 @@ describe("devManifest", () => {
     },
   };
 
-  it("gives the dev version, the dev URLs and a title that says dev", () => {
+  it("gives the dev version, the dev URLs and a title that says dev, its zip's unique to the build", () => {
     // Act
     const manifest = devManifest(
       built,
@@ -72,8 +81,10 @@ describe("devManifest", () => {
       version: "0.12.0-dev.1",
       manifest:
         "https://github.com/Affid/modular-av/releases/download/dev/modular-av-dock.json",
+      // GitHub may answer an address it has seen with the last build's
+      // file for up to an hour: a new address gets this build's zip.
       download:
-        "https://github.com/Affid/modular-av/releases/download/dev/modular-av-dock.zip",
+        "https://github.com/Affid/modular-av/releases/download/dev/modular-av-dock.zip?v=0.12.0-dev.1",
     });
   });
 
@@ -92,7 +103,7 @@ describe("devManifest", () => {
           id: "modular-av",
           type: "module",
           manifest:
-            "https://github.com/Affid/modular-av/releases/download/dev/modular-av.json",
+            "https://github.com/Affid/modular-av/releases/download/dev/modular-av.json?v=0.12.0-dev.1",
           compatibility: { minimum: "0.12.0" },
         },
       ],
@@ -150,7 +161,7 @@ describe("devModules", () => {
 });
 
 describe("devNotes", () => {
-  it("names the commit and each module's manifest URL", () => {
+  it("names the commit and each module's install URL for this build", () => {
     // Act
     const notes = devNotes("feat/screen-share", "1e7ae0f0123", [
       { id: "modular-av", version: "0.12.0-dev.1" },
@@ -159,7 +170,7 @@ describe("devNotes", () => {
     // Assert
     expect(notes).toContain("`feat/screen-share` at 1e7ae0f0123");
     expect(notes).toContain(
-      "- modular-av 0.12.0-dev.1: https://github.com/Affid/modular-av/releases/download/dev/modular-av.json",
+      "- modular-av 0.12.0-dev.1: https://github.com/Affid/modular-av/releases/download/dev/modular-av.json?v=0.12.0-dev.1",
     );
   });
 });
