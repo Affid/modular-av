@@ -5,7 +5,44 @@ import { describe, expect, it } from "vitest";
 import { parseCatalog } from "../../packages/core/src/catalog/catalog.ts";
 import { listModulePackages } from "../workspace.ts";
 import { buildCatalog, publishedCatalog, workspaceCatalog } from "./catalog.ts";
+import { releaseHold } from "./hold.ts";
 import { distManifest, releaseUrls } from "./manifest.ts";
+
+/** A workspace of its own: a core, and an effect held back from releases. */
+async function workspaceWithHeldModule(): Promise<string> {
+  const root = await mkdtemp(join(tmpdir(), "mav-workspace-"));
+  const write = async (
+    name: string,
+    manifest: Record<string, unknown>,
+    pkg: Record<string, unknown>,
+  ) => {
+    const dir = join(root, "packages", name);
+    await mkdir(dir, { recursive: true });
+    await writeFile(join(dir, "module.json"), JSON.stringify(manifest));
+    await writeFile(join(dir, "package.json"), JSON.stringify(pkg));
+  };
+  await write(
+    "core",
+    {
+      id: "modular-av",
+      title: "Modular A/V",
+      description: "The core.",
+    },
+    { version: "0.4.0" },
+  );
+  await write(
+    "held",
+    {
+      id: "modular-av-held",
+      title: "Modular A/V: held",
+      description: "Waits for someone's permission.",
+      flags: { "modular-av": { kind: "effect" } },
+      relationships: { requires: [{ id: "modular-av", type: "module" }] },
+    },
+    { version: "0.4.0", modularAV: { releaseHold: "Waiting for a reply." } },
+  );
+  return root;
+}
 
 const family = {
   "modular-av": "0.4.0",
@@ -132,6 +169,10 @@ describe("the catalog of the family", () => {
 
   it("of this workspace lists every module, the held ones as coming soon", async () => {
     const modules = await listModulePackages();
+    const holds = await Promise.all(modules.map((m) => releaseHold(m.dir)));
+    const heldIds = modules
+      .filter((_, i) => holds[i] !== null)
+      .map((m) => m.id);
 
     const catalog = await workspaceCatalog();
 
@@ -143,12 +184,26 @@ describe("the catalog of the family", () => {
         .filter((id) => id !== "modular-av-starter-set")
         .sort(),
     );
-    expect(catalog.soon.map((m) => m.id)).toContain("modular-av-livekit-krisp");
+    expect(catalog.soon.map((m) => m.id).sort()).toEqual(heldIds.sort());
     expect(parseCatalog(catalog)).toEqual(catalog);
+  });
+
+  it("of a workspace with a held module offers it as coming soon", async () => {
+    const root = await workspaceWithHeldModule();
+
+    try {
+      const catalog = await workspaceCatalog(root);
+
+      expect(catalog.modules.map((m) => m.id)).toEqual(["modular-av"]);
+      expect(catalog.soon.map((m) => m.id)).toEqual(["modular-av-held"]);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
   });
 
   it("on the manifests branch lists what is published there, and the held ones", async () => {
     // Arrange: the branch as the release leaves it, mid-release.
+    const root = await workspaceWithHeldModule();
     const branch = await mkdtemp(join(tmpdir(), "mav-catalog-"));
     for (const manifest of [core, p2p]) {
       await mkdir(join(branch, String(manifest.id)));
@@ -161,18 +216,17 @@ describe("the catalog of the family", () => {
 
     try {
       // Act
-      const catalog = await publishedCatalog(branch);
+      const catalog = await publishedCatalog(branch, root);
 
       // Assert
       expect(catalog.modules.map((m) => m.id)).toEqual([
         "modular-av",
         "modular-av-p2p",
       ]);
-      expect(catalog.soon.map((m) => m.id)).toEqual([
-        "modular-av-livekit-krisp",
-      ]);
+      expect(catalog.soon.map((m) => m.id)).toEqual(["modular-av-held"]);
     } finally {
       await rm(branch, { recursive: true, force: true });
+      await rm(root, { recursive: true, force: true });
     }
   });
 });

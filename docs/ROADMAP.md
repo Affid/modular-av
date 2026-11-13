@@ -52,13 +52,8 @@ external call mode.
 
 ## Waiting on someone else
 
-- **Krisp.** We asked LiveKit (support@livekit.io, 2026-10-26) whether a
-  Foundry module that loads `@livekit/krisp-noise-filter` from npm for
-  each table's own Cloud project fits their terms.
-  `modular-av-livekit-krisp` stays held (`modularAV.releaseHold` in its
-  `package.json`) until they answer in writing.
-- **The other modules on foundryvtt.com.** The core is listed; the rest
-  are submitted one at a time.
+- **The other modules on foundryvtt.com.** The core and LiveKit are
+  listed; the rest are submitted one at a time.
 
 ## Open items
 

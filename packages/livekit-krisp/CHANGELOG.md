@@ -2,7 +2,10 @@
 
 ## 0.13.1
 
-No changes in this release.
+First release, now that LiveKit has confirmed a Foundry module may load
+Krisp for its users: LiveKit's Krisp noise filter joins RNNoise, Speex and
+GTCRN in the noise cancellation choice while the call goes through LiveKit
+Cloud.
 
 ## 0.13.0
 
