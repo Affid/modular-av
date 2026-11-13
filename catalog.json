@@ -193,7 +193,7 @@
       "requires": [
         {
           "id": "modular-av",
-          "minimum": "0.13.1"
+          "minimum": "0.13.2"
         }
       ],
       "facts": [
@@ -211,7 +211,7 @@
         }
       ],
       "icon": "fa-solid fa-table-cells-large",
-      "version": "0.13.1",
+      "version": "0.13.2",
       "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-dock/module.json"
     },
     {
