@@ -115,17 +115,27 @@ so it never offers the released version as an "update", and the next
 release replaces it. Family modules it requires point at their dev
 manifests, so installing the dock's installs the core's.
 
-Install in Foundry with the manifest URL, the same for every dev build:
+Install in Foundry with the manifest URL that `--yes` prints and the
+release notes list, one for each build:
 
 ```
-https://github.com/Affid/modular-av/releases/download/dev/<module-id>.json
+https://github.com/Affid/modular-av/releases/download/dev/<module-id>.json?v=<version>
 ```
 
-A module installed that way updates to the next dev build from Foundry's
-Update button. The core doesn't: it's listed on foundryvtt.com, and
-Foundry looks for a listed package's updates there. Install it again from
-the manifest URL instead; if Foundry won't install over it, uninstall it
-first (a world keeps its settings).
+GitHub may answer a release download address it has already seen with the
+file it found then, for up to an hour after the `dev` release is replaced:
+an installed dev build's update check, or an install from the address
+without `?v=`, can get the last build. An address unique to the build
+can't, so each build's manifest also points at its zip, and at the family
+manifests it requires, with `?v=<version>`; a manifest always installs its
+own zip. `?v=` with anything new works too.
+
+A module installed that way checks for updates at the address without
+`?v=`, so Foundry's Update button finds the next dev build, but possibly
+only after that hour. The core doesn't: it's listed on foundryvtt.com, and
+Foundry looks for a listed package's updates there. To have a build at
+once, install it again from its printed URL; if Foundry won't install over
+a module, uninstall it first (a world keeps its settings).
 
 It isn't private: anyone can see the release on GitHub. But nothing
 leads players to it. It is never on the `manifests` branch or in
