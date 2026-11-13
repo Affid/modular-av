@@ -1,5 +1,9 @@
 # @modular-av/p2p
 
+## 0.13.2
+
+No changes in this release.
+
 ## 0.13.1
 
 No changes in this release.
