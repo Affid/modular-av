@@ -1,0 +1,67 @@
+{
+  "id": "modular-av-livekit-krisp",
+  "title": "Modular A/V: Krisp for LiveKit Cloud",
+  "description": "Adds LiveKit's Krisp noise filter to the noise cancellation choice when your table calls through LiveKit Cloud. Players' browsers download it from npm (jsDelivr) when they turn it on, and Krisp reports the room's name and id, the player's user id and how long it ran to your LiveKit Cloud project; see the README.",
+  "authors": [
+    {
+      "name": "Andrei Fedorov",
+      "url": "https://github.com/Affid"
+    }
+  ],
+  "url": "https://github.com/Affid/modular-av",
+  "bugs": "https://github.com/Affid/modular-av/issues",
+  "license": "LICENSE",
+  "compatibility": {
+    "minimum": "14",
+    "verified": "14.369"
+  },
+  "esmodules": [
+    "modular-av-livekit-krisp.js"
+  ],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    }
+  ],
+  "relationships": {
+    "requires": [
+      {
+        "id": "modular-av",
+        "type": "module",
+        "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av/module.json",
+        "compatibility": {
+          "minimum": "0.13.1"
+        }
+      },
+      {
+        "id": "modular-av-livekit",
+        "type": "module",
+        "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-livekit/module.json",
+        "compatibility": {
+          "minimum": "0.13.1"
+        }
+      }
+    ]
+  },
+  "flags": {
+    "modular-av": {
+      "kind": "effect",
+      "icon": "fa-solid fa-microphone-lines",
+      "facts": [
+        {
+          "label": "Needs",
+          "value": "LiveKit, on LiveKit Cloud"
+        },
+        {
+          "label": "Who turns it on",
+          "value": "Each player, in Voice & Video Settings"
+        }
+      ]
+    }
+  },
+  "version": "0.13.1",
+  "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-livekit-krisp/module.json",
+  "download": "https://github.com/Affid/modular-av/releases/download/modular-av-livekit-krisp-v0.13.1/modular-av-livekit-krisp.zip"
+}

@@ -298,6 +298,35 @@
       "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-livekit/module.json"
     },
     {
+      "id": "modular-av-livekit-krisp",
+      "title": "Modular A/V: Krisp for LiveKit Cloud",
+      "description": "Adds LiveKit's Krisp noise filter to the noise cancellation choice when your table calls through LiveKit Cloud. Players' browsers download it from npm (jsDelivr) when they turn it on, and Krisp reports the room's name and id, the player's user id and how long it ran to your LiveKit Cloud project; see the README.",
+      "kind": "effect",
+      "requires": [
+        {
+          "id": "modular-av",
+          "minimum": "0.13.1"
+        },
+        {
+          "id": "modular-av-livekit",
+          "minimum": "0.13.1"
+        }
+      ],
+      "facts": [
+        {
+          "label": "Needs",
+          "value": "LiveKit, on LiveKit Cloud"
+        },
+        {
+          "label": "Who turns it on",
+          "value": "Each player, in Voice & Video Settings"
+        }
+      ],
+      "icon": "fa-solid fa-microphone-lines",
+      "version": "0.13.1",
+      "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-livekit-krisp/module.json"
+    },
+    {
       "id": "modular-av-mic-denoise",
       "title": "Modular A/V: Noise cancellation",
       "description": "Removes background noise from your microphone with RNNoise, Speex or GTCRN, run in your browser. Pick a model in the voice and video settings.",
@@ -352,33 +381,5 @@
       "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-p2p/module.json"
     }
   ],
-  "soon": [
-    {
-      "id": "modular-av-livekit-krisp",
-      "title": "Modular A/V: Krisp for LiveKit Cloud",
-      "description": "Adds LiveKit's Krisp noise filter to the noise cancellation choice when your table calls through LiveKit Cloud. Players' browsers download it from npm (jsDelivr) when they turn it on, and Krisp reports the room's name and id, the player's user id and how long it ran to your LiveKit Cloud project; see the README.",
-      "kind": "effect",
-      "requires": [
-        {
-          "id": "modular-av",
-          "minimum": "0.13.1"
-        },
-        {
-          "id": "modular-av-livekit",
-          "minimum": "0.13.1"
-        }
-      ],
-      "facts": [
-        {
-          "label": "Needs",
-          "value": "LiveKit, on LiveKit Cloud"
-        },
-        {
-          "label": "Who turns it on",
-          "value": "Each player, in Voice & Video Settings"
-        }
-      ],
-      "icon": "fa-solid fa-microphone-lines"
-    }
-  ]
+  "soon": []
 }
