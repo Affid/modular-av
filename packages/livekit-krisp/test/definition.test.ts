@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createKrispDefinition, krispSection } from "../src/definition.ts";
+import { createKrispDefinition } from "../src/definition.ts";
 import {
   MODULE_ID,
   readQuality,
@@ -28,13 +28,6 @@ describe("Krisp as the core sees it", () => {
       silencesNoise: true,
     });
   });
-
-  it("shows its quality setting in the UI's settings window", () => {
-    expect(krispSection).toMatchObject({
-      kind: "settings-section",
-      settings: ["modular-av-livekit-krisp.quality"],
-    });
-  });
 });
 
 describe("Krisp's quality", () => {
@@ -45,6 +38,7 @@ describe("Krisp's quality", () => {
         registered.set(`${namespace}.${key}`, config);
       },
       get: () => value,
+      set: () => Promise.resolve(undefined),
     };
     return { api, registered };
   }

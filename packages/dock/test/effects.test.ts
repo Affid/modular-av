@@ -44,7 +44,7 @@ function open(dock: TestDock, group = "noise-suppression") {
   const anchor = document.createElement("button");
   document.body.append(anchor);
   // The camera's effects are in its menu, the voice's in the microphone's.
-  const menu = group === "camera-background" ? openCameraMenu : openMicMenu;
+  const menu = group === "noise-suppression" ? openMicMenu : openCameraMenu;
   const popover = menu(dock.ctx, anchor);
   const select = popover.element.querySelector<HTMLSelectElement>(
     `[data-effect-group="${group}"]`,
@@ -161,6 +161,46 @@ describe("the noise cancellation choice", () => {
     );
 
     expect(view.hint()?.hidden).toBe(true);
+  });
+});
+
+describe("a group of one effect", () => {
+  it("is named by its group, e.g. Krisp alone is still noise cancellation", () => {
+    const dock = testDock({
+      state: avState({
+        participants: [me],
+        local: { effects: { krisp: off } },
+      }),
+    });
+    dock.api.effects.register(model("krisp", "medium"));
+
+    const view = open(dock);
+
+    expect(view.root.querySelector("label")?.textContent).toBe(
+      "Noise cancellation",
+    );
+  });
+
+  it("is named by its effect when its group has no name of its own", () => {
+    const lone: VideoEffectDefinition = {
+      id: "sepia",
+      kind: "video",
+      label: "Sepia",
+      cost: "light",
+      isSupported: () => true,
+      create: () => Promise.reject(new Error("unused")),
+    };
+    const dock = testDock({
+      state: avState({
+        participants: [me],
+        local: { effects: { sepia: off } },
+      }),
+    });
+    dock.api.effects.register(lone);
+
+    const view = open(dock, "sepia");
+
+    expect(view.root.querySelector("label")?.textContent).toBe("Sepia");
   });
 });
 

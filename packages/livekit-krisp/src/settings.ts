@@ -2,7 +2,7 @@ import type { KrispQuality } from "./krisp.ts";
 
 export const MODULE_ID = "modular-av-livekit-krisp";
 export const QUALITY_SETTING = "quality";
-const QUALITIES: readonly KrispQuality[] = ["low", "medium", "high"];
+export const QUALITIES: readonly KrispQuality[] = ["low", "medium", "high"];
 const DEFAULT_QUALITY: KrispQuality = "medium";
 
 /** The slice of Foundry's settings this module uses. */
@@ -13,10 +13,14 @@ export interface SettingsApi {
     config: Readonly<Record<string, unknown>>,
   ): void;
   get(namespace: string, key: string): unknown;
+  set(namespace: string, key: string, value: unknown): Promise<unknown>;
 }
 
-/** Per device: how much of this computer Krisp may take. */
-export function registerSettings(settings: SettingsApi): void {
+/** Per device: how much of this computer Krisp may take; `onChange` on a change. */
+export function registerSettings(
+  settings: Pick<SettingsApi, "register">,
+  onChange: () => void = () => undefined,
+): void {
   const choices = Object.fromEntries(
     QUALITIES.map((q) => [q, `${MODULE_ID}.settings.quality.choices.${q}`]),
   );
@@ -28,6 +32,7 @@ export function registerSettings(settings: SettingsApi): void {
     type: String,
     choices,
     default: DEFAULT_QUALITY,
+    onChange,
   });
 }
 

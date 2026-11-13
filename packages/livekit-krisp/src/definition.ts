@@ -1,10 +1,7 @@
-import type {
-  AudioEffectDefinition,
-  Observable,
-  SettingsSectionContribution,
-} from "@modular-av/api";
+import type { AudioEffectDefinition, Observable } from "@modular-av/api";
 import type { KrispModule, KrispQuality } from "./krisp.ts";
-import { MODULE_ID, QUALITY_SETTING } from "./settings.ts";
+import { KRISP_EFFECT } from "./quality.ts";
+import { MODULE_ID } from "./settings.ts";
 
 /** Reported by modular-av-livekit while the call is on LiveKit Cloud. */
 export const CLOUD_FEATURE = "livekit-cloud";
@@ -30,7 +27,7 @@ export function createKrispDefinition(
   deps: KrispDefinitionDeps,
 ): AudioEffectDefinition {
   return {
-    id: "krisp",
+    id: KRISP_EFFECT,
     kind: "audio",
     label: `${MODULE_ID}.label`,
     defaultPlace: "pre-gate",
@@ -52,13 +49,3 @@ export function createKrispDefinition(
     },
   };
 }
-
-/** Krisp's own setting, shown in the UI's settings window. */
-export const krispSection: SettingsSectionContribution = {
-  kind: "settings-section",
-  id: `${MODULE_ID}.section`,
-  label: `${MODULE_ID}.section`,
-  icon: "fa-solid fa-wave-square",
-  tab: "voice",
-  settings: [`${MODULE_ID}.${QUALITY_SETTING}`],
-};
