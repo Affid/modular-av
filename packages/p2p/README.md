@@ -1,5 +1,12 @@
 # Modular A/V: P2P
 
+<a href="https://github.com/Affid/modular-av/tree/stats">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Affid/modular-av/stats/badge-modular-av-p2p-dark.svg">
+  <img alt="Downloads so far, updated daily" src="https://raw.githubusercontent.com/Affid/modular-av/stats/badge-modular-av-p2p-light.svg">
+</picture>
+</a>
+
 Carries Modular A/V's calls directly between players' browsers: no
 server, no account, and no GM needed online. Each browser sends to each of
 the others, so it suits small tables. Requires `modular-av`.

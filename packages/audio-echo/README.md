@@ -1,5 +1,12 @@
 # Modular A/V: Echo
 
+<a href="https://github.com/Affid/modular-av/tree/stats">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Affid/modular-av/stats/badge-modular-av-audio-echo-dark.svg">
+  <img alt="Downloads so far, updated daily" src="https://raw.githubusercontent.com/Affid/modular-av/stats/badge-modular-av-audio-echo-light.svg">
+</picture>
+</a>
+
 An echo for your voice: a canyon, a distant call, a spirit. It runs in your
 browser, on a send beside the voice by default, so the repeats carry on after
 you stop speaking without holding the voice gate open. Requires `modular-av`.

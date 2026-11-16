@@ -1,5 +1,12 @@
 # Modular A/V: Radio
 
+<a href="https://github.com/Affid/modular-av/tree/stats">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Affid/modular-av/stats/badge-modular-av-audio-radio-dark.svg">
+  <img alt="Downloads so far, updated daily" src="https://raw.githubusercontent.com/Affid/modular-av/stats/badge-modular-av-audio-radio-light.svg">
+</picture>
+</a>
+
 A walkie-talkie for your voice: a squad on comms, a ship's intercom, a spirit on
 a crystal set. It cuts your voice down to the narrow band a radio carries,
 crackles under it, and gives a burst of squelch when you stop talking. It runs

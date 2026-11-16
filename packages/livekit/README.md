@@ -1,5 +1,12 @@
 # Modular A/V: LiveKit
 
+<a href="https://github.com/Affid/modular-av/tree/stats">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Affid/modular-av/stats/badge-modular-av-livekit-dark.svg">
+  <img alt="Downloads so far, updated daily" src="https://raw.githubusercontent.com/Affid/modular-av/stats/badge-modular-av-livekit-light.svg">
+</picture>
+</a>
+
 Carries Modular A/V's calls over a LiveKit server: your own or LiveKit
 Cloud. Requires `modular-av`.
 

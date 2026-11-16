@@ -1,5 +1,12 @@
 # Modular A/V: Dock
 
+<a href="https://github.com/Affid/modular-av/tree/stats">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Affid/modular-av/stats/badge-modular-av-dock-dark.svg">
+  <img alt="Downloads so far, updated daily" src="https://raw.githubusercontent.com/Affid/modular-av/stats/badge-modular-av-dock-light.svg">
+</picture>
+</a>
+
 The face of Modular A/V: a Discord-like camera dock with a voice panel, a
 voice and video settings window and badges in the player list. Requires
 `modular-av`; choose it in Modular A/V's settings ("Cameras shown by",

@@ -1,5 +1,12 @@
 # Modular A/V: Jitsi
 
+<a href="https://github.com/Affid/modular-av/tree/stats">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Affid/modular-av/stats/badge-modular-av-jitsi-dark.svg">
+  <img alt="Downloads so far, updated daily" src="https://raw.githubusercontent.com/Affid/modular-av/stats/badge-modular-av-jitsi-light.svg">
+</picture>
+</a>
+
 Carries Modular A/V's calls over your own Jitsi Meet server, with token
 authentication. Requires `modular-av`.
 

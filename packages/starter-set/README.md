@@ -1,5 +1,12 @@
 # Modular A/V: Starter set
 
+<a href="https://github.com/Affid/modular-av/tree/stats">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Affid/modular-av/stats/badge-modular-av-starter-set-dark.svg">
+  <img alt="Downloads so far, updated daily" src="https://raw.githubusercontent.com/Affid/modular-av/stats/badge-modular-av-starter-set-light.svg">
+</picture>
+</a>
+
 Voice and video for Foundry VTT in one install. The starter set holds no
 code: it brings in the Modular A/V modules most tables start with.
 

@@ -1,5 +1,12 @@
 # Modular A/V: Camera background
 
+<a href="https://github.com/Affid/modular-av/tree/stats">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Affid/modular-av/stats/badge-modular-av-cam-background-dark.svg">
+  <img alt="Downloads so far, updated daily" src="https://raw.githubusercontent.com/Affid/modular-av/stats/badge-modular-av-cam-background-light.svg">
+</picture>
+</a>
+
 Blurs or replaces your camera's background in your browser, with
 MediaPipe's selfie segmentation. Turn it on in the voice panel or the
 voice and video settings ("Camera background"). Requires `modular-av`,

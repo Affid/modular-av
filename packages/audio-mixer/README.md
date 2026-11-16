@@ -1,5 +1,12 @@
 # Modular A/V: Audio mixer
 
+<a href="https://github.com/Affid/modular-av/tree/stats">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Affid/modular-av/stats/badge-modular-av-audio-mixer-dark.svg">
+  <img alt="Downloads so far, updated daily" src="https://raw.githubusercontent.com/Affid/modular-av/stats/badge-modular-av-audio-mixer-light.svg">
+</picture>
+</a>
+
 A window for your own voice: which effects run, in which order, where in the
 channel, and how loud. Requires `modular-av`.
 

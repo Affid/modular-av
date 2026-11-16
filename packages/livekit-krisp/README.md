@@ -1,5 +1,12 @@
 # Modular A/V: Krisp for LiveKit Cloud
 
+<a href="https://github.com/Affid/modular-av/tree/stats">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Affid/modular-av/stats/badge-modular-av-livekit-krisp-dark.svg">
+  <img alt="Downloads so far, updated daily" src="https://raw.githubusercontent.com/Affid/modular-av/stats/badge-modular-av-livekit-krisp-light.svg">
+</picture>
+</a>
+
 Adds LiveKit's Krisp noise filter to Modular A/V's noise cancellation
 choice, next to RNNoise, Speex and GTCRN (`modular-av-mic-denoise`). It is
 offered only while the call goes through **LiveKit Cloud**, which licenses

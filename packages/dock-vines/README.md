@@ -1,5 +1,12 @@
 # Modular A/V: Vines theme
 
+<a href="https://github.com/Affid/modular-av/tree/stats">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Affid/modular-av/stats/badge-modular-av-dock-vines-dark.svg">
+  <img alt="Downloads so far, updated daily" src="https://raw.githubusercontent.com/Affid/modular-av/stats/badge-modular-av-dock-vines-light.svg">
+</picture>
+</a>
+
 A theme for [Modular A/V](../../README.md)'s dock, `modular-av-dock`: vine
 leaves around each camera, growing from the corner it sits in, a soft green
 glow while someone speaks, grey leaves while they're muted, and a green

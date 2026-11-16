@@ -1,5 +1,12 @@
 # Modular A/V: EQ
 
+<a href="https://github.com/Affid/modular-av/tree/stats">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Affid/modular-av/stats/badge-modular-av-audio-eq-dark.svg">
+  <img alt="Downloads so far, updated daily" src="https://raw.githubusercontent.com/Affid/modular-av/stats/badge-modular-av-audio-eq-light.svg">
+</picture>
+</a>
+
 A three band equalizer for your voice: warm it up, thin it out, take the edge
 off a harsh microphone. It runs in your browser, ahead of the voice gate by
 default. Requires `modular-av`.
