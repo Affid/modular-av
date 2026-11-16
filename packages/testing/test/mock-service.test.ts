@@ -502,7 +502,9 @@ describe("fake tracks", () => {
       enabled: false,
       readyState: "ended",
       stopCalls: 1,
+      cloneOf: null,
     });
+    expect(fakeTrackInfo(copy).cloneOf).toBe(track);
     expect(copy.kind).toBe("video");
     expect(copy.label).toBe("cam");
     expect(copy.id).not.toBe(track.id);

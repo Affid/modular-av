@@ -59,9 +59,10 @@ external call mode.
 
 ### The core
 
-- **The entry is nearly full**: 130.3 KB of a 130,500 byte budget
-  (`pnpm size:check`), raised from 124,500 for screen sharing. The next
-  core feature needs lazy loading or a budget decision.
+- **The entry is nearly full**: 133.1 KB of a 133,500 byte budget
+  (`pnpm size:check`), raised from 124,500 for screen sharing and from
+  130,500 for `media.audio`. The next core feature needs lazy loading or
+  a budget decision.
 - **Functions over 50 lines**, mostly factories from the first
   milestones: `createLocalMedia`, `createSession`, `createEffectRunner`,
   `createRemoteMedia`, `createMicrophone`, `createCamera`, and helpers in

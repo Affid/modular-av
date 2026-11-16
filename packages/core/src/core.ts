@@ -41,6 +41,7 @@ import {
   type CoreModuleSettings,
 } from "./settings/module-settings.ts";
 import { createMeters } from "./media/meters.ts";
+import { callSources, createAudioCopies } from "./media/audio-copies.ts";
 import type { MediaEnv } from "./media/env.ts";
 import {
   DEFAULT_SENSITIVITY,
@@ -162,6 +163,10 @@ export function installCore(deps: CoreDeps): InstalledCore {
   const controller = (): Controller => current ?? notReady();
   let hosting: CamerasHosting | null = null;
   const meters = createMeters({ env: deps.env, onError: deps.onError });
+  const audioCopies = createAudioCopies({
+    isActiveModule: (id) => game.modules.get(id)?.active === true,
+    onError: deps.onError,
+  });
   /** A cameras surface shows the status: the plain one steps aside. */
   let surfaceShowsStatus = false;
 
@@ -202,6 +207,7 @@ export function installCore(deps: CoreDeps): InstalledCore {
     media: Object.freeze({
       attach: (...args: Parameters<Controller["attach"]>) =>
         controller().attach(...args),
+      audio: audioCopies.audio,
     }),
     meters: meters.api,
     preview: lazyPreviews(
@@ -307,6 +313,7 @@ export function installCore(deps: CoreDeps): InstalledCore {
       local: current.local,
       remote: current.remote,
     });
+    audioCopies.start(callSources({ selfId: game.userId, ...current }));
     watchFoundry(deps, controller, surfaces.api.list());
   });
 

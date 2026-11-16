@@ -107,6 +107,7 @@ The same `api` object stays on `game.modules.get("modular-av").api`:
 | `state`                                                 | The store: session, participants, your own mic and camera, devices     |
 | `commands`                                              | Everything a UI can do: mute, deafen, volumes, devices, effects, leave |
 | `media.attach`                                          | Put a participant's video in an element. The core plays the audio      |
+| `media.audio`                                           | A copy of a participant's sound, for transcription or captions         |
 | `meters`                                                | Sound levels, measured only while something listens to them            |
 | `services`, `effects`, `surfaces`, `contributions`      | The registries modules add to                                          |
 | `settings`                                              | A module's own settings, kept with the player or with the device       |
@@ -132,7 +133,7 @@ The types, and what may change between versions, are in
 ```mermaid
 %%{init: {"htmlLabels": false, "flowchart": {"htmlLabels": false}}}%%
 flowchart TB
-  api["Extension points<br/>registries, state store, commands, media.attach, meters, windows, settings"]
+  api["Extension points<br/>registries, state store, commands, media, meters, windows, settings"]
   foundry["Foundry integration<br/>A/V client class, camera dock host, Foundry's A/V settings, keys"]
   auth["Credentials and identity<br/>token relay through a GM's browser, blocks"]
   session["Session<br/>connect, reconnect, who is in the call"]

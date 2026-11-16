@@ -7,6 +7,7 @@
 import { createFakePreviews, type FakePreviews } from "./fake-previews.ts";
 import type {
   ModuleSettings,
+  AudioSource,
   AVCommands,
   AVState,
   Contribution,
@@ -36,6 +37,13 @@ export interface Attachment {
   readonly detached: boolean;
 }
 
+export interface AudioSubscription {
+  readonly moduleId: string;
+  readonly participant: ParticipantId;
+  readonly source: AudioSource;
+  readonly active: boolean;
+}
+
 export interface MeterSubscription {
   readonly participant: ParticipantId;
   readonly element: Element;
@@ -52,6 +60,13 @@ export interface FakeApi extends ModularAV {
   failNext(command: keyof AVCommands, error: Error): void;
   readonly attachments: readonly Attachment[];
   readonly meterSubscriptions: readonly MeterSubscription[];
+  readonly audioSubscriptions: readonly AudioSubscription[];
+  /** Hands `track` to every active audio subscription it matches. */
+  emitAudio(
+    participant: ParticipantId,
+    source: AudioSource,
+    track: MediaStreamTrack | null,
+  ): void;
   /** Feeds every active meter of `participant`. */
   emitLevel(participant: ParticipantId, reading: MeterReading): void;
   /** What `stats.get` answers, by participant ("" for this client). */
@@ -231,6 +246,10 @@ export function createFakeApi(options: FakeApiOptions = {}): FakeApi {
     sub: MeterSubscription;
     listener: (r: MeterReading) => void;
   }[] = [];
+  let audio: {
+    sub: AudioSubscription;
+    listener: (track: MediaStreamTrack | null) => void;
+  }[] = [];
   let stats = new Map<string, ConnectionStats>();
   const surfaces = openRegistry<SurfaceDefinition>();
   const contributions = openRegistry<Contribution>();
@@ -262,6 +281,18 @@ export function createFakeApi(options: FakeApiOptions = {}): FakeApi {
         return () => {
           attachments = attachments.map((a) =>
             a === attachment ? { ...a, detached: true } : a,
+          );
+        };
+      },
+      audio(moduleId, participant, source, listener) {
+        const entry = {
+          sub: { moduleId, participant, source, active: true },
+          listener,
+        };
+        audio = [...audio, entry];
+        return () => {
+          audio = audio.map((a) =>
+            a === entry ? { ...a, sub: { ...a.sub, active: false } } : a,
           );
         };
       },
@@ -316,6 +347,18 @@ export function createFakeApi(options: FakeApiOptions = {}): FakeApi {
     },
     get meterSubscriptions() {
       return meters.map((m) => m.sub);
+    },
+    get audioSubscriptions() {
+      return audio.map((a) => a.sub);
+    },
+    emitAudio(participant, source, track) {
+      for (const a of audio)
+        if (
+          a.sub.active &&
+          a.sub.participant === participant &&
+          a.sub.source === source
+        )
+          a.listener(track);
     },
     emitLevel(participant, reading) {
       for (const m of meters)

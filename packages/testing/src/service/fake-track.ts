@@ -2,6 +2,8 @@ export interface FakeTrackInfo {
   readonly enabled: boolean;
   readonly readyState: MediaStreamTrackState;
   readonly stopCalls: number;
+  /** The track this one is a `clone()` of, if any. */
+  readonly cloneOf: MediaStreamTrack | null;
 }
 
 let nextTrack = 1;
@@ -19,11 +21,17 @@ class FakeMediaStreamTrack extends EventTarget {
   onended: ((event: Event) => void) | null = null;
   onmute: ((event: Event) => void) | null = null;
   onunmute: ((event: Event) => void) | null = null;
+  readonly cloneOf: FakeMediaStreamTrack | null;
 
-  constructor(kind: "audio" | "video", label: string) {
+  constructor(
+    kind: "audio" | "video",
+    label: string,
+    cloneOf: FakeMediaStreamTrack | null = null,
+  ) {
     super();
     this.kind = kind;
     this.label = label;
+    this.cloneOf = cloneOf;
   }
 
   stop(): void {
@@ -32,7 +40,7 @@ class FakeMediaStreamTrack extends EventTarget {
   }
 
   clone(): FakeMediaStreamTrack {
-    const copy = new FakeMediaStreamTrack(this.kind, this.label);
+    const copy = new FakeMediaStreamTrack(this.kind, this.label, this);
     copy.enabled = this.enabled;
     return copy;
   }
@@ -81,5 +89,6 @@ export function fakeTrackInfo(track: MediaStreamTrack): FakeTrackInfo {
     enabled: fake.enabled,
     readyState: fake.readyState,
     stopCalls: fake.stopCalls,
+    cloneOf: fake.cloneOf,
   };
 }
