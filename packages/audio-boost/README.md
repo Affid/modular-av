@@ -1,5 +1,12 @@
 # Modular A/V: Mic boost
 
+<a href="https://github.com/Affid/modular-av/tree/stats">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Affid/modular-av/stats/badge-modular-av-audio-boost-dark.svg">
+  <img alt="Downloads so far, updated daily" src="https://raw.githubusercontent.com/Affid/modular-av/stats/badge-modular-av-audio-boost-light.svg">
+</picture>
+</a>
+
 Raises a quiet microphone for everyone, such as a laptop's built-in one, and
 evens out its peaks so a laugh doesn't drown the table. It runs in your browser,
 ahead of the voice gate by default, so the gate hears the raised voice. Requires

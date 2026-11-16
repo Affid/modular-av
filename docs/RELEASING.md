@@ -141,6 +141,50 @@ It isn't private: anyone can see the release on GitHub. But nothing
 leads players to it. It is never on the `manifests` branch or in
 `catalog.json`, never sent to foundryvtt.com, and never marked latest.
 
+## Download counts
+
+GitHub keeps only each release file's running total and 14 days of
+repository traffic. The Download counts workflow
+(`.github/workflows/stats.yml`) saves both once a day on the `stats`
+branch and draws, from that history, the card at the top of the main
+README, a badge per module in each package's README, the charts, and a
+README with a row per module
+([the branch](https://github.com/Affid/modular-av/tree/stats)). Nobody
+needs to do anything for it. To run it now:
+`gh workflow run stats.yml`. By hand, `node tools/stats/cli.ts snapshot
+<folder>` and `render <folder>` do the same into any folder.
+
+A module's count is its zip's downloads over all its releases, so
+installs and updates. `module.json` downloads are manifest lookups (mostly
+foundryvtt.com, for listed modules), shown in the file table but not
+counted. The `dev` prerelease is left out, since it is rebuilt with every
+build. Which group each module belongs to, and its colour, is in
+`tools/stats/parts.ts`. A new module has to be added there:
+`parts.test.ts` fails until it is.
+
+Traffic needs the `STATS_TOKEN` secret, a fine-grained personal access
+token for this repository only, with **Administration: Read-only** (GitHub
+puts traffic under Administration). Create it under GitHub's Settings,
+Developer settings, Fine-grained tokens, and add it under the
+repository's Settings, Secrets and variables, Actions. It expires like
+any token. Without it, the workflow still saves downloads and says that
+it skipped traffic. Referrers are never saved: they name people's own
+Foundry servers, and the branch is public.
+
+To show a module's badge on its foundryvtt.com page, add this to the
+page's description (the dock's here; change the module id):
+
+<!-- prettier-ignore -->
+```html
+<a href="https://github.com/Affid/modular-av/tree/stats"><img alt="Downloads so far" src="https://raw.githubusercontent.com/Affid/modular-av/stats/badge-modular-av-dock-dark.svg"></a>
+```
+
+That page has no light and dark versions, so it takes one file. The badge
+has its own background, so either reads on the page.
+
+GitHub turns a scheduled workflow off after 60 days without activity in a
+public repository; a push turns it back on.
+
 ## Versions from 1.0
 
 The 1.0 release is the last in lockstep: every package gets a major

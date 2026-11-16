@@ -1,5 +1,12 @@
 # Modular A/V — voice & video
 
+<a href="https://github.com/Affid/modular-av/tree/stats">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Affid/modular-av/stats/badge-modular-av-dark.svg">
+  <img alt="Downloads so far, updated daily" src="https://raw.githubusercontent.com/Affid/modular-av/stats/badge-modular-av-light.svg">
+</picture>
+</a>
+
 The core of Modular A/V: it replaces Foundry's A/V client and runs the
 call, whichever service carries it and whichever module shows it. On its
 own it works with Foundry's camera dock; add a service module and, for

@@ -1,5 +1,12 @@
 # Modular A/V: Reverb
 
+<a href="https://github.com/Affid/modular-av/tree/stats">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Affid/modular-av/stats/badge-modular-av-audio-reverb-dark.svg">
+  <img alt="Downloads so far, updated daily" src="https://raw.githubusercontent.com/Affid/modular-av/stats/badge-modular-av-audio-reverb-light.svg">
+</picture>
+</a>
+
 A reverb for your voice: a hall, a cave, a cathedral. It runs in your browser,
 on a send beside the voice by default, so it rings on after you stop speaking
 without holding the voice gate open. Requires `modular-av`.

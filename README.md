@@ -6,6 +6,13 @@ and effects for your microphone and camera. It reconnects by itself,
 never shows a state it isn't in (a mute that isn't applied, a blur that
 isn't running), and keeps your server's secret away from players.
 
+<a href="https://github.com/Affid/modular-av/tree/stats">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Affid/modular-av/stats/card-dark.svg">
+  <img alt="Downloads so far of the core, the services, the dock, and the sound and camera modules, updated daily" src="https://raw.githubusercontent.com/Affid/modular-av/stats/card-light.svg">
+</picture>
+</a>
+
 ![Four players' cameras scattered over Foundry's screen, each framed in vine leaves by the vines theme](docs/images/dock-scattered-vines.png)
 
 The user guide is the **[wiki](https://github.com/Affid/modular-av/wiki)**:
