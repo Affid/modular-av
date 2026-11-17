@@ -53,7 +53,13 @@ test("the settings window fits the screen, scrolls and moves", async ({
     window.getByRole("button", { name: "Foundry's A/V settings" }),
   ).toBeInViewport();
 
-  // And it moves by its header.
+  // And it moves by its header. A GM's toasts (no service key here) sit
+  // at the top of the screen, over a tall window's header: they go first.
+  await gm.page.evaluate(() => {
+    (
+      globalThis as unknown as { ui: { notifications: { clear(): void } } }
+    ).ui.notifications.clear();
+  });
   const before = await window.boundingBox();
   const header = window.locator(".window-header .window-title");
   const grip = await header.boundingBox();
