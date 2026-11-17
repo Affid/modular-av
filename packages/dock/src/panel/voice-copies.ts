@@ -166,10 +166,15 @@ function footer({ ctx, doc }: Shared): Rendered {
   return { element, dispose: off };
 }
 
-/** Which modules asked, not how they stand: a row follows that itself. */
+/**
+ * Which modules asked, not how they stand or in what order: a row follows
+ * its answer itself, so answering never rebuilds the list (nor loses the
+ * focus); the order is the one the list opened with.
+ */
 const membership = (ctx: DockContext) => (s: AVState) =>
   myCopies(s, ctx.selfId)
     .map((m) => `${m.copy.receiver}\n${m.copy.moduleId}\n${m.copy.title}`)
+    .sort()
     .join("\n\n");
 
 /**
@@ -232,6 +237,8 @@ export function openVoiceCopies(
       for (const i of [...items, end]) i.dispose();
     },
   });
+  // Opened while nothing asks (the line is hidden then): nothing to show.
+  if (items.length === 0) popover.close();
   return popover;
 }
 

@@ -290,6 +290,29 @@ describe("the list of modules that asked", () => {
     );
   });
 
+  it("keeps its rows, and the focus, when an answer would reorder them", async () => {
+    // Arrange: two unanswered modules; answering the first sorts it last.
+    const second = { ...CAPTIONS, ...mineAs(CAPTIONS, "asking") };
+    const { openList, api } = mounted(withCopies([TRANSCRIBER, second]));
+    const list = await openList();
+    const allow =
+      rows(list)[0]?.querySelector<HTMLButtonElement>(".mav-effect-choice");
+    allow?.focus();
+
+    // Act
+    allow?.click();
+    api.setState((s) => ({
+      ...s,
+      voiceCopies: [mineAs(TRANSCRIBER, "allowed"), second],
+    }));
+    await settle();
+
+    // Assert
+    expect(allow?.isConnected).toBe(true);
+    expect(document.activeElement).toBe(allow);
+    expect(pressed(rows(list)[0])).toEqual(["true", "false"]);
+  });
+
   it("names each module's group and describes it", async () => {
     const { openList } = mounted(withCopies([TRANSCRIBER]));
 
