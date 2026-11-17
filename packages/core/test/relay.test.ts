@@ -12,6 +12,7 @@ import {
   REPLY_TIMEOUT_MS,
   RETRY_MS,
   type TokenRelay,
+  WOKEN_GRACE_MS,
 } from "../src/auth/relay.ts";
 import { createChannels } from "../src/socket.ts";
 
@@ -32,6 +33,9 @@ interface Peer {
 
 let ids = 0;
 
+/** A player who asks this long after the GM's page started. */
+const LATER_MS = 3_000;
+
 function connect(
   world: FakeWorld,
   userId: string,
@@ -40,9 +44,11 @@ function connect(
     failSigning?: boolean;
     /** A busy GM: signing takes this long. */
     signingMs?: number;
+    /** Logged in before: the page's core starts now. */
+    client?: FakeClient;
   } = {},
 ): Peer {
-  const client = world.connect(userId);
+  const client = options.client ?? world.connect(userId);
   const game = client.game;
   const hub = createMockServiceHub();
   const signed: TokenRequest[] = [];
@@ -177,6 +183,74 @@ describe("GM token relay", () => {
     expect(p1.waiting).toEqual([true, false]);
   });
 
+  it("asks at once when a GM's page starts listening, not at the next retry", async () => {
+    // Arrange: Player1 waits; the GM logs in, but their page is still
+    // loading, so the request sent at the login goes unanswered.
+    vi.useFakeTimers();
+    const world = createFakeWorld({ users: USERS });
+    const p1 = connect(world, "p1");
+    let resolved: string | undefined;
+    void p1.relay.request(new AbortController().signal).then((t) => {
+      resolved = t;
+    });
+    await settle(world);
+    await vi.advanceTimersByTimeAsync(REPLY_TIMEOUT_MS);
+    const loading = world.connect("gm");
+    await settle(world);
+    await vi.advanceTimersByTimeAsync(REPLY_TIMEOUT_MS);
+    const unanswered = resolved;
+
+    // Act: the GM's page is ready and can sign.
+    connect(world, "gm", { secret: true, client: loading });
+    await settle(world);
+
+    // Assert
+    expect(unanswered).toBeUndefined();
+    expect(resolved).toBe("token-for-p1");
+  });
+
+  it("asks again when a GM's page says it can sign while waiting for a reply", async () => {
+    // Arrange: Player1's request goes out while no GM's page listens.
+    vi.useFakeTimers();
+    const world = createFakeWorld({ users: USERS });
+    const p1 = connect(world, "p1");
+    let resolved: string | undefined;
+    void p1.relay.request(new AbortController().signal).then((t) => {
+      resolved = t;
+    });
+    await settle(world);
+    const loading = world.connect("gm");
+    await settle(world);
+
+    // Act: within that reply wait, the GM's page starts and can sign.
+    await vi.advanceTimersByTimeAsync(REPLY_TIMEOUT_MS / 5);
+    connect(world, "gm", { secret: true, client: loading });
+    await settle(world);
+    await vi.advanceTimersByTimeAsync(WOKEN_GRACE_MS);
+    await settle(world);
+
+    // Assert: answered now, not after the reply wait and a retry.
+    expect(resolved).toBe("token-for-p1");
+  });
+
+  it("says nothing when a GM's page can't sign, or a player's starts", async () => {
+    vi.useFakeTimers();
+    const world = createFakeWorld({ users: USERS });
+    const p1 = connect(world, "p1");
+    const said: unknown[] = [];
+    const watcher = world.connect("p4");
+    createChannels(watcher.game.socket, () => undefined)
+      .channel("auth")
+      .on((data) => said.push(data));
+
+    // A GM without the secret, and Player1's own page, already started.
+    connect(world, "gm");
+    await settle(world);
+
+    expect(said).toEqual([]);
+    expect(p1.waiting).toEqual([]);
+  });
+
   it("waits while the online GMs can't sign, asking again every retry period", async () => {
     // Arrange
     vi.useFakeTimers();
@@ -277,6 +351,8 @@ describe("GM token relay", () => {
     vi.useFakeTimers();
     const world = createFakeWorld({ users: USERS });
     const gm = connect(world, "gm", { secret: true, failSigning: true });
+    // The GM's page was up before Player1's.
+    await settle(world);
     const p1 = connect(world, "p1");
 
     void p1.relay.request(new AbortController().signal);
@@ -366,7 +442,10 @@ describe("GM token relay", () => {
     await settle(world);
 
     await expect(token).resolves.toBe("token-for-p1");
-    expect(snoop).not.toHaveBeenCalled();
+    // Only a GM's "I can sign" reaches everyone: no ids, no tokens.
+    expect(snoop.mock.calls.map((call): unknown => call[0])).toEqual([
+      { type: "signer" },
+    ]);
   });
 
   it("signs locally once a GM's secret arrives while it waits", async () => {
@@ -389,6 +468,32 @@ describe("GM token relay", () => {
     expect(gm.waiting).toEqual([true, false]);
   });
 
+  it("lets waiting players in as soon as a GM whose secret came late joins", async () => {
+    // Arrange: the GM's page started without the secret; Player1 asks
+    // a little later, so their own retry comes after the GM's.
+    vi.useFakeTimers();
+    const world = createFakeWorld({ users: USERS });
+    let secret = false;
+    const gm = connect(world, "gm", { secret: () => secret });
+    const p1 = connect(world, "p1");
+    let p1Token: string | undefined;
+    void gm.relay.request(new AbortController().signal);
+    await vi.advanceTimersByTimeAsync(LATER_MS);
+    void p1.relay.request(new AbortController().signal).then((t) => {
+      p1Token = t;
+    });
+    await settle(world);
+    secret = true;
+
+    // Act: the GM's own retry signs its token locally.
+    await vi.advanceTimersByTimeAsync(REPLY_TIMEOUT_MS + RETRY_MS - LATER_MS);
+    await settle(world);
+
+    // Assert: Player1 is in with the GM, not at their own retry.
+    expect(gm.signed.map((r) => r.participant)).toContain("gm");
+    expect(p1Token).toBe("token-for-p1");
+  });
+
   it("takes a GM's late reply, even after it said it was waiting", async () => {
     // Arrange: a GM whose page is busy loading answers after the timeout.
     vi.useFakeTimers();
@@ -397,6 +502,8 @@ describe("GM token relay", () => {
       secret: true,
       signingMs: REPLY_TIMEOUT_MS + 2_000,
     });
+    // The GM's page was up before Player1's.
+    await settle(world);
     const p1 = connect(world, "p1");
     const requests = vi.fn();
     createChannels(gm.client.game.socket, () => undefined)
