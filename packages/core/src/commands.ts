@@ -11,12 +11,14 @@ import type {
   Registry,
   ScreenShareOptions,
   VideoResolution,
+  VoiceConsentChoice,
   VoiceMode,
 } from "@modular-av/api";
 import type { Controller } from "./controller.ts";
 import { AVCommandError } from "./errors.ts";
 import type { AVSettingsLike, FoundryGame } from "./foundry/globals.ts";
 import type * as SettingWrites from "./media/setting-writes.ts";
+import type * as VoiceWrites from "./voices/commands.ts";
 
 function avSettings(controller: Controller): AVSettingsLike {
   const settings = controller.facts.settings();
@@ -48,6 +50,10 @@ const attempt = (run: () => void): Promise<void> => {
 /** Loaded with the first change: the entry only reads these settings. */
 const loadWrites = (): Promise<typeof SettingWrites> =>
   import("./media/setting-writes.ts");
+
+/** The player's say over their voice, loaded when they first use it. */
+const loadVoiceWrites = (): Promise<typeof VoiceWrites> =>
+  import("./voices/commands.ts");
 
 export function createCommands(
   game: FoundryGame,
@@ -100,7 +106,24 @@ export function createCommands(
       );
   };
 
+  // One for the page, so its saves of the player's consent wait their
+  // turn; kept once loaded, so a failed load is tried again next time.
+  let voiceWrites: VoiceWrites.VoiceConsentCommands | null = null;
+  const voices = async (): Promise<VoiceWrites.VoiceConsentCommands> => {
+    const loaded = await loadVoiceWrites();
+    voiceWrites ??= loaded.createVoiceConsentCommands(game);
+    return voiceWrites;
+  };
+
   return Object.freeze({
+    setVoiceConsent: async (choice: VoiceConsentChoice) =>
+      (await voices()).setVoiceConsent(choice),
+    decideVoiceCopy: async (
+      moduleId: string,
+      receiver: string,
+      allow: boolean | null,
+    ) => (await voices()).decideVoiceCopy(moduleId, receiver, allow),
+    forgetVoiceDecisions: async () => (await voices()).forgetVoiceDecisions(),
     setMuted: (muted: boolean) =>
       attempt(() => {
         if (!muted && !controller().facts.canBroadcast(self()).audio)

@@ -133,6 +133,10 @@ export function createStateSync(deps: StateSyncDeps): () => void {
           speaking: rt.speaking,
           quality: rt.quality,
           hasMedia: (id, kind) => remote.has(id, kind),
+          moduleTitle: (id) => {
+            const mod = game.modules.get(id);
+            return mod?.active === true ? (mod.title ?? id) : null;
+          },
         },
         previous,
       ),

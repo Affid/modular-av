@@ -121,5 +121,7 @@ export function avState(
         speakingDetection: true,
       },
     },
+    voiceCopies: changes.voiceCopies ?? [],
+    voiceConsent: changes.voiceConsent ?? { choice: "ask", decisions: [] },
   };
 }

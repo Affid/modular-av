@@ -5,6 +5,7 @@ import type {
   InputSensitivity,
   MediaPermissions,
   VideoResolution,
+  VoiceConsentChoice,
   VoiceMode,
 } from "./state.ts";
 import type { ParticipantId } from "./service.ts";
@@ -141,4 +142,14 @@ export interface AVCommands {
     participant: ParticipantId,
     permissions: Partial<MediaPermissions>,
   ): Promise<void>;
+  /** What a module asking for your voice gets until you answer for it. */
+  setVoiceConsent(choice: VoiceConsentChoice): Promise<void>;
+  /** Your answer for a module on `receiver`'s browser; null forgets it. */
+  decideVoiceCopy(
+    moduleId: string,
+    receiver: ParticipantId,
+    allow: boolean | null,
+  ): Promise<void>;
+  /** Forgets every answer: modules follow your choice again. */
+  forgetVoiceDecisions(): Promise<void>;
 }

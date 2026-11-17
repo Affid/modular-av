@@ -36,9 +36,11 @@ export type {
   FakeGame,
   FakeModule,
   FakeModuleData,
+  FakeFoundryNamespace,
   FakeUi,
   Notification,
 } from "./foundry/client.ts";
+export type { FakeDialog, FakeDialogV2 } from "./foundry/dialog.ts";
 export type {
   FakeSettingConfig,
   FakeSettingMenu,

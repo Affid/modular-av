@@ -11,6 +11,11 @@ import type {
 import { MODULE_ID } from "../constants.ts";
 import type { AVFacts } from "../foundry/av-facts.ts";
 import type { FoundryUser } from "../foundry/globals.ts";
+import {
+  type ActiveModuleTitle,
+  consentOf,
+  projectVoiceCopies,
+} from "../voices/project.ts";
 
 export interface ProjectionInput {
   readonly facts: AVFacts;
@@ -29,6 +34,8 @@ export interface ProjectionInput {
     participant: ParticipantId,
     kind: "audio" | "video" | "screen",
   ): boolean;
+  /** An active module's title (its id if it has none); null otherwise. */
+  readonly moduleTitle: ActiveModuleTitle;
 }
 
 export const DEAFENED_FLAG = "deafened";
@@ -121,6 +128,14 @@ export function project(
     local: keep(previous?.local, input.local),
     devices: keep(previous?.devices, input.devices),
     service: keep(previous?.service, input.service),
+    voiceCopies: keep(
+      previous?.voiceCopies,
+      projectVoiceCopies(input.users, input.moduleTitle),
+    ),
+    voiceConsent: keep(
+      previous?.voiceConsent,
+      consentOf(input.users.find((u) => u.id === input.facts.selfId)),
+    ),
   };
   return previous && sameData(previous, next) ? previous : next;
 }

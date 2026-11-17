@@ -6,6 +6,7 @@ import type {
 } from "@modular-av/api";
 import { MODULE_ID } from "../constants.ts";
 import type { FoundryI18n, FoundryNotifications } from "../foundry/globals.ts";
+import { voiceCopyBadges } from "../voices/badge.ts";
 
 /**
  * The core's minimal plain status, so its guarantees hold with no UI
@@ -128,11 +129,7 @@ export function startPlainStatus(deps: PlainStatusDeps): () => void {
     },
   );
   const offBadges = deps.store.subscribe(
-    (s) =>
-      Object.values(s.participants)
-        .filter((p) => p.deafened && p.active)
-        .map((p) => p.id)
-        .join(","),
+    (s) => JSON.stringify(playerBadges(s, deps.i18n)),
     () => {
       deps.renderPlayers();
     },
@@ -188,28 +185,52 @@ export function deafenedIds(state: AVState): ReadonlySet<string> {
 
 const BADGE_CLASS = "mav-badge";
 
+/** A badge on a player in Foundry's list: `data` names it (`data-<name>`). */
+export interface PlayerBadge {
+  readonly userId: string;
+  /** A dataset key, e.g. "voiceCopies" for `data-voice-copies`. */
+  readonly data: string;
+  readonly icon: string;
+  readonly label: string;
+}
+
+/** Every badge the core shows: deafened players, browsers receiving voices. */
+export function playerBadges(state: AVState, i18n: FoundryI18n): PlayerBadge[] {
+  const deafened = i18n.localize(`${MODULE_ID}.status.deafened`);
+  return [
+    ...[...deafenedIds(state)].map((userId) => ({
+      userId,
+      data: "deafened",
+      icon: "fa-solid fa-headphones-slash",
+      label: deafened,
+    })),
+    ...voiceCopyBadges(state, i18n),
+  ];
+}
+
+function badgeElement(doc: Document, badge: PlayerBadge): HTMLElement {
+  const element = doc.createElement("span");
+  element.className = BADGE_CLASS;
+  element.dataset[badge.data] = "";
+  element.setAttribute("role", "img");
+  element.setAttribute("aria-label", badge.label);
+  element.title = badge.label;
+  const icon = doc.createElement("i");
+  icon.className = badge.icon;
+  icon.setAttribute("aria-hidden", "true");
+  element.append(icon);
+  return element;
+}
+
 /** Adds the badges to Foundry's player list (`renderPlayers` hook). */
 export function decoratePlayerList(
   root: ParentNode,
-  state: AVState,
-  label: string,
+  badges: readonly PlayerBadge[],
 ): void {
-  const deafened = deafenedIds(state);
   for (const old of root.querySelectorAll(`.${BADGE_CLASS}`)) old.remove();
   for (const item of root.querySelectorAll<HTMLElement>("li[data-user-id]")) {
-    const id = item.dataset.userId;
-    if (!id || !deafened.has(id)) continue;
-    const doc = item.ownerDocument;
-    const badge = doc.createElement("span");
-    badge.className = BADGE_CLASS;
-    badge.dataset.deafened = "";
-    badge.setAttribute("role", "img");
-    badge.setAttribute("aria-label", label);
-    badge.title = label;
-    const icon = doc.createElement("i");
-    icon.className = "fa-solid fa-headphones-slash";
-    icon.setAttribute("aria-hidden", "true");
-    badge.append(icon);
-    item.append(badge);
+    const own = badges.filter((b) => b.userId === item.dataset.userId);
+    for (const badge of own)
+      item.append(badgeElement(item.ownerDocument, badge));
   }
 }

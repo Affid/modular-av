@@ -1,5 +1,10 @@
 import { FakeApplicationV2, FakeAVConfig } from "./application.ts";
 import {
+  createFakeDialogs,
+  type FakeDialog,
+  type FakeDialogV2,
+} from "./dialog.ts";
+import {
   FakeAVClient,
   FakeCameraViews,
   FakeDefaultAVClient,
@@ -67,34 +72,40 @@ export interface FakeUi {
   webrtc: FakeCameraViews | null;
 }
 
-/** The `foundry` namespace, as far as A/V subclasses need it. */
-export const FOUNDRY_NAMESPACE = Object.freeze({
-  av: Object.freeze({
-    AVClient: FakeAVClient,
-    AVSettings: Object.freeze({ AV_MODES }),
-  }),
-  applications: Object.freeze({
-    api: Object.freeze({ ApplicationV2: FakeApplicationV2 }),
-    settings: Object.freeze({
-      menus: Object.freeze({ AVConfig: FakeAVConfig }),
+/** The `foundry` namespace, as far as the core needs it; dialogs are each client's. */
+function foundryNamespace(DialogV2: FakeDialogV2) {
+  return Object.freeze({
+    av: Object.freeze({
+      AVClient: FakeAVClient,
+      AVSettings: Object.freeze({ AV_MODES }),
     }),
-    apps: Object.freeze({
-      av: Object.freeze({ CameraViews: FakeCameraViews }),
+    applications: Object.freeze({
+      api: Object.freeze({ ApplicationV2: FakeApplicationV2, DialogV2 }),
+      settings: Object.freeze({
+        menus: Object.freeze({ AVConfig: FakeAVConfig }),
+      }),
+      apps: Object.freeze({
+        av: Object.freeze({ CameraViews: FakeCameraViews }),
+      }),
     }),
-  }),
-  utils: Object.freeze({
-    /** Foundry adds its route prefix; the fake world has none. */
-    getRoute: (path: string) => `/${path.replace(/^\/+/, "")}`,
-  }),
-});
+    utils: Object.freeze({
+      /** Foundry adds its route prefix; the fake world has none. */
+      getRoute: (path: string) => `/${path.replace(/^\/+/, "")}`,
+    }),
+  });
+}
+
+export type FakeFoundryNamespace = ReturnType<typeof foundryNamespace>;
 
 export interface FakeClient {
   readonly game: FakeGame;
   readonly Hooks: FakeHooks;
   readonly CONFIG: FakeConfig;
   readonly ui: FakeUi;
-  readonly foundry: typeof FOUNDRY_NAMESPACE;
+  readonly foundry: FakeFoundryNamespace;
   readonly notifications: readonly Notification[];
+  /** Every DialogV2 opened on this client, oldest first. */
+  readonly dialogs: readonly FakeDialog[];
   /** Rejections nobody awaited, such as `game.webrtc.connect()` at startup. */
   readonly errors: readonly unknown[];
   /** Puts `game`, `Hooks`, `CONFIG`, `ui` and `foundry` on `target`; returns an undo. */
@@ -156,6 +167,7 @@ export function createClient(parts: ClientParts): ClientHandle {
   let avSettings: FakeAVSettingsHandle | null = null;
   let notifications: readonly Notification[] = [];
   let errors: readonly unknown[] = [];
+  const dialogs = createFakeDialogs();
 
   const notify =
     (type: Notification["type"]): Notify =>
@@ -238,9 +250,12 @@ export function createClient(parts: ClientParts): ClientHandle {
       ui: { webrtc: FakeCameraViews },
     },
     ui,
-    foundry: FOUNDRY_NAMESPACE,
+    foundry: foundryNamespace(dialogs.DialogV2),
     get notifications() {
       return notifications;
+    },
+    get dialogs() {
+      return dialogs.dialogs;
     },
     get errors() {
       return errors;

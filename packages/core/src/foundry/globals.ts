@@ -6,6 +6,7 @@
 export interface FoundryModule {
   readonly id: string;
   readonly version: string;
+  readonly title?: string;
   /** Enabled in this world. */
   readonly active?: boolean;
   api?: unknown;
@@ -192,6 +193,10 @@ export interface FoundryNamespace {
   readonly applications: {
     readonly api: {
       readonly ApplicationV2: abstract new (...args: never[]) => object;
+      readonly DialogV2: {
+        confirm(options: object): Promise<unknown>;
+        wait(options: object): Promise<unknown>;
+      };
     };
     readonly apps: {
       readonly av: {

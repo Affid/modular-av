@@ -12,6 +12,7 @@ import {
   micOf,
   type Tab,
   type TabOptions,
+  USERS,
 } from "./table.ts";
 
 const MODULE = "transcriber";
@@ -25,8 +26,17 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+/** Everyone lets modules receive their voice: consent has tests of its own. */
+const ALLOWING = USERS.map((u) => ({
+  ...u,
+  flags: {
+    "modular-av": { voiceConsent: { choice: "allow", decisions: [] } },
+  },
+}));
+
 function tableWithModules() {
   return createTable({
+    users: ALLOWING,
     modules: [
       { id: "modular-av", version: "0.1.0" },
       { id: MODULE, version: "1.0.0" },
