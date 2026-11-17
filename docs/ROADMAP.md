@@ -59,9 +59,9 @@ external call mode.
 
 ### The core
 
-- **The entry is nearly full**: 142.4 KB of a 143,000 byte budget
+- **The entry is nearly full**: 143.7 KB of a 144,000 byte budget
   (`pnpm size:check`), raised from 124,500 for screen sharing, from
-  130,500 for `media.audio` and from 133,500 for voice consent (#28),
+  130,500 for `media.audio`, and from 133,500 for voice consent (#28),
   whose questions, notifications and writes already load lazily. The
   next core feature needs lazy loading or a budget decision.
 - **Functions over 50 lines**, mostly factories from the first

@@ -333,7 +333,7 @@ describe("the player's choice", () => {
     expect(received).toEqual([]);
     expect(p1.client.dialogs).toEqual([]);
     expect(messages(p1)).toContain(
-      "Transcriber, on Gamemaster's browser, asked for your voice. It gets none: you refused.",
+      "Transcriber, on Gamemaster's browser, asked for your voice. It gets nothing: you refused.",
     );
   });
 
@@ -481,6 +481,56 @@ describe("the settings", () => {
       "forget",
     ]);
     expect(p1.api.state.get().voiceConsent.choice).toBe("allow");
+  });
+
+  it("forgets the answers only once the player confirms, told what follows", async () => {
+    // Arrange
+    const { table: t, gm, p1 } = await call({ p1: "allow" });
+    await p1.api.commands.decideVoiceCopy(MODULE, "gm", false);
+    const { received } = listen(gm, "p1");
+    await t.settle();
+    const section = p1.api.contributions
+      .list()
+      .find((c) => c.id === "modular-av.voices");
+    const controls =
+      section?.kind === "settings-section" ? section.controls : [];
+    const forget = controls?.find((c) => c.type === "button");
+
+    // Act
+    if (forget?.type === "button") void forget.run();
+    await t.settle();
+    const [confirm] = openDialogs(p1);
+    const warned = confirm?.content ?? "";
+    confirm?.press("no");
+    await t.settle();
+    const keptAfterCancel = p1.api.state.get().voiceConsent.decisions.length;
+    if (forget?.type === "button") void forget.run();
+    await t.settle();
+    openDialogs(p1)[0]?.press("yes");
+    await t.settle();
+
+    // Assert
+    expect(warned).toContain("including those you refused");
+    expect(keptAfterCancel).toBe(1);
+    expect(p1.api.state.get().voiceConsent.decisions).toEqual([]);
+    expect(copied(received.at(-1))).toBe(micOf(p1));
+  });
+
+  it("asks the core-only player to confirm forgetting from the menu too", async () => {
+    const { table: t, p1 } = await call();
+    await p1.api.commands.decideVoiceCopy(MODULE, "gm", true);
+    const menu = p1.client.game.settings.menus.get("modular-av.voices");
+    const Menu = menu?.type as (new () => { render(): unknown }) | undefined;
+
+    if (Menu) void new Menu().render();
+    await t.settle();
+    openDialogs(p1)[0]?.press("forget");
+    await t.settle();
+    openDialogs(p1)[0]?.press("yes");
+    await t.settle();
+
+    expect(p1.client.dialogs[1]?.content).toContain("will ask you again");
+    expect(p1.api.state.get().voiceConsent.decisions).toEqual([]);
   });
 
   it("puts the same in a settings window's Call tab", async () => {

@@ -499,6 +499,92 @@
   display: none;
 }
 
+/* A module asks for the player's voice: one line where only the module's
+   title is cut short; it stands out while a question waits. */
+.mav-dock-voices {
+  display: flex;
+  align-items: center;
+  /* Foundry spaces a button's children: the words keep their own. */
+  gap: 0;
+  min-width: 0;
+  height: auto;
+  margin: 0;
+  padding: 2px 6px;
+  border: 1px solid var(--mav-border);
+  border-radius: 6px;
+  background: none;
+  color: var(--mav-text-muted);
+  font-size: 0.85em;
+  white-space: pre;
+  cursor: pointer;
+}
+
+.mav-dock-voices[data-state="asking"] {
+  border-color: var(--mav-accent);
+  color: var(--mav-text);
+}
+
+.mav-dock-voices[hidden] {
+  display: none;
+}
+
+.mav-dock-voices-icon {
+  margin-inline-end: 6px;
+}
+
+.mav-dock-voices-title,
+.mav-voice-copy-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mav-dock-voice-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mav-voice-copy-head,
+.mav-voice-footer {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.mav-voice-copy-status {
+  flex: none;
+  color: var(--mav-text-muted);
+}
+
+/* Refused: the leave button's red, and a light red for words on dark. */
+.mav-effect-choice.mav-voice-no[aria-pressed="true"] {
+  background: #a12828;
+}
+
+.mav-voice-copy-status[data-state="refused"],
+.mav-dock-voices[data-state="refused"] .mav-dock-voices-icon {
+  color: #ff8e90;
+}
+
+.mav-voice-copy-status[data-state="asking"] {
+  color: var(--mav-text);
+  font-weight: 600;
+}
+
+.mav-voice-copy-detail,
+.mav-voice-footer p {
+  margin: 0;
+  color: var(--mav-text-muted);
+}
+
+.mav-voice-footer {
+  padding-block-start: 8px;
+  border-top: 1px solid var(--mav-border);
+}
+
 /* The arrow beside the microphone and the camera that opens its menu:
    half a button, joined to its button by a hairline. */
 .mav-dock-menu-arrow {
@@ -617,7 +703,7 @@
 
 .mav-dock:is([data-placement="top"], [data-placement="bottom"])[data-collapsed]
   .mav-dock-panel {
-  grid-template-columns: auto auto auto;
+  grid-template-columns: auto auto auto auto;
   width: auto;
   max-height: none;
   overflow: visible;
@@ -626,7 +712,20 @@
 .mav-dock:is([data-placement="top"], [data-placement="bottom"])[data-collapsed]
   .mav-dock-panel
   > .mav-dock-buttons {
+  grid-column: 4;
+}
+
+/* A bar of one row: the line is its ear, before the buttons. */
+.mav-dock:is([data-placement="top"], [data-placement="bottom"])[data-collapsed]
+  .mav-dock-panel
+  > .mav-dock-voices {
   grid-column: 3;
+}
+
+.mav-dock:is([data-placement="top"], [data-placement="bottom"])[data-collapsed]
+  .mav-dock-voices
+  > span:not(.mav-dock-voices-icon) {
+  display: none;
 }
 
 /* Collapsed on a side: a narrow rail of buttons, the status written
@@ -668,7 +767,8 @@
     .mav-dock-layout,
     .mav-dock-connection-ms,
     .mav-dock-connection-where,
-    .mav-dock-menu-arrow
+    .mav-dock-menu-arrow,
+    .mav-dock-voices > span:not(.mav-dock-voices-icon)
   ) {
   display: none;
 }
@@ -974,7 +1074,8 @@
 
 /* Room for a device's name and the three input modes on one line: the
    popover would shrink to its labels. */
-.mav-dock-quick-controls {
+.mav-dock-quick-controls,
+.mav-dock-voice-copies {
   width: min(296px, calc(100vw - 40px));
 }
 
@@ -986,6 +1087,8 @@
 
 .mav-dock-menu,
 .mav-dock-quick-controls,
+.mav-dock-voice-copies,
+.mav-dock-voice-copy,
 .mav-effects,
 .mav-control-nested {
   display: flex;
@@ -1388,6 +1491,18 @@
   min-width: 0;
 }
 
+/* Another module's choice: the window's two columns; a button its width. */
+.mav-settings-section > .mav-control[data-control="choice"] {
+  display: grid;
+  grid-template-columns: 40% 1fr;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.mav-settings-section > .mav-control > .mav-control-button {
+  width: auto;
+}
+
 .mav-settings-row .mav-settings-hint {
   grid-column: 1 / -1;
   margin: 0;
@@ -1577,8 +1692,10 @@
 }
 
 .mav-settings-actions .mav-control-button,
-.mav-settings-footer .mav-control-button {
+.mav-settings-footer .mav-control-button,
+.mav-voice-footer .mav-control-button {
   width: auto;
+  flex: none;
 }
 
 .mav-settings-footer {
@@ -1731,10 +1848,15 @@
   margin-inline-start: 4px;
 }
 
-.mav-players-badges .mav-indicator {
+.mav-players-badges .mav-indicator,
+.mav-players-voices {
   min-width: 16px;
   height: 16px;
   font-size: 10px;
+}
+
+.mav-players-voices {
+  margin-inline-start: 4px;
 }
 
 li[data-user-id][data-speaking] {
@@ -1758,4 +1880,8 @@ body.modular-av-pip {
   .mav-dock-tile-menu {
     transition: opacity 120ms ease-out;
   }
+}
+
+.mav-dock[data-collapsed] .mav-dock-voices-icon {
+  margin: 0;
 }

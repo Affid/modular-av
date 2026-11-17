@@ -45,7 +45,11 @@ import { callSources, createAudioCopies } from "./media/audio-copies.ts";
 import { announceVoiceCopies } from "./voices/announce.ts";
 import { consentFor } from "./voices/flags.ts";
 import { consentOf } from "./voices/project.ts";
-import { registerVoicesMenu, voiceConsentSection } from "./voices/settings.ts";
+import {
+  confirmForgetting,
+  registerVoicesMenu,
+  voiceConsentSection,
+} from "./voices/settings.ts";
 import { whenAsked } from "./voices/watch.ts";
 import type { MediaEnv } from "./media/env.ts";
 import {
@@ -285,7 +289,15 @@ export function installCore(deps: CoreDeps): InstalledCore {
   hooks.once("setup", () => {
     const registries = [services, effects, surfaces, contributions];
     for (const registry of registries) registry.open();
-    contributions.api.register(voiceConsentSection(store.view, api.commands));
+    contributions.api.register(
+      voiceConsentSection(
+        store.view,
+        api.commands,
+        confirmForgetting({
+          ...{ game, DialogV2, store: store.view, commands: api.commands },
+        }),
+      ),
+    );
     hooks.callAll(REGISTER_HOOK, api);
     for (const registry of registries) registry.close();
     registerServiceSetting(game, services.api.list());

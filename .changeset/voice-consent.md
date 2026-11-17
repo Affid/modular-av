@@ -16,4 +16,4 @@ list marks the player whose browser runs it. The state carries
 `voiceCopies` and `voiceConsent`, and the commands `setVoiceConsent`,
 `decideVoiceCopy` and `forgetVoiceDecisions`. The testing package's fake
 Foundry opens `DialogV2` dialogs a test answers. The core's entry budget
-goes from 133,500 to 143,000 bytes.
+goes from 133,500 to 144,000 bytes.

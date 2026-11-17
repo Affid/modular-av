@@ -97,7 +97,43 @@
       "rejoin": "Rejoin",
       "reconnect": "Reconnect now",
       "failed": "That didn't work: {reason}",
-      "failedSecret": "That wasn't saved. The value you typed isn't shown again."
+      "failedSecret": "That wasn't saved. The value you typed isn't shown again.",
+      "voices": {
+        "line": {
+          "asking": "{module} wants your voice",
+          "allowed": "{module} receives your voice",
+          "refused": "You refused {module}"
+        },
+        "full": {
+          "asking": "{module}, {where}, wants your voice. Open to answer.",
+          "allowed": "{module}, {where}, receives your voice. Open to change.",
+          "refused": "You refused {module}, {where}. Open to change."
+        },
+        "summary": "Your voice: {parts}",
+        "count": {
+          "asking": "{count} to answer",
+          "allowed": "{count} receiving",
+          "refused": "{count} refused"
+        },
+        "short": {
+          "asking": {
+            "one": "1 module wants your voice",
+            "many": "{count} modules want your voice"
+          },
+          "allowed": {
+            "one": "1 module receives your voice",
+            "many": "{count} modules receive your voice"
+          },
+          "refused": {
+            "one": "You refused 1 module",
+            "many": "You refused {count} modules"
+          }
+        },
+        "open": {
+          "answer": "Open to answer.",
+          "change": "Open to change."
+        }
+      }
     },
     "menu": {
       "volume": "Volume",
@@ -272,6 +308,53 @@
       "on": "Voice and video are on in this world.",
       "onBy": "Voice and video are on in this world, carried by {service}.",
       "off": "Voice and video are off in this world. The GM turns them on here."
+    },
+    "voices": {
+      "title": "Your voice",
+      "you": "you",
+      "badge": {
+        "label": "Modules here: {list}",
+        "receives": "{module} receives {names}",
+        "nobody": "{module} receives no one",
+        "refused": "refused: {names}",
+        "asking": "not answered: {names}"
+      },
+      "on": {
+        "self": "on your browser",
+        "other": "on {name}'s browser"
+      },
+      "where": {
+        "self": "On your browser.",
+        "other": "On {name}'s browser."
+      },
+      "what": {
+        "microphone": "your voice",
+        "screen": "your screen's sound",
+        "both": "your voice and your screen's sound"
+      },
+      "status": {
+        "asking": "Not answered",
+        "allowed": "Allowed",
+        "refused": "Refused"
+      },
+      "detail": {
+        "asking": "It gets nothing until you answer.",
+        "allowed": "It receives {what}.",
+        "refused": "It gets nothing."
+      },
+      "allow": "Allow",
+      "refuse": "Refuse",
+      "answered": {
+        "allowed": "{module}: allowed. It receives {what}.",
+        "refused": "{module}: refused. It gets nothing."
+      },
+      "default": "For modules you haven't answered: {choice}",
+      "choice": {
+        "allow": "Allow",
+        "ask": "Ask me",
+        "refuse": "Refuse"
+      },
+      "change": "Change"
     }
   }
 }

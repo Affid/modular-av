@@ -3,6 +3,8 @@ import type { FoundryNamespace } from "../foundry/globals.ts";
 export interface DialogButton {
   readonly action: string;
   readonly label: string;
+  /** Pressed by Enter. */
+  readonly default?: boolean;
 }
 
 /** Foundry's DialogV2, as the voice questions need it. `content` is HTML. */

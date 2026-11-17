@@ -1,8 +1,9 @@
 import type { AVState, PlayersSurfaceDefinition } from "@modular-av/api";
-import { el } from "@modular-av/kit";
+import { el, icon, setLabel } from "@modular-av/kit";
 import { type DockContext, MODULE_ID } from "../context.ts";
 import { type IndicatorName, syncIndicators } from "../ui/indicators.ts";
 import { tileView } from "../view/tile-view.ts";
+import { copiesOn, receiverLabel, viewerNames } from "../view/voice-view.ts";
 
 /** What the player list shows of each player in the call. */
 const SHOWN: ReadonlySet<IndicatorName> = new Set([
@@ -29,6 +30,40 @@ function mark(ctx: DockContext, item: HTMLElement, state: AVState): void {
   }
   const names = (view?.indicators ?? []).filter((n) => SHOWN.has(n));
   syncIndicators(ctx, badges, p?.connected ? names : []);
+  markVoices(ctx, item, id, state);
+}
+
+const VOICES = "mav-players-voices";
+
+/** The ear on a player whose browser has modules receiving voices. */
+function markVoices(
+  ctx: DockContext,
+  item: HTMLElement,
+  id: string,
+  state: AVState,
+): void {
+  const copies = copiesOn(state, id);
+  let ear = item.querySelector<HTMLElement>(`:scope > .${VOICES}`);
+  if (copies.length === 0) {
+    ear?.remove();
+    return;
+  }
+  if (!ear) {
+    ear = el("span", {
+      doc: item.ownerDocument,
+      className: `mav-indicator ${VOICES}`,
+      attrs: { role: "img", "data-indicator": "voice-copies" },
+      children: [icon("fa-ear-listen", item.ownerDocument)],
+    });
+    item.append(ear);
+  }
+  setLabel(
+    ear,
+    receiverLabel(ctx.t, copies, viewerNames(ctx.t, state, ctx.selfId)),
+    {
+      trusted: false,
+    },
+  );
 }
 
 /**
@@ -53,6 +88,7 @@ export function playersSurface(ctx: DockContext): PlayersSurfaceDefinition {
       if (!subscribed) {
         subscribed = true;
         ctx.api.state.subscribe((s) => s.participants, render);
+        ctx.api.state.subscribe((s) => s.voiceCopies, render);
       }
       render();
     },
