@@ -122,8 +122,11 @@ const off = api.media.audio("my-transcriber", userId, "microphone", (track) => {
   received and before this client's volume; for the local player, what
   they send. `"screen"` gives the sound of the screen they share.
 - The listener gets `null` whenever this client may not hear them: out of
-  the call, muted, blocked by a GM, or muted, hidden or deafened here. A
+  the call, blocked by a GM, or muted, hidden or deafened here. A
   transcript of what one client hears has gaps there.
+- The local player's copy is also `null` while they are muted or push to
+  talk is released. Another player who mutes themselves keeps their
+  track: the copy goes silent, not `null`.
 - A new track (a reconnection, for one) brings a new copy. The core stops
   the copy it replaced, and the last one when you call `off`. Stopping or
   disabling a copy yourself never touches what is played or sent.

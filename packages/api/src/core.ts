@@ -42,8 +42,11 @@ export interface MediaAttachment {
    * captions. For another player it is what this client plays of them, as
    * received, before this client's volume; for the local player, what
    * they send. `listener` gets a new copy whenever there is a new track,
-   * and null when it goes: out of the call, muted, blocked by a GM, or
-   * muted, hidden or deafened here, so expect gaps. Until a first track
+   * and null when it goes: out of the call, blocked by a GM, or muted,
+   * hidden or deafened here, so expect gaps. The local player's is null
+   * too while they are muted or push to talk is released; another player
+   * who mutes themselves keeps their track, so the copy goes silent
+   * rather than null. Until a first track
    * comes it isn't called at all. The core stops a copy once it hands the
    * next one or null, and the last one at the returned call; stopping or
    * disabling a copy never touches what is played or sent. `moduleId` is

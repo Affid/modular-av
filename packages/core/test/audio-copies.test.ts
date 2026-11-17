@@ -114,6 +114,21 @@ describe("another player's sound", () => {
     expect(original(received[2])).toBe(micOf(p1));
   });
 
+  it("keeps the copy while they mute themselves: their track stays, silent", async () => {
+    // Arrange
+    const { table, gm, p1 } = await call();
+    const { received } = listen(gm, "p1");
+    await table.settle();
+
+    // Act
+    await p1.api.commands.setMuted(true);
+    await table.settle();
+
+    // Assert
+    expect(received).toHaveLength(1);
+    expect(stopped(received[0])).toBe(false);
+  });
+
   it("gives null while this client is deafened", async () => {
     const { table, gm } = await call();
     const { received } = listen(gm, "p1");

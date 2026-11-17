@@ -11,8 +11,10 @@ listener a copy of a player's microphone, or of the screen they share
 (`"microphone"` or `"screen"`). For another player it is what this
 client plays of them, before this client's volume; for the local player,
 what they send. The listener gets `null` while this client may not hear
-them (GM blocks, mutes, hide and deafen apply) and a new copy whenever
-the track changes; the core stops the copies it replaced, and the last
+them (GM blocks apply, and mutes, hide and deafen on this client) and a
+new copy whenever the track changes; another player who mutes
+themselves leaves a silent copy, not `null`. The core stops the copies
+it replaced, and the last
 one when the subscription ends, and stopping a copy never touches what
 is played or sent. The asking module names itself, and the core refuses
 one that isn't active. A module that records tells the people it
