@@ -40,8 +40,9 @@ No server? Skip the starter set and install `modular-av-dock` and
 `modular-av-p2p` (their URLs are [below](#modules)): players' browsers
 talk directly, for up to about six players.
 
-Coming from LiveKit AVClient? Your server and each player's choices come
-along: see [Moving from LiveKit AVClient](https://github.com/Affid/modular-av/wiki/Moving-from-LiveKit-AVClient).
+Coming from LiveKit AVClient? Your server comes along, and so do the
+player choices that two forks of it added (noise cancellation, the dock's
+layout and more): see [Moving from LiveKit AVClient](https://github.com/Affid/modular-av/wiki/Moving-from-LiveKit-AVClient).
 
 ## How it fits together
 

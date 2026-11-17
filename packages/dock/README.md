@@ -39,8 +39,9 @@ voice and video settings window and badges in the player list. Requires
 
 ![A GM's menu for one player: their volume, hiding them, and blocking their voice or video](../../docs/images/player-menu.png)
 
-Its layout is kept per player, across devices. Coming from LiveKit
-AVClient, your layout comes along; see
+Its layout is kept per player, across devices. Coming from the krisp
+builds of LiveKit AVClient (`0.6.8-krisp.*`), the only ones with a dock
+layout, your layout comes along; see
 [Moving from LiveKit AVClient](https://github.com/Affid/modular-av/wiki/Moving-from-LiveKit-AVClient).
 
 ## Inside this package
