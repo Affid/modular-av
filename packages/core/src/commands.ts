@@ -106,12 +106,12 @@ export function createCommands(
       );
   };
 
-  // One for the page: its saves of the player's consent wait their turn.
-  let voiceWrites: Promise<VoiceWrites.VoiceConsentCommands> | null = null;
-  const voices = (): Promise<VoiceWrites.VoiceConsentCommands> => {
-    voiceWrites ??= loadVoiceWrites().then((m) =>
-      m.createVoiceConsentCommands(game),
-    );
+  // One for the page, so its saves of the player's consent wait their
+  // turn; kept once loaded, so a failed load is tried again next time.
+  let voiceWrites: VoiceWrites.VoiceConsentCommands | null = null;
+  const voices = async (): Promise<VoiceWrites.VoiceConsentCommands> => {
+    const loaded = await loadVoiceWrites();
+    voiceWrites ??= loaded.createVoiceConsentCommands(game);
     return voiceWrites;
   };
 
