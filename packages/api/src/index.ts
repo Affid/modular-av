@@ -24,13 +24,7 @@ export type {
   ToggleControl,
   ToggleState,
 } from "./contributions.ts";
-export type {
-  AudioSource,
-  MediaAttachment,
-  ModularAV,
-  Stats,
-  VideoSource,
-} from "./core.ts";
+export type { MediaAttachment, ModularAV, Stats, VideoSource } from "./core.ts";
 export type {
   AudioEffect,
   AudioEffectContext,
@@ -90,6 +84,7 @@ export type {
   SurfaceKind,
 } from "./surfaces.ts";
 export type {
+  AudioSource,
   AVState,
   CameraHold,
   DeviceInfo,
@@ -110,6 +105,12 @@ export type {
   SessionState,
   SessionStatus,
   VideoResolution,
+  VoiceConsent,
+  VoiceConsentChoice,
+  VoiceCopy,
+  VoiceCopyConsent,
+  VoiceCopyTarget,
+  VoiceDecision,
   VoiceMode,
 } from "./state.ts";
 export type {

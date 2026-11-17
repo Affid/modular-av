@@ -27,6 +27,9 @@ import { type InstalledCore, installCore } from "../src/core.ts";
 // Loaded lazily by the core; preloaded so its import resolves within settle().
 import "../src/media/microphone.ts";
 import "../src/media/screen-share.ts";
+import "../src/voices/choose.ts";
+import "../src/voices/commands.ts";
+import "../src/voices/notices.ts";
 import en from "../lang/en.json" with { type: "json" };
 
 /** A table of players, each a browser tab running the core. */

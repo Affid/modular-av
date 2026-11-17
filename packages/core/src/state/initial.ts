@@ -48,4 +48,6 @@ export const INITIAL_STATE: AVState = {
   },
   devices: { audioInput: [], videoInput: [], audioOutput: [] },
   service: { id: null, capabilities: null },
+  voiceCopies: [],
+  voiceConsent: { choice: "ask", decisions: [] },
 };

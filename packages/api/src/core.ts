@@ -15,15 +15,12 @@ import type {
   ServiceDefinition,
 } from "./service.ts";
 import type { Channel } from "./socket.ts";
-import type { AVState } from "./state.ts";
+import type { AudioSource, AVState } from "./state.ts";
 import type { Store } from "./store.ts";
 import type { SurfaceDefinition } from "./surfaces.ts";
 import type { Windows } from "./windows.ts";
 
 export type VideoSource = "camera" | "screen";
-
-/** A player's voice, or the sound of the screen they share. */
-export type AudioSource = "microphone" | "screen";
 
 export interface MediaAttachment {
   /**
@@ -52,8 +49,12 @@ export interface MediaAttachment {
    * disabling a copy never touches what is played or sent. `moduleId` is
    * the asking module's id, as it declares it (the core can't check who
    * calls): an inactive or unknown module, or an unknown source, throws.
-   * A module that records or transcribes voices tells the people it
-   * records.
+   * Each player decides: until they allow this module on this browser
+   * (asked by default, or allowed or refused for every module) the
+   * listener gets null. Every player sees which modules receive voices,
+   * and is told each time one starts receiving theirs (`voiceCopies` in
+   * the state). A module that records or transcribes voices tells the
+   * people it records.
    */
   audio(
     moduleId: string,

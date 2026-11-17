@@ -166,6 +166,9 @@ const COMMANDS: readonly (keyof AVCommands)[] = [
   "stopScreenShare",
   "setDevice",
   "setBroadcastPermissions",
+  "setVoiceConsent",
+  "decideVoiceCopy",
+  "forgetVoiceDecisions",
 ];
 
 export interface FakeApiOptions {

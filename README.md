@@ -116,9 +116,15 @@ works).
 - Another module (a transcriber, live captions) gets voices from the core
   only as a copy of what that browser already plays, or of what its own
   player sends, and only while it may: GM blocks, mutes and deafen apply.
-  The module must name itself, and a module that records must tell the
-  people it records. Modules run with full access to the page, so
-  Modular A/V can't stop one that goes around it.
+  You decide which modules get your voice: by default you're asked the
+  first time each one does, on each browser, and you can allow or refuse
+  them all in the module's settings ("Voices for modules"). Everyone sees
+  which modules receive voices on whose browser, and you're told each
+  time one starts receiving yours. The module must name itself, and a
+  module that records must tell the people it records. Your choice is
+  kept by the core in every browser; it can't bind a module that goes
+  around the core, or a browser someone changed: modules run with full
+  access to the page, and the call delivers your voice to everyone in it.
 - A GM's browser asks GitHub for the list of modules when "Plan your
   modules" opens and at most once a day (a world setting turns it off);
   see the [core's page](packages/core/README.md).

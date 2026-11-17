@@ -239,6 +239,58 @@ export interface ServiceState {
   readonly capabilities: ServiceCapabilities | null;
 }
 
+/** A player's voice, or the sound of the screen they share. */
+export type AudioSource = "microphone" | "screen";
+
+/**
+ * What a module that asks for a player's voice gets while the player
+ * hasn't answered for it: their voice, nothing until they answer, or
+ * nothing.
+ */
+export type VoiceConsentChoice = "allow" | "ask" | "refuse";
+
+/** A player's answer for one module on one person's browser. */
+export interface VoiceDecision {
+  readonly moduleId: string;
+  /** Whose browser runs the module. */
+  readonly receiver: ParticipantId;
+  readonly allow: boolean;
+}
+
+/** The local player's say over modules that ask for their voice. */
+export interface VoiceConsent {
+  readonly choice: VoiceConsentChoice;
+  /** Remembered answers; one beats `choice`. */
+  readonly decisions: readonly VoiceDecision[];
+}
+
+/**
+ * Where a player stands with a module that asked for their voice. Only
+ * `allowed` gets them sound; `asking` waits for their answer.
+ */
+export type VoiceCopyConsent = "allowed" | "refused" | "asking";
+
+export interface VoiceCopyTarget {
+  readonly participant: ParticipantId;
+  /** What the module subscribed to of theirs. */
+  readonly sources: readonly AudioSource[];
+  readonly consent: VoiceCopyConsent;
+}
+
+/**
+ * A module that asked for voices on someone's browser (`media.audio`),
+ * for as long as it is subscribed, sound or not, and that player is
+ * logged in.
+ */
+export interface VoiceCopy {
+  /** Whose browser runs the module. */
+  readonly receiver: ParticipantId;
+  readonly moduleId: string;
+  /** The module's title in this world. */
+  readonly title: string;
+  readonly targets: readonly VoiceCopyTarget[];
+}
+
 export interface AVState {
   readonly session: SessionState;
   /**
@@ -251,4 +303,7 @@ export interface AVState {
   readonly local: LocalState;
   readonly devices: DeviceList;
   readonly service: ServiceState;
+  /** Every module receiving voices, on any browser in the world. */
+  readonly voiceCopies: readonly VoiceCopy[];
+  readonly voiceConsent: VoiceConsent;
 }

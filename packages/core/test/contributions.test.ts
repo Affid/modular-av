@@ -233,7 +233,12 @@ describe("registering surfaces and contributions", () => {
     await table.settle();
 
     // Assert
-    expect(p1.api.contributions.list()).toEqual([blur]);
+    // The core's own section for voices comes first.
+    expect(p1.api.contributions.list().map((c) => c.id)).toEqual([
+      "modular-av.voices",
+      blur.id,
+    ]);
+    expect(p1.api.contributions.list()[1]).toEqual(blur);
     expect(p1.api.surfaces.list().map((s) => s.id)).toEqual(["d.players"]);
     expect(errors).toHaveLength(1);
     expect(() => {

@@ -134,6 +134,16 @@ const off = api.media.audio("my-transcriber", userId, "microphone", (track) => {
 - The first argument is your module's id. The core refuses a module that
   isn't active, but it can't check who calls: the id is what a module
   declares.
+- Each player decides. By default the core asks them the first time your
+  module, on this browser, subscribes to their voice; until they allow it
+  the listener gets `null`. A player can also allow or refuse every
+  module, and change their answers later. The core honours this in every
+  browser; it isn't a lock against code that goes around the core.
+- Every player sees which modules receive voices and on whose browser:
+  the state's `voiceCopies`, a badge in the player list, and a
+  notification each time a module starts receiving their voice. Your
+  module counts while it is subscribed, so subscribe only while you
+  record.
 - Recording people needs their consent: tell the players what you record
   and where it goes.
 

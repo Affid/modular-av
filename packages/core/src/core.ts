@@ -42,6 +42,11 @@ import {
 } from "./settings/module-settings.ts";
 import { createMeters } from "./media/meters.ts";
 import { callSources, createAudioCopies } from "./media/audio-copies.ts";
+import { announceVoiceCopies } from "./voices/announce.ts";
+import { consentFor } from "./voices/flags.ts";
+import { consentOf } from "./voices/project.ts";
+import { registerVoicesMenu, voiceConsentSection } from "./voices/settings.ts";
+import { whenAsked } from "./voices/watch.ts";
 import type { MediaEnv } from "./media/env.ts";
 import {
   DEFAULT_SENSITIVITY,
@@ -65,7 +70,11 @@ import { CHANNEL_LEVEL_SETTING, EFFECT_MIX_SETTING } from "./media/levels.ts";
 import { createRegistry } from "./registry.ts";
 import { assetUrl, createChannels } from "./socket.ts";
 import { INITIAL_STATE } from "./state/initial.ts";
-import { decoratePlayerList, startPlainStatus } from "./status/plain-status.ts";
+import {
+  decoratePlayerList,
+  playerBadges,
+  startPlainStatus,
+} from "./status/plain-status.ts";
 import { lazyStats } from "./session/lazy-stats.ts";
 import { createStore } from "./store.ts";
 import {
@@ -165,8 +174,15 @@ export function installCore(deps: CoreDeps): InstalledCore {
   const meters = createMeters({ env: deps.env, onError: deps.onError });
   const audioCopies = createAudioCopies({
     isActiveModule: (id) => game.modules.get(id)?.active === true,
+    allows: (moduleId, participant) =>
+      consentFor(
+        consentOf(game.users.get(participant)),
+        moduleId,
+        game.userId,
+      ) === "allowed",
     onError: deps.onError,
   });
+  const { DialogV2 } = deps.foundry.applications.api;
   /** A cameras surface shows the status: the plain one steps aside. */
   let surfaceShowsStatus = false;
 
@@ -269,9 +285,15 @@ export function installCore(deps: CoreDeps): InstalledCore {
   hooks.once("setup", () => {
     const registries = [services, effects, surfaces, contributions];
     for (const registry of registries) registry.open();
+    contributions.api.register(voiceConsentSection(store.view, api.commands));
     hooks.callAll(REGISTER_HOOK, api);
     for (const registry of registries) registry.close();
     registerServiceSetting(game, services.api.list());
+    registerVoicesMenu({
+      ...{ game, DialogV2, store: store.view, commands: api.commands },
+      base: deps.foundry.applications.api.ApplicationV2,
+      onError: deps.onError,
+    });
     registerSurfaceSettings(game, surfaces.api.list());
     registerScreenShareSetting(game, () => {
       current?.apply();
@@ -322,6 +344,26 @@ export function installCore(deps: CoreDeps): InstalledCore {
     settings.ready();
     controller().ready();
     followPlayer(deps, controller(), settings, effects.api);
+    announceVoiceCopies({
+      copies: audioCopies,
+      user: () => game.user,
+      onError: deps.onError,
+    });
+    whenAsked(store.view, game.userId, () => {
+      import("./voices/notices.ts")
+        .then(({ startVoiceNotices }) =>
+          startVoiceNotices({
+            ...{ store: store.view, selfId: game.userId, DialogV2 },
+            i18n: game.i18n,
+            notifications: deps.ui().notifications,
+            userName: (id) => game.users.get(id)?.name ?? id,
+            decide: (moduleId, receiver, allow) =>
+              api.commands.decideVoiceCopy(moduleId, receiver, allow),
+            onError: deps.onError,
+          }),
+        )
+        .catch(deps.onError);
+    });
     onReady(
       deps,
       controller(),
@@ -439,8 +481,7 @@ function watchFoundry(
     }
     decoratePlayerList(
       element,
-      controller().store.get(),
-      game.i18n.localize(`${MODULE_ID}.status.deafened`),
+      playerBadges(controller().store.get(), game.i18n),
     );
   });
 }

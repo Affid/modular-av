@@ -107,7 +107,7 @@ The same `api` object stays on `game.modules.get("modular-av").api`:
 | `state`                                                 | The store: session, participants, your own mic and camera, devices     |
 | `commands`                                              | Everything a UI can do: mute, deafen, volumes, devices, effects, leave |
 | `media.attach`                                          | Put a participant's video in an element. The core plays the audio      |
-| `media.audio`                                           | A copy of a participant's sound, for transcription or captions         |
+| `media.audio`                                           | A copy of a player's sound, for transcription, if that player allows   |
 | `meters`                                                | Sound levels, measured only while something listens to them            |
 | `services`, `effects`, `surfaces`, `contributions`      | The registries modules add to                                          |
 | `settings`                                              | A module's own settings, kept with the player or with the device       |

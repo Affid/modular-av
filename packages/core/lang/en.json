@@ -424,6 +424,43 @@
         "leaving": "Comes off air when you go live: {names} (stays installed).",
         "kept": "{names} stays on air until {name} is installed, so calls keep working."
       }
+    },
+    "voices": {
+      "where": {
+        "self": "on your browser",
+        "other": "on {name}'s browser"
+      },
+      "what": {
+        "microphone": "your voice",
+        "screen": "your screen's sound",
+        "both": "your voice and your screen's sound"
+      },
+      "receives": "{module}, {where}, now receives {what}.",
+      "alsoReceives": "{module}, {where}, now also receives {what}.",
+      "refused": "{module}, {where}, asked for {what}. It gets none: you refused.",
+      "asks": "{module}, {where}, wants to receive {what}. Allow it?",
+      "ask": {
+        "title": "Your voice",
+        "allow": "Allow",
+        "refuse": "Refuse"
+      },
+      "choice": {
+        "allow": "Allow",
+        "ask": "Ask me",
+        "refuse": "Refuse"
+      },
+      "badge": "Voices for modules here: {list}",
+      "settings": {
+        "label": "Voices for modules",
+        "choice": "When a module asks for your voice",
+        "forget": "Forget my answers",
+        "now": "A module that records, transcribes or captions can ask for your voice. Now: {choice}. Your answers for each module are remembered until you forget them."
+      },
+      "menu": {
+        "name": "Voices for modules",
+        "label": "Choose",
+        "hint": "Whether modules that record, transcribe or caption may receive your voice: allow them, be asked each time, or refuse."
+      }
     }
   }
 }

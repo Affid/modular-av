@@ -30,20 +30,29 @@ export interface CallSounds {
 export interface AudioCopiesDeps {
   /** Installed and enabled in this world. */
   readonly isActiveModule: (moduleId: string) => boolean;
+  /** The participant lets this module on this browser have their sound. */
+  readonly allows: (moduleId: string, participant: ParticipantId) => boolean;
   readonly onError: (error: unknown) => void;
+}
+
+/** What a module asked for, whether it gets sound or not. */
+export interface AudioSubscription {
+  readonly moduleId: string;
+  readonly participant: ParticipantId;
+  readonly source: AudioSource;
 }
 
 export interface CoreAudioCopies {
   readonly audio: MediaAttachment["audio"];
   /** Subscriptions made before this wait for it. */
   start(sources: AudioSources): void;
+  /** Every subscription now, oldest first. */
+  subscriptions(): readonly AudioSubscription[];
+  /** A subscription began or ended. */
+  onSubscriptions(listener: () => void): () => void;
 }
 
-interface Subscription {
-  /** Kept for telling the players which modules receive voices. */
-  readonly moduleId: string;
-  readonly participant: ParticipantId;
-  readonly source: AudioSource;
+interface Subscription extends AudioSubscription {
   readonly listener: (track: MediaStreamTrack | null) => void;
   /** The track copied, and the copy handed out. */
   readonly from: MediaStreamTrack | null;
@@ -84,6 +93,15 @@ function validate(
 export function createAudioCopies(deps: AudioCopiesDeps): CoreAudioCopies {
   let sources: AudioSources | null = null;
   let subscriptions: ReadonlyMap<object, Subscription> = new Map();
+  let watchers: readonly { readonly listener: () => void }[] = [];
+  const tellWatchers = (): void => {
+    for (const { listener } of watchers)
+      try {
+        listener();
+      } catch (error: unknown) {
+        deps.onError(error);
+      }
+  };
 
   const deliver = (key: object, copy: MediaStreamTrack | null): void => {
     const sub = subscriptions.get(key);
@@ -116,7 +134,12 @@ export function createAudioCopies(deps: AudioCopiesDeps): CoreAudioCopies {
       readonly copy: MediaStreamTrack | null;
     }[] = [];
     for (const [key, sub] of subscriptions) {
-      const from = sources.track(sub.participant, sub.source);
+      // Consent lives in user flags: their changes reach here because
+      // Foundry's updateUser makes the controller refresh the remote media,
+      // which tells every listener (see watchFoundry in core.ts).
+      const from = deps.allows(sub.moduleId, sub.participant)
+        ? sources.track(sub.participant, sub.source)
+        : null;
       if (from === sub.from) continue;
       const copy = copyOf(from);
       sub.copy?.stop();
@@ -142,6 +165,7 @@ export function createAudioCopies(deps: AudioCopiesDeps): CoreAudioCopies {
     };
     subscriptions = new Map(subscriptions).set(key, sub);
     queueMicrotask(sync);
+    tellWatchers();
     return () => {
       const current = subscriptions.get(key);
       if (!current) return;
@@ -149,6 +173,7 @@ export function createAudioCopies(deps: AudioCopiesDeps): CoreAudioCopies {
       const next = new Map(subscriptions);
       next.delete(key);
       subscriptions = next;
+      tellWatchers();
     };
   };
 
@@ -158,6 +183,19 @@ export function createAudioCopies(deps: AudioCopiesDeps): CoreAudioCopies {
       sources = next;
       next.onChange(sync);
       sync();
+    },
+    subscriptions: () =>
+      [...subscriptions.values()].map(({ moduleId, participant, source }) => ({
+        moduleId,
+        participant,
+        source,
+      })),
+    onSubscriptions(listener) {
+      const watcher = { listener };
+      watchers = [...watchers, watcher];
+      return () => {
+        watchers = watchers.filter((w) => w !== watcher);
+      };
     },
   };
 }
