@@ -199,8 +199,26 @@ describe("the voice panel's line", () => {
   it("sums several modules up by what is left to do", () => {
     const { line } = mounted(withCopies([TRANSCRIBER, CAPTIONS]));
 
-    expect(line()?.textContent).toBe("Your voice: 1 to answer, 1 refused");
+    expect(line()?.textContent).toBe("1 module wants your voice");
+    expect(label(line())).toBe(
+      "Your voice: 1 to answer, 1 refused. Open to answer.",
+    );
     expect(line()?.dataset.state).toBe("asking");
+  });
+
+  it("counts what was answered once nothing waits", () => {
+    const received = mounted(
+      withCopies([mineAs(TRANSCRIBER, "allowed"), mineAs(CAPTIONS, "allowed")]),
+    );
+    const refused = mounted(
+      withCopies([mineAs(TRANSCRIBER, "refused"), CAPTIONS]),
+    );
+
+    expect(received.line()?.textContent).toBe("2 modules receive your voice");
+    expect(refused.line()?.textContent).toBe("You refused 2 modules");
+    expect(label(refused.line())).toBe(
+      "Your voice: 2 refused. Open to change.",
+    );
   });
 
   it("follows a player's name arriving after the module", async () => {
@@ -236,6 +254,9 @@ describe("the list of modules that asked", () => {
       "Refused",
     );
     expect(pressed(second)).toEqual(["false", "true"]);
+    expect(
+      second?.querySelector('[aria-pressed="true"] i')?.className,
+    ).toContain("fa-xmark");
   });
 
   it("answers with Allow or Refuse, and says so to screen readers", async () => {

@@ -127,6 +127,32 @@ function around(
 const TITLE = "\u0000";
 
 /**
+ * Several modules: what needs the player, short enough for the panel
+ * ("1 module wants your voice"); the whole count in its name.
+ */
+function summary(
+  t: Translate,
+  mine: readonly MyCopy[],
+  state: VoiceLine["state"],
+): VoiceLine {
+  const count = (consent: VoiceCopyConsent): number =>
+    mine.filter((m) => m.target.consent === consent).length;
+  const parts = (["asking", "allowed", "refused"] as const)
+    .filter((c) => count(c) > 0)
+    .map((c) => t(`panel.voices.count.${c}`, { count: String(count(c)) }))
+    .join(", ");
+  const n = count(state);
+  const text = t(`panel.voices.short.${state}.${n === 1 ? "one" : "many"}`, {
+    count: String(n),
+  });
+  const open = t(
+    `panel.voices.open.${state === "asking" ? "answer" : "change"}`,
+  );
+  const label = `${t("panel.voices.summary", { parts })}. ${open}`;
+  return { state, parts: ["", text, ""], label };
+}
+
+/**
  * One module: "Transcriber wants your voice". Several: "Your voice: 1 to
  * answer, 1 receiving". The accessible name says it whole.
  */
@@ -140,16 +166,7 @@ export function voiceLine(
   const allRefused = mine.every((m) => m.target.consent === "refused");
   const lineState = waiting ? "asking" : allRefused ? "refused" : "allowed";
   const [only] = mine;
-  if (!only || mine.length > 1) {
-    const count = (consent: VoiceCopyConsent): number =>
-      mine.filter((m) => m.target.consent === consent).length;
-    const parts = (["asking", "allowed", "refused"] as const)
-      .filter((c) => count(c) > 0)
-      .map((c) => t(`panel.voices.count.${c}`, { count: String(count(c)) }))
-      .join(", ");
-    const text = t("panel.voices.summary", { parts });
-    return { state: lineState, parts: ["", text, ""], label: text };
-  }
+  if (!only || mine.length > 1) return summary(t, mine, lineState);
   const { consent } = only.target;
   const module = only.copy.title;
   const where = t(

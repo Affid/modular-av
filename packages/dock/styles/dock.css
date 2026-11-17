@@ -560,6 +560,16 @@
   color: var(--mav-text-muted);
 }
 
+/* Refused: the leave button's red, and a light red for words on dark. */
+.mav-effect-choice.mav-voice-no[aria-pressed="true"] {
+  background: #a12828;
+}
+
+.mav-voice-copy-status[data-state="refused"],
+.mav-dock-voices[data-state="refused"] .mav-dock-voices-icon {
+  color: #ff8e90;
+}
+
 .mav-voice-copy-status[data-state="asking"] {
   color: var(--mav-text);
   font-weight: 600;

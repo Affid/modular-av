@@ -39,7 +39,7 @@ function answers(
   const button = (allow: boolean): HTMLButtonElement => {
     const element = el("button", {
       doc,
-      className: "mav-effect-choice",
+      className: allow ? "mav-effect-choice" : "mav-effect-choice mav-voice-no",
       attrs: { type: "button", "aria-pressed": "false" },
     });
     element.addEventListener("click", () => {
@@ -59,8 +59,9 @@ function answers(
     pair.forEach((b, i) => {
       const pressed = now === (i === 0 ? "allowed" : "refused");
       b.setAttribute("aria-pressed", String(pressed));
+      const mark = i === 0 ? "fa-check" : "fa-xmark";
       b.replaceChildren(
-        ...(pressed ? [icon("fa-check", doc)] : []),
+        ...(pressed ? [icon(mark, doc)] : []),
         ctx.t(i === 0 ? "voices.allow" : "voices.refuse"),
       );
     });

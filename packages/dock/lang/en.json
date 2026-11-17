@@ -114,6 +114,24 @@
           "asking": "{count} to answer",
           "allowed": "{count} receiving",
           "refused": "{count} refused"
+        },
+        "short": {
+          "asking": {
+            "one": "1 module wants your voice",
+            "many": "{count} modules want your voice"
+          },
+          "allowed": {
+            "one": "1 module receives your voice",
+            "many": "{count} modules receive your voice"
+          },
+          "refused": {
+            "one": "You refused 1 module",
+            "many": "You refused {count} modules"
+          }
+        },
+        "open": {
+          "answer": "Open to answer.",
+          "change": "Open to change."
         }
       }
     },
