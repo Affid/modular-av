@@ -437,8 +437,8 @@
       },
       "receives": "{module}, {where}, now receives {what}.",
       "alsoReceives": "{module}, {where}, now also receives {what}.",
-      "refused": "{module}, {where}, asked for {what}. It gets none: you refused.",
-      "asks": "{module}, {where}, wants to receive {what}. Allow it?",
+      "refused": "{module}, {where}, asked for {what}. It gets nothing: you refused.",
+      "asks": "{module}, {where}, asks to receive {what}. It gets nothing unless you allow it. Your answer is remembered; change it in Configure Settings › Modular A/V › Voices for modules.",
       "ask": {
         "title": "Your voice",
         "allow": "Allow",
@@ -449,17 +449,32 @@
         "ask": "Ask me",
         "refuse": "Refuse"
       },
-      "badge": "Voices for modules here: {list}",
+      "badge": {
+        "label": "Modules here: {list}",
+        "receives": "{module} receives {names}",
+        "nobody": "{module} receives no one",
+        "refused": "refused: {names}",
+        "asking": "not answered: {names}",
+        "you": "you"
+      },
       "settings": {
         "label": "Voices for modules",
-        "choice": "When a module asks for your voice",
-        "forget": "Forget my answers",
-        "now": "A module that records, transcribes or captions can ask for your voice. Now: {choice}. Your answers for each module are remembered until you forget them."
+        "choice": "For modules you haven't answered",
+        "forget": "Forget all answers…",
+        "now": "For modules you haven't answered: {choice}. Your answer to each module is remembered."
       },
       "menu": {
         "name": "Voices for modules",
         "label": "Choose",
-        "hint": "Whether modules that record, transcribe or caption may receive your voice: allow them, be asked each time, or refuse."
+        "hint": "Whether modules that record, transcribe or caption may receive your voice: allow them, ask you once per module, or refuse them."
+      },
+      "forget": {
+        "title": "Forget all answers",
+        "allow": "Forget your answers to all modules? You allow modules you haven't answered, so every running module, including those you refused, will receive your voice at once.",
+        "ask": "Forget your answers to all modules? Modules running now will ask you again.",
+        "refuse": "Forget your answers to all modules? Every module will be refused until you allow it again.",
+        "yes": "Forget",
+        "no": "Cancel"
       }
     }
   }

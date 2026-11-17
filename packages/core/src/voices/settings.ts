@@ -17,7 +17,9 @@ const isChoice = (value: unknown): value is VoiceConsentChoice =>
 /** The choice and "forget my answers" in a settings window's Call tab. */
 export function voiceConsentSection(
   store: Store<AVState>,
-  commands: Pick<AVCommands, "setVoiceConsent" | "forgetVoiceDecisions">,
+  commands: Pick<AVCommands, "setVoiceConsent">,
+  /** Asks first, then forgets every answer. */
+  forget: () => Promise<void>,
 ): Contribution {
   return {
     kind: "settings-section",
@@ -49,11 +51,15 @@ export function voiceConsentSection(
         type: "button",
         id: `${MODULE_ID}.voices.forget`,
         label: voiceKey("settings.forget"),
-        run: () => commands.forgetVoiceDecisions(),
+        run: forget,
       },
     ],
   };
 }
+
+/** The confirmation's code loads when a player first asks to forget. */
+export const confirmForgetting = (deps: ChooseDeps) => (): Promise<void> =>
+  import("./choose.ts").then(({ confirmForget }) => confirmForget(deps));
 
 export interface VoicesMenuDeps extends ChooseDeps {
   /** Foundry's ApplicationV2: a settings menu's type must extend it. */

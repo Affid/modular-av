@@ -1,22 +1,20 @@
-import type {
-  AVState,
-  SettingsSectionContribution,
-  ToggleControl,
-  VoiceCopyConsent,
-} from "@modular-av/api";
-import { el, openPopover, type Popover, uniqueId } from "@modular-av/kit";
-import { type Rendered, renderControl } from "../contributions/controls.ts";
+import type { AVState, VoiceCopyConsent } from "@modular-av/api";
+import { el, icon, openPopover, type Popover, uniqueId } from "@modular-av/kit";
+import type { Rendered } from "../contributions/controls.ts";
 import type { DockContext } from "../context.ts";
 import { run } from "../ui/run.ts";
 import {
   myCopies,
   type MyCopy,
-  nameIn,
   sourcesText,
+  whereText,
 } from "../view/voice-view.ts";
 
-/** The core's choice and "forget my answers", shown with the list. */
-const CORE_SECTION = "modular-av.voices";
+const STATUS_ICONS: Readonly<Record<VoiceCopyConsent, string>> = {
+  asking: "fa-circle-question",
+  allowed: "fa-ear-listen",
+  refused: "fa-ear-deaf",
+};
 
 const sameCopy =
   ({ copy }: MyCopy) =>
@@ -24,125 +22,159 @@ const sameCopy =
     other.copy.receiver === copy.receiver &&
     other.copy.moduleId === copy.moduleId;
 
-/** "Transcriber, on Gamemaster's browser: your voice". */
-function heading(ctx: DockContext, state: AVState, mine: MyCopy): string {
-  const { copy, target } = mine;
-  const where =
-    copy.receiver === ctx.selfId
-      ? ctx.t("voices.where.self", { module: copy.title })
-      : ctx.t("voices.where.other", {
-          module: copy.title,
-          name: nameIn(state)(copy.receiver),
-        });
-  return `${where}: ${sourcesText(ctx.t, target.sources)}`;
+interface Shared {
+  readonly ctx: DockContext;
+  readonly doc: Document;
+  readonly alerts: HTMLElement;
+  /** Says an answer was taken, politely, for screen readers. */
+  readonly announce: (text: string) => void;
 }
 
-/** One module that asked: what it asked for, and a switch that answers. */
-function item(
-  ctx: DockContext,
-  doc: Document,
+/** Allow | Refuse: the pressed one is the answer; none while waiting. */
+function answers(
+  { ctx, doc, alerts, announce }: Shared,
   mine: MyCopy,
-  alerts: HTMLElement,
-): Rendered {
-  const consent = (s: AVState): VoiceCopyConsent =>
+  consent: () => VoiceCopyConsent,
+): { readonly element: HTMLElement; show(now: VoiceCopyConsent): void } {
+  const button = (allow: boolean): HTMLButtonElement => {
+    const element = el("button", {
+      doc,
+      className: "mav-effect-choice",
+      attrs: { type: "button", "aria-pressed": "false" },
+    });
+    element.addEventListener("click", () => {
+      const wanted = allow ? "allowed" : "refused";
+      if (consent() === wanted) return;
+      const { moduleId, receiver, title } = mine.copy;
+      run(ctx, alerts, async () => {
+        await ctx.api.commands.decideVoiceCopy(moduleId, receiver, allow);
+        const what = sourcesText(ctx.t, mine.target.sources);
+        announce(ctx.t(`voices.answered.${wanted}`, { module: title, what }));
+      });
+    });
+    return element;
+  };
+  const pair = [button(true), button(false)] as const;
+  const show = (now: VoiceCopyConsent): void => {
+    pair.forEach((b, i) => {
+      const pressed = now === (i === 0 ? "allowed" : "refused");
+      b.setAttribute("aria-pressed", String(pressed));
+      b.replaceChildren(
+        ...(pressed ? [icon("fa-check", doc)] : []),
+        ctx.t(i === 0 ? "voices.allow" : "voices.refuse"),
+      );
+    });
+  };
+  const element = el("div", {
+    doc,
+    className: "mav-effect-choices",
+    children: [...pair],
+  });
+  return { element, show };
+}
+
+/** One module: its title, where it stands, what that means, the answers. */
+function item(shared: Shared, mine: MyCopy): Rendered {
+  const { ctx, doc } = shared;
+  const consentIn = (s: AVState): VoiceCopyConsent =>
     myCopies(s, ctx.selfId).find(sameCopy(mine))?.target.consent ??
     mine.target.consent;
-  const allow: ToggleControl = {
-    type: "toggle",
-    id: `voice-copy.${mine.copy.receiver}.${mine.copy.moduleId}`,
-    label: ctx.t("voices.allow"),
-    state: {
-      get: () => ({ on: consent(ctx.api.state.get()) === "allowed" }),
-      subscribe: (listener) =>
-        ctx.api.state.subscribe(consent, (now) => {
-          listener({ on: now === "allowed" });
-        }),
-    },
-    set: (on) =>
-      ctx.api.commands.decideVoiceCopy(
-        mine.copy.moduleId,
-        mine.copy.receiver,
-        on,
-      ),
-  };
-  const toggle = renderControl(ctx, doc, allow, alerts);
-  const waiting = el("p", {
+  const consent = (): VoiceCopyConsent => consentIn(ctx.api.state.get());
+  const title = el("strong", {
     doc,
-    className: "mav-settings-hint",
-    text: ctx.t("voices.asking"),
+    className: "mav-voice-copy-title",
+    attrs: { id: uniqueId(doc, "mav-voice-copy"), title: mine.copy.title },
+    text: mine.copy.title,
   });
-  // Waiting, the switch would only allow: refusing gets a button.
-  const refuse = el("button", {
+  const status = el("span", {
     doc,
-    className: "mav-control-button mav-voice-refuse",
-    attrs: { type: "button" },
-    text: ctx.t("voices.refuse"),
+    className: "mav-voice-copy-status",
+    attrs: { id: uniqueId(doc, "mav-voice-status") },
   });
-  refuse.addEventListener("click", () => {
-    run(ctx, alerts, () =>
-      ctx.api.commands.decideVoiceCopy(
-        mine.copy.moduleId,
-        mine.copy.receiver,
-        false,
-      ),
-    );
-  });
-  const showWaiting = (now: VoiceCopyConsent): void => {
-    waiting.hidden = now !== "asking";
-    refuse.hidden = now !== "asking";
-  };
-  showWaiting(consent(ctx.api.state.get()));
-  const off = ctx.api.state.subscribe(consent, showWaiting);
-  const name = el("p", {
+  const detail = el("p", {
     doc,
-    attrs: { id: uniqueId(doc, "mav-voice-copy") },
-    text: heading(ctx, ctx.api.state.get(), mine),
+    className: "mav-voice-copy-detail",
+    attrs: { id: uniqueId(doc, "mav-voice-detail") },
   });
-  const element = el("div", {
+  const pair = answers(shared, mine, consent);
+  const group = el("div", {
     doc,
     className: "mav-dock-voice-copy",
     attrs: {
       role: "group",
-      "aria-labelledby": name.id,
+      "aria-labelledby": title.id,
+      "aria-describedby": `${status.id} ${detail.id}`,
       "data-voice-copy": `${mine.copy.receiver} ${mine.copy.moduleId}`,
     },
-    children: [name, waiting, toggle.element, refuse],
+    children: [
+      el("div", {
+        doc,
+        className: "mav-voice-copy-head",
+        children: [title, status],
+      }),
+      detail,
+      pair.element,
+    ],
   });
-  return {
-    element,
-    dispose() {
-      off();
-      toggle.dispose();
-    },
-  };
-}
-
-/** The core's own section for voices, if it registered one. */
-function coreControls(
-  ctx: DockContext,
-  doc: Document,
-  alerts: HTMLElement,
-): readonly Rendered[] {
-  const section = ctx.api.contributions
-    .list()
-    .find(
-      (c): c is SettingsSectionContribution =>
-        c.kind === "settings-section" && c.id === CORE_SECTION,
+  const show = (now: VoiceCopyConsent): void => {
+    status.dataset.state = now;
+    group.dataset.state = now;
+    status.replaceChildren(
+      icon(STATUS_ICONS[now], doc),
+      ctx.t(`voices.status.${now}`),
     );
-  return (section?.controls ?? []).map((control) =>
-    renderControl(ctx, doc, control, alerts),
-  );
+    const where = whereText(
+      ctx.t,
+      ctx.api.state.get(),
+      ctx.selfId,
+      mine.copy.receiver,
+    );
+    const what = sourcesText(ctx.t, mine.target.sources);
+    detail.textContent = `${where} ${ctx.t(`voices.detail.${now}`, { what })}`;
+    pair.show(now);
+  };
+  show(consent());
+  const off = ctx.api.state.subscribe(consentIn, show);
+  return { element: group, dispose: off };
 }
 
-/** Which modules asked, not how they stand: a switch follows that itself. */
+/** "For modules you haven't answered: Ask me [Change]". */
+function footer({ ctx, doc }: Shared): Rendered {
+  const text = el("p", { doc, className: "mav-voice-default" });
+  const show = (choice: string): void => {
+    text.textContent = ctx.t("voices.default", {
+      choice: ctx.t(`voices.choice.${choice}`),
+    });
+  };
+  show(ctx.api.state.get().voiceConsent.choice);
+  const off = ctx.api.state.subscribe((s) => s.voiceConsent.choice, show);
+  const change = el("button", {
+    doc,
+    className: "mav-control-button",
+    attrs: { type: "button" },
+    text: ctx.t("voices.change"),
+  });
+  change.addEventListener("click", () => {
+    ctx.openSettings();
+  });
+  const element = el("div", {
+    doc,
+    className: "mav-voice-footer",
+    children: [text, change],
+  });
+  return { element, dispose: off };
+}
+
+/** Which modules asked, not how they stand: a row follows that itself. */
 const membership = (ctx: DockContext) => (s: AVState) =>
   myCopies(s, ctx.selfId)
-    .map((m) => heading(ctx, s, m))
-    .join("\n");
+    .map((m) => `${m.copy.receiver}\n${m.copy.moduleId}\n${m.copy.title}`)
+    .join("\n\n");
 
 /**
- * Every module that asked for the player's voice, each with a switch that
- * allows or refuses it there, then the core's choice for the rest.
+ * Every module that asked for the player's voice, unanswered first, each
+ * answered with Allow or Refuse; then what the rest get, and where to
+ * change that. Closes when nothing asks any more.
  */
 export function openVoiceCopies(
   ctx: DockContext,
@@ -154,40 +186,62 @@ export function openVoiceCopies(
     className: "mav-dock-alert",
     attrs: { role: "alert" },
   });
+  const said = el("p", {
+    doc,
+    className: "mav-sr-only",
+    attrs: { role: "status" },
+  });
+  const shared: Shared = {
+    ...{ ctx, doc, alerts },
+    announce: (text) => {
+      said.textContent = text;
+    },
+  };
   const list = el("div", { doc, className: "mav-dock-voice-list" });
   let items: readonly Rendered[] = [];
   let popover: Popover | null = null;
   const draw = (): void => {
     for (const i of items) i.dispose();
     const mine = myCopies(ctx.api.state.get(), ctx.selfId);
-    items = mine.map((m) => item(ctx, doc, m, alerts));
+    items = mine.map((m) => item(shared, m));
     list.replaceChildren(...items.map((i) => i.element));
-    // Nothing asks any more: the row it opened from is gone too.
-    if (mine.length === 0) popover?.close();
-    else popover?.reposition();
+    // Nothing asks any more: the line it opened from is gone too.
+    if (mine.length === 0) closeAndRefocus(popover, anchor);
   };
   draw();
   const off = ctx.api.state.subscribe(membership(ctx), draw);
-  const core = coreControls(ctx, doc, alerts);
+  const end = footer(shared);
   const title = ctx.t("voices.title");
-  const content = el("div", {
-    doc,
-    className: "mav-dock-voice-copies",
-    children: [
-      el("h2", { doc, text: title }),
-      list,
-      ...core.map((c) => c.element),
-      alerts,
-    ],
-  });
   popover = openPopover({
     anchor,
-    content,
+    content: el("div", {
+      doc,
+      className: "mav-dock-voice-copies",
+      children: [
+        el("h2", { doc, text: title }),
+        list,
+        end.element,
+        said,
+        alerts,
+      ],
+    }),
     label: title,
     onClose() {
       off();
-      for (const i of [...items, ...core]) i.dispose();
+      for (const i of [...items, end]) i.dispose();
     },
   });
   return popover;
+}
+
+/** The line is hidden now: the focus goes to the panel's first button. */
+function closeAndRefocus(popover: Popover | null, anchor: HTMLElement): void {
+  if (!popover) return;
+  const hadFocus = popover.element.contains(anchor.ownerDocument.activeElement);
+  popover.close();
+  if (!hadFocus) return;
+  anchor
+    .closest(".mav-dock-panel")
+    ?.querySelector<HTMLElement>("button:not([hidden])")
+    ?.focus({ preventScroll: true });
 }

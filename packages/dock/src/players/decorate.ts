@@ -3,7 +3,7 @@ import { el, icon, setLabel } from "@modular-av/kit";
 import { type DockContext, MODULE_ID } from "../context.ts";
 import { type IndicatorName, syncIndicators } from "../ui/indicators.ts";
 import { tileView } from "../view/tile-view.ts";
-import { copiesOn, nameIn, receiverLabel } from "../view/voice-view.ts";
+import { copiesOn, receiverLabel, viewerNames } from "../view/voice-view.ts";
 
 /** What the player list shows of each player in the call. */
 const SHOWN: ReadonlySet<IndicatorName> = new Set([
@@ -57,9 +57,13 @@ function markVoices(
     });
     item.append(ear);
   }
-  setLabel(ear, receiverLabel(ctx.t, copies, nameIn(state)), {
-    trusted: false,
-  });
+  setLabel(
+    ear,
+    receiverLabel(ctx.t, copies, viewerNames(ctx.t, state, ctx.selfId)),
+    {
+      trusted: false,
+    },
+  );
 }
 
 /**

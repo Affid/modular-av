@@ -59,8 +59,7 @@
       "camera-held": "Your camera is off until its effect runs",
       "microphone-error": "Your microphone can't be used: check this site's permission",
       "camera-error": "Your camera can't be used: check this site's permission",
-      "effect-failed": "An effect failed: a camera effect keeps your camera off",
-      "voice-copies": "Voices for modules here: {list}"
+      "effect-failed": "An effect failed: a camera effect keeps your camera off"
     },
     "status": {
       "idle": "Voice and video are off",
@@ -100,10 +99,22 @@
       "failed": "That didn't work: {reason}",
       "failedSecret": "That wasn't saved. The value you typed isn't shown again.",
       "voices": {
-        "allowed": "{module} ({name}) receives your voice",
-        "asking": "{module} ({name}) asks for your voice",
-        "refused": "{module} ({name}) asked for your voice; you refused",
-        "many": "{count} modules asked for your voice"
+        "line": {
+          "asking": "{module} wants your voice",
+          "allowed": "{module} receives your voice",
+          "refused": "You refused {module}"
+        },
+        "full": {
+          "asking": "{module}, {where}, wants your voice. Open to answer.",
+          "allowed": "{module}, {where}, receives your voice. Open to change.",
+          "refused": "You refused {module}, {where}. Open to change."
+        },
+        "summary": "Your voice: {parts}",
+        "count": {
+          "asking": "{count} to answer",
+          "allowed": "{count} receiving",
+          "refused": "{count} refused"
+        }
       }
     },
     "menu": {
@@ -282,20 +293,50 @@
     },
     "voices": {
       "title": "Your voice",
-      "declined": "{name} declined",
-      "waiting": "{name} waiting",
+      "you": "you",
+      "badge": {
+        "label": "Modules here: {list}",
+        "receives": "{module} receives {names}",
+        "nobody": "{module} receives no one",
+        "refused": "refused: {names}",
+        "asking": "not answered: {names}"
+      },
+      "on": {
+        "self": "on your browser",
+        "other": "on {name}'s browser"
+      },
       "where": {
-        "self": "{module}, on your browser",
-        "other": "{module}, on {name}'s browser"
+        "self": "On your browser.",
+        "other": "On {name}'s browser."
       },
       "what": {
         "microphone": "your voice",
         "screen": "your screen's sound",
         "both": "your voice and your screen's sound"
       },
-      "asking": "Waiting for your answer",
-      "allow": "Let it receive",
-      "refuse": "Refuse"
+      "status": {
+        "asking": "Not answered",
+        "allowed": "Allowed",
+        "refused": "Refused"
+      },
+      "detail": {
+        "asking": "It gets nothing until you answer.",
+        "allowed": "It receives {what}.",
+        "refused": "It gets nothing."
+      },
+      "allow": "Allow",
+      "refuse": "Refuse",
+      "answered": {
+        "allowed": "{module}: allowed. It receives {what}.",
+        "refused": "{module}: refused. It gets nothing."
+      },
+      "default": "For modules you haven't answered: {choice}",
+      "choice": {
+        "allow": "Allow",
+        "ask": "Ask me",
+        "refuse": "Refuse"
+      },
+      "change": "Change"
     }
   }
 }

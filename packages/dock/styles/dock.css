@@ -499,11 +499,13 @@
   display: none;
 }
 
-/* A module asks for the player's voice: one line, cut short if long. */
+/* A module asks for the player's voice: one line where only the module's
+   title is cut short; it stands out while a question waits. */
 .mav-dock-voices {
   display: flex;
   align-items: center;
-  gap: 6px;
+  /* Foundry spaces a button's children: the words keep their own. */
+  gap: 0;
   min-width: 0;
   height: auto;
   margin: 0;
@@ -513,32 +515,65 @@
   background: none;
   color: var(--mav-text-muted);
   font-size: 0.85em;
-  text-align: start;
+  white-space: pre;
   cursor: pointer;
+}
+
+.mav-dock-voices[data-state="asking"] {
+  border-color: var(--mav-accent);
+  color: var(--mav-text);
 }
 
 .mav-dock-voices[hidden] {
   display: none;
 }
 
-.mav-dock-voices-text {
+.mav-dock-voices-icon {
+  margin-inline-end: 6px;
+}
+
+.mav-dock-voices-title,
+.mav-voice-copy-title {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.mav-dock-voice-copy p {
-  margin: 0;
-}
-
-.mav-dock-voice-list {
+.mav-dock-voice-list,
+.mav-voice-footer {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
-.mav-voice-refuse[hidden] {
-  display: none;
+.mav-voice-copy-head,
+.mav-voice-footer {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.mav-voice-copy-status {
+  flex: none;
+  color: var(--mav-text-muted);
+}
+
+.mav-voice-copy-status[data-state="asking"] {
+  color: var(--mav-text);
+  font-weight: 600;
+}
+
+.mav-voice-copy-detail,
+.mav-voice-footer p {
+  margin: 0;
+  color: var(--mav-text-muted);
+}
+
+.mav-voice-footer {
+  padding-block-start: 8px;
+  border-top: 1px solid var(--mav-border);
 }
 
 /* The arrow beside the microphone and the camera that opens its menu:
@@ -659,7 +694,7 @@
 
 .mav-dock:is([data-placement="top"], [data-placement="bottom"])[data-collapsed]
   .mav-dock-panel {
-  grid-template-columns: auto auto auto;
+  grid-template-columns: auto auto auto auto;
   width: auto;
   max-height: none;
   overflow: visible;
@@ -668,12 +703,19 @@
 .mav-dock:is([data-placement="top"], [data-placement="bottom"])[data-collapsed]
   .mav-dock-panel
   > .mav-dock-buttons {
+  grid-column: 4;
+}
+
+/* A bar of one row: the line is its ear, before the buttons. */
+.mav-dock:is([data-placement="top"], [data-placement="bottom"])[data-collapsed]
+  .mav-dock-panel
+  > .mav-dock-voices {
   grid-column: 3;
 }
 
-/* A bar of one row: the player list's ear says it there. */
 .mav-dock:is([data-placement="top"], [data-placement="bottom"])[data-collapsed]
-  .mav-dock-voices {
+  .mav-dock-voices
+  > span:not(.mav-dock-voices-icon) {
   display: none;
 }
 
@@ -717,7 +759,7 @@
     .mav-dock-connection-ms,
     .mav-dock-connection-where,
     .mav-dock-menu-arrow,
-    .mav-dock-voices-text
+    .mav-dock-voices > span:not(.mav-dock-voices-icon)
   ) {
   display: none;
 }
@@ -1641,8 +1683,10 @@
 }
 
 .mav-settings-actions .mav-control-button,
-.mav-settings-footer .mav-control-button {
+.mav-settings-footer .mav-control-button,
+.mav-voice-footer .mav-control-button {
   width: auto;
+  flex: none;
 }
 
 .mav-settings-footer {
@@ -1827,4 +1871,8 @@ body.modular-av-pip {
   .mav-dock-tile-menu {
     transition: opacity 120ms ease-out;
   }
+}
+
+.mav-dock[data-collapsed] .mav-dock-voices-icon {
+  margin: 0;
 }

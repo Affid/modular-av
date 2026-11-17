@@ -18,7 +18,7 @@ import {
 import type { DockContext } from "../context.ts";
 import type { TileLayout } from "../settings.ts";
 import { orderTiles, screenView, tileView } from "../view/tile-view.ts";
-import { copiesOn, nameIn, receiverLabel } from "../view/voice-view.ts";
+import { copiesOn, receiverLabel, viewerNames } from "../view/voice-view.ts";
 import { wheelSideways } from "./wheel.ts";
 import {
   type Badge,
@@ -118,7 +118,11 @@ function voiceBadge(
       id: "voice-copies",
       own: true,
       icon: "fa-solid fa-ear-listen",
-      label: receiverLabel(ctx.t, copies, nameIn(state)),
+      label: receiverLabel(
+        ctx.t,
+        copies,
+        viewerNames(ctx.t, state, ctx.selfId),
+      ),
     },
   ];
 }

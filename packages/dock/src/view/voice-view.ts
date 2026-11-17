@@ -3,6 +3,7 @@ import type {
   AVState,
   ParticipantId,
   VoiceCopy,
+  VoiceCopyConsent,
   VoiceCopyTarget,
 } from "@modular-av/api";
 import type { DockContext } from "../context.ts";
@@ -28,51 +29,60 @@ export const copiesOn = (
   state.voiceCopies.filter((c) => c.receiver === receiver);
 
 /**
- * "Voices for modules here: Transcriber (Player1, Me waiting)": whose
- * voices each module asked for, and who declined or hasn't answered yet.
+ * One module for the badge: "Transcriber receives Player1 (refused:
+ * Player2; not answered: you)". `name` gives "you" for the viewer.
  */
+function receives(
+  t: Translate,
+  copy: VoiceCopy,
+  name: (id: ParticipantId) => string,
+): string {
+  const names = (consent: VoiceCopyConsent): string =>
+    copy.targets
+      .filter((target) => target.consent === consent)
+      .map((target) => name(target.participant))
+      .join(", ");
+  const allowed = names("allowed");
+  const rest = [
+    names("refused") && t("voices.badge.refused", { names: names("refused") }),
+    names("asking") && t("voices.badge.asking", { names: names("asking") }),
+  ].filter((part) => part !== "");
+  const head = allowed
+    ? t("voices.badge.receives", { module: copy.title, names: allowed })
+    : t("voices.badge.nobody", { module: copy.title });
+  return rest.length > 0 ? `${head} (${rest.join("; ")})` : head;
+}
+
+/** "Modules here: Transcriber receives Player1 (refused: Player2)". */
 export function receiverLabel(
   t: Translate,
   copies: readonly VoiceCopy[],
   name: (id: ParticipantId) => string,
 ): string {
-  const who = (target: VoiceCopyTarget): string => {
-    const shown = name(target.participant);
-    if (target.consent === "allowed") return shown;
-    const key = target.consent === "refused" ? "declined" : "waiting";
-    return t(`voices.${key}`, { name: shown });
-  };
-  const list = copies
-    .map((c) => `${c.title} (${c.targets.map(who).join(", ")})`)
-    .join("; ");
-  return t("indicator.voice-copies", { list });
+  const list = copies.map((c) => receives(t, c, name)).join("; ");
+  return t("voices.badge.label", { list });
 }
 
-/** Every module that asked for this player's voice, in the state's order. */
+/** Names as the viewer reads them: their own is "you". */
+export const viewerNames =
+  (t: Translate, state: AVState, selfId: ParticipantId) =>
+  (id: ParticipantId): string =>
+    id === selfId ? t("voices.you") : nameIn(state)(id);
+
+/** Every module that asked for this player's voice, unanswered first. */
 export function myCopies(
   state: AVState,
   selfId: ParticipantId,
 ): readonly MyCopy[] {
-  return state.voiceCopies.flatMap((copy) =>
+  const mine = state.voiceCopies.flatMap((copy) =>
     copy.targets
       .filter((t) => t.participant === selfId)
       .map((target) => ({ copy, target })),
   );
-}
-
-/** "Transcriber (Gamemaster) asks for your voice", or how many asked. */
-export function yourVoiceLabel(
-  t: Translate,
-  mine: readonly MyCopy[],
-  name: (id: ParticipantId) => string,
-): string {
-  const [only] = mine;
-  if (!only || mine.length > 1)
-    return t("panel.voices.many", { count: String(mine.length) });
-  return t(`panel.voices.${only.target.consent}`, {
-    module: only.copy.title,
-    name: name(only.copy.receiver),
-  });
+  return [
+    ...mine.filter((m) => m.target.consent === "asking"),
+    ...mine.filter((m) => m.target.consent !== "asking"),
+  ];
 }
 
 /** "your voice", "your screen's sound", or both. */
@@ -82,4 +92,75 @@ export function sourcesText(
 ): string {
   const what = sources.length > 1 ? "both" : (sources[0] ?? "microphone");
   return t(`voices.what.${what}`);
+}
+
+/** "On Gamemaster's browser." or "On your browser." */
+export function whereText(
+  t: Translate,
+  state: AVState,
+  selfId: ParticipantId,
+  receiver: ParticipantId,
+): string {
+  return receiver === selfId
+    ? t("voices.where.self")
+    : t("voices.where.other", { name: nameIn(state)(receiver) });
+}
+
+/** The panel's line: its words around the module's title, and its name. */
+export interface VoiceLine {
+  /** Waiting for an answer: the line stands out. */
+  readonly state: "asking" | "allowed" | "refused";
+  /** The text before the title, the title, and the text after it. */
+  readonly parts: readonly [string, string, string];
+  readonly label: string;
+}
+
+/** The line's text with `{module}` marked, so only the title is cut short. */
+function around(
+  text: string,
+  title: string,
+): readonly [string, string, string] {
+  const [before = "", after = ""] = text.split(TITLE);
+  return [before, title, after];
+}
+
+const TITLE = "\u0000";
+
+/**
+ * One module: "Transcriber wants your voice". Several: "Your voice: 1 to
+ * answer, 1 receiving". The accessible name says it whole.
+ */
+export function voiceLine(
+  t: Translate,
+  state: AVState,
+  selfId: ParticipantId,
+  mine: readonly MyCopy[],
+): VoiceLine {
+  const waiting = mine.some((m) => m.target.consent === "asking");
+  const allRefused = mine.every((m) => m.target.consent === "refused");
+  const lineState = waiting ? "asking" : allRefused ? "refused" : "allowed";
+  const [only] = mine;
+  if (!only || mine.length > 1) {
+    const count = (consent: VoiceCopyConsent): number =>
+      mine.filter((m) => m.target.consent === consent).length;
+    const parts = (["asking", "allowed", "refused"] as const)
+      .filter((c) => count(c) > 0)
+      .map((c) => t(`panel.voices.count.${c}`, { count: String(count(c)) }))
+      .join(", ");
+    const text = t("panel.voices.summary", { parts });
+    return { state: lineState, parts: ["", text, ""], label: text };
+  }
+  const { consent } = only.target;
+  const module = only.copy.title;
+  const where = t(
+    `voices.on.${only.copy.receiver === selfId ? "self" : "other"}`,
+    {
+      name: nameIn(state)(only.copy.receiver),
+    },
+  );
+  return {
+    state: consent,
+    parts: around(t(`panel.voices.line.${consent}`, { module: TITLE }), module),
+    label: t(`panel.voices.full.${consent}`, { module, where }),
+  };
 }

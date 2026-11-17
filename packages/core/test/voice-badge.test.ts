@@ -45,7 +45,7 @@ describe("the player list without a UI module", () => {
       'li[data-user-id="gm"] .mav-badge[data-voice-copies]',
     );
     expect(badge?.getAttribute("aria-label")).toBe(
-      "Voices for modules here: Transcriber (Player1)",
+      "Modules here: Transcriber receives no one (not answered: you)",
     );
     expect(badge?.querySelector("i")?.className).toBe("fa-solid fa-ear-listen");
     expect(list.querySelector('li[data-user-id="p1"] .mav-badge')).toBeNull();
