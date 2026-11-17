@@ -18,6 +18,7 @@ import {
 import type { DockContext } from "../context.ts";
 import type { TileLayout } from "../settings.ts";
 import { orderTiles, screenView, tileView } from "../view/tile-view.ts";
+import { copiesOn, nameIn, receiverLabel } from "../view/voice-view.ts";
 import { wheelSideways } from "./wheel.ts";
 import {
   type Badge,
@@ -104,6 +105,24 @@ const shown = (s: AVState): readonly Shown[] =>
     ),
   );
 
+/** The ear on a player whose browser has modules receiving voices. */
+function voiceBadge(
+  ctx: DockContext,
+  state: AVState,
+  id: ParticipantId,
+): readonly Badge[] {
+  const copies = copiesOn(state, id);
+  if (copies.length === 0) return [];
+  return [
+    {
+      id: "voice-copies",
+      own: true,
+      icon: "fa-solid fa-ear-listen",
+      label: receiverLabel(ctx.t, copies, nameIn(state)),
+    },
+  ];
+}
+
 /**
  * The tiles, kept between changes (videos never restart), in the dock's
  * order, fitted to the space: the grid makes 16:9 tiles as large as fit.
@@ -141,14 +160,19 @@ export function createTileList(
   /** Badges are about the player: on their camera's tile, not on a share's. */
   const badgesFor = (key: string): readonly Badge[] =>
     (owners.get(key) ?? key) === key ? badgesOf(key) : [];
-  const badgesOf = (id: ParticipantId): readonly Badge[] =>
-    indicators
+  const badgesOf = (id: ParticipantId): readonly Badge[] => [
+    ...voiceBadge(ctx, ctx.api.state.get(), id),
+    ...indicators
       .filter((c) => active.get(c.id)?.has(id))
-      .map((c) => ({ id: c.id, label: ctx.text(c.label), icon: c.icon }));
+      .map((c) => ({ id: c.id, label: ctx.text(c.label), icon: c.icon })),
+  ];
+  const redrawBadges = (): void => {
+    for (const [key, tile] of tiles) tile.setBadges(badgesFor(key));
+  };
   const offIndicators = indicators.map((c) => {
     const apply = (ids: ReadonlySet<ParticipantId>): void => {
       active = new Map(active).set(c.id, ids);
-      for (const [key, tile] of tiles) tile.setBadges(badgesFor(key));
+      redrawBadges();
     };
     try {
       active = new Map(active).set(c.id, c.active.get());
@@ -158,6 +182,8 @@ export function createTileList(
       return () => undefined;
     }
   });
+  // Modules receiving voices on a player's browser: a badge of the dock's.
+  const offVoices = ctx.api.state.subscribe((s) => s.voiceCopies, redrawBadges);
 
   /** The tile width last fitted, to damp the dock's own resizes. */
   let last: Fitted | null = null;
@@ -316,6 +342,7 @@ export function createTileList(
     },
     dispose() {
       off();
+      offVoices();
       for (const offIndicator of offIndicators) offIndicator();
       resize?.disconnect();
       offWheel();

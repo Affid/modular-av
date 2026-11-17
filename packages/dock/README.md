@@ -32,6 +32,11 @@ voice and video settings window and badges in the player list. Requires
   shown whole; double-click one to show it large.
 - **Players**: who is speaking, muted, deafened or blocked, a volume per
   player and a menu for GMs.
+- **Voices for modules**: an ear on the camera and in the player list of
+  anyone whose browser runs a module receiving voices (a transcriber, live
+  captions), saying whose voices and who declined or hasn't answered. When
+  a module asks for your voice, a line in the voice panel says so and
+  opens the list, with a switch to allow or refuse each one.
 - **Themes**: other modules add them (such as `modular-av-dock-vines`);
   choose one in Voice & Video Settings, Appearance, or follow the world's.
   Making one: [docs/dock-theming.md](../../docs/dock-theming.md).

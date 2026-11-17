@@ -97,6 +97,14 @@ function build(ctx: DockContext, host: CamerasHost): Dock {
     connection: () => {
       details.show(null);
     },
+    voices: (anchor) => {
+      // The list's code loads on first use, like the quick controls'.
+      import("../panel/voice-copies.ts")
+        .then(({ openVoiceCopies }) => {
+          if (anchor.isConnected) openVoiceCopies(ctx, anchor);
+        })
+        .catch(ctx.onError);
+    },
   });
   const details = detailsOpener(ctx, panel.connection);
   const dock: Dock = {

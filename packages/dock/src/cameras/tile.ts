@@ -27,6 +27,8 @@ export interface Badge {
   readonly id: string;
   readonly label: string;
   readonly icon: string;
+  /** The dock's own badge (`data-indicator`), not another module's. */
+  readonly own?: boolean;
 }
 
 export interface Tile {
@@ -189,6 +191,7 @@ export function createTile(
   const detach = ctx.api.media.attach(id, source, video);
   const screen = source === "screen";
   let last: TileView | null = null;
+  let badgesDrawn = "";
   let unmeter: (() => void) | null = null;
 
   const updateIdentity = (view: TileView): void => {
@@ -249,15 +252,20 @@ export function createTile(
       parts.resize.hidden = !scattered;
     },
     setBadges(badges) {
-      const ids = badges.map((b) => b.id).join(" ");
-      if (parts.badges.dataset.ids === ids) return;
-      parts.badges.dataset.ids = ids;
+      // Labels count: the dock's own badges say who they are about.
+      const drawn = JSON.stringify(badges.map((b) => [b.id, b.label]));
+      if (badgesDrawn === drawn) return;
+      badgesDrawn = drawn;
+      parts.badges.dataset.ids = badges.map((b) => b.id).join(" ");
       parts.badges.replaceChildren(
         ...badges.map((b) => {
           const badge = el("span", {
             doc,
             className: "mav-indicator",
-            attrs: { role: "img", "data-contribution": b.id },
+            attrs: {
+              role: "img",
+              [b.own ? "data-indicator" : "data-contribution"]: b.id,
+            },
             children: [iconOf(b.icon, doc)],
           });
           setLabel(badge, b.label, { trusted: false });

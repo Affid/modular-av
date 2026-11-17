@@ -499,6 +499,48 @@
   display: none;
 }
 
+/* A module asks for the player's voice: one line, cut short if long. */
+.mav-dock-voices {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  height: auto;
+  margin: 0;
+  padding: 2px 6px;
+  border: 1px solid var(--mav-border);
+  border-radius: 6px;
+  background: none;
+  color: var(--mav-text-muted);
+  font-size: 0.85em;
+  text-align: start;
+  cursor: pointer;
+}
+
+.mav-dock-voices[hidden] {
+  display: none;
+}
+
+.mav-dock-voices-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mav-dock-voice-copy p {
+  margin: 0;
+}
+
+.mav-dock-voice-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mav-voice-refuse[hidden] {
+  display: none;
+}
+
 /* The arrow beside the microphone and the camera that opens its menu:
    half a button, joined to its button by a hairline. */
 .mav-dock-menu-arrow {
@@ -629,6 +671,12 @@
   grid-column: 3;
 }
 
+/* A bar of one row: the player list's ear says it there. */
+.mav-dock:is([data-placement="top"], [data-placement="bottom"])[data-collapsed]
+  .mav-dock-voices {
+  display: none;
+}
+
 /* Collapsed on a side: a narrow rail of buttons, the status written
    down it, so Foundry gets the column back. Warnings come last: one
    coming and going moves nothing. */
@@ -668,7 +716,8 @@
     .mav-dock-layout,
     .mav-dock-connection-ms,
     .mav-dock-connection-where,
-    .mav-dock-menu-arrow
+    .mav-dock-menu-arrow,
+    .mav-dock-voices-text
   ) {
   display: none;
 }
@@ -974,7 +1023,8 @@
 
 /* Room for a device's name and the three input modes on one line: the
    popover would shrink to its labels. */
-.mav-dock-quick-controls {
+.mav-dock-quick-controls,
+.mav-dock-voice-copies {
   width: min(296px, calc(100vw - 40px));
 }
 
@@ -986,6 +1036,8 @@
 
 .mav-dock-menu,
 .mav-dock-quick-controls,
+.mav-dock-voice-copies,
+.mav-dock-voice-copy,
 .mav-effects,
 .mav-control-nested {
   display: flex;
@@ -1388,6 +1440,18 @@
   min-width: 0;
 }
 
+/* Another module's choice: the window's two columns; a button its width. */
+.mav-settings-section > .mav-control[data-control="choice"] {
+  display: grid;
+  grid-template-columns: 40% 1fr;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.mav-settings-section > .mav-control > .mav-control-button {
+  width: auto;
+}
+
 .mav-settings-row .mav-settings-hint {
   grid-column: 1 / -1;
   margin: 0;
@@ -1731,10 +1795,15 @@
   margin-inline-start: 4px;
 }
 
-.mav-players-badges .mav-indicator {
+.mav-players-badges .mav-indicator,
+.mav-players-voices {
   min-width: 16px;
   height: 16px;
   font-size: 10px;
+}
+
+.mav-players-voices {
+  margin-inline-start: 4px;
 }
 
 li[data-user-id][data-speaking] {

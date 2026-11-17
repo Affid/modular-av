@@ -8,6 +8,7 @@ import {
   createConnectionLine,
 } from "./connection-line.ts";
 import { run } from "../ui/run.ts";
+import { createYourVoice } from "./your-voice.ts";
 import { panelView } from "../view/panel-view.ts";
 import type { StatusView } from "../view/session-view.ts";
 import type { Status } from "./status.ts";
@@ -28,6 +29,8 @@ export interface PanelHandlers {
   menu(kind: DeviceMenu, anchor: HTMLElement): void;
   /** Opens the connection details by `anchor`. */
   connection(anchor: HTMLElement): void;
+  /** Opens the modules that asked for the player's voice by `anchor`. */
+  voices(anchor: HTMLElement): void;
 }
 
 export type DeviceMenu = "mic" | "camera";
@@ -271,12 +274,21 @@ export function createVoicePanel(
   const connection = createConnectionLine(ctx, doc, (anchor) => {
     handlers.connection(anchor);
   });
+  const yourVoice = createYourVoice(ctx, doc, (anchor) => {
+    handlers.voices(anchor);
+  });
   return {
     element: el("section", {
       doc,
       className: "mav-dock-panel",
       attrs: { "aria-label": ctx.t("panel.label") },
-      children: [connection.element, warnings, buttons, alerts],
+      children: [
+        connection.element,
+        warnings,
+        yourVoice.element,
+        buttons,
+        alerts,
+      ],
     }),
     connection,
     refresh() {
@@ -287,6 +299,7 @@ export function createVoicePanel(
       offQuick();
       keys.dispose();
       connection.dispose();
+      yourVoice.dispose();
     },
   };
 }

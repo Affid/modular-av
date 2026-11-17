@@ -59,7 +59,8 @@
       "camera-held": "Your camera is off until its effect runs",
       "microphone-error": "Your microphone can't be used: check this site's permission",
       "camera-error": "Your camera can't be used: check this site's permission",
-      "effect-failed": "An effect failed: a camera effect keeps your camera off"
+      "effect-failed": "An effect failed: a camera effect keeps your camera off",
+      "voice-copies": "Voices for modules here: {list}"
     },
     "status": {
       "idle": "Voice and video are off",
@@ -97,7 +98,13 @@
       "rejoin": "Rejoin",
       "reconnect": "Reconnect now",
       "failed": "That didn't work: {reason}",
-      "failedSecret": "That wasn't saved. The value you typed isn't shown again."
+      "failedSecret": "That wasn't saved. The value you typed isn't shown again.",
+      "voices": {
+        "allowed": "{module} ({name}) receives your voice",
+        "asking": "{module} ({name}) asks for your voice",
+        "refused": "{module} ({name}) asked for your voice; you refused",
+        "many": "{count} modules asked for your voice"
+      }
     },
     "menu": {
       "volume": "Volume",
@@ -272,6 +279,23 @@
       "on": "Voice and video are on in this world.",
       "onBy": "Voice and video are on in this world, carried by {service}.",
       "off": "Voice and video are off in this world. The GM turns them on here."
+    },
+    "voices": {
+      "title": "Your voice",
+      "declined": "{name} declined",
+      "waiting": "{name} waiting",
+      "where": {
+        "self": "{module}, on your browser",
+        "other": "{module}, on {name}'s browser"
+      },
+      "what": {
+        "microphone": "your voice",
+        "screen": "your screen's sound",
+        "both": "your voice and your screen's sound"
+      },
+      "asking": "Waiting for your answer",
+      "allow": "Let it receive",
+      "refuse": "Refuse"
     }
   }
 }
