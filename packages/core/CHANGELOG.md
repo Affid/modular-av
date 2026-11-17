@@ -1,5 +1,56 @@
 # @modular-av/core
 
+## 0.14.0
+
+### Minor Changes
+
+- caf3a03: Modules that transcribe, caption or record a session can get each
+  player's sound on every service, not only LiveKit:
+  `api.media.audio(moduleId, participant, source, listener)` hands the
+  listener a copy of a player's microphone, or of the screen they share
+  (`"microphone"` or `"screen"`). For another player it is what this
+  client plays of them, before this client's volume; for the local player,
+  what they send. The listener gets `null` while this client may not hear
+  them (GM blocks apply, and mutes, hide and deafen on this client) and a
+  new copy whenever the track changes; another player who mutes
+  themselves leaves a silent copy, not `null`. The core stops the copies
+  it replaced, and the last one when the subscription ends, and stopping
+  a copy never touches what is played or sent. The asking module names itself, and the core refuses
+  one that isn't active. A module that records tells the people it
+  records; the README's privacy section says so. The testing package's
+  fake API records audio subscriptions and feeds them (`emitAudio`), and
+  fake tracks tell what they were cloned from. The core's entry budget
+  goes from 130,500 to 133,500 bytes. Closes #25.
+- 3732c11: Players now decide which modules get their voice, and everyone sees
+  which modules receive voices (#28). By default a player is asked, in a
+  Foundry dialog, the first time a module on someone's browser subscribes
+  to their voice through `api.media.audio`; until they allow it the module
+  gets `null`. They can instead allow or refuse every module, and forget
+  their answers, from "Voices for modules" in the module settings or a
+  settings window's Call tab. Each time a module starts receiving their
+  voice or screen sound, they get a notification, and Foundry's player
+  list marks the player whose browser runs it. The state carries
+  `voiceCopies` and `voiceConsent`, and the commands `setVoiceConsent`,
+  `decideVoiceCopy` and `forgetVoiceDecisions`. The testing package's fake
+  Foundry opens `DialogV2` dialogs a test answers. The core's entry budget
+  goes from 133,500 to 144,000 bytes.
+
+### Patch Changes
+
+- 1a401c8: Voices for modules speak one language: Allow or Refuse, and Not
+  answered, Allowed or Refused. The question says the module gets nothing
+  until the player allows it, that the answer is remembered, and where to
+  change it. "Forget all answers…" asks first and says what follows: with
+  Allow, modules the player refused receive their voice at once. The
+  player-list badge says whom each module receives, who refused and who
+  hasn't answered. The settings' choice reads "For modules you haven't
+  answered", the menu's hint no longer says "each time", and the current
+  choice is the settings dialog's default button.
+- Updated dependencies [caf3a03]
+- Updated dependencies [3732c11]
+  - @modular-av/api@0.14.0
+  - @modular-av/kit@0.14.0
+
 ## 0.13.2
 
 ### Patch Changes
