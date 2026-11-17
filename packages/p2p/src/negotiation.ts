@@ -1,6 +1,15 @@
 import type { CandidateInit, SessionDescription } from "./messages.ts";
 import type { PeerConnectionLike } from "./peer.ts";
 
+/**
+ * How long the side that gives way waits, on a new link, for the other
+ * side's first offer before making its own. Both offering at once is a
+ * collision: the polite side rolls its offer back, and Chrome then
+ * sometimes gathers no candidates at all, leaving the link silent until
+ * it is replaced.
+ */
+export const POLITE_WAIT_MS = 1_000;
+
 export type NegotiationMessage =
   | { readonly description: SessionDescription }
   | { readonly candidate: CandidateInit | null };
@@ -32,6 +41,8 @@ interface Flags {
   makingOffer: boolean;
   ignoreOffer: boolean;
   applyingAnswer: boolean;
+  /** A description from the other side was applied once. */
+  heard: boolean;
 }
 
 /** Sends the offer or answer just set, if there is one. */
@@ -61,6 +72,7 @@ async function applyDescription(
   } finally {
     flags.applyingAnswer = false;
   }
+  flags.heard = true;
   deps.onDescriptionApplied?.();
   if (description.type !== "offer") return;
   await pc.setLocalDescription();
@@ -83,6 +95,39 @@ async function applyCandidate(
 }
 
 /**
+ * What answers the browser's `negotiationneeded`: an offer, except on the
+ * polite side of a new link, which first gives the other side's offer
+ * time to arrive (the browser asks again once it is answered).
+ */
+function offering(deps: NegotiationDeps, flags: Flags): () => void {
+  const { pc } = deps;
+  const offer = (): void => {
+    flags.makingOffer = true;
+    pc.setLocalDescription()
+      .then(() => {
+        sendLocal(deps);
+      })
+      .catch(deps.onError)
+      .finally(() => {
+        flags.makingOffer = false;
+      });
+  };
+  let waiting = false;
+  return () => {
+    if (!deps.polite || flags.heard) {
+      offer();
+      return;
+    }
+    if (waiting) return;
+    waiting = true;
+    setTimeout(() => {
+      waiting = false;
+      if (!flags.heard && pc.signalingState === "stable") offer();
+    }, POLITE_WAIT_MS);
+  };
+}
+
+/**
  * The W3C "perfect negotiation" pattern: either side may offer whenever
  * the browser asks; when both offer at once, the impolite side ignores the
  * other's offer and the polite side rolls its own back. Received messages
@@ -94,20 +139,11 @@ export function createNegotiation(deps: NegotiationDeps): Negotiation {
     makingOffer: false,
     ignoreOffer: false,
     applyingAnswer: false,
+    heard: false,
   };
   let queue: Promise<void> = Promise.resolve();
 
-  pc.addEventListener("negotiationneeded", () => {
-    flags.makingOffer = true;
-    pc.setLocalDescription()
-      .then(() => {
-        sendLocal(deps);
-      })
-      .catch(deps.onError)
-      .finally(() => {
-        flags.makingOffer = false;
-      });
-  });
+  pc.addEventListener("negotiationneeded", offering(deps, flags));
 
   const enqueue = (run: () => Promise<void>): Promise<void> => {
     const next = queue.then(run).catch(deps.onError);

@@ -264,6 +264,30 @@ describe("the mesh", () => {
     expect(joined(alice)).toEqual(["participantJoined bob"]);
   });
 
+  it("starts a link that never connected afresh at its connect timeout", async () => {
+    // Arrange: nothing of the first link's negotiation gets through, so
+    // it never connects; a fresh link does.
+    const alice = member("alice", "s-a");
+    const bob = member("bob", "s-b");
+    hub.drop = (data) => {
+      const signal = data as { type?: string; epoch?: number };
+      return signal.type === "description" && signal.epoch === 0;
+    };
+    alice.mesh.hello();
+    bob.mesh.hello();
+    await settle();
+    const stuck = alice.mesh.linkStates();
+
+    // Act: only the connect timeout, not the reset after it.
+    await vi.advanceTimersByTimeAsync(CONNECT_TIMEOUT_MS);
+    await settle();
+
+    // Assert
+    expect(stuck).toEqual(["connecting"]);
+    expect(alice.mesh.linkStates()).toEqual(["connected"]);
+    expect(bob.mesh.linkStates()).toEqual(["connected"]);
+  });
+
   it("lets them go when the link stays down, and asks them back with a hello", async () => {
     // Arrange
     const alice = member("alice", "s-a");

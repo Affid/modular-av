@@ -1,7 +1,11 @@
 import { FakePeerConnection } from "@modular-av/testing";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CandidateInit, SessionDescription } from "../src/messages.ts";
-import { createNegotiation, type Negotiation } from "../src/negotiation.ts";
+import {
+  createNegotiation,
+  type Negotiation,
+  POLITE_WAIT_MS,
+} from "../src/negotiation.ts";
 
 type Wire =
   | { readonly description: SessionDescription }
@@ -11,6 +15,8 @@ interface Side {
   readonly pc: FakePeerConnection;
   readonly negotiation: Negotiation;
   readonly errors: unknown[];
+  /** The descriptions it sent, in order. */
+  readonly sent: string[];
 }
 
 /** Two sides whose messages reach each other in order, a turn later. */
@@ -32,15 +38,17 @@ function pair(lose: (message: Wire) => boolean = () => false): {
   };
   for (const [index, pc] of pcs.entries()) {
     const errors: unknown[] = [];
+    const sent: string[] = [];
     const negotiation = createNegotiation({
       pc,
       polite: index === 0,
       send: (message) => {
+        if ("description" in message) sent.push(message.description.type);
         deliver(1 - index, message);
       },
       onError: (error) => errors.push(error),
     });
-    sides.push({ pc, negotiation, errors });
+    sides.push({ pc, negotiation, errors, sent });
   }
   const [polite, impolite] = sides;
   if (!polite || !impolite) throw new Error("no sides");
@@ -51,6 +59,10 @@ const settle = async (): Promise<void> => {
   for (let i = 0; i < 20; i += 1)
     await new Promise((resolve) => setTimeout(resolve, 0));
 };
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe("perfect negotiation", () => {
   it("settles both sides' lines when both offer at once", async () => {
@@ -74,6 +86,40 @@ describe("perfect negotiation", () => {
       ).toEqual(["recvonly", "sendonly"]);
       expect(side.errors).toEqual([]);
     }
+  });
+
+  it("answers first instead of offering at once, when it is the side that gives way", async () => {
+    // Arrange: a new link, both sides with lines to send.
+    const { polite, impolite } = pair();
+
+    // Act
+    polite.pc.addTransceiver("audio", { direction: "sendonly" });
+    impolite.pc.addTransceiver("audio", { direction: "sendonly" });
+    await settle();
+
+    // Assert: no colliding offers, so nothing is rolled back.
+    expect(impolite.sent[0]).toBe("offer");
+    expect(polite.sent).toEqual(["answer", "offer"]);
+    for (const side of [polite, impolite])
+      expect(side.pc.connectionState).toBe("connected");
+  });
+
+  it("offers anyway when the other side has nothing to offer", async () => {
+    // Arrange
+    vi.useFakeTimers();
+    const { polite, impolite } = pair();
+
+    // Act
+    polite.pc.addTransceiver("audio", { direction: "sendonly" });
+    await vi.advanceTimersByTimeAsync(POLITE_WAIT_MS / 2);
+    const early = [...polite.sent];
+    await vi.advanceTimersByTimeAsync(POLITE_WAIT_MS);
+
+    // Assert
+    expect(early).toEqual([]);
+    expect(polite.sent).toEqual(["offer"]);
+    expect(impolite.pc.connectionState).toBe("connected");
+    expect([polite.errors, impolite.errors]).toEqual([[], []]);
   });
 
   it("makes an offer again whose answer was lost, once unstuck", async () => {

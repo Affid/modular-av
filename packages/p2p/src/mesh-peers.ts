@@ -24,8 +24,9 @@ export const LEAVE_AFTER_MS = 45_000;
 /** A link down this long is started afresh by its impolite side. */
 export const RESET_AFTER_MS = 15_000;
 /**
- * A new link that hasn't connected by then counts as down: an offer lost
- * on the way would leave both sides waiting for an answer forever.
+ * A new link that hasn't connected by then counts as down, and its
+ * impolite side starts it afresh at once: an offer lost on the way, or a
+ * side that gathered no candidates, would leave it silent forever.
  */
 export const CONNECT_TIMEOUT_MS = 15_000;
 /** The other side may make this side start a link afresh this often. */
@@ -155,7 +156,11 @@ export function addPeer(st: MeshState, presence: Presence): void {
   addTimer(st, user, CONNECT_TIMEOUT_MS, () => {
     const peer = st.peers.get(user);
     if (peer?.link !== link || peer.downSince !== null) return;
-    setPeer(st, startDown(st, peer));
+    const down = startDown(st, peer);
+    setPeer(st, down);
+    // Never connected, so nothing to wait out: the impolite side starts
+    // afresh now (the reset timer stays, should the new link fail too).
+    if (!isPolite(st, user)) replaceLink(st, down, down.epoch + 1);
     st.deps.onChange();
   });
 }
