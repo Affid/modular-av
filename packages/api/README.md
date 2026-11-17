@@ -106,6 +106,37 @@ These hold whichever UI or service runs, and stay in every 1.x:
 long as Foundry's page), but a later minor version may call it: a
 surface's `unmount` must undo its mount completely.
 
+## A participant's sound
+
+A module that transcribes, captions or records asks the core for a copy
+of each voice:
+
+```ts
+const off = api.media.audio("my-transcriber", userId, "microphone", (track) => {
+  if (track) startRecording(userId, track);
+  else stopRecording(userId);
+});
+```
+
+- For another player the copy is what this client plays of them, as
+  received and before this client's volume; for the local player, what
+  they send. `"screen"` gives the sound of the screen they share.
+- The listener gets `null` whenever this client may not hear them: out of
+  the call, blocked by a GM, or muted, hidden or deafened here. A
+  transcript of what one client hears has gaps there.
+- The local player's copy is also `null` while they are muted or push to
+  talk is released. Another player who mutes themselves keeps their
+  track: the copy goes silent, not `null`.
+- A new track (a reconnection, for one) brings a new copy. The core stops
+  the copy it replaced, and the last one when you call `off`. Stopping or
+  disabling a copy yourself never touches what is played or sent.
+- The listener isn't called until a first track comes.
+- The first argument is your module's id. The core refuses a module that
+  isn't active, but it can't check who calls: the id is what a module
+  declares.
+- Recording people needs their consent: tell the players what you record
+  and where it goes.
+
 ## Inside this package
 
 About 1,400 lines of TypeScript types in 16 files, one per part of the

@@ -124,6 +124,7 @@ export {
 export { createFakeApi } from "./api/fake-api.ts";
 export type {
   Attachment,
+  AudioSubscription,
   CommandCall,
   FakeApi,
   FakeApiOptions,

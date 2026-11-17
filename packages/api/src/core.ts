@@ -22,6 +22,9 @@ import type { Windows } from "./windows.ts";
 
 export type VideoSource = "camera" | "screen";
 
+/** A player's voice, or the sound of the screen they share. */
+export type AudioSource = "microphone" | "screen";
+
 export interface MediaAttachment {
   /**
    * Shows a participant's video in `element` and keeps it current. The
@@ -33,6 +36,30 @@ export interface MediaAttachment {
     participant: ParticipantId,
     source: VideoSource,
     element: HTMLVideoElement,
+  ): () => void;
+  /**
+   * A copy of a participant's sound, for recording, transcription or
+   * captions. For another player it is what this client plays of them, as
+   * received, before this client's volume; for the local player, what
+   * they send. `listener` gets a new copy whenever there is a new track,
+   * and null when it goes: out of the call, blocked by a GM, or muted,
+   * hidden or deafened here, so expect gaps. The local player's is null
+   * too while they are muted or push to talk is released; another player
+   * who mutes themselves keeps their track, so the copy goes silent
+   * rather than null. Until a first track
+   * comes it isn't called at all. The core stops a copy once it hands the
+   * next one or null, and the last one at the returned call; stopping or
+   * disabling a copy never touches what is played or sent. `moduleId` is
+   * the asking module's id, as it declares it (the core can't check who
+   * calls): an inactive or unknown module, or an unknown source, throws.
+   * A module that records or transcribes voices tells the people it
+   * records.
+   */
+  audio(
+    moduleId: string,
+    participant: ParticipantId,
+    source: AudioSource,
+    listener: (track: MediaStreamTrack | null) => void,
   ): () => void;
 }
 

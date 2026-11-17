@@ -47,8 +47,14 @@ export interface RemoteMedia {
   videoStream(participant: ParticipantId): MediaStream | null;
   /** Present and allowed: the microphone, the camera, a shared screen. */
   has(participant: ParticipantId, kind: "audio" | "video" | "screen"): boolean;
-  /** The microphone this client plays of them, if it may. */
-  audioTrack(participant: ParticipantId): MediaStreamTrack | null;
+  /**
+   * The microphone, or a shared screen's sound, this client plays of them,
+   * if it may.
+   */
+  audioTrack(
+    participant: ParticipantId,
+    source?: RemoteAudioSource,
+  ): MediaStreamTrack | null;
   /** Presence or permission of some track changed. */
   onChange(listener: () => void): () => void;
 }
@@ -59,6 +65,8 @@ export type SetSubscription = (
   source: TrackSource,
   options: SubscriptionOptions,
 ) => void;
+
+export type RemoteAudioSource = "microphone" | "screen-audio";
 
 const AUDIO_SOURCES: readonly TrackSource[] = ["microphone", "screen-audio"];
 
@@ -284,9 +292,9 @@ export function createRemoteMedia(
       const track = videoTrack(participant, "camera");
       return track ? streamOf(track) : null;
     },
-    audioTrack(participant) {
-      if (!policy.canHear(participant)) return null;
-      return tracks.get(key(participant, "microphone"))?.track ?? null;
+    audioTrack(participant, source = "microphone") {
+      if (!allows(policy, participant, source)) return null;
+      return tracks.get(key(participant, source))?.track ?? null;
     },
     has(participant, kind) {
       if (kind === "video") return videoTrack(participant, "camera") !== null;
