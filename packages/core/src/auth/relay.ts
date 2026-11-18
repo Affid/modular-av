@@ -204,6 +204,37 @@ interface Asking {
   readonly sayCanSign: () => void;
 }
 
+/** The replies to every request this player sent, and how to add one. */
+interface Replies {
+  readonly arrived: Promise<string>;
+  readonly track: (id: string) => void;
+}
+
+/**
+ * One request to the other GMs: their token, WOKEN to ask again at once
+ * (a GM's page started and may have missed it), or null.
+ */
+async function askGms(
+  a: Asking,
+  signal: AbortSignal,
+  replies: Replies,
+  recipients: readonly string[],
+): Promise<string | typeof WOKEN | null> {
+  const id = a.deps.randomId();
+  replies.track(id);
+  a.deps.channel.send({ type: "request", id }, { recipients });
+  const replied = await wait(
+    a.onReady,
+    signal,
+    replies.arrived,
+    REPLY_TIMEOUT_MS,
+  );
+  if (replied !== WOKEN) return replied;
+  // A reply already on its way still comes first.
+  const late = await wait(never, signal, replies.arrived, WOKEN_GRACE_MS);
+  return typeof late === "string" ? late : WOKEN;
+}
+
 /**
  * Asks again every round, and keeps listening for every request it sent:
  * a GM whose page is busy (Foundry loading after `ready`) answers late,
@@ -216,6 +247,10 @@ async function askUntilToken(a: Asking, signal: AbortSignal): Promise<string> {
     deliver = resolve;
   });
   let ids: readonly string[] = [];
+  const track = (id: string): void => {
+    ids = [...ids, id];
+    a.pending.add(id, deliver);
+  };
   let waiting = false;
   try {
     for (;;) {
@@ -230,22 +265,8 @@ async function askUntilToken(a: Asking, signal: AbortSignal): Promise<string> {
       }
       const recipients = deps.gmIds().filter((gm) => gm !== deps.selfId);
       if (recipients.length > 0) {
-        const id = deps.randomId();
-        ids = [...ids, id];
-        a.pending.add(id, deliver);
-        deps.channel.send({ type: "request", id }, { recipients });
-        const replied = await wait(
-          a.onReady,
-          signal,
-          arrived,
-          REPLY_TIMEOUT_MS,
-        );
-        // A GM's page started meanwhile: if it missed this request, again.
-        const settled =
-          replied === WOKEN
-            ? await wait(never, signal, arrived, WOKEN_GRACE_MS)
-            : replied;
-        if (typeof settled === "string") return settled;
+        const replied = await askGms(a, signal, { arrived, track }, recipients);
+        if (typeof replied === "string") return replied;
         if (replied === WOKEN) continue;
       }
       if (!waiting) deps.onWaitingForGm(true);

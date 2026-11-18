@@ -224,12 +224,45 @@ describe("GM token relay", () => {
 
     // Act: within that reply wait, the GM's page starts and can sign.
     await vi.advanceTimersByTimeAsync(REPLY_TIMEOUT_MS / 5);
-    connect(world, "gm", { secret: true, client: loading });
+    const gm = connect(world, "gm", { secret: true, client: loading });
     await settle(world);
     await vi.advanceTimersByTimeAsync(WOKEN_GRACE_MS);
     await settle(world);
 
-    // Assert: answered now, not after the reply wait and a retry.
+    // Assert: answered now, not after the reply wait and a retry; the
+    // first request was missed, so the token came from the second.
+    expect(resolved).toBe("token-for-p1");
+    expect(gm.signed.map((r) => r.participant)).toEqual(["p1"]);
+  });
+
+  it("ignores a player who says they can sign", async () => {
+    // Arrange: Player1 waits for a GM who can't sign yet.
+    vi.useFakeTimers();
+    const world = createFakeWorld({ users: USERS });
+    let secret = false;
+    const gm = connect(world, "gm", { secret: () => secret });
+    const p1 = connect(world, "p1");
+    let resolved: string | undefined;
+    void p1.relay.request(new AbortController().signal).then((t) => {
+      resolved = t;
+    });
+    await settle(world);
+    await vi.advanceTimersByTimeAsync(REPLY_TIMEOUT_MS);
+    secret = true;
+
+    // Act: Player4 claims to be a page that can sign.
+    createChannels(world.connect("p4").game.socket, () => undefined)
+      .channel("auth")
+      .send({ type: "signer" });
+    await settle(world);
+    await vi.advanceTimersByTimeAsync(WOKEN_GRACE_MS * 2);
+    const afterClaim = resolved;
+    await vi.advanceTimersByTimeAsync(RETRY_MS);
+    await settle(world);
+
+    // Assert: no ask on the claim; the regular retry gets the token.
+    expect(afterClaim).toBeUndefined();
+    expect(gm.signed.map((r) => r.participant)).toEqual(["p1"]);
     expect(resolved).toBe("token-for-p1");
   });
 
