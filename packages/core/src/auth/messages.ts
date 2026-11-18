@@ -10,6 +10,11 @@ export interface TokenReplyMessage {
   readonly token: string;
 }
 
+/** A GM's page can sign tokens now: waiting players ask at once. */
+export interface SignerReadyMessage {
+  readonly type: "signer";
+}
+
 const MAX_ID_LENGTH = 64;
 /** Far above a real JWT; anything bigger is not a token. */
 const MAX_TOKEN_LENGTH = 8192;
@@ -35,4 +40,8 @@ export function isTokenReply(value: unknown): value is TokenReplyMessage {
     value.token.length > 0 &&
     value.token.length <= MAX_TOKEN_LENGTH
   );
+}
+
+export function isSignerReady(value: unknown): value is SignerReadyMessage {
+  return isRecord(value) && value.type === "signer";
 }
