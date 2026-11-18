@@ -1,5 +1,21 @@
 # @modular-av/core
 
+## 0.14.1
+
+### Patch Changes
+
+- 349b79c: A player who joins before a GM gets in as soon as the GM's page can sign
+  their token, not up to a retry or two later. When a GM logs in, their page
+  is often still loading, so the player's request went unanswered and they
+  waited for the next round (10 s, and more on a world slow to load); leaving
+  and joining again ran into the same wait. A GM's page now tells waiting
+  players when it can sign (once it listens, or once the GM's own token is
+  signed with a secret entered later), and they ask again at once, even while
+  they wait for an answer to a request the page never saw. The core's entry
+  budget goes from 144,000 to 145,500 bytes.
+- @modular-av/api@0.14.1
+  - @modular-av/kit@0.14.1
+
 ## 0.14.0
 
 ### Minor Changes

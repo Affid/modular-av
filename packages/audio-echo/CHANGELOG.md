@@ -1,5 +1,11 @@
 # @modular-av/audio-echo
 
+## 0.14.1
+
+### Patch Changes
+
+- @modular-av/kit@0.14.1
+
 ## 0.14.0
 
 ### Patch Changes
