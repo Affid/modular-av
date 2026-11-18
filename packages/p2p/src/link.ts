@@ -53,6 +53,8 @@ export interface LinkDeps {
 /** The media path to one other session, over one `RTCPeerConnection`. */
 export interface Link {
   readonly state: LinkState;
+  /** ICE has begun checking paths: slow, maybe, but not stuck. */
+  readonly checking: boolean;
   receive(message: LinkMessage): void;
   setTrack(
     source: OutgoingSource,
@@ -266,6 +268,9 @@ function linkApi(p: Parts, negotiation: Negotiation): Link {
   return {
     get state() {
       return p.s.state;
+    },
+    get checking() {
+      return pc.connectionState !== "new";
     },
     receive: (message) => {
       receive(p, negotiation, message);

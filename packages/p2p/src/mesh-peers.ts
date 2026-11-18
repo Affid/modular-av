@@ -158,9 +158,11 @@ export function addPeer(st: MeshState, presence: Presence): void {
     if (peer?.link !== link || peer.downSince !== null) return;
     const down = startDown(st, peer);
     setPeer(st, down);
-    // Never connected, so nothing to wait out: the impolite side starts
-    // afresh now (the reset timer stays, should the new link fail too).
-    if (!isPolite(st, user)) replaceLink(st, down, down.epoch + 1);
+    // Never got as far as checking paths, so nothing to wait out: the
+    // impolite side starts afresh now (the reset timer stays, should the
+    // new link fail too). A link still checking gets until the reset.
+    if (!isPolite(st, user) && !link.checking)
+      replaceLink(st, down, down.epoch + 1);
     st.deps.onChange();
   });
 }

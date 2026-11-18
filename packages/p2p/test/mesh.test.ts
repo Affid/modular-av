@@ -288,6 +288,30 @@ describe("the mesh", () => {
     expect(bob.mesh.linkStates()).toEqual(["connected"]);
   });
 
+  it("lets a link that is still checking its paths go on at its connect timeout", async () => {
+    // Arrange: the first link's negotiation gets nowhere, but Bob's (the
+    // impolite side, who would start afresh) has begun checking paths.
+    const alice = member("alice", "s-a");
+    const bob = member("bob", "s-b");
+    hub.drop = (data) => {
+      const signal = data as { type?: string; epoch?: number };
+      return signal.type === "description" && signal.epoch === 0;
+    };
+    alice.mesh.hello();
+    bob.mesh.hello();
+    await settle();
+    const [checking] = bob.pcs;
+    if (checking) checking.connectionState = "connecting";
+
+    // Act
+    await vi.advanceTimersByTimeAsync(CONNECT_TIMEOUT_MS);
+    await settle();
+
+    // Assert: slow, not stuck: the same link, given until the reset.
+    expect(bob.pcs).toHaveLength(1);
+    expect(bob.mesh.linkStates()).toEqual(["down"]);
+  });
+
   it("lets them go when the link stays down, and asks them back with a hello", async () => {
     // Arrange
     const alice = member("alice", "s-a");
