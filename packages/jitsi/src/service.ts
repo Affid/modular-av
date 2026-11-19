@@ -1,7 +1,6 @@
 import type { ServiceDefinition } from "@modular-av/api";
-import { JitsiServiceError } from "./errors.ts";
 import type { JitsiServer } from "./join.ts";
-import { type JitsiCredentials, signJitsiToken } from "./token.ts";
+import type { JitsiCredentials } from "./token.ts";
 
 export const MODULE_ID = "modular-av-jitsi";
 
@@ -9,8 +8,8 @@ export const MODULE_ID = "modular-av-jitsi";
 export const SDK_PATH = "vendor/lib-jitsi-meet.min.js";
 
 export interface JitsiServiceDeps {
-  /** The deployment, or null while the world settings name none. */
-  readonly server: () => JitsiServer | null;
+  /** The deployment, or null while the world settings name none (read lazily). */
+  readonly server: () => Promise<JitsiServer | null>;
   /** This device's app id and secret (a GM's browser), or null. */
   readonly credentials: () => JitsiCredentials | null;
   readonly sdkUrl: () => string;
@@ -27,7 +26,8 @@ const canUseWebCrypto = (): boolean =>
 
 /**
  * What the module registers with the core: small on purpose. The SDK (a
- * prebuilt script) and the connection code load in `create()`.
+ * prebuilt script) and the connection code load in `create()`, the token
+ * code in `signToken()`.
  */
 export function createJitsiService(deps: JitsiServiceDeps): ServiceDefinition {
   return {
@@ -47,16 +47,20 @@ export function createJitsiService(deps: JitsiServiceDeps): ServiceDefinition {
         return Promise.reject(
           new Error("No Jitsi app id and secret on this device"),
         );
-      return signJitsiToken(request, credentials, deps.now());
+      return import("./token.ts").then(({ signJitsiToken }) =>
+        signJitsiToken(request, credentials, deps.now()),
+      );
     },
     async create(context) {
-      const server = deps.server();
-      if (!server)
+      const server = await deps.server();
+      if (!server) {
+        const { JitsiServiceError } = await import("./errors.ts");
         throw new JitsiServiceError({
           code: "unsupported",
           final: true,
           message: "Set the Jitsi server in the module settings",
         });
+      }
       const [{ loadJitsi }, { createJitsiConnection }] = await Promise.all([
         import("./sdk.ts"),
         import("./connection.ts"),

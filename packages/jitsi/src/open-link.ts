@@ -1,0 +1,114 @@
+import { SOCKET_PATH, socketAt, socketScheme, urlOf } from "./address.ts";
+
+/** An open server's address or room link, read; or what is wrong with it. */
+export type OpenAddress =
+  | { readonly ok: true; readonly socket: URL; readonly room: string | null }
+  | { readonly ok: false; readonly problem: "address" | "room" };
+
+/**
+ * Room names the module and Jitsi's own web page turn into the same
+ * room: Jitsi's page folds case and encodes anything else differently.
+ */
+const ROOM = /^[a-z0-9_-]{1,128}$/i;
+
+/** Query parameters that carry a sign-in token in a Jitsi link. */
+const TOKEN_PARAMS: readonly string[] = ["jwt", "token"];
+
+interface SitePath {
+  /** The site's own path, e.g. "/jitsi", or "" at the host's root. */
+  readonly base: string;
+  readonly room: string | undefined;
+}
+
+/** The last path segment names the room, unless it is the WebSocket. */
+function sitePathOf(url: URL): SitePath {
+  const segments = url.pathname.split("/").filter((s) => s.length > 0);
+  const last = segments.at(-1);
+  const site = last === undefined ? segments : segments.slice(0, -1);
+  return {
+    base: site.map((s) => `/${s}`).join(""),
+    room: last === SOCKET_PATH ? undefined : last,
+  };
+}
+
+function roomName(raw: string): string | null {
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(raw);
+  } catch {
+    // A broken percent sequence names no room.
+    return null;
+  }
+  return ROOM.test(decoded) ? decoded.toLowerCase() : null;
+}
+
+/**
+ * A server's address (https://meet.example.com) or a room link as people
+ * send it to friends (https://meet.example.com/OurTable). The query and
+ * the hash (Jitsi's page settings) don't matter here.
+ */
+export function parseOpenAddress(address: string): OpenAddress {
+  const url = urlOf(address.trim());
+  const scheme = url && socketScheme(url);
+  if (!url || !scheme) return { ok: false, problem: "address" };
+  const { base, room } = sitePathOf(url);
+  const socket = socketAt(scheme, url, base);
+  if (room === undefined) return { ok: true, socket, room: null };
+  const name = roomName(room);
+  return name
+    ? { ok: true, socket, room: name }
+    : { ok: false, problem: "room" };
+}
+
+function withoutTokens(url: URL): URL {
+  const kept = new URLSearchParams(
+    [...url.searchParams].filter(([key]) => !TOKEN_PARAMS.includes(key)),
+  );
+  const query = kept.size > 0 ? `?${kept.toString()}` : "";
+  return new URL(`${url.origin}${url.pathname}${query}${url.hash}`);
+}
+
+const withRoom = (url: URL, room: string): URL =>
+  new URL(
+    `${url.origin}${sitePathOf(url).base}/${room}${url.search}${url.hash}`,
+  );
+
+export interface NormalizedAddress {
+  readonly value: string;
+  /** A sign-in token was taken out of the link. */
+  readonly removedToken: boolean;
+}
+
+/**
+ * What the address setting should hold. World settings reach every
+ * player, so a token pasted with a link is taken out. An open server's
+ * address without a room gets a random one, kept in the setting where
+ * the GM sees it. The same value when nothing is to change.
+ */
+export function normalizeAddress(
+  value: string,
+  open: boolean,
+  random: () => string,
+): NormalizedAddress {
+  const url = urlOf(value.trim());
+  if (!url) return { value, removedToken: false };
+  const removedToken = TOKEN_PARAMS.some((key) => url.searchParams.has(key));
+  const safe = removedToken ? withoutTokens(url) : url;
+  const read = parseOpenAddress(safe.href);
+  const needsRoom = open && read.ok && read.room === null;
+  if (!removedToken && !needsRoom) return { value, removedToken };
+  return {
+    value: (needsRoom ? withRoom(safe, random()) : safe).href,
+    removedToken,
+  };
+}
+
+const BASE32 = "abcdefghijklmnopqrstuvwxyz234567";
+/** 100 random bits: nobody guesses the room. */
+const ROOM_LENGTH = 20;
+
+/** A room name for an open server; works outside secure contexts too. */
+export function randomRoom(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(ROOM_LENGTH));
+  return Array.from(bytes, (b) => BASE32.charAt(b % BASE32.length)).join("");
+}

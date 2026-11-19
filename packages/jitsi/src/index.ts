@@ -1,19 +1,27 @@
 import type { ModularAV } from "@modular-av/api";
-import { maskSecretField, type FormRoot } from "./mask.ts";
+import {
+  type AccessFormRoot,
+  followAccessChoice,
+  maskSecretField,
+  type FormRoot,
+} from "./mask.ts";
+import type { SavedAddressDeps } from "./saved-address.ts";
 import { createJitsiService, MODULE_ID, SDK_PATH } from "./service.ts";
 import {
   readSettings,
   registerSecretSettings,
   registerWorldSettings,
-  type SettingsApi,
 } from "./settings.ts";
 
 /** The slice of Foundry's globals this module uses. */
 declare global {
   var game: {
-    settings: SettingsApi;
+    settings: SavedAddressDeps["settings"];
     user: { isGM: boolean };
+    users: { activeGM: { isSelf: boolean } | null };
+    i18n: { localize(key: string): string };
   };
+  var ui: { notifications: { warn(message: string): unknown } };
   var Hooks: {
     once(hook: string, fn: (...args: never[]) => void): number;
     on(hook: string, fn: (...args: never[]) => void): number;
@@ -37,23 +45,58 @@ const reportLibraryLog = (line: string): void => {
   console.warn(`Modular A/V: Jitsi | ${redact(line)}`);
 };
 
+const warn = (key: string): void => {
+  ui.notifications.warn(game.i18n.localize(`${MODULE_ID}.notices.${key}`));
+};
+
+const isActiveGM = (): boolean => game.users.activeGM?.isSelf === true;
+
+/**
+ * On the active GM's browser: no token in the address, a room if open.
+ * Loaded there only, when the access or the address changes.
+ */
+const keepAddress = (): void => {
+  if (!isActiveGM()) return;
+  Promise.all([import("./saved-address.ts"), import("./open-link.ts")])
+    .then(([{ keepAddressSafe }, { randomRoom }]) =>
+      keepAddressSafe({
+        settings: game.settings,
+        isActiveGM,
+        randomRoom,
+        onTokenRemoved: () => {
+          warn("tokenRemoved");
+        },
+      }),
+    )
+    .catch(reportError);
+};
+
 Hooks.once("init", () => {
-  registerWorldSettings(game.settings);
+  registerWorldSettings(game.settings, keepAddress);
 });
 
 Hooks.once("setup", () => {
   registerSecretSettings(game.settings, game.user.isGM);
 });
 
-Hooks.on("renderSettingsConfig", (_app: unknown, element: FormRoot) => {
-  maskSecretField(element);
-});
+Hooks.once("ready", keepAddress);
+
+Hooks.on(
+  "renderSettingsConfig",
+  (_app: unknown, element: FormRoot & AccessFormRoot) => {
+    maskSecretField(element);
+    followAccessChoice(element);
+  },
+);
 
 Hooks.once("modularAV.register", (api: ModularAV) => {
   const settings = readSettings(game.settings);
   api.services.register(
     createJitsiService({
-      server: () => settings.server(),
+      server: async () => {
+        const { serverOf } = await import("./server-address.ts");
+        return serverOf(settings.serverSettings());
+      },
       credentials: () => settings.credentials(),
       sdkUrl: () => api.assetUrl(MODULE_ID, SDK_PATH),
       now: () => Date.now(),

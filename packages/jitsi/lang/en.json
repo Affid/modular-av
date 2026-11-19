@@ -2,9 +2,15 @@
   "modular-av-jitsi": {
     "label": "Jitsi",
     "settings": {
+      "access": {
+        "name": "How players get in",
+        "hint": "With tokens: the server checks a token that a GM's browser signs for each player, from the app id and secret below; it needs token authentication and Prosody's presence_identity module (see the module's README). Open server: anyone with the room link joins, as on a fresh Jitsi install, and Foundry tells everyone who each player is. People who aren't in this world can still join an open room if they know its link.",
+        "token": "With tokens (app id and secret)",
+        "open": "Open server (anyone with the link)"
+      },
       "serverUrl": {
         "name": "Jitsi server address",
-        "hint": "Your Jitsi Meet server, such as https://meet.example.com (its XMPP WebSocket is found at /xmpp-websocket). Plain http:// works only on this computer or a private network. The server needs token authentication and Prosody's presence_identity module; see the module's README. Every player can read this setting."
+        "hint": "Your Jitsi Meet server, such as https://meet.example.com. For an open server, paste the room link you would send to friends, such as https://meet.example.com/OurTable (letters, digits, - and _ in the room name); without a room, a random one is added. Plain http:// works only on this computer or a private network. Every player can read this setting."
       },
       "xmppDomain": {
         "name": "XMPP domain",
@@ -22,6 +28,10 @@
         "name": "Jitsi app secret",
         "hint": "The server's JWT_APP_SECRET. Stored only in this browser and never sent to players. Enter it on each browser a GM uses to run the game."
       }
+    },
+    "notices": {
+      "outsider": "Someone in the Jitsi room isn't in this world. They get no place in the call here, but they can see and hear it. Keep the room link private.",
+      "tokenRemoved": "A sign-in token was taken out of the Jitsi server address: every player can read that setting."
     }
   }
 }

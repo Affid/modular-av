@@ -12,14 +12,27 @@ import type {
   Listener,
 } from "./sdk-types.ts";
 
-/** Where the Jitsi deployment is, from the module's world settings. */
-export interface JitsiServer {
-  /** The XMPP WebSocket, e.g. wss://meet.example.com/xmpp-websocket */
-  readonly serviceUrl: string;
+/** An XMPP deployment's names. */
+export interface XmppHosts {
   /** The XMPP domain, e.g. meet.example.com (docker: meet.jitsi). */
   readonly domain: string;
   /** The conference (MUC) domain, e.g. conference.meet.example.com. */
   readonly muc: string;
+}
+
+/** An open server (no sign-in): the room joined, not the world's. */
+export interface OpenRoom {
+  readonly room: string;
+  /** Names tried when `domain` and `muc` turn out wrong (Docker's). */
+  readonly fallback?: XmppHosts;
+}
+
+/** Where the Jitsi deployment is, from the module's world settings. */
+export interface JitsiServer extends XmppHosts {
+  /** The XMPP WebSocket, e.g. wss://meet.example.com/xmpp-websocket */
+  readonly serviceUrl: string;
+  /** Present for an open server; tokens otherwise. */
+  readonly open?: OpenRoom;
 }
 
 /**

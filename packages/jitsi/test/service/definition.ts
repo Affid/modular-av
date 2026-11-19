@@ -4,11 +4,12 @@ import { createJitsiService, MODULE_ID, SDK_PATH } from "../../src/service.ts";
 /** For the service contract harness: the server in the page URL, the app secret apart. */
 export const createDefinition: CreateDefinition = (params, secrets) =>
   createJitsiService({
-    server: () => ({
-      serviceUrl: params.get("url") ?? "",
-      domain: params.get("domain") ?? "",
-      muc: params.get("muc") ?? "",
-    }),
+    server: () =>
+      Promise.resolve({
+        serviceUrl: params.get("url") ?? "",
+        domain: params.get("domain") ?? "",
+        muc: params.get("muc") ?? "",
+      }),
     credentials: () => ({
       appId: secrets.appId ?? "",
       appSecret: secrets.appSecret ?? "",

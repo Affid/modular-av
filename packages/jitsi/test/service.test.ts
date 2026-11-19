@@ -10,11 +10,12 @@ const REQUEST: TokenRequest = {
 };
 
 const deps = (overrides: Partial<JitsiServiceDeps> = {}): JitsiServiceDeps => ({
-  server: () => ({
-    serviceUrl: "wss://x/xmpp-websocket",
-    domain: "x",
-    muc: "conference.x",
-  }),
+  server: () =>
+    Promise.resolve({
+      serviceUrl: "wss://x/xmpp-websocket",
+      domain: "x",
+      muc: "conference.x",
+    }),
   credentials: () => ({ appId: "app", appSecret: "secret" }),
   sdkUrl: () => "/modules/modular-av-jitsi/vendor/lib-jitsi-meet.min.js",
   now: () => 1_800_000_000_000,
@@ -59,7 +60,9 @@ describe("the Jitsi service definition", () => {
   });
 
   it("can't create a connection before the server is set, for good", async () => {
-    const service = createJitsiService(deps({ server: () => null }));
+    const service = createJitsiService(
+      deps({ server: () => Promise.resolve(null) }),
+    );
 
     await expect(service.create({ participant: "u" })).rejects.toMatchObject({
       serviceError: { code: "unsupported", final: true },
