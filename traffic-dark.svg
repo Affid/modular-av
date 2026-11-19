@@ -7,22 +7,22 @@
 <text x="44" y="82" font-size="12" fill="#9198a1">Visitors</text>
 <line x1="125.6" x2="139.6" y1="78" y2="78" stroke="#d95926" stroke-width="2" stroke-linecap="round"/>
 <text x="145.6" y="82" font-size="12" fill="#9198a1">Cloners</text>
-<line x1="45.2" x2="768" y1="264" y2="264" stroke="#3d444d" stroke-width="1"/>
-<text x="37.2" y="268" font-size="11" fill="#9198a1" text-anchor="end">0</text>
-<line x1="45.2" x2="768" y1="210.66666666666669" y2="210.66666666666669" stroke="#21262d" stroke-width="1"/>
-<text x="37.2" y="214.7" font-size="11" fill="#9198a1" text-anchor="end">20</text>
-<line x1="45.2" x2="768" y1="157.33333333333334" y2="157.33333333333334" stroke="#21262d" stroke-width="1"/>
-<text x="37.2" y="161.3" font-size="11" fill="#9198a1" text-anchor="end">40</text>
-<line x1="45.2" x2="768" y1="104" y2="104" stroke="#21262d" stroke-width="1"/>
-<text x="37.2" y="108" font-size="11" fill="#9198a1" text-anchor="end">60</text>
-<text x="45.2" y="286" font-size="11" fill="#9198a1">Nov 1, 2026</text>
-<text x="180.7" y="286" font-size="11" fill="#9198a1" text-anchor="middle">Nov 4</text>
-<text x="316.2" y="286" font-size="11" fill="#9198a1" text-anchor="middle">Nov 7</text>
-<text x="497" y="286" font-size="11" fill="#9198a1" text-anchor="middle">Nov 11</text>
-<text x="632.5" y="286" font-size="11" fill="#9198a1" text-anchor="middle">Nov 14</text>
-<text x="768" y="286" font-size="11" fill="#9198a1" text-anchor="end">Nov 17</text>
-<path d="M45.2 258.7 L90.4 261.3 L135.6 258.7 L180.7 261.3 L225.9 258.7 L271.1 261.3 L316.2 261.3 L361.4 253.3 L406.6 240 L451.8 224 L497 234.7 L542.1 248 L587.3 242.7 L632.5 253.3 L677.7 253.3 L722.8 248 L768 232" fill="none" stroke="#3987e5" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-<circle cx="768" cy="232" r="4" fill="#3987e5" stroke="#0d1117" stroke-width="2"/>
-<path d="M45.2 253.3 L90.4 234.7 L135.6 226.7 L180.7 213.3 L225.9 202.7 L271.1 240 L316.2 258.7 L361.4 250.7 L406.6 232 L451.8 184 L497 152 L542.1 176 L587.3 197.3 L632.5 170.7 L677.7 232 L722.8 146.7 L768 136" fill="none" stroke="#d95926" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-<circle cx="768" cy="136" r="4" fill="#d95926" stroke="#0d1117" stroke-width="2"/>
+<line x1="51.8" x2="768" y1="264" y2="264" stroke="#3d444d" stroke-width="1"/>
+<text x="43.8" y="268" font-size="11" fill="#9198a1" text-anchor="end">0</text>
+<line x1="51.8" x2="768" y1="210.66666666666669" y2="210.66666666666669" stroke="#21262d" stroke-width="1"/>
+<text x="43.8" y="214.7" font-size="11" fill="#9198a1" text-anchor="end">50</text>
+<line x1="51.8" x2="768" y1="157.33333333333334" y2="157.33333333333334" stroke="#21262d" stroke-width="1"/>
+<text x="43.8" y="161.3" font-size="11" fill="#9198a1" text-anchor="end">100</text>
+<line x1="51.8" x2="768" y1="104" y2="104" stroke="#21262d" stroke-width="1"/>
+<text x="43.8" y="108" font-size="11" fill="#9198a1" text-anchor="end">150</text>
+<text x="51.8" y="286" font-size="11" fill="#9198a1">Nov 1, 2026</text>
+<text x="178.2" y="286" font-size="11" fill="#9198a1" text-anchor="middle">Nov 4</text>
+<text x="346.7" y="286" font-size="11" fill="#9198a1" text-anchor="middle">Nov 8</text>
+<text x="473.1" y="286" font-size="11" fill="#9198a1" text-anchor="middle">Nov 11</text>
+<text x="641.6" y="286" font-size="11" fill="#9198a1" text-anchor="middle">Nov 15</text>
+<text x="768" y="286" font-size="11" fill="#9198a1" text-anchor="end">Nov 18</text>
+<path d="M51.8 261.9 L93.9 262.9 L136.1 261.9 L178.2 262.9 L220.3 261.9 L262.4 262.9 L304.6 262.9 L346.7 259.7 L388.8 254.4 L431 248 L473.1 252.3 L515.2 257.6 L557.4 255.5 L599.5 259.7 L641.6 259.7 L683.7 257.6 L725.9 251.2 L768 248" fill="none" stroke="#3987e5" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="768" cy="248" r="4" fill="#3987e5" stroke="#0d1117" stroke-width="2"/>
+<path d="M51.8 259.7 L93.9 252.3 L136.1 249.1 L178.2 243.7 L220.3 239.5 L262.4 254.4 L304.6 261.9 L346.7 258.7 L388.8 251.2 L431 232 L473.1 219.2 L515.2 228.8 L557.4 237.3 L599.5 226.7 L641.6 251.2 L683.7 217.1 L725.9 212.8 L768 156.3" fill="none" stroke="#d95926" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="768" cy="156.3" r="4" fill="#d95926" stroke="#0d1117" stroke-width="2"/>
 </svg>
