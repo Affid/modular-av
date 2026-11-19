@@ -35,12 +35,19 @@ const text = (settings: SettingsApi, key: string): string => {
   return typeof value === "string" ? value.trim() : "";
 };
 
-const label = (key: string): Readonly<Record<string, unknown>> => ({
+/**
+ * A world setting: each says where the call is. Changed during a call,
+ * those in it would stay where it was and newcomers go to the new place
+ * (or wait for a token no GM signs any more), so Foundry has everyone
+ * reload.
+ */
+const worldSetting = (key: string): Readonly<Record<string, unknown>> => ({
   name: `${MODULE_ID}.settings.${key}.name`,
   hint: `${MODULE_ID}.settings.${key}.hint`,
   scope: "world",
   config: true,
   type: String,
+  requiresReload: true,
 });
 
 /**
@@ -52,7 +59,7 @@ export function registerWorldSettings(
   onChange: () => void = () => undefined,
 ): void {
   settings.register(MODULE_ID, "access", {
-    ...label("access"),
+    ...worldSetting("access"),
     choices: {
       token: `${MODULE_ID}.settings.access.token`,
       open: `${MODULE_ID}.settings.access.open`,
@@ -61,12 +68,12 @@ export function registerWorldSettings(
     onChange,
   });
   settings.register(MODULE_ID, "serverUrl", {
-    ...label("serverUrl"),
+    ...worldSetting("serverUrl"),
     default: "",
     onChange,
   });
   for (const key of ["xmppDomain", "mucDomain"] as const)
-    settings.register(MODULE_ID, key, { ...label(key), default: "" });
+    settings.register(MODULE_ID, key, { ...worldSetting(key), default: "" });
 }
 
 /**

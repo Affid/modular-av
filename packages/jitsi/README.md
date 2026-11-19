@@ -112,6 +112,11 @@ their owners first.
      server's `JWT_APP_ID` and `JWT_APP_SECRET`. Enter them in each
      browser a GM uses to run the game. They hide while an open server is
      chosen.
+
+   Changing any of the world settings moves the call, so Foundry offers
+   to reload everyone's game: otherwise those in the call stay where it
+   was, and those joining go to the new place.
+
 2. In Modular A/V's settings, choose Jitsi as the service.
 
 ![The module's settings: how players get in, the server's address and domains, and the app id and secret kept in this browser only](../../docs/images/settings-jitsi.png)

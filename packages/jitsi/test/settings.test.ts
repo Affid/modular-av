@@ -114,6 +114,32 @@ describe("the GM's app id and secret", () => {
   });
 });
 
+describe("a GM changing where the call is", () => {
+  it("has everyone reload, so nobody stays behind in the old call", () => {
+    // Arrange
+    const settings = fakeSettings();
+
+    // Act
+    registerWorldSettings(settings);
+    registerSecretSettings(settings, true);
+
+    // Assert: the GM's own key is read again for each token.
+    expect(
+      settings.registered.map(([key, config]) => [
+        key,
+        config.requiresReload === true,
+      ]),
+    ).toEqual([
+      ["modular-av-jitsi.access", true],
+      ["modular-av-jitsi.serverUrl", true],
+      ["modular-av-jitsi.xmppDomain", true],
+      ["modular-av-jitsi.mucDomain", true],
+      ["modular-av-jitsi.appId", false],
+      ["modular-av-jitsi.appSecret", false],
+    ]);
+  });
+});
+
 describe("how players get into the Jitsi server", () => {
   it("is with tokens unless a GM chose an open server", () => {
     expect(readSettings(fakeSettings({})).access()).toBe("token");
