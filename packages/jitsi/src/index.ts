@@ -6,6 +6,7 @@ import {
   type FormRoot,
 } from "./mask.ts";
 import { debounced } from "./later.ts";
+import { redact } from "./redact.ts";
 import type { SavedAddressDeps } from "./saved-address.ts";
 import { createJitsiService, MODULE_ID, SDK_PATH } from "./service.ts";
 import {
@@ -32,16 +33,6 @@ declare global {
     on(hook: string, fn: (...args: never[]) => void): number;
   };
 }
-
-/**
- * Like the core's log: SDK errors can carry a token in a URL, and an open
- * server's WebSocket address its room, which is all that keeps it private.
- */
-const redact = (text: string): string =>
-  text
-    .replace(/eyJ[\w-]+\.[\w-]+\.[\w-]*/g, "[token]")
-    .replace(/((?:access_)?token|jwt)=[^&\s"']+/gi, "$1=[token]")
-    .replace(/([?&]room=)[^&\s"']+/gi, "$1[room]");
 
 const reportError = (error: unknown): void => {
   const text = error instanceof Error ? error.message : String(error);
