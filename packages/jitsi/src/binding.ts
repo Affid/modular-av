@@ -74,82 +74,132 @@ function keep(held: readonly Held[], claim: Held): readonly Held[] {
 /** Endpoints that left, remembered so a late claim on one is dropped. */
 const MAX_GONE = 256;
 
-export function createBinding(options: BindingOptions): Binding {
-  const { channel, room } = options;
-  let held: readonly Held[] = [];
-  let gone: readonly string[] = [];
-  let ours: string | null = null;
-  let allowances: Allowances = new Map();
+/** What the binding holds and has seen. */
+interface BindingState {
+  readonly held: readonly Held[];
+  readonly gone: readonly string[];
+  /** Our endpoint, once joined. */
+  readonly ours: string | null;
+  readonly allowances: Allowances;
+}
 
-  const claim = (type: Claim["type"], endpoint: string): Claim => ({
-    v: PROTOCOL,
-    type,
-    room,
-    endpoint,
-    joinedAt: options.joinedAt,
-  });
+/** A claim's outcome: the new state, and what to do about it. */
+interface Received {
+  readonly state: BindingState;
+  /** Answer its sender with our claim. */
+  readonly welcome: boolean;
+  /** A claim not held before: who that endpoint is may be known now. */
+  readonly fresh: boolean;
+}
 
-  const isHeld = (h: Held): boolean =>
-    held.some((k) => k.user === h.user && k.endpoint === h.endpoint);
-
-  /** Our claim to a hello's sender, while they have welcomes left. */
-  const welcome = (sender: string, endpoint: string): void => {
-    const drawn = drawWelcome(allowances, sender, options.now());
-    allowances = drawn.allowances;
-    if (drawn.allowed)
-      channel.send(claim("welcome", endpoint), { recipients: [sender] });
+/**
+ * Each claim is acted on once: a repeat changes nothing. Every hello is
+ * answered, though (within the sender's allowance): its sender says it
+ * again when it may have missed ours. A claim on an endpoint that already
+ * left is dropped: whoever takes that name next would otherwise be placed
+ * by it.
+ */
+function receive(
+  state: BindingState,
+  read: Claim,
+  sender: ParticipantId,
+  now: number,
+): Received {
+  if (state.gone.includes(read.endpoint))
+    return { state, welcome: false, fresh: false };
+  const drawn =
+    read.type === "hello" && state.ours !== null
+      ? drawWelcome(state.allowances, sender, now)
+      : null;
+  const claim = {
+    user: sender,
+    endpoint: read.endpoint,
+    joinedAt: read.joinedAt,
   };
+  const fresh = !state.held.some(
+    (h) => h.user === claim.user && h.endpoint === claim.endpoint,
+  );
+  return {
+    state: {
+      ...state,
+      allowances: drawn?.allowances ?? state.allowances,
+      held: fresh ? keep(state.held, claim) : state.held,
+    },
+    welcome: drawn?.allowed === true,
+    fresh,
+  };
+}
 
-  /**
-   * Each claim is acted on once: a repeat changes nothing. Every hello is
-   * answered, though (within the sender's allowance): its sender says it
-   * again when it may have missed ours. A claim on an endpoint that
-   * already left is dropped: whoever takes that name next would otherwise
-   * be placed by it.
-   */
+/** The participant's Foundry user, when their presence and a claim agree. */
+function identify(
+  held: readonly Held[],
+  endpoint: string,
+  participant: JitsiParticipant,
+): Identity | null {
+  const named = participant.getProperty(PRESENCE_KEY);
+  if (typeof named !== "string") return null;
+  const found = held.find((h) => h.endpoint === endpoint && h.user === named);
+  return found ? { id: found.user, joinedAt: found.joinedAt } : null;
+}
+
+const message = (
+  options: BindingOptions,
+  type: Claim["type"],
+  endpoint: string,
+): Claim => ({
+  v: PROTOCOL,
+  type,
+  room: options.room,
+  endpoint,
+  joinedAt: options.joinedAt,
+});
+
+export function createBinding(options: BindingOptions): Binding {
+  const { channel } = options;
+  let state: BindingState = {
+    held: [],
+    gone: [],
+    ours: null,
+    allowances: new Map(),
+  };
+  const say = (type: Claim["type"], endpoint: string, to?: string): void => {
+    const data = message(options, type, endpoint);
+    if (to === undefined) channel.send(data);
+    else channel.send(data, { recipients: [to] });
+  };
   const unsubscribe = channel.on((data, sender) => {
-    const read = readClaim(data, room);
-    if (!read || gone.includes(read.endpoint)) return;
-    if (read.type === "hello" && ours !== null) welcome(sender, ours);
-    const fresh = {
-      user: sender,
-      endpoint: read.endpoint,
-      joinedAt: read.joinedAt,
-    };
-    if (isHeld(fresh)) return;
-    held = keep(held, fresh);
-    options.onClaim(read.endpoint);
+    const read = readClaim(data, options.room);
+    if (!read) return;
+    const received = receive(state, read, sender, options.now());
+    state = received.state;
+    if (received.welcome && state.ours !== null)
+      say("welcome", state.ours, sender);
+    if (received.fresh) options.onClaim(read.endpoint);
   });
   // Claims sent or answered while Foundry's socket was down never came.
   const stopReconnect = options.onReconnect(() => {
-    if (ours !== null) channel.send(claim("hello", ours));
+    if (state.ours !== null) say("hello", state.ours);
   });
-
   return {
-    identify(endpoint, participant) {
-      const named = participant.getProperty(PRESENCE_KEY);
-      if (typeof named !== "string") return null;
-      const found = held.find(
-        (h) => h.endpoint === endpoint && h.user === named,
-      );
-      return found ? { id: found.user, joinedAt: found.joinedAt } : null;
-    },
+    identify: (endpoint, participant) =>
+      identify(state.held, endpoint, participant),
     announce(endpoint) {
-      ours = endpoint;
       // A claim from before we joined on an endpoint not here left unseen:
       // whoever takes that name next would be placed by it. Anyone still
       // coming claims again, in answer to our hello.
-      held = held.filter((h) => options.isPresent(h.endpoint));
-      channel.send(claim("hello", endpoint));
+      const held = state.held.filter((h) => options.isPresent(h.endpoint));
+      state = { ...state, ours: endpoint, held };
+      say("hello", endpoint);
     },
     forget(endpoint) {
-      held = held.filter((h) => h.endpoint !== endpoint);
-      gone = [...gone.filter((g) => g !== endpoint), endpoint].slice(-MAX_GONE);
+      const held = state.held.filter((h) => h.endpoint !== endpoint);
+      const gone = [...state.gone.filter((g) => g !== endpoint), endpoint];
+      state = { ...state, held, gone: gone.slice(-MAX_GONE) };
     },
     stop() {
       unsubscribe();
       stopReconnect();
-      held = [];
+      state = { ...state, held: [] };
     },
   };
 }

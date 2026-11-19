@@ -1,4 +1,10 @@
-import type { Channel, ServiceDefinition } from "@modular-av/api";
+import type {
+  Channel,
+  ServiceConnection,
+  ServiceContext,
+  ServiceDefinition,
+  TokenRequest,
+} from "@modular-av/api";
 import type { JitsiServer } from "./join.ts";
 import type { JitsiCredentials } from "./token.ts";
 
@@ -36,6 +42,65 @@ const canUseWebCrypto = (): boolean =>
   typeof (globalThis.crypto as Partial<Crypto> | undefined)?.subtle
     ?.importKey === "function";
 
+/** A token signed on this device (a GM's browser): the token code loads here. */
+function signWith(
+  deps: JitsiServiceDeps,
+  request: TokenRequest,
+): Promise<string> {
+  if (!canUseWebCrypto())
+    return Promise.reject(
+      new Error(
+        "Signing Jitsi tokens needs a secure context: open Foundry over https:// (or localhost)",
+      ),
+    );
+  const credentials = deps.credentials();
+  if (!credentials)
+    return Promise.reject(
+      new Error("No Jitsi app id and secret on this device"),
+    );
+  return import("./token.ts").then(({ signJitsiToken }) =>
+    signJitsiToken(request, credentials, deps.now()),
+  );
+}
+
+/** No server in the settings: why, for good. */
+async function noServer(deps: JitsiServiceDeps): Promise<never> {
+  const [{ JitsiServiceError }, message] = await Promise.all([
+    import("./errors.ts"),
+    deps.serverProblem(),
+  ]);
+  throw new JitsiServiceError({ code: "unsupported", final: true, message });
+}
+
+/** The connection, with the SDK and the connection code loaded first. */
+async function connect(
+  deps: JitsiServiceDeps,
+  context: ServiceContext,
+  server: JitsiServer,
+  joinedAt: () => number,
+): Promise<ServiceConnection> {
+  const [{ loadJitsi }, { createJitsiConnection }] = await Promise.all([
+    import("./sdk.ts"),
+    import("./connection.ts"),
+  ]);
+  const sdk = await loadJitsi(deps.sdkUrl(), deps.onLibraryLog);
+  return createJitsiConnection(context, {
+    sdk,
+    server,
+    now: deps.now,
+    onError: deps.onError,
+    openRoom: {
+      channel: deps.channel,
+      joinedAt: joinedAt(),
+      onOutsider: deps.onOutsider,
+      onReconnect: deps.onReconnect,
+      ...(deps.outsiderGraceMs === undefined
+        ? {}
+        : { outsiderGraceMs: deps.outsiderGraceMs }),
+    },
+  });
+}
+
 /**
  * What the module registers with the core: small on purpose. The SDK (a
  * prebuilt script) and the connection code load in `create()`, the token
@@ -45,6 +110,7 @@ export function createJitsiService(deps: JitsiServiceDeps): ServiceDefinition {
   const open = (): boolean => deps.access() === "open";
   /** This page's first join: its tabs are ordered by it (open servers). */
   let firstJoin: number | null = null;
+  const joinedAt = (): number => (firstJoin ??= deps.now());
   return {
     id: "jitsi",
     label: `${MODULE_ID}.label`,
@@ -52,56 +118,10 @@ export function createJitsiService(deps: JitsiServiceDeps): ServiceDefinition {
     needsToken: () => !open(),
     canSignTokens: () =>
       !open() && deps.credentials() !== null && canUseWebCrypto(),
-    signToken(request) {
-      if (!canUseWebCrypto())
-        return Promise.reject(
-          new Error(
-            "Signing Jitsi tokens needs a secure context: open Foundry over https:// (or localhost)",
-          ),
-        );
-      const credentials = deps.credentials();
-      if (!credentials)
-        return Promise.reject(
-          new Error("No Jitsi app id and secret on this device"),
-        );
-      return import("./token.ts").then(({ signJitsiToken }) =>
-        signJitsiToken(request, credentials, deps.now()),
-      );
-    },
+    signToken: (request) => signWith(deps, request),
     async create(context) {
       const server = await deps.server();
-      if (!server) {
-        const [{ JitsiServiceError }, message] = await Promise.all([
-          import("./errors.ts"),
-          deps.serverProblem(),
-        ]);
-        throw new JitsiServiceError({
-          code: "unsupported",
-          final: true,
-          message,
-        });
-      }
-      const [{ loadJitsi }, { createJitsiConnection }] = await Promise.all([
-        import("./sdk.ts"),
-        import("./connection.ts"),
-      ]);
-      const sdk = await loadJitsi(deps.sdkUrl(), deps.onLibraryLog);
-      const joinedAt = (firstJoin ??= deps.now());
-      return createJitsiConnection(context, {
-        sdk,
-        server,
-        now: deps.now,
-        onError: deps.onError,
-        openRoom: {
-          channel: deps.channel,
-          joinedAt,
-          onOutsider: deps.onOutsider,
-          onReconnect: deps.onReconnect,
-          ...(deps.outsiderGraceMs === undefined
-            ? {}
-            : { outsiderGraceMs: deps.outsiderGraceMs }),
-        },
-      });
+      return server ? connect(deps, context, server, joinedAt) : noServer(deps);
     },
   };
 }
