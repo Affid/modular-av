@@ -210,11 +210,29 @@ async function shootDock(viewer: Player): Promise<void> {
   await shot(page, "dock-scattered-vines");
 }
 
+/** Each voice effect's own settings, open in the mixer, for its listing. */
+async function shootEffectSettings(page: Page, mixer: Locator): Promise<void> {
+  for (const id of ["reverb", "echo", "radio", "eq", "boost"]) {
+    await mixer.locator(`[data-field="settings.${id}"]`).click();
+    const pop = mixer.locator('[data-pop="settings"]');
+    await pop.waitFor();
+    // No hover or focus ring in the picture.
+    await page.mouse.move(5, 5);
+    await page.evaluate(() => {
+      (document.activeElement as HTMLElement | null)?.blur();
+    });
+    await page.waitForTimeout(800);
+    await shot(mixer, `effect-${id}`);
+    await pop.locator(".mav-mixer-pop-close").click();
+    await pop.waitFor({ state: "detached" });
+  }
+}
+
 async function shootSettingsAndMixer(player: Player): Promise<void> {
   const page = player.page;
   await shot(page.locator("#camera-views .mav-dock-panel"), "voice-panel");
   await player.run(async (api) => {
-    for (const id of ["rnnoise", "eq", "radio", "reverb", "echo"])
+    for (const id of ["rnnoise", "eq", "boost", "radio", "reverb", "echo"])
       if (api.effects.get(id)) await api.commands.setEffectEnabled(id, true);
   }, null);
   await page.locator(".mav-dock-settings").click();
@@ -227,6 +245,7 @@ async function shootSettingsAndMixer(player: Player): Promise<void> {
   await mixer.locator(".mav-mixer").waitFor();
   await page.waitForTimeout(1_500);
   await shot(mixer, "audio-mixer");
+  await shootEffectSettings(page, mixer);
   await mixer.locator('[data-action="close"]').first().click();
   await settings.locator('[data-action="close"]').first().click();
 }
