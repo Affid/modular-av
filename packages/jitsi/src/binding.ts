@@ -1,0 +1,108 @@
+import type { Channel, ParticipantId } from "@modular-av/api";
+import {
+  type Claim,
+  MAX_CLAIMS_PER_SENDER,
+  PROTOCOL,
+  readClaim,
+} from "./binding-messages.ts";
+import type { JitsiParticipant } from "./sdk-types.ts";
+
+/** The presence property naming a participant's Foundry user. */
+export const PRESENCE_KEY = "modular-av-user";
+
+/** A participant vouched for, and when their page joined (open servers). */
+export interface Identity {
+  readonly id: ParticipantId;
+  readonly joinedAt: number;
+}
+
+export interface BindingOptions {
+  readonly channel: Channel;
+  /** The Jitsi room joined. */
+  readonly room: string;
+  readonly self: ParticipantId;
+  /** When this page first joined. */
+  readonly joinedAt: number;
+  /** A claim on this endpoint arrived: who it is may be known now. */
+  readonly onClaim: (endpoint: string) => void;
+}
+
+/**
+ * Who is who on an open server, where Jitsi vouches for nobody: each
+ * client names its Foundry user in its presence and claims its endpoint
+ * over the core's socket, where Foundry names the sender. Either alone is
+ * anyone's word; an endpoint is a user's only when both name them. So
+ * nobody outside the world gets a place, and no player can take another's.
+ */
+export interface Binding {
+  identify(endpoint: string, participant: JitsiParticipant): Identity | null;
+  /** Once joined: tells everyone our endpoint, and answers hellos from then on. */
+  announce(endpoint: string): void;
+  /** The endpoint left the room. */
+  forget(endpoint: string): void;
+  stop(): void;
+}
+
+interface Held {
+  readonly user: ParticipantId;
+  readonly endpoint: string;
+  readonly joinedAt: number;
+}
+
+/** The newest claims, at most `MAX_CLAIMS_PER_SENDER` per user. */
+function keep(held: readonly Held[], claim: Held): readonly Held[] {
+  const others = held.filter(
+    (h) => !(h.user === claim.user && h.endpoint === claim.endpoint),
+  );
+  const theirs = others.filter((h) => h.user === claim.user);
+  const dropped = theirs.slice(
+    0,
+    Math.max(0, theirs.length - MAX_CLAIMS_PER_SENDER + 1),
+  );
+  return [...others.filter((h) => !dropped.includes(h)), claim];
+}
+
+export function createBinding(options: BindingOptions): Binding {
+  const { channel, room } = options;
+  let held: readonly Held[] = [];
+  let ours: string | null = null;
+
+  const claim = (type: Claim["type"], endpoint: string): Claim => ({
+    v: PROTOCOL,
+    type,
+    room,
+    endpoint,
+    joinedAt: options.joinedAt,
+  });
+
+  const unsubscribe = channel.on((data, sender) => {
+    const read = readClaim(data, room);
+    if (!read) return;
+    held = keep(held, { user: sender, ...read });
+    if (read.type === "hello" && ours !== null)
+      channel.send(claim("welcome", ours), { recipients: [sender] });
+    options.onClaim(read.endpoint);
+  });
+
+  return {
+    identify(endpoint, participant) {
+      const named = participant.getProperty(PRESENCE_KEY);
+      if (typeof named !== "string") return null;
+      const found = held.find(
+        (h) => h.endpoint === endpoint && h.user === named,
+      );
+      return found ? { id: found.user, joinedAt: found.joinedAt } : null;
+    },
+    announce(endpoint) {
+      ours = endpoint;
+      channel.send(claim("hello", endpoint));
+    },
+    forget(endpoint) {
+      held = held.filter((h) => h.endpoint !== endpoint);
+    },
+    stop() {
+      unsubscribe();
+      held = [];
+    },
+  };
+}

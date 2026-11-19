@@ -93,6 +93,11 @@ Hooks.once("modularAV.register", (api: ModularAV) => {
   const settings = readSettings(game.settings);
   api.services.register(
     createJitsiService({
+      access: () => settings.access(),
+      channel: api.socket("jitsi"),
+      onOutsider: () => {
+        if (game.user.isGM) warn("outsider");
+      },
       server: async () => {
         const { serverOf } = await import("./server-address.ts");
         return serverOf(settings.serverSettings());

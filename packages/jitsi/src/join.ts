@@ -106,7 +106,7 @@ const asTarget = (
   },
 });
 
-/** Opens the XMPP connection with the token. */
+/** Opens the XMPP connection with the token (none on an open server). */
 export async function openConnection(
   sdk: JitsiMeetJS,
   server: JitsiServer,

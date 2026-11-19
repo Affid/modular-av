@@ -42,23 +42,34 @@ export function isExpired(token: string, now: number): boolean {
   }
 }
 
-/** The token a refusal is about, to tell expired from forged. */
+/** The token a refusal is about, to tell expired from forged; null on an open server. */
 export interface Attempt {
-  readonly token: string;
+  readonly token: string | null;
   readonly now: number;
 }
 
-const refused = (attempt: Attempt): ServiceError =>
-  isExpired(attempt.token, attempt.now)
+const refused = (token: string, now: number): ServiceError =>
+  isExpired(token, now)
     ? EXPIRED
     : final("auth", "The Jitsi server refused the token");
+
+const SIGN_IN = final(
+  "auth",
+  "This Jitsi server asks for a sign-in: choose sign-in with tokens, or use an open server",
+);
+const GUESTS = final(
+  "auth",
+  "This Jitsi server lets guests in only after a moderator signs in, which isn't supported",
+);
+const LOCKED = final("auth", "The Jitsi room is locked or has a lobby");
 
 /** `JitsiConnectionErrors`: why the XMPP connection failed. */
 export function fromConnectionError(
   error: string,
   attempt: Attempt,
 ): ServiceError {
-  return error === "connection.passwordRequired" ? refused(attempt) : NETWORK;
+  if (error !== "connection.passwordRequired") return NETWORK;
+  return attempt.token === null ? SIGN_IN : refused(attempt.token, attempt.now);
 }
 
 const CONFERENCE_FINAL: Readonly<Record<string, ServiceError>> = {
@@ -83,6 +94,7 @@ export function fromConferenceError(
   error: string,
   attempt: Attempt,
 ): ServiceError {
-  if (CONFERENCE_REFUSED.has(error)) return refused(attempt);
-  return CONFERENCE_FINAL[error] ?? NETWORK;
+  if (!CONFERENCE_REFUSED.has(error)) return CONFERENCE_FINAL[error] ?? NETWORK;
+  if (attempt.token !== null) return refused(attempt.token, attempt.now);
+  return error === "conference.authenticationRequired" ? GUESTS : LOCKED;
 }

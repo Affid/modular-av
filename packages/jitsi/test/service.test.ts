@@ -1,6 +1,7 @@
 import type { TokenRequest } from "@modular-av/api";
 import { describe, expect, it, vi } from "vitest";
 import { createJitsiService, type JitsiServiceDeps } from "../src/service.ts";
+import { createHub } from "./fake-channel.ts";
 
 const REQUEST: TokenRequest = {
   participant: "user-1",
@@ -16,7 +17,10 @@ const deps = (overrides: Partial<JitsiServiceDeps> = {}): JitsiServiceDeps => ({
       domain: "x",
       muc: "conference.x",
     }),
+  access: () => "token",
   credentials: () => ({ appId: "app", appSecret: "secret" }),
+  channel: createHub().channel("u"),
+  onOutsider: () => undefined,
   sdkUrl: () => "/modules/modular-av-jitsi/vendor/lib-jitsi-meet.min.js",
   now: () => 1_800_000_000_000,
   onError: () => undefined,
@@ -66,6 +70,24 @@ describe("the Jitsi service definition", () => {
 
     await expect(service.create({ participant: "u" })).rejects.toMatchObject({
       serviceError: { code: "unsupported", final: true },
+    });
+  });
+
+  it("joins an open server without tokens: nobody signs any", () => {
+    const service = createJitsiService(deps({ access: () => "open" }));
+
+    expect(service.needsToken()).toBe(false);
+    expect(service.canSignTokens?.()).toBe(false);
+  });
+
+  it("asks for a room link when an open server's address names none, for good", async () => {
+    const service = createJitsiService(
+      deps({ access: () => "open", server: () => Promise.resolve(null) }),
+    );
+
+    await expect(service.create({ participant: "u" })).rejects.toMatchObject({
+      serviceError: { code: "unsupported", final: true },
+      message: /room link/,
     });
   });
 });
