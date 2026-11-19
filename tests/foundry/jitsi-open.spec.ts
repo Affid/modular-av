@@ -159,7 +159,7 @@ test("a GM's address without a room gets one, and loses a pasted token", async (
           ),
         ),
       )
-      .toContainEqual(expect.stringMatching(/token was taken out/));
+      .toContainEqual(expect.stringMatching(/held a sign-in token/));
   } finally {
     await gm.page.evaluate(async (value) => {
       await (
