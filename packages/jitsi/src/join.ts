@@ -106,15 +106,16 @@ const asTarget = (
   },
 });
 
-/** Opens the XMPP connection with the token (none on an open server). */
-export async function openConnection(
+/** Opens one XMPP connection with these names. */
+async function openWith(
   sdk: JitsiMeetJS,
   server: JitsiServer,
+  hosts: XmppHosts,
   attempt: Attempt,
   signal: AbortSignal,
 ): Promise<JitsiConnection> {
   const connection = new sdk.JitsiConnection(null, attempt.token, {
-    hosts: { domain: server.domain, muc: server.muc },
+    hosts: { domain: hosts.domain, muc: hosts.muc },
     serviceUrl: server.serviceUrl,
   });
   const events = sdk.events.connection;
@@ -135,6 +136,47 @@ export async function openConnection(
     throw error;
   }
   return connection;
+}
+
+/** Per WebSocket, the names that opened it last: tried first next time. */
+let worked: ReadonlyMap<string, XmppHosts> = new Map();
+
+/** The names to try, in order: the fallback only on an open server. */
+function namesFor(server: JitsiServer): readonly XmppHosts[] {
+  const given = { domain: server.domain, muc: server.muc };
+  const fallback = server.open?.fallback;
+  if (!fallback) return [given];
+  const known = worked.get(server.serviceUrl);
+  return known?.domain === fallback.domain
+    ? [fallback, given]
+    : [given, fallback];
+}
+
+/**
+ * Opens the XMPP connection with the token (none on an open server). An
+ * open server's link names its web address, which Docker installs don't
+ * use as their XMPP domain: its fallback names are tried after a failure
+ * (a wrong domain fails at once, "no-auth-mech"), not after an abort.
+ */
+export async function openConnection(
+  sdk: JitsiMeetJS,
+  server: JitsiServer,
+  attempt: Attempt,
+  signal: AbortSignal,
+): Promise<JitsiConnection> {
+  const [first, ...rest] = namesFor(server);
+  if (!first) throw new Error("No XMPP names to try");
+  try {
+    const connection = await openWith(sdk, server, first, attempt, signal);
+    if (rest.length > 0) worked = new Map(worked).set(server.serviceUrl, first);
+    return connection;
+  } catch (error: unknown) {
+    const next = rest[0];
+    if (signal.aborted || !next) throw error;
+    const connection = await openWith(sdk, server, next, attempt, signal);
+    worked = new Map(worked).set(server.serviceUrl, next);
+    return connection;
+  }
 }
 
 /** Joins the room on an open connection; resolves once in it. */
