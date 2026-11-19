@@ -11,6 +11,12 @@ export interface SettingsApi {
   get(namespace: string, key: string): unknown;
 }
 
+/**
+ * The access and the address as the active GM's browser last left them:
+ * kept in the world, since a reload follows a change of either.
+ */
+export const SETTLED_ADDRESS = "settledAddress";
+
 /** How players get into the Jitsi server. */
 export type Access = "token" | "open";
 
@@ -74,6 +80,13 @@ export function registerWorldSettings(
   });
   for (const key of ["xmppDomain", "mucDomain"] as const)
     settings.register(MODULE_ID, key, { ...worldSetting(key), default: "" });
+  // Not in the form: the active GM's browser keeps it (`saved-address.ts`).
+  settings.register(MODULE_ID, SETTLED_ADDRESS, {
+    scope: "world",
+    config: false,
+    type: Object,
+    default: null,
+  });
 }
 
 /**

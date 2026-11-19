@@ -22,6 +22,11 @@ function fakeWorld(values: Record<string, unknown>, activeGM = true) {
   return { deps, writes, removed: () => removed };
 }
 
+/** The address as the active GM last left it, kept in the world. */
+const settled = (open: boolean, address: string) => ({
+  settledAddress: { open, address },
+});
+
 describe("the address in the world settings", () => {
   it("gets a room on an open server, written by the active GM", async () => {
     const world = fakeWorld({
@@ -33,6 +38,10 @@ describe("the address in the world settings", () => {
 
     expect(world.writes).toEqual([
       ["modular-av-jitsi.serverUrl", "https://meet.example.com/generatedroom"],
+      [
+        "modular-av-jitsi.settledAddress",
+        { open: true, address: "https://meet.example.com/generatedroom" },
+      ],
     ]);
     expect(world.removed()).toBe(0);
   });
@@ -41,6 +50,7 @@ describe("the address in the world settings", () => {
     const world = fakeWorld({
       access: "token",
       serverUrl: "https://meet.example.com/?jwt=secret",
+      ...settled(false, "https://meet.example.com/"),
     });
 
     await keepAddressSafe(world.deps);
@@ -51,10 +61,11 @@ describe("the address in the world settings", () => {
     expect(world.removed()).toBe(1);
   });
 
-  it("is left alone when it is fine", async () => {
+  it("is left alone when it is fine and settled", async () => {
     const world = fakeWorld({
       access: "open",
       serverUrl: "https://meet.example.com/table",
+      ...settled(true, "https://meet.example.com/table"),
     });
 
     await keepAddressSafe(world.deps);
@@ -62,25 +73,27 @@ describe("the address in the world settings", () => {
     expect(world.writes).toEqual([]);
   });
 
-  it("goes back to the server's address when tokens are chosen again", async () => {
+  it("goes back to the server's address when tokens are chosen again, after a reload too", async () => {
     // Arrange: the open room is no site path, as tokens would read it.
+    // What was settled lives in the world, not in a page a reload clears.
+    const link =
+      "https://example.com/jitsi/ourtable#config.startWithAudioMuted=true";
     const world = fakeWorld({
       access: "token",
-      serverUrl:
-        "https://example.com/jitsi/ourtable#config.startWithAudioMuted=true",
+      serverUrl: link,
+      ...settled(true, link),
     });
-    const before = {
-      open: true,
-      address:
-        "https://example.com/jitsi/ourtable#config.startWithAudioMuted=true",
-    };
 
     // Act
-    await keepAddressSafe(world.deps, before);
+    await keepAddressSafe(world.deps);
 
     // Assert
     expect(world.writes).toEqual([
       ["modular-av-jitsi.serverUrl", "https://example.com/jitsi"],
+      [
+        "modular-av-jitsi.settledAddress",
+        { open: false, address: "https://example.com/jitsi" },
+      ],
     ]);
   });
 
@@ -88,24 +101,50 @@ describe("the address in the world settings", () => {
     const world = fakeWorld({
       access: "token",
       serverUrl: "https://example.com/jitsi",
+      ...settled(true, "https://meet.example.com/table"),
     });
-    const before = { open: true, address: "https://meet.example.com/table" };
 
-    await keepAddressSafe(world.deps, before);
+    await keepAddressSafe(world.deps);
 
-    expect(world.writes).toEqual([]);
+    expect(world.writes).toEqual([
+      [
+        "modular-av-jitsi.settledAddress",
+        { open: false, address: "https://example.com/jitsi" },
+      ],
+    ]);
   });
 
   it("keeps a site's own path when tokens were chosen all along", async () => {
     const world = fakeWorld({
       access: "token",
       serverUrl: "https://example.com/jitsi",
+      ...settled(false, "https://example.com/jitsi"),
     });
-    const before = { open: false, address: "https://example.com/jitsi" };
 
-    await keepAddressSafe(world.deps, before);
+    await keepAddressSafe(world.deps);
 
     expect(world.writes).toEqual([]);
+  });
+
+  it.each([
+    ["nothing settled yet", undefined],
+    ["something else", "https://example.com/jitsi/ourtable"],
+    ["a strange shape", { open: "yes", address: 1 }],
+  ])("takes %s for no earlier choice: nothing comes off", async (_, value) => {
+    const world = fakeWorld({
+      access: "token",
+      serverUrl: "https://example.com/jitsi/ourtable",
+      settledAddress: value,
+    });
+
+    await keepAddressSafe(world.deps);
+
+    expect(world.writes).toEqual([
+      [
+        "modular-av-jitsi.settledAddress",
+        { open: false, address: "https://example.com/jitsi/ourtable" },
+      ],
+    ]);
   });
 
   it("is written by nobody but the active GM", async () => {

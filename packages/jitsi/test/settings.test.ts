@@ -108,6 +108,7 @@ describe("the GM's app id and secret", () => {
       ["modular-av-jitsi.serverUrl", "world", true],
       ["modular-av-jitsi.xmppDomain", "world", true],
       ["modular-av-jitsi.mucDomain", "world", true],
+      ["modular-av-jitsi.settledAddress", "world", false],
       ["modular-av-jitsi.appId", "client", false],
       ["modular-av-jitsi.appSecret", "client", false],
     ]);
@@ -123,7 +124,8 @@ describe("a GM changing where the call is", () => {
     registerWorldSettings(settings);
     registerSecretSettings(settings, true);
 
-    // Assert: the GM's own key is read again for each token.
+    // Assert: the GM's own key is read again for each token; the settled
+    // address is the module's own note, written by no form.
     expect(
       settings.registered.map(([key, config]) => [
         key,
@@ -134,6 +136,7 @@ describe("a GM changing where the call is", () => {
       ["modular-av-jitsi.serverUrl", true],
       ["modular-av-jitsi.xmppDomain", true],
       ["modular-av-jitsi.mucDomain", true],
+      ["modular-av-jitsi.settledAddress", false],
       ["modular-av-jitsi.appId", false],
       ["modular-av-jitsi.appSecret", false],
     ]);
