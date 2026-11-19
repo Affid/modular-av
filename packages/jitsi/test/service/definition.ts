@@ -62,6 +62,7 @@ export const createDefinition: CreateDefinition = (params, secrets) => {
   const definition = createJitsiService({
     access: () => (params.get("access") === "open" ? "open" : "token"),
     server: () => Promise.resolve(serverOf(params)),
+    serverProblem: () => Promise.resolve("no Jitsi server in the page's URL"),
     credentials: () => ({
       appId: secrets.appId ?? "",
       appSecret: secrets.appSecret ?? "",

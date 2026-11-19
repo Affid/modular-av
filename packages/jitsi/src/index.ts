@@ -126,6 +126,13 @@ Hooks.once("modularAV.register", (api: ModularAV) => {
         const { serverOf } = await import("./server-address.ts");
         return serverOf(settings.serverSettings());
       },
+      serverProblem: async () => {
+        const { serverProblemOf } = await import("./server-address.ts");
+        return (
+          serverProblemOf(settings.serverSettings()) ??
+          "The Jitsi settings changed: join again"
+        );
+      },
       credentials: () => settings.credentials(),
       sdkUrl: () => api.assetUrl(MODULE_ID, SDK_PATH),
       now: () => Date.now(),

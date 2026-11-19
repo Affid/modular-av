@@ -21,6 +21,7 @@ const deps = (overrides: Partial<JitsiServiceDeps> = {}): JitsiServiceDeps => ({
   credentials: () => ({ appId: "app", appSecret: "secret" }),
   channel: createHub().channel("u"),
   onOutsider: () => undefined,
+  serverProblem: () => Promise.resolve("Set the Jitsi server"),
   onReconnect: () => () => undefined,
   sdkUrl: () => "/modules/modular-av-jitsi/vendor/lib-jitsi-meet.min.js",
   now: () => 1_800_000_000_000,
@@ -64,13 +65,18 @@ describe("the Jitsi service definition", () => {
     vi.unstubAllGlobals();
   });
 
-  it("can't create a connection before the server is set, for good", async () => {
+  it("can't create a connection before the server is set, for good, and says why", async () => {
+    const why = "The room in the Jitsi room link can only have letters";
     const service = createJitsiService(
-      deps({ server: () => Promise.resolve(null) }),
+      deps({
+        server: () => Promise.resolve(null),
+        serverProblem: () => Promise.resolve(why),
+      }),
     );
 
     await expect(service.create({ participant: "u" })).rejects.toMatchObject({
       serviceError: { code: "unsupported", final: true },
+      message: why,
     });
   });
 
@@ -79,16 +85,5 @@ describe("the Jitsi service definition", () => {
 
     expect(service.needsToken()).toBe(false);
     expect(service.canSignTokens?.()).toBe(false);
-  });
-
-  it("asks for a room link when an open server's address names none, for good", async () => {
-    const service = createJitsiService(
-      deps({ access: () => "open", server: () => Promise.resolve(null) }),
-    );
-
-    await expect(service.create({ participant: "u" })).rejects.toMatchObject({
-      serviceError: { code: "unsupported", final: true },
-      message: /room link/,
-    });
   });
 });

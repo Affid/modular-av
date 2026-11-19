@@ -12,6 +12,8 @@ export interface JitsiServiceDeps {
   readonly access: () => "token" | "open";
   /** The deployment, or null while the world settings name none (read lazily). */
   readonly server: () => Promise<JitsiServer | null>;
+  /** Why they name none, for the log (read lazily). */
+  readonly serverProblem: () => Promise<string>;
   /** This device's app id and secret (a GM's browser), or null. */
   readonly credentials: () => JitsiCredentials | null;
   /** The core's socket for this module: who is who on an open server. */
@@ -69,13 +71,14 @@ export function createJitsiService(deps: JitsiServiceDeps): ServiceDefinition {
     async create(context) {
       const server = await deps.server();
       if (!server) {
-        const { JitsiServiceError } = await import("./errors.ts");
+        const [{ JitsiServiceError }, message] = await Promise.all([
+          import("./errors.ts"),
+          deps.serverProblem(),
+        ]);
         throw new JitsiServiceError({
           code: "unsupported",
           final: true,
-          message: open()
-            ? "Set the Jitsi room link in the module settings, such as https://meet.example.com/OurTable (letters, digits, - and _ in the room name)"
-            : "Set the Jitsi server in the module settings",
+          message,
         });
       }
       const [{ loadJitsi }, { createJitsiConnection }] = await Promise.all([

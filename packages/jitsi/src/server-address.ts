@@ -33,10 +33,31 @@ function hostsOf(settings: ServerSettings, socket: URL): XmppHosts | null {
   return DOMAIN.test(domain) && DOMAIN.test(muc) ? { domain, muc } : null;
 }
 
-function tokenServer(settings: ServerSettings): JitsiServer | null {
+/** Why the settings name no deployment: a line for the log, for a GM. */
+type Problem = string;
+
+const PROBLEMS = {
+  noServer: "Set the Jitsi server in the module settings",
+  badServer:
+    "The Jitsi server address in the module settings can't be used: give the site's https:// address, such as https://meet.example.com, with nothing after ? or # (plain http:// only on this computer or a private network)",
+  noLink:
+    "Set the Jitsi room link in the module settings, such as https://meet.example.com/OurTable",
+  badLink:
+    "The Jitsi room link in the module settings can't be used: give an https:// link, such as https://meet.example.com/OurTable (plain http:// only on this computer or a private network)",
+  badRoom:
+    "The room in the Jitsi room link can only have letters, digits, - and _",
+  noRoom:
+    "The Jitsi room link names no room yet: a GM's browser adds one when it saves, or give one, such as https://meet.example.com/OurTable",
+  badDomains:
+    "Check the XMPP and conference domains in the module settings: letters, digits, dots and dashes only",
+} as const;
+
+function tokenServer(settings: ServerSettings): JitsiServer | Problem {
+  if (!settings.serverUrl) return PROBLEMS.noServer;
   const socket = webSocketOf(settings.serverUrl);
-  const hosts = socket && hostsOf(settings, socket);
-  return socket && hosts ? { serviceUrl: socket.href, ...hosts } : null;
+  if (!socket) return PROBLEMS.badServer;
+  const hosts = hostsOf(settings, socket);
+  return hosts ? { serviceUrl: socket.href, ...hosts } : PROBLEMS.badDomains;
 }
 
 /**
@@ -44,11 +65,14 @@ function tokenServer(settings: ServerSettings): JitsiServer | null {
  * room's shard (as Jitsi's page does). With no domains given, Docker's
  * names are tried after the link's host.
  */
-function openServer(settings: ServerSettings): JitsiServer | null {
+function openServer(settings: ServerSettings): JitsiServer | Problem {
+  if (!settings.serverUrl) return PROBLEMS.noLink;
   const link = parseOpenAddress(settings.serverUrl);
-  if (!link.ok || link.room === null) return null;
+  if (!link.ok)
+    return link.problem === "room" ? PROBLEMS.badRoom : PROBLEMS.badLink;
+  if (link.room === null) return PROBLEMS.noRoom;
   const hosts = hostsOf(settings, link.socket);
-  if (!hosts) return null;
+  if (!hosts) return PROBLEMS.badDomains;
   const guessed = !settings.xmppDomain && !settings.mucDomain;
   const fallback =
     guessed && hosts.domain !== DOCKER_HOSTS.domain ? DOCKER_HOSTS : null;
@@ -60,6 +84,17 @@ function openServer(settings: ServerSettings): JitsiServer | null {
   };
 }
 
-/** The deployment the settings name, or null when they name none usable. */
-export const serverOf = (settings: ServerSettings): JitsiServer | null =>
+const read = (settings: ServerSettings): JitsiServer | Problem =>
   settings.access === "open" ? openServer(settings) : tokenServer(settings);
+
+/** The deployment the settings name, or null when they name none usable. */
+export function serverOf(settings: ServerSettings): JitsiServer | null {
+  const server = read(settings);
+  return typeof server === "string" ? null : server;
+}
+
+/** Why the settings name no usable deployment, or null when they name one. */
+export function serverProblemOf(settings: ServerSettings): string | null {
+  const server = read(settings);
+  return typeof server === "string" ? server : null;
+}
