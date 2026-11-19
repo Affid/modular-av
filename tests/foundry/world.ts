@@ -10,7 +10,10 @@ import {
 } from "@playwright/test";
 import { loadFoundryEnv } from "../../scripts/foundry/env.ts";
 import { joinAs } from "../../scripts/foundry/session.ts";
-import { JITSI_DOCKER } from "../../scripts/services/jitsi.ts";
+import {
+  JITSI_DOCKER,
+  JITSI_OPEN_DOCKER,
+} from "../../scripts/services/jitsi.ts";
 import { livekitTarget } from "../../scripts/services/livekit.ts";
 
 export const FOUNDRY_URL = loadFoundryEnv().url;
@@ -183,14 +186,17 @@ const UIS = {
 
 /**
  * Turns A/V on for the world with `service`, no relay server of the GM's
- * own, and `ui` showing the cameras and the settings window. Changing the
- * mode, the service or the UI takes effect for clients that load
- * afterwards (Foundry asks for a reload).
+ * own, and `ui` showing the cameras and the settings window. Jitsi is the
+ * Docker server with tokens, or with `jitsiRoom` the open one, by that
+ * room's link and no domains (as a GM pasting it). Changing the mode, the
+ * service or the UI takes effect for clients that load afterwards
+ * (Foundry asks for a reload).
  */
 export async function configureWorld(
   browser: Browser,
   service: "livekit" | "p2p" | "jitsi" = "livekit",
   ui: keyof typeof UIS = "foundry",
+  jitsiRoom: string | null = null,
 ): Promise<void> {
   const gm = await openPlayer(browser, "Gamemaster");
   await gm.run(
@@ -202,6 +208,11 @@ export async function configureWorld(
         turn: config.turn,
       });
       await game.settings.set("modular-av-livekit", "serverUrl", config.url);
+      await game.settings.set(
+        "modular-av-jitsi",
+        "access",
+        config.jitsi.access,
+      );
       await game.settings.set(
         "modular-av-jitsi",
         "serverUrl",
@@ -228,11 +239,20 @@ export async function configureWorld(
     {
       mode: AUDIO_VIDEO,
       url: livekitTarget().url,
-      jitsi: {
-        url: JITSI_DOCKER.web,
-        domain: JITSI_DOCKER.domain,
-        muc: JITSI_DOCKER.muc,
-      },
+      jitsi:
+        jitsiRoom === null
+          ? {
+              access: "token",
+              url: JITSI_DOCKER.web,
+              domain: JITSI_DOCKER.domain,
+              muc: JITSI_DOCKER.muc,
+            }
+          : {
+              access: "open",
+              url: `${JITSI_OPEN_DOCKER.web}/${jitsiRoom}`,
+              domain: "",
+              muc: "",
+            },
       service,
       turn: NO_TURN,
       ui: UIS[ui],
