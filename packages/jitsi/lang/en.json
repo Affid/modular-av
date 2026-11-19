@@ -4,13 +4,13 @@
     "settings": {
       "access": {
         "name": "How players get in",
-        "hint": "With tokens: the server checks a token that a GM's browser signs for each player, from the app id and secret below; it needs token authentication and Prosody's presence_identity module (see the module's README). Open server: anyone with the room link joins, as on a fresh Jitsi install, and Foundry tells everyone who each player is. People who aren't in this world can still join an open room if they know its link.",
+        "hint": "With tokens, a GM's browser signs each player's way in, from the app id and secret below; the server needs the settings in the module's README. On an open server anyone with the room link joins, even people outside this world, and Foundry tells who each player is.",
         "token": "With tokens (app id and secret)",
         "open": "Open server (anyone with the link)"
       },
       "serverUrl": {
         "name": "Jitsi server address",
-        "hint": "Your Jitsi Meet server, such as https://meet.example.com. For an open server, paste the room link you would send to friends, such as https://meet.example.com/OurTable (letters, digits, - and _ in the room name); without a room, a random one is added. Plain http:// works only on this computer or a private network. Every player can read this setting."
+        "hint": "Your Jitsi Meet server, such as https://meet.example.com; for an open server, the room link, such as https://meet.example.com/OurTable (a random room is added if there is none). Plain http:// works only on this computer or a private network. Every player can read this setting."
       },
       "xmppDomain": {
         "name": "XMPP domain",

@@ -1,5 +1,10 @@
-/** Long enough for a player's claim to come over Foundry's socket. */
-export const OUTSIDER_GRACE_MS = 15_000;
+/**
+ * Longer than a closed page stays in the room: Jitsi keeps its session a
+ * minute for resumption (61 s measured on docker-jitsi-meet), and someone
+ * joining in that minute never gets its claim. A real outsider is told of
+ * a little later; a player's closed tab never is.
+ */
+export const OUTSIDER_GRACE_MS = 90_000;
 
 export interface OutsidersOptions {
   readonly graceMs: number;

@@ -16,8 +16,9 @@ export interface SavedAddressDeps {
 /**
  * Keeps the address setting fit to be read by every player: no token in
  * it, and a room when the server is open (see `normalizeAddress`). Runs
- * when the access or the address changes; writing the same value again
- * changes nothing, so the second run stops there.
+ * after the access or the address changed (and settled: a form saves them
+ * one after the other); writing the same value again changes nothing, so
+ * the second run stops there.
  */
 export async function keepAddressSafe(deps: SavedAddressDeps): Promise<void> {
   if (!deps.isActiveGM()) return;

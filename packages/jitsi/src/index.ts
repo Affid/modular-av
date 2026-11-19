@@ -5,6 +5,7 @@ import {
   maskSecretField,
   type FormRoot,
 } from "./mask.ts";
+import { debounced } from "./later.ts";
 import type { SavedAddressDeps } from "./saved-address.ts";
 import { createJitsiService, MODULE_ID, SDK_PATH } from "./service.ts";
 import {
@@ -87,8 +88,14 @@ const keepAddress = (): void => {
     .catch(reportError);
 };
 
+/** Long enough for a settings form to save the access and the address. */
+const ADDRESS_SETTLE_MS = 1000;
+
 Hooks.once("init", () => {
-  registerWorldSettings(game.settings, keepAddress);
+  registerWorldSettings(
+    game.settings,
+    debounced(keepAddress, ADDRESS_SETTLE_MS),
+  );
 });
 
 Hooks.once("setup", () => {

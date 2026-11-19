@@ -155,8 +155,10 @@ function namesFor(server: JitsiServer): readonly XmppHosts[] {
 /**
  * Opens the XMPP connection with the token (none on an open server). An
  * open server's link names its web address, which Docker installs don't
- * use as their XMPP domain: its fallback names are tried after a failure
- * (a wrong domain fails at once, "no-auth-mech"), not after an abort.
+ * use as their XMPP domain (a wrong domain fails at once, "no-auth-mech"):
+ * its fallback names are tried after a failure. Not after an abort, nor
+ * after a final refusal (a sign-in asked for), which came from the right
+ * domain.
  */
 export async function openConnection(
   sdk: JitsiMeetJS,
@@ -172,7 +174,6 @@ export async function openConnection(
     return connection;
   } catch (error: unknown) {
     const next = rest[0];
-    // A final refusal (a sign-in asked for) came from the right server.
     const final =
       error instanceof JitsiServiceError && error.serviceError.final;
     if (signal.aborted || !next || final) throw error;

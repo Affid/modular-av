@@ -85,7 +85,7 @@ describe("reaching an open server", () => {
     expect(domainsTried(sdk)).toEqual(["down.example.com", "meet.jitsi"]);
   });
 
-  it("tries nothing else when the link's own host turns the player away", async () => {
+  it("tries nothing else when the link's own host asks for a sign-in", async () => {
     const sdk = createFakeSdk();
     sdk.setup = (c) => {
       c.outcome =
@@ -100,6 +100,26 @@ describe("reaching an open server", () => {
       serviceError: { code: "auth", final: true, message: /sign-in/ },
     });
     expect(domainsTried(sdk)).toEqual(["signin.example.com"]);
+  });
+
+  it("says a sign-in is asked for when Docker's names ask for one", async () => {
+    const sdk = createFakeSdk();
+    sdk.setup = (c) => {
+      c.outcome =
+        c.options.hosts.domain === DOCKER.domain
+          ? "connection.passwordRequired"
+          : "connection.otherError";
+    };
+
+    await expect(
+      connect(sdk, openServer("docker-signin.example.com")),
+    ).rejects.toMatchObject({
+      serviceError: { code: "auth", final: true, message: /sign-in/ },
+    });
+    expect(domainsTried(sdk)).toEqual([
+      "docker-signin.example.com",
+      "meet.jitsi",
+    ]);
   });
 
   it("tries nothing else once the attempt is aborted", async () => {
