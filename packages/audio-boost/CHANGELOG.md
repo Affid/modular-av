@@ -1,5 +1,11 @@
 # @modular-av/audio-boost
 
+## 0.15.0
+
+### Patch Changes
+
+- @modular-av/kit@0.15.0
+
 ## 0.14.1
 
 ### Patch Changes
