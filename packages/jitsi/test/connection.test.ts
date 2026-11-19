@@ -14,6 +14,7 @@ import {
   type FakeConference,
   type FakeConnection,
   type FakeSdk,
+  participant,
   remoteTrack,
 } from "./fake-sdk.ts";
 import { installMediaStream } from "./media-stream.ts";
@@ -371,12 +372,7 @@ describe("who is in the call", () => {
       const init = c.initJitsiConference.bind(c);
       c.initJitsiConference = (name, options) => {
         const conference = init(name, options);
-        conference.participants = [
-          {
-            getId: () => "ep-old",
-            getIdentity: () => ({ user: { id: "alice" } }),
-          },
-        ];
+        conference.participants = [participant("ep-old", "alice")];
         return conference;
       };
     };
@@ -394,12 +390,7 @@ describe("who is in the call", () => {
       const init = c.initJitsiConference.bind(c);
       c.initJitsiConference = (name, options) => {
         const conference = init(name, options);
-        conference.participants = [
-          {
-            getId: () => "ep-old",
-            getIdentity: () => ({ user: { id: "alice" } }),
-          },
-        ];
+        conference.participants = [participant("ep-old", "alice")];
         return conference;
       };
     };

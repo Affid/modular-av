@@ -36,6 +36,7 @@ const CONFERENCE = {
   TRACK_MUTE_CHANGED: "conference.trackMuteChanged",
   USER_JOINED: "conference.userJoined",
   USER_LEFT: "conference.userLeft",
+  PARTICIPANT_PROPERTY_CHANGED: "conference.participant_property_changed",
 } as const;
 
 const TRACK = {
@@ -164,13 +165,32 @@ export const remoteTrack = (init: RemoteTrackInit): FakeRemoteTrack => {
   };
 };
 
+export interface FakeParticipant extends JitsiParticipant {
+  /** A property from their presence (`jitsi_participant_<name>`). */
+  setProperty(name: string, value: string): void;
+  addTrack(track: JitsiTrack): void;
+}
+
+/** `id`: the identity the server vouched for, or null for none. */
 export const participant = (
   endpoint: string,
   id: string | null,
-): JitsiParticipant => ({
-  getId: () => endpoint,
-  getIdentity: () => (id === null ? undefined : { user: { id } }),
-});
+): FakeParticipant => {
+  let properties: ReadonlyMap<string, string> = new Map();
+  let tracks: readonly JitsiTrack[] = [];
+  return {
+    getId: () => endpoint,
+    getIdentity: () => (id === null ? undefined : { user: { id } }),
+    getProperty: (name) => properties.get(name),
+    getTracks: () => [...tracks],
+    setProperty(name, value) {
+      properties = new Map(properties).set(name, value);
+    },
+    addTrack(track) {
+      tracks = [...tracks, track];
+    },
+  };
+};
 
 export class FakeConference extends Events implements JitsiConference {
   joined = false;
@@ -186,7 +206,10 @@ export class FakeConference extends Events implements JitsiConference {
   private local: readonly JitsiLocalTrack[] = [];
   constraints: ReceiverConstraints | null = null;
   audio: AudioSubscription | null = null;
-  participants: JitsiParticipant[] = [];
+  participants: FakeParticipant[] = [];
+  /** Properties this client put in its presence, and when. */
+  localProperties: Readonly<Record<string, string>> = {};
+  readonly propertiesBeforeJoin: string[] = [];
   /** What `join()` does: "join", or fail with this conference error. */
   joinOutcome = "join";
   readonly name: string;
@@ -281,11 +304,44 @@ export class FakeConference extends Events implements JitsiConference {
     return this.moderator;
   }
 
-  /** Someone the server vouched for (or didn't: `id` null) joins. */
-  userJoins(endpoint: string, id: string | null): void {
+  setLocalParticipantProperty(name: string, value: string): void {
+    this.localProperties = { ...this.localProperties, [name]: value };
+    if (!this.joined) this.propertiesBeforeJoin.push(name);
+  }
+
+  /**
+   * Someone the server vouched for (or didn't: `id` null) joins. Their
+   * presence properties apply after USER_JOINED, as in the library.
+   */
+  userJoins(
+    endpoint: string,
+    id: string | null,
+    properties: Readonly<Record<string, string>> = {},
+  ): void {
     const p = participant(endpoint, id);
     this.participants = [...this.participants, p];
     this.emit(CONFERENCE.USER_JOINED, endpoint, p);
+    for (const [name, value] of Object.entries(properties))
+      this.propertyChanges(endpoint, name, value);
+  }
+  propertyChanges(endpoint: string, name: string, value: string): void {
+    const p = this.participants.find((x) => x.getId() === endpoint);
+    if (!p) return;
+    p.setProperty(name, value);
+    this.emit(
+      CONFERENCE.PARTICIPANT_PROPERTY_CHANGED,
+      p,
+      name,
+      undefined,
+      value,
+    );
+  }
+  /** A remote track arrives: its owner holds it, then the event fires. */
+  trackArrives(track: JitsiTrack): void {
+    this.participants
+      .find((x) => x.getId() === track.getParticipantId())
+      ?.addTrack(track);
+    this.emit(CONFERENCE.TRACK_ADDED, track);
   }
   userLeaves(endpoint: string): void {
     const p = this.getParticipantById(endpoint);

@@ -7,7 +7,7 @@ import type {
 import type { Emitter } from "./emitter.ts";
 import { fromConferenceError, type Attempt } from "./errors.ts";
 import { remoteTrack, sourceOf } from "./remote.ts";
-import { createRoster, type Roster } from "./roster.ts";
+import { createRoster, type Roster, type RosterHooks } from "./roster.ts";
 import type {
   JitsiConference,
   JitsiMeetJS,
@@ -24,11 +24,17 @@ export interface BridgeSource {
 
 export interface ConferenceHooks {
   readonly self: ParticipantId;
+  /** Who vouches for a participant: the server, or the open-server binding. */
+  readonly identify: RosterHooks["identify"];
+  /** Our page's join time, on an open server (orders a user's tabs). */
+  readonly joinedAt?: number;
   readonly emitter: Emitter;
   readonly attempt: () => Attempt;
   /** Leaving or ended: nothing more is reported or ended. */
   readonly closed: () => boolean;
   readonly onUnvouched: (endpoint: string) => void;
+  /** An endpoint left the room, whether or not anyone vouched for it. */
+  readonly onUserLeft: (endpoint: string) => void;
   readonly onDuplicate: () => void;
   readonly onEnd: (error: ServiceError) => void;
   /** A remote track arrived, for subscriptions. */
@@ -53,6 +59,11 @@ export function qualityOf(percent: number): ConnectionQuality {
 
 export interface WiredConference {
   readonly roster: Roster;
+  /**
+   * Who an endpoint is may be known now (its claim came): places it, and
+   * reports the tracks that came before.
+   */
+  readonly recheck: (endpoint: string) => void;
   /**
    * Once joined: reports what happened while joining (the core listens
    * only after `connect()` resolved), then reports as it happens.
@@ -151,6 +162,7 @@ function joinOf(w: Wiring) {
 
 function leaveOf(w: Wiring) {
   return (endpoint: string): void => {
+    w.hooks.onUserLeft(endpoint);
     w.reported.forget(endpoint);
     w.hooks.onTrackGone({ endpoint });
     const id = w.roster.leave(endpoint);
@@ -218,6 +230,19 @@ function trackOf(w: Wiring, name: TrackChange) {
   };
 }
 
+/** An endpoint nobody vouched for until now: placed, with its tracks so far. */
+function recheckOf(w: Wiring) {
+  const join = joinOf(w);
+  const arrived = trackOf(w, "trackAdded");
+  return (endpoint: string): void => {
+    const participant = w.conference.getParticipantById(endpoint);
+    if (!participant || w.roster.knows(endpoint)) return;
+    join(endpoint, participant);
+    if (w.roster.idOf(endpoint) === undefined) return;
+    for (const t of participant.getTracks()) arrived(t);
+  };
+}
+
 function wireState(
   sdk: JitsiMeetJS,
   w: Wiring,
@@ -260,7 +285,10 @@ export function wireConference(
   const w: Wiring = {
     conference,
     hooks,
-    roster: createRoster(hooks),
+    roster: createRoster({
+      ...hooks,
+      selfEndpoint: () => conference.myUserId(),
+    }),
     reports: createReports(hooks.closed),
     reported: createReported(),
     retyped: sdk.events.track?.TRACK_VIDEOTYPE_CHANGED,
@@ -275,9 +303,15 @@ export function wireConference(
   on(events.TRACK_ADDED, trackOf(w, "trackAdded"));
   on(events.TRACK_REMOVED, trackOf(w, "trackRemoved"));
   on(events.TRACK_MUTE_CHANGED, trackOf(w, "muted"));
+  const recheck = recheckOf(w);
+  // A presence property (an open server's user name) comes after the join.
+  on(events.PARTICIPANT_PROPERTY_CHANGED, (participant: JitsiParticipant) => {
+    recheck(participant.getId());
+  });
   wireState(sdk, w, on);
   return {
     roster: w.roster,
+    recheck,
     start() {
       const join = joinOf(w);
       for (const participant of conference.getParticipants())

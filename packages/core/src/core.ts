@@ -547,5 +547,8 @@ function onReady(
   if (game.webrtc && !(game.webrtc.client instanceof ClientClass))
     warn("clientReplaced");
   const service = controller.service();
-  if (service?.canSignTokens && !service.canSignTokens()) warn("gmNeedsSecret");
+  // A service that needs no token (Jitsi on an open server) needs no secret.
+  const needsSecret =
+    service?.needsToken() === true && service.canSignTokens?.() === false;
+  if (needsSecret) warn("gmNeedsSecret");
 }

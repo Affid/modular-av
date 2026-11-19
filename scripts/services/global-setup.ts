@@ -1,5 +1,5 @@
 import { startCoturn } from "./coturn.ts";
-import { startJitsi } from "./jitsi.ts";
+import { startJitsi, startJitsiOpen } from "./jitsi.ts";
 import { startLiveKit } from "./livekit.ts";
 
 /** Playwright global setup for the service and Foundry suites: returns the teardown. */
@@ -8,6 +8,7 @@ export default async function setup(): Promise<() => Promise<void>> {
     startLiveKit(),
     startCoturn(),
     startJitsi(),
+    startJitsiOpen(),
   ]);
   return async () => {
     await Promise.all(stops.map((stop) => stop()));

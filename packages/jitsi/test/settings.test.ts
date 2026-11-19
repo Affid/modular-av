@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
+import { serverOf, webSocketOf } from "../src/server-address.ts";
 import {
   readSettings,
   registerSecretSettings,
   registerWorldSettings,
-  webSocketOf,
 } from "../src/settings.ts";
+
+/** The deployment the settings name, read as the service reads it. */
+const serverFrom = (values: Readonly<Record<string, unknown>>) =>
+  serverOf(readSettings(fakeSettings(values)).serverSettings());
 
 function fakeSettings(values: Readonly<Record<string, unknown>> = {}) {
   const registered: [string, Readonly<Record<string, unknown>>][] = [];
@@ -49,23 +53,19 @@ describe("where the Jitsi server is", () => {
   });
 
   it("takes the domains from the address unless set", () => {
-    const plain = readSettings(
-      fakeSettings({ serverUrl: "https://meet.example.com" }),
-    );
-    const docker = readSettings(
-      fakeSettings({
-        serverUrl: " http://127.0.0.1:8000 ",
-        xmppDomain: "meet.jitsi",
-        mucDomain: "muc.meet.jitsi",
-      }),
-    );
+    const plain = serverFrom({ serverUrl: "https://meet.example.com" });
+    const docker = serverFrom({
+      serverUrl: " http://127.0.0.1:8000 ",
+      xmppDomain: "meet.jitsi",
+      mucDomain: "muc.meet.jitsi",
+    });
 
-    expect(plain.server()).toEqual({
+    expect(plain).toEqual({
       serviceUrl: "wss://meet.example.com/xmpp-websocket",
       domain: "meet.example.com",
       muc: "conference.meet.example.com",
     });
-    expect(docker.server()).toEqual({
+    expect(docker).toEqual({
       serviceUrl: "ws://127.0.0.1:8000/xmpp-websocket",
       domain: "meet.jitsi",
       muc: "muc.meet.jitsi",
@@ -73,14 +73,9 @@ describe("where the Jitsi server is", () => {
   });
 
   it("has no server for a bad address or a bad domain", () => {
-    expect(readSettings(fakeSettings({})).server()).toBeNull();
+    expect(serverFrom({})).toBeNull();
     expect(
-      readSettings(
-        fakeSettings({
-          serverUrl: "https://meet.example.com",
-          xmppDomain: "a b",
-        }),
-      ).server(),
+      serverFrom({ serverUrl: "https://meet.example.com", xmppDomain: "a b" }),
     ).toBeNull();
   });
 });
@@ -109,11 +104,146 @@ describe("the GM's app id and secret", () => {
         config.config,
       ]),
     ).toEqual([
+      ["modular-av-jitsi.access", "world", true],
       ["modular-av-jitsi.serverUrl", "world", true],
       ["modular-av-jitsi.xmppDomain", "world", true],
       ["modular-av-jitsi.mucDomain", "world", true],
+      ["modular-av-jitsi.settledAddress", "world", false],
       ["modular-av-jitsi.appId", "client", false],
       ["modular-av-jitsi.appSecret", "client", false],
     ]);
+  });
+});
+
+describe("a GM changing where the call is", () => {
+  it("has everyone reload, so nobody stays behind in the old call", () => {
+    // Arrange
+    const settings = fakeSettings();
+
+    // Act
+    registerWorldSettings(settings);
+    registerSecretSettings(settings, true);
+
+    // Assert: the GM's own key is read again for each token; the settled
+    // address is the module's own note, written by no form.
+    expect(
+      settings.registered.map(([key, config]) => [
+        key,
+        config.requiresReload === true,
+      ]),
+    ).toEqual([
+      ["modular-av-jitsi.access", true],
+      ["modular-av-jitsi.serverUrl", true],
+      ["modular-av-jitsi.xmppDomain", true],
+      ["modular-av-jitsi.mucDomain", true],
+      ["modular-av-jitsi.settledAddress", false],
+      ["modular-av-jitsi.appId", false],
+      ["modular-av-jitsi.appSecret", false],
+    ]);
+  });
+});
+
+describe("how players get into the Jitsi server", () => {
+  it("is with tokens unless a GM chose an open server", () => {
+    expect(readSettings(fakeSettings({})).access()).toBe("token");
+    expect(readSettings(fakeSettings({ access: "other" })).access()).toBe(
+      "token",
+    );
+    expect(readSettings(fakeSettings({ access: "open" })).access()).toBe(
+      "open",
+    );
+  });
+
+  it("offers the two choices, tokens first", () => {
+    const settings = fakeSettings();
+
+    registerWorldSettings(settings);
+
+    const access = settings.registered.find(
+      ([key]) => key === "modular-av-jitsi.access",
+    )?.[1];
+    expect(access?.default).toBe("token");
+    expect(Object.keys(access?.choices ?? {})).toEqual(["token", "open"]);
+  });
+
+  it("tells the caller when the access or the address changes", () => {
+    const settings = fakeSettings();
+    let changes = 0;
+
+    registerWorldSettings(settings, () => {
+      changes += 1;
+    });
+    for (const [key, config] of settings.registered)
+      if (typeof config.onChange === "function")
+        (config.onChange as (value: unknown) => void)(key);
+
+    expect(changes).toBe(2);
+  });
+
+  it("tells the caller of each address saved, and who saved it", () => {
+    const settings = fakeSettings();
+    const saved: [unknown, unknown][] = [];
+
+    registerWorldSettings(
+      settings,
+      () => undefined,
+      (value, userId) => saved.push([value, userId]),
+    );
+    const address = settings.registered.find(
+      ([key]) => key === "modular-av-jitsi.serverUrl",
+    )?.[1];
+    (address?.onChange as (v: unknown, o: unknown, u: unknown) => void)(
+      "https://meet.example.com/?jwt=x",
+      {},
+      "gm-1",
+    );
+
+    expect(saved).toEqual([["https://meet.example.com/?jwt=x", "gm-1"]]);
+  });
+});
+
+describe("an open server", () => {
+  const open = (values: Readonly<Record<string, unknown>>) =>
+    serverFrom({ access: "open", ...values });
+
+  it("joins the link's room, pinned to its shard, trying Docker's names next", () => {
+    expect(open({ serverUrl: "https://meet.example.com/OurTable" })).toEqual({
+      serviceUrl: "wss://meet.example.com/xmpp-websocket?room=ourtable",
+      domain: "meet.example.com",
+      muc: "conference.meet.example.com",
+      open: {
+        room: "ourtable",
+        fallback: { domain: "meet.jitsi", muc: "muc.meet.jitsi" },
+      },
+    });
+  });
+
+  it("tries nothing else when the domains are given", () => {
+    expect(
+      open({
+        serverUrl: "http://127.0.0.1:8001/table",
+        xmppDomain: "meet.jitsi",
+        mucDomain: "muc.meet.jitsi",
+      }),
+    ).toEqual({
+      serviceUrl: "ws://127.0.0.1:8001/xmpp-websocket?room=table",
+      domain: "meet.jitsi",
+      muc: "muc.meet.jitsi",
+      open: { room: "table" },
+    });
+  });
+
+  it("has no server without a room or with a room it can't name", () => {
+    expect(open({ serverUrl: "https://meet.example.com" })).toBeNull();
+    expect(open({ serverUrl: "https://meet.example.com/a%20b" })).toBeNull();
+    expect(open({})).toBeNull();
+  });
+
+  it("needs no app id and secret", () => {
+    expect(
+      readSettings(
+        fakeSettings({ access: "open", appId: "a", appSecret: "s" }),
+      ).credentials(),
+    ).toBeNull();
   });
 });

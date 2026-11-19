@@ -18,14 +18,34 @@ export const JITSI_DOCKER = {
   appSecret: "modular-av-test-secret-not-for-production",
 } as const;
 
+/**
+ * docker-jitsi-meet as it sets itself up by default: open, anyone with a
+ * link joins. For the Jitsi module's open-server mode.
+ */
+export const JITSI_OPEN_DOCKER = {
+  compose: join(import.meta.dirname, "jitsi-open", "compose.yml"),
+  web: "http://127.0.0.1:8001",
+  serviceUrl: "ws://127.0.0.1:8001/xmpp-websocket",
+  domain: "meet.jitsi",
+  muc: "muc.meet.jitsi",
+} as const;
+
+/** One Docker Jitsi: its compose file and its web address. */
+interface Stack {
+  readonly compose: string;
+  readonly web: string;
+}
+
 const STARTUP_TIMEOUT_MS = 90_000;
 
-const compose = (...args: string[]): Promise<{ stdout: string }> =>
-  run("docker", ["compose", "-f", JITSI_DOCKER.compose, ...args]);
+const composeOf =
+  (stack: Stack) =>
+  (...args: string[]): Promise<{ stdout: string }> =>
+    run("docker", ["compose", "-f", stack.compose, ...args]);
 
-async function webAnswers(): Promise<boolean> {
+async function webAnswers(stack: Stack): Promise<boolean> {
   try {
-    return (await fetch(JITSI_DOCKER.web)).ok;
+    return (await fetch(stack.web)).ok;
   } catch {
     // Not listening yet.
     return false;
@@ -41,11 +61,11 @@ const STDERR_KEPT = 2000;
  * read as a stream up to that line: a container kept between runs logs
  * more than execFile buffers.
  */
-function bridgeReady(): Promise<boolean> {
+function bridgeReady(stack: Stack): Promise<boolean> {
   return new Promise((resolve, reject) => {
     const logs = spawn(
       "docker",
-      ["compose", "-f", JITSI_DOCKER.compose, "logs", "--no-color", "jicofo"],
+      ["compose", "-f", stack.compose, "logs", "--no-color", "jicofo"],
       { stdio: ["ignore", "pipe", "pipe"] },
     );
     let tail = "";
@@ -73,15 +93,16 @@ function bridgeReady(): Promise<boolean> {
   });
 }
 
-const ready = async (): Promise<boolean> =>
-  (await webAnswers()) && (await bridgeReady());
+const ready = async (stack: Stack): Promise<boolean> =>
+  (await webAnswers(stack)) && (await bridgeReady(stack));
 
-/** Starts Jitsi in Docker unless it already runs; returns the teardown. */
-export async function startJitsi(): Promise<() => Promise<void>> {
-  if (await ready()) return () => Promise.resolve();
+/** Starts a Docker Jitsi unless it already runs; returns the teardown. */
+async function start(stack: Stack): Promise<() => Promise<void>> {
+  if (await ready(stack)) return () => Promise.resolve();
+  const compose = composeOf(stack);
   await compose("up", "--detach");
   const deadline = Date.now() + STARTUP_TIMEOUT_MS;
-  while (!(await ready())) {
+  while (!(await ready(stack))) {
     if (Date.now() > deadline) throw new Error("Jitsi did not start in time");
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
@@ -90,12 +111,26 @@ export async function startJitsi(): Promise<() => Promise<void>> {
   };
 }
 
-/** Freezes every Jitsi container, so every client loses it, until `end`. */
-export const jitsiOutage = {
+/** Freezes every container of a Docker Jitsi, so every client loses it, until `end`. */
+const outageOf = (
+  stack: Stack,
+): { start: () => Promise<void>; end: () => Promise<void> } => ({
   start: async (): Promise<void> => {
-    await compose("pause");
+    await composeOf(stack)("pause");
   },
   end: async (): Promise<void> => {
-    await compose("unpause");
+    await composeOf(stack)("unpause");
   },
-};
+});
+
+/** Starts Jitsi with tokens in Docker unless it already runs; returns the teardown. */
+export const startJitsi = (): Promise<() => Promise<void>> =>
+  start(JITSI_DOCKER);
+
+export const jitsiOutage = outageOf(JITSI_DOCKER);
+
+/** Starts the open Jitsi in Docker unless it already runs; returns the teardown. */
+export const startJitsiOpen = (): Promise<() => Promise<void>> =>
+  start(JITSI_OPEN_DOCKER);
+
+export const jitsiOpenOutage = outageOf(JITSI_OPEN_DOCKER);

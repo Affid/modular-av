@@ -12,14 +12,27 @@ import type {
   Listener,
 } from "./sdk-types.ts";
 
-/** Where the Jitsi deployment is, from the module's world settings. */
-export interface JitsiServer {
-  /** The XMPP WebSocket, e.g. wss://meet.example.com/xmpp-websocket */
-  readonly serviceUrl: string;
+/** An XMPP deployment's names. */
+export interface XmppHosts {
   /** The XMPP domain, e.g. meet.example.com (docker: meet.jitsi). */
   readonly domain: string;
   /** The conference (MUC) domain, e.g. conference.meet.example.com. */
   readonly muc: string;
+}
+
+/** An open server (no sign-in): the room joined, not the world's. */
+export interface OpenRoom {
+  readonly room: string;
+  /** Names tried when `domain` and `muc` turn out wrong (Docker's). */
+  readonly fallback?: XmppHosts;
+}
+
+/** Where the Jitsi deployment is, from the module's world settings. */
+export interface JitsiServer extends XmppHosts {
+  /** The XMPP WebSocket, e.g. wss://meet.example.com/xmpp-websocket */
+  readonly serviceUrl: string;
+  /** Present for an open server; tokens otherwise. */
+  readonly open?: OpenRoom;
 }
 
 /**
@@ -93,15 +106,16 @@ const asTarget = (
   },
 });
 
-/** Opens the XMPP connection with the token. */
-export async function openConnection(
+/** Opens one XMPP connection with these names. */
+async function openWith(
   sdk: JitsiMeetJS,
   server: JitsiServer,
+  hosts: XmppHosts,
   attempt: Attempt,
   signal: AbortSignal,
 ): Promise<JitsiConnection> {
   const connection = new sdk.JitsiConnection(null, attempt.token, {
-    hosts: { domain: server.domain, muc: server.muc },
+    hosts: { domain: hosts.domain, muc: hosts.muc },
     serviceUrl: server.serviceUrl,
   });
   const events = sdk.events.connection;
@@ -122,6 +136,51 @@ export async function openConnection(
     throw error;
   }
   return connection;
+}
+
+/** Per WebSocket, the names that opened it last: tried first next time. */
+let worked: ReadonlyMap<string, XmppHosts> = new Map();
+
+/** The names to try, in order: the fallback only on an open server. */
+function namesFor(server: JitsiServer): readonly XmppHosts[] {
+  const given = { domain: server.domain, muc: server.muc };
+  const fallback = server.open?.fallback;
+  if (!fallback) return [given];
+  const known = worked.get(server.serviceUrl);
+  return known?.domain === fallback.domain
+    ? [fallback, given]
+    : [given, fallback];
+}
+
+/**
+ * Opens the XMPP connection with the token (none on an open server). An
+ * open server's link names its web address, which Docker installs don't
+ * use as their XMPP domain (a wrong domain fails at once, "no-auth-mech"):
+ * its fallback names are tried after a failure. Not after an abort, nor
+ * after a final refusal (a sign-in asked for), which came from the right
+ * domain.
+ */
+export async function openConnection(
+  sdk: JitsiMeetJS,
+  server: JitsiServer,
+  attempt: Attempt,
+  signal: AbortSignal,
+): Promise<JitsiConnection> {
+  const [first, ...rest] = namesFor(server);
+  if (!first) throw new Error("No XMPP names to try");
+  try {
+    const connection = await openWith(sdk, server, first, attempt, signal);
+    if (rest.length > 0) worked = new Map(worked).set(server.serviceUrl, first);
+    return connection;
+  } catch (error: unknown) {
+    const next = rest[0];
+    const final =
+      error instanceof JitsiServiceError && error.serviceError.final;
+    if (signal.aborted || !next || final) throw error;
+    const connection = await openWith(sdk, server, next, attempt, signal);
+    worked = new Map(worked).set(server.serviceUrl, next);
+    return connection;
+  }
 }
 
 /** Joins the room on an open connection; resolves once in it. */

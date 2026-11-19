@@ -1,30 +1,38 @@
 import type { ModularAV } from "@modular-av/api";
-import { maskSecretField, type FormRoot } from "./mask.ts";
+import {
+  type AccessFormRoot,
+  followAccessChoice,
+  maskSecretField,
+  type FormRoot,
+} from "./mask.ts";
+import { debounced } from "./later.ts";
+import { redact } from "./redact.ts";
+import type { SavedAddressDeps } from "./saved-address.ts";
 import { createJitsiService, MODULE_ID, SDK_PATH } from "./service.ts";
 import {
   readSettings,
   registerSecretSettings,
   registerWorldSettings,
-  type SettingsApi,
 } from "./settings.ts";
 
 /** The slice of Foundry's globals this module uses. */
 declare global {
   var game: {
-    settings: SettingsApi;
-    user: { isGM: boolean };
+    settings: SavedAddressDeps["settings"];
+    user: { isGM: boolean; id: string };
+    users: { activeGM: { isSelf: boolean } | null };
+    i18n: { localize(key: string): string };
+    socket: {
+      on(event: string, fn: () => void): unknown;
+      off(event: string, fn: () => void): unknown;
+    };
   };
+  var ui: { notifications: { warn(message: string): unknown } };
   var Hooks: {
     once(hook: string, fn: (...args: never[]) => void): number;
     on(hook: string, fn: (...args: never[]) => void): number;
   };
 }
-
-/** Like the core's log: SDK errors can carry a token in a URL. */
-const redact = (text: string): string =>
-  text
-    .replace(/eyJ[\w-]+\.[\w-]+\.[\w-]*/g, "[token]")
-    .replace(/((?:access_)?token|jwt)=[^&\s"']+/gi, "$1=[token]");
 
 const reportError = (error: unknown): void => {
   const text = error instanceof Error ? error.message : String(error);
@@ -37,23 +45,101 @@ const reportLibraryLog = (line: string): void => {
   console.warn(`Modular A/V: Jitsi | ${redact(line)}`);
 };
 
+const warn = (key: string): void => {
+  ui.notifications.warn(game.i18n.localize(`${MODULE_ID}.notices.${key}`));
+};
+
+const isActiveGM = (): boolean => game.users.activeGM?.isSelf === true;
+
+/** One notice a minute at most, however many strangers come and go. */
+const OUTSIDER_NOTICE_GAP_MS = 60_000;
+let lastOutsiderNotice = -Infinity;
+
+const noticeOutsider = (): void => {
+  const now = Date.now();
+  if (!game.user.isGM || now - lastOutsiderNotice < OUTSIDER_NOTICE_GAP_MS)
+    return;
+  lastOutsiderNotice = now;
+  warn("outsider");
+};
+
+/**
+ * On the active GM's browser: no token in the address, a room if open,
+ * none once tokens are chosen again. Loaded there only, when the access or
+ * the address changes.
+ */
+const keepAddress = (): void => {
+  if (!isActiveGM()) return;
+  Promise.all([import("./saved-address.ts"), import("./open-link.ts")])
+    .then(([{ keepAddressSafe }, { randomRoom }]) =>
+      keepAddressSafe({ settings: game.settings, isActiveGM, randomRoom }),
+    )
+    .catch(reportError);
+};
+
+/**
+ * The GM who saved a sign-in token in the address is told: it reached
+ * every player's browser before the active GM's took it out.
+ */
+const tellOfToken = (value: unknown, userId: unknown): void => {
+  if (userId !== game.user.id || typeof value !== "string") return;
+  import("./open-link.ts")
+    .then(({ carriesToken }) => {
+      if (carriesToken(value)) warn("tokenRemoved");
+    })
+    .catch(reportError);
+};
+
+/** Long enough for a settings form to save the access and the address. */
+const ADDRESS_SETTLE_MS = 1000;
+
 Hooks.once("init", () => {
-  registerWorldSettings(game.settings);
+  registerWorldSettings(
+    game.settings,
+    debounced(keepAddress, ADDRESS_SETTLE_MS),
+    tellOfToken,
+  );
 });
 
 Hooks.once("setup", () => {
   registerSecretSettings(game.settings, game.user.isGM);
 });
 
-Hooks.on("renderSettingsConfig", (_app: unknown, element: FormRoot) => {
-  maskSecretField(element);
-});
+Hooks.once("ready", keepAddress);
+
+Hooks.on(
+  "renderSettingsConfig",
+  (_app: unknown, element: FormRoot & AccessFormRoot) => {
+    maskSecretField(element);
+    followAccessChoice(element);
+  },
+);
 
 Hooks.once("modularAV.register", (api: ModularAV) => {
   const settings = readSettings(game.settings);
   api.services.register(
     createJitsiService({
-      server: () => settings.server(),
+      access: () => settings.access(),
+      channel: api.socket("jitsi"),
+      onOutsider: noticeOutsider,
+      // socket.io's "connect" comes again after every reconnection.
+      onReconnect: (listener) => {
+        game.socket.on("connect", listener);
+        return () => {
+          game.socket.off("connect", listener);
+        };
+      },
+      server: async () => {
+        const { serverOf } = await import("./server-address.ts");
+        return serverOf(settings.serverSettings());
+      },
+      serverProblem: async () => {
+        const { serverProblemOf } = await import("./server-address.ts");
+        return (
+          serverProblemOf(settings.serverSettings()) ??
+          "The Jitsi settings changed: join again"
+        );
+      },
       credentials: () => settings.credentials(),
       sdkUrl: () => api.assetUrl(MODULE_ID, SDK_PATH),
       now: () => Date.now(),

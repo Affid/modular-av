@@ -198,7 +198,8 @@ stateDiagram-v2
   left --> [*]
 ```
 
-P2P needs no token and goes straight to `connecting`.
+P2P, and Jitsi on an open server, need no token and go straight to
+`connecting`.
 
 Retries wait 1, 3, 5, 10 and 20 seconds, then 30 seconds for as long as
 it takes, and start at once when the browser comes back online. A final
@@ -208,8 +209,8 @@ blocks are applied again on every connect.
 
 ### How a player gets in without seeing the secret
 
-LiveKit and Jitsi need a token signed with the server's secret. The
-secret is kept in the GM's browser alone (a setting of that device), and
+LiveKit, and Jitsi with tokens, need a token signed with the server's
+secret. The secret is kept in the GM's browser alone (a setting of that device), and
 a GM's browser signs each player's token:
 
 ```mermaid
@@ -232,6 +233,12 @@ The cost is that a GM must be online for players to join; until one is,
 the player sees "Waiting for a GM to let you join". A blocked player's
 token carries no right to publish, and every other browser also refuses
 to play media from them, which is how P2P and Jitsi enforce a block.
+
+P2P and Jitsi on an open server need no token: Foundry's server names
+the sender of every message on the core's socket, and that tells who is
+who. On an open Jitsi server, a place in the room is a player's only
+when the name in their Jitsi presence and their claim on the socket
+agree, since anyone with the room link can join the room itself.
 
 ### Your microphone, camera and what you hear
 

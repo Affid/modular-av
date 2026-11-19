@@ -15,6 +15,13 @@ export interface JitsiParticipant {
   getId(): string;
   /** From the server (Prosody's presence_identity), never the client. */
   getIdentity(): { user?: Readonly<Record<string, string>> } | undefined;
+  /**
+   * A property the participant put in its own presence: its word only.
+   * Applied after USER_JOINED, then PARTICIPANT_PROPERTY_CHANGED fires.
+   */
+  getProperty(name: string): unknown;
+  /** Its remote tracks so far. */
+  getTracks(): JitsiTrack[];
 }
 
 export interface JitsiTrack {
@@ -78,6 +85,8 @@ export interface JitsiConference {
   setAudioSubscriptionMode(subscription: AudioSubscription): void;
   myUserId(): string;
   isModerator(): boolean;
+  /** Sent in this client's presence; set before `join()`, in the first one. */
+  setLocalParticipantProperty(name: string, value: string): void;
 }
 
 export interface JitsiConnectionOptions {

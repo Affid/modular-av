@@ -1,4 +1,5 @@
 import type {
+  Channel,
   ParticipantId,
   RoomSpec,
   ServiceCapabilities,
@@ -6,6 +7,7 @@ import type {
   ServiceContext,
   ServiceError,
 } from "@modular-av/api";
+import { type Binding, createBinding, PRESENCE_KEY } from "./binding.ts";
 import {
   type ConferenceHooks,
   wireConference,
@@ -25,6 +27,13 @@ import {
   type LocalTracks,
   type MeasureFrame,
 } from "./local-tracks.ts";
+import {
+  createOutsiders,
+  OUTSIDER_GRACE_MS,
+  type Outsiders,
+} from "./outsiders.ts";
+import { identityOf } from "./remote.ts";
+import type { RosterHooks } from "./roster.ts";
 import type {
   JitsiConference,
   JitsiConnection,
@@ -35,6 +44,19 @@ import { createSubscriptions, type Subscriptions } from "./subscriptions.ts";
 import { createTokenRefresh, type TokenRefresh } from "./token-refresh.ts";
 import { jitsiRoomName } from "./token.ts";
 
+/** What an open server needs: Foundry vouches for each player there. */
+export interface OpenRoomDeps {
+  /** The core's socket (channel "jitsi"), where Foundry names each sender. */
+  readonly channel: Channel;
+  /** When this page first joined. */
+  readonly joinedAt: number;
+  /** Someone in the room whom nobody in the world vouched for. */
+  readonly onOutsider: () => void;
+  readonly outsiderGraceMs?: number;
+  /** Foundry's socket connected again (socket.io's "connect"). */
+  readonly onReconnect: (listener: () => void) => () => void;
+}
+
 /** Loaded with `import()` only when a call starts, with the SDK loaded. */
 export interface JitsiConnectionOptions {
   readonly sdk: JitsiMeetJS;
@@ -43,6 +65,8 @@ export interface JitsiConnectionOptions {
   readonly onError: (error: unknown) => void;
   /** Sizes a camera that reports none; the next frame's size by default. */
   readonly measureFrame?: MeasureFrame;
+  /** Needed when `server.open` is set. */
+  readonly openRoom?: OpenRoomDeps;
 }
 
 /**
@@ -67,6 +91,15 @@ const MODERATOR =
 const UNVOUCHED =
   "A participant in the Jitsi room has no identity from the server: is Prosody's presence_identity module enabled on its main VirtualHost?";
 
+const OUTSIDER =
+  "Someone in the Jitsi room isn't in this world: they get no place in the call here, but they can see and hear it";
+
+/** With tokens, the server names each participant (presence_identity). */
+const serverIdentity: RosterHooks["identify"] = (_endpoint, participant) => {
+  const id = identityOf(participant);
+  return id ? { id } : null;
+};
+
 /** One connection's moving parts, shared by the functions below. */
 interface Live {
   readonly self: ParticipantId;
@@ -77,6 +110,9 @@ interface Live {
   readonly refresh: TokenRefresh;
   /** Aborts a join under way when the connection ends or is left. */
   readonly closing: AbortController;
+  /** An open server's: who is who, and who is in the room but not the world. */
+  readonly binding: Binding | null;
+  readonly outsiders: Outsiders | null;
   connection: JitsiConnection | null;
   conference: JitsiConference | null;
   wired: WiredConference | null;
@@ -95,6 +131,8 @@ async function leaveOnce(live: Live): Promise<void> {
   live.conference = null;
   live.connection = null;
   live.refresh.cancel();
+  live.binding?.stop();
+  live.outsiders?.stop();
   await live.local.releaseAll().catch(options.onError);
   await conference?.leave().catch(options.onError);
   await connection?.disconnect().catch(options.onError);
@@ -115,13 +153,24 @@ function end(live: Live, error: ServiceError): void {
 }
 
 function hooksFor(live: Live): ConferenceHooks {
+  const { binding, outsiders } = live;
+  const joinedAt = live.options.openRoom?.joinedAt;
   return {
     self: live.self,
+    identify: binding
+      ? (endpoint, participant) => binding.identify(endpoint, participant)
+      : serverIdentity,
+    ...(binding && joinedAt !== undefined ? { joinedAt } : {}),
     emitter: live.emitter,
     attempt: () => live.attempt,
     closed: () => isClosed(live),
-    onUnvouched: () => {
-      live.options.onError(new Error(UNVOUCHED));
+    onUnvouched: (endpoint) => {
+      if (outsiders) outsiders.watch(endpoint);
+      else live.options.onError(new Error(UNVOUCHED));
+    },
+    onUserLeft: (endpoint) => {
+      binding?.forget(endpoint);
+      outsiders?.forget(endpoint);
     },
     onDuplicate: () => {
       end(live, {
@@ -143,6 +192,9 @@ function hooksFor(live: Live): ConferenceHooks {
 }
 
 function wire(live: Live, conference: JitsiConference): void {
+  // In the first presence, before joining: the others learn it with us.
+  if (live.binding)
+    conference.setLocalParticipantProperty(PRESENCE_KEY, live.self);
   const wired = wireConference(live.options.sdk, conference, hooksFor(live));
   live.wired = wired;
   live.stats = createStatsCache(live.options.sdk, conference, (participant) =>
@@ -188,7 +240,7 @@ async function joinLive(
     live.conference = await joinConference(
       live.options.sdk,
       connection,
-      jitsiRoomName(room.name),
+      live.options.server.open?.room ?? jitsiRoomName(room.name),
       live.attempt,
       signal,
       (conference) => {
@@ -206,7 +258,7 @@ async function joinLive(
 async function connectLive(
   live: Live,
   room: RoomSpec,
-  token: string,
+  token: string | null,
   callerSignal: AbortSignal,
 ): Promise<void> {
   const { sdk, server, now } = live.options;
@@ -217,9 +269,53 @@ async function connectLive(
   watchConnection(live, connection);
   await joinLive(live, connection, room, signal);
   live.wired?.start();
-  if (live.conference?.isModerator())
+  if (live.binding) live.binding.announce(live.conference?.myUserId() ?? "");
+  else if (live.conference?.isModerator())
     live.options.onError(new Error(MODERATOR));
   live.emitter.emit("state", "connected");
+}
+
+/**
+ * An open server's binding and outsider watch; none with tokens. Both
+ * reach the conference through `live`, which exists by the time they act.
+ */
+function openParts(
+  context: ServiceContext,
+  options: JitsiConnectionOptions,
+  current: () => Live,
+): Pick<Live, "binding" | "outsiders"> {
+  const { openRoom } = options;
+  const open = options.server.open;
+  if (!open || !openRoom) return { binding: null, outsiders: null };
+  const binding = createBinding({
+    channel: openRoom.channel,
+    room: open.room,
+    self: context.participant,
+    joinedAt: openRoom.joinedAt,
+    now: options.now,
+    isPresent: (endpoint) =>
+      current().conference?.getParticipantById(endpoint) !== undefined,
+    onClaim: (endpoint) => current().wired?.recheck(endpoint),
+    onReconnect: openRoom.onReconnect,
+  });
+  const outsiders = createOutsiders({
+    graceMs: openRoom.outsiderGraceMs ?? OUTSIDER_GRACE_MS,
+    isOutsider: (endpoint) => {
+      const live = current();
+      return (
+        live.conference?.getParticipantById(endpoint) !== undefined &&
+        live.wired?.roster.knows(endpoint) === false
+      );
+    },
+    onOutsider: (endpoint) => {
+      // The endpoint is the stranger's own word: kept short in the log.
+      options.onError(
+        new Error(`${OUTSIDER} (endpoint ${endpoint.slice(0, 32)})`),
+      );
+      openRoom.onOutsider();
+    },
+  });
+  return { binding, outsiders };
 }
 
 function createLive(
@@ -247,6 +343,7 @@ function createLive(
       options.onError,
     ),
     closing: new AbortController(),
+    ...openParts(context, options, () => live),
     connection: null,
     conference: null,
     wired: null,
@@ -267,11 +364,17 @@ export function createJitsiConnection(
   return {
     capabilities,
     async connect(room, token, signal) {
-      if (token === null)
+      if (token === null && !options.server.open)
         throw new JitsiServiceError({
           code: "auth",
           final: true,
           message: "Jitsi needs a join token",
+        });
+      if (options.server.open && !live.binding)
+        throw new JitsiServiceError({
+          code: "unsupported",
+          final: true,
+          message: "An open Jitsi server needs the core's socket",
         });
       await connectLive(live, room, token, signal);
     },

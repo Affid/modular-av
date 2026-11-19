@@ -10,6 +10,8 @@ const jwt = (exp: number): string =>
   `x.${btoa(JSON.stringify({ exp })).replace(/=+$/, "")}.y`;
 const valid = { token: jwt(NOW / 1000 + 60), now: NOW };
 const expired = { token: jwt(NOW / 1000 - 60), now: NOW };
+/** An open server: joined without a token. */
+const open = { token: null, now: NOW };
 
 describe("why Jitsi refused or dropped a connection", () => {
   it("tells an expired token from a forged one", () => {
@@ -44,6 +46,32 @@ describe("why Jitsi refused or dropped a connection", () => {
     ["conference.focusLeft", "network", false],
   ])("reads %s as %s", (error, code, final) => {
     expect(fromConferenceError(error, valid)).toMatchObject({ code, final });
+  });
+
+  it("says why an open server turned a player away, for good", () => {
+    expect(
+      fromConnectionError("connection.passwordRequired", open),
+    ).toMatchObject({ code: "auth", final: true, message: /sign-in/ });
+    expect(
+      fromConferenceError("conference.authenticationRequired", open),
+    ).toMatchObject({
+      code: "auth",
+      final: true,
+      message: /moderator signs in/,
+    });
+    for (const error of [
+      "conference.connectionError.membersOnly",
+      "conference.passwordRequired",
+    ])
+      expect(fromConferenceError(error, open)).toMatchObject({
+        code: "auth",
+        final: true,
+        message: /locked or has a lobby/,
+      });
+    expect(fromConnectionError("connection.otherError", open)).toEqual({
+      code: "network",
+      final: false,
+    });
   });
 
   it("reads a token's expiry, and nothing from what isn't a JWT", () => {

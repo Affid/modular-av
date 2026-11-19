@@ -2,9 +2,15 @@
   "modular-av-jitsi": {
     "label": "Jitsi",
     "settings": {
+      "access": {
+        "name": "How players get in",
+        "hint": "With tokens, a GM's browser signs each player's way in, from the app id and secret below; the server needs the settings in the module's README. On an open server anyone with the room link joins, even people outside this world, and Foundry tells who each player is.",
+        "token": "With tokens (app id and secret)",
+        "open": "Open server (anyone with the link)"
+      },
       "serverUrl": {
         "name": "Jitsi server address",
-        "hint": "Your Jitsi Meet server, such as https://meet.example.com (its XMPP WebSocket is found at /xmpp-websocket). Plain http:// works only on this computer or a private network. The server needs token authentication and Prosody's presence_identity module; see the module's README. Every player can read this setting."
+        "hint": "Your Jitsi Meet server, such as https://meet.example.com; for an open server, the room link, such as https://meet.example.com/OurTable (a random room is added if there is none). Plain http:// works only on this computer or a private network. Every player can read this setting."
       },
       "xmppDomain": {
         "name": "XMPP domain",
@@ -22,6 +28,10 @@
         "name": "Jitsi app secret",
         "hint": "The server's JWT_APP_SECRET. Stored only in this browser and never sent to players. Enter it on each browser a GM uses to run the game."
       }
+    },
+    "notices": {
+      "outsider": "Someone in the Jitsi room isn't in this world. They get no place in the call here, but they can see and hear it. Keep the room link private.",
+      "tokenRemoved": "The Jitsi server address you saved held a sign-in token. It has been taken out, but every player's browser received it first: treat it as seen."
     }
   }
 }

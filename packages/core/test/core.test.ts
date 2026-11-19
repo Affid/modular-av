@@ -128,6 +128,25 @@ describe("joining with a GM-relayed token", () => {
     });
   });
 
+  it("doesn't ask a GM for a secret the service needs no token for", async () => {
+    // Arrange: like Jitsi on an open server, which signs nothing.
+    const table = createTable();
+    const service = {
+      ...table.hub.definition(),
+      needsToken: () => false,
+      canSignTokens: () => false,
+    };
+
+    // Act
+    const gm = table.join("gm", { service });
+    await table.settle();
+
+    // Assert
+    expect(gm.client.notifications.map((n) => n.message)).not.toContainEqual(
+      expect.stringContaining("enter the service's key"),
+    );
+  });
+
   it("ends with a plain message when no service module is enabled", async () => {
     const table = createTable();
 
