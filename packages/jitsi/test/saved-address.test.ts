@@ -3,7 +3,6 @@ import { keepAddressSafe } from "../src/saved-address.ts";
 
 function fakeWorld(values: Record<string, unknown>, activeGM = true) {
   const writes: [string, unknown][] = [];
-  let removed = 0;
   const deps = {
     settings: {
       register: () => undefined,
@@ -15,11 +14,8 @@ function fakeWorld(values: Record<string, unknown>, activeGM = true) {
     },
     isActiveGM: () => activeGM,
     randomRoom: () => "generatedroom",
-    onTokenRemoved: () => {
-      removed += 1;
-    },
   };
-  return { deps, writes, removed: () => removed };
+  return { deps, writes };
 }
 
 /** The address as the active GM last left it, kept in the world. */
@@ -43,10 +39,9 @@ describe("the address in the world settings", () => {
         { open: true, address: "https://meet.example.com/generatedroom" },
       ],
     ]);
-    expect(world.removed()).toBe(0);
   });
 
-  it("loses a token, and the GM is told", async () => {
+  it("loses a token", async () => {
     const world = fakeWorld({
       access: "token",
       serverUrl: "https://meet.example.com/?jwt=secret",
@@ -58,7 +53,6 @@ describe("the address in the world settings", () => {
     expect(world.writes).toEqual([
       ["modular-av-jitsi.serverUrl", "https://meet.example.com/"],
     ]);
-    expect(world.removed()).toBe(1);
   });
 
   it("is left alone when it is fine and settled", async () => {
@@ -203,6 +197,5 @@ describe("the address in the world settings", () => {
     await keepAddressSafe(world.deps);
 
     expect(world.writes).toEqual([]);
-    expect(world.removed()).toBe(0);
   });
 });

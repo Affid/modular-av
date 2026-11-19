@@ -9,8 +9,6 @@ export interface SavedAddressDeps {
   /** Only one browser writes: the active GM's. */
   readonly isActiveGM: () => boolean;
   readonly randomRoom: () => string;
-  /** A token was taken out of the link: worth telling the GM. */
-  readonly onTokenRemoved: () => void;
 }
 
 /** The access and the address as the active GM's browser last left them. */
@@ -59,13 +57,12 @@ export async function keepAddressSafe(deps: SavedAddressDeps): Promise<void> {
   if (typeof saved !== "string") return;
   const open = deps.settings.get(MODULE_ID, "access") === "open";
   const before = settledOf(deps.settings.get(MODULE_ID, SETTLED_ADDRESS));
-  const { value, removedToken } = normalizeAddress(
+  const value = normalizeAddress(
     startingAddress(saved, open, before, deps.randomRoom),
     open,
     deps.randomRoom,
   );
   if (value !== saved) await deps.settings.set(MODULE_ID, "serverUrl", value);
-  if (removedToken) deps.onTokenRemoved();
   if (before?.open !== open || before.address !== value)
     await deps.settings.set(MODULE_ID, SETTLED_ADDRESS, {
       open,

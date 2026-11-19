@@ -19,7 +19,7 @@ import {
 declare global {
   var game: {
     settings: SavedAddressDeps["settings"];
-    user: { isGM: boolean };
+    user: { isGM: boolean; id: string };
     users: { activeGM: { isSelf: boolean } | null };
     i18n: { localize(key: string): string };
     socket: {
@@ -72,15 +72,21 @@ const keepAddress = (): void => {
   if (!isActiveGM()) return;
   Promise.all([import("./saved-address.ts"), import("./open-link.ts")])
     .then(([{ keepAddressSafe }, { randomRoom }]) =>
-      keepAddressSafe({
-        settings: game.settings,
-        isActiveGM,
-        randomRoom,
-        onTokenRemoved: () => {
-          warn("tokenRemoved");
-        },
-      }),
+      keepAddressSafe({ settings: game.settings, isActiveGM, randomRoom }),
     )
+    .catch(reportError);
+};
+
+/**
+ * The GM who saved a sign-in token in the address is told: it reached
+ * every player's browser before the active GM's took it out.
+ */
+const tellOfToken = (value: unknown, userId: unknown): void => {
+  if (userId !== game.user.id || typeof value !== "string") return;
+  import("./open-link.ts")
+    .then(({ carriesToken }) => {
+      if (carriesToken(value)) warn("tokenRemoved");
+    })
     .catch(reportError);
 };
 
@@ -91,6 +97,7 @@ Hooks.once("init", () => {
   registerWorldSettings(
     game.settings,
     debounced(keepAddress, ADDRESS_SETTLE_MS),
+    tellOfToken,
   );
 });
 

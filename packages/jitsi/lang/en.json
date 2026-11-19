@@ -31,7 +31,7 @@
     },
     "notices": {
       "outsider": "Someone in the Jitsi room isn't in this world. They get no place in the call here, but they can see and hear it. Keep the room link private.",
-      "tokenRemoved": "A sign-in token was taken out of the Jitsi server address: every player can read that setting."
+      "tokenRemoved": "The Jitsi server address you saved held a sign-in token. It has been taken out, but every player's browser received it first: treat it as seen."
     }
   }
 }

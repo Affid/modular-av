@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  carriesToken,
   normalizeAddress,
   parseOpenAddress,
   randomRoom,
@@ -65,16 +66,12 @@ describe("the address a GM saves", () => {
   const room = (): string => "generatedroom";
 
   it("gets a random room on an open server when it has none", () => {
-    expect(normalizeAddress("https://meet.example.com", true, room)).toEqual({
-      value: "https://meet.example.com/generatedroom",
-      removedToken: false,
-    });
+    expect(normalizeAddress("https://meet.example.com", true, room)).toBe(
+      "https://meet.example.com/generatedroom",
+    );
     expect(
       normalizeAddress("https://example.com/jitsi/xmpp-websocket", true, room),
-    ).toEqual({
-      value: "https://example.com/jitsi/generatedroom",
-      removedToken: false,
-    });
+    ).toBe("https://example.com/jitsi/generatedroom");
   });
 
   it("is left as it is when nothing is missing or wrong", () => {
@@ -85,10 +82,7 @@ describe("the address a GM saves", () => {
       ["", true],
       ["https://meet.example.com/Our%20Table", true],
     ] as const)
-      expect(normalizeAddress(value, open, room)).toEqual({
-        value,
-        removedToken: false,
-      });
+      expect(normalizeAddress(value, open, room)).toBe(value);
   });
 
   it("loses a token in its link, with or without an open server", () => {
@@ -98,13 +92,10 @@ describe("the address a GM saves", () => {
         true,
         room,
       ),
-    ).toEqual({
-      value: "https://meet.example.com/table?lang=de",
-      removedToken: true,
-    });
+    ).toBe("https://meet.example.com/table?lang=de");
     expect(
       normalizeAddress("https://meet.example.com/?token=abc", false, room),
-    ).toEqual({ value: "https://meet.example.com/", removedToken: true });
+    ).toBe("https://meet.example.com/");
   });
 
   it.each([
@@ -125,20 +116,14 @@ describe("the address a GM saves", () => {
       "https://meet.example.com/table?lang=de",
     ],
   ])("loses a token however it is written: %s", (value, safe) => {
-    expect(normalizeAddress(value, true, room)).toEqual({
-      value: safe,
-      removedToken: true,
-    });
+    expect(normalizeAddress(value, true, room)).toBe(safe);
   });
 
   it("keeps a hash that holds no token", () => {
     const value =
       "https://meet.example.com/table#config.prejoinConfig.enabled=false";
 
-    expect(normalizeAddress(value, true, room)).toEqual({
-      value,
-      removedToken: false,
-    });
+    expect(normalizeAddress(value, true, room)).toBe(value);
   });
 
   it("does both at once, and a second pass changes nothing", () => {
@@ -148,14 +133,20 @@ describe("the address a GM saves", () => {
       room,
     );
 
-    expect(first).toEqual({
-      value: "https://meet.example.com/generatedroom",
-      removedToken: true,
-    });
-    expect(normalizeAddress(first.value, true, room)).toEqual({
-      value: first.value,
-      removedToken: false,
-    });
+    expect(first).toBe("https://meet.example.com/generatedroom");
+    expect(normalizeAddress(first, true, room)).toBe(first);
+  });
+});
+
+describe("a token in a saved address", () => {
+  it.each([
+    ["https://meet.example.com/table?jwt=eyJx", true],
+    ["https://meet.example.com/table?access_token=abc&lang=de", true],
+    ["https://meet.example.com/table?lang=de#Token=abc", true],
+    ["https://meet.example.com/table?lang=de#config.x=1", false],
+    ["not a url", false],
+  ])("in %s: %s", (value, found) => {
+    expect(carriesToken(value)).toBe(found);
   });
 });
 

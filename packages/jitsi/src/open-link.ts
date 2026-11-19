@@ -110,10 +110,12 @@ const withRoom = (url: URL, room: string): URL =>
     `${url.origin}${openPathOf(url).base}/${room}${url.search}${url.hash}`,
   );
 
-export interface NormalizedAddress {
-  readonly value: string;
-  /** A sign-in token was taken out of the link. */
-  readonly removedToken: boolean;
+/** Whether an address carries a sign-in token, in its query or hash. */
+export function carriesToken(value: string): boolean {
+  const url = urlOf(value.trim());
+  return (
+    url !== null && (hasToken(url.searchParams) || hasToken(hashParams(url)))
+  );
 }
 
 /**
@@ -126,18 +128,15 @@ export function normalizeAddress(
   value: string,
   open: boolean,
   random: () => string,
-): NormalizedAddress {
+): string {
   const url = urlOf(value.trim());
-  if (!url) return { value, removedToken: false };
-  const removedToken = hasToken(url.searchParams) || hasToken(hashParams(url));
-  const safe = removedToken ? withoutTokens(url) : url;
+  if (!url) return value;
+  const removeToken = carriesToken(value);
+  const safe = removeToken ? withoutTokens(url) : url;
   const read = parseOpenAddress(safe.href);
   const needsRoom = open && read.ok && read.room === null;
-  if (!removedToken && !needsRoom) return { value, removedToken };
-  return {
-    value: (needsRoom ? withRoom(safe, random()) : safe).href,
-    removedToken,
-  };
+  if (!removeToken && !needsRoom) return value;
+  return (needsRoom ? withRoom(safe, random()) : safe).href;
 }
 
 const BASE32 = "abcdefghijklmnopqrstuvwxyz234567";

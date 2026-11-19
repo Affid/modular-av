@@ -56,13 +56,18 @@ const worldSetting = (key: string): Readonly<Record<string, unknown>> => ({
   requiresReload: true,
 });
 
+/** A saved address and who saved it, as Foundry tells every client. */
+export type AddressSaved = (value: unknown, userId: unknown) => void;
+
 /**
  * World: every player reads these, so they never hold a secret.
- * `onChange` runs when the access or the address changes.
+ * `onChange` runs when the access or the address changes;
+ * `onAddressSaved` when the address does, with who saved it.
  */
 export function registerWorldSettings(
   settings: SettingsApi,
   onChange: () => void = () => undefined,
+  onAddressSaved: AddressSaved = () => undefined,
 ): void {
   settings.register(MODULE_ID, "access", {
     ...worldSetting("access"),
@@ -76,7 +81,10 @@ export function registerWorldSettings(
   settings.register(MODULE_ID, "serverUrl", {
     ...worldSetting("serverUrl"),
     default: "",
-    onChange,
+    onChange: (value: unknown, _options: unknown, userId: unknown) => {
+      onChange();
+      onAddressSaved(value, userId);
+    },
   });
   for (const key of ["xmppDomain", "mucDomain"] as const)
     settings.register(MODULE_ID, key, { ...worldSetting(key), default: "" });

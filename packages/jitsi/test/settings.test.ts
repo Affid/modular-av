@@ -179,6 +179,27 @@ describe("how players get into the Jitsi server", () => {
 
     expect(changes).toBe(2);
   });
+
+  it("tells the caller of each address saved, and who saved it", () => {
+    const settings = fakeSettings();
+    const saved: [unknown, unknown][] = [];
+
+    registerWorldSettings(
+      settings,
+      () => undefined,
+      (value, userId) => saved.push([value, userId]),
+    );
+    const address = settings.registered.find(
+      ([key]) => key === "modular-av-jitsi.serverUrl",
+    )?.[1];
+    (address?.onChange as (v: unknown, o: unknown, u: unknown) => void)(
+      "https://meet.example.com/?jwt=x",
+      {},
+      "gm-1",
+    );
+
+    expect(saved).toEqual([["https://meet.example.com/?jwt=x", "gm-1"]]);
+  });
 });
 
 describe("an open server", () => {
