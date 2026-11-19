@@ -59,12 +59,24 @@ interface Placed {
   readonly identity: Identity;
 }
 
-/** The later join wins; the larger endpoint breaks a tie (as P2P). */
-const isNewer = (a: Placed, b: Placed): boolean => {
-  const at = a.identity.joinedAt ?? 0;
-  const bt = b.identity.joinedAt ?? 0;
-  return at !== bt ? at > bt : a.endpoint > b.endpoint;
-};
+const joinedAt = (placed: Placed): number => placed.identity.joinedAt ?? 0;
+
+/**
+ * Between our tabs: the later join wins; the larger endpoint breaks a tie
+ * (as P2P), so both tabs agree on which one stays.
+ */
+const isNewer = (a: Placed, b: Placed): boolean =>
+  joinedAt(a) !== joinedAt(b)
+    ? joinedAt(a) > joinedAt(b)
+    : a.endpoint > b.endpoint;
+
+/**
+ * Whether someone's endpoint shown now stays when another of theirs comes.
+ * The same join time is the same page joining again (a reconnection),
+ * while the server keeps its old endpoint a while: the new one wins.
+ */
+const outranks = (known: Placed, placed: Placed): boolean =>
+  joinedAt(known) > joinedAt(placed);
 
 export function createRoster(hooks: RosterHooks): Roster {
   let endpoints = new Map<string, Identity>();
@@ -108,7 +120,7 @@ export function createRoster(hooks: RosterHooks): Roster {
       .filter(([, known]) => known.id === identity.id)
       .map(([old, known]) => ({ endpoint: old, identity: known }));
     const ordered = identity.joinedAt !== undefined;
-    if (ordered && same.some((known) => isNewer(known, placed)))
+    if (ordered && same.some((known) => outranks(known, placed)))
       return ignore(endpoint);
     const replaced = same.map((known) => known.endpoint);
     ignored = new Set([...ignored, ...replaced]);

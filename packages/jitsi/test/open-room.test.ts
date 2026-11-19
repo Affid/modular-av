@@ -278,6 +278,28 @@ describe("who is who on an open server", () => {
     expect(s.left).toEqual(["bob"]);
   });
 
+  it("moves to a player's page joining again while the server keeps its old endpoint", async () => {
+    // Arrange: a page keeps its join time when it joins again.
+    const s = setup();
+    await join(s);
+    s.conference().userJoins("ep-b", null, named("bob"));
+    s.hub.channel("bob").send(hello("ep-b", 10));
+    await flush();
+
+    // Act: the new endpoint sorts before the old one.
+    s.conference().userJoins("ep-a", null, named("bob"));
+    s.hub.channel("bob").send(hello("ep-a", 10));
+    await flush();
+    s.conference().userLeaves("ep-b");
+    const afterOldLeft = [...s.left];
+    s.conference().userLeaves("ep-a");
+
+    // Assert
+    expect(s.joined).toEqual(["bob", "bob"]);
+    expect(afterOldLeft).toEqual(["bob"]);
+    expect(s.left).toEqual(["bob", "bob"]);
+  });
+
   it("stays beside its own older tab, and gives way to a newer one for good", async () => {
     const hub = createHub();
     const s = setup("alice", 100, hub);
