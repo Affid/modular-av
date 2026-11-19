@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createBinding, PRESENCE_KEY } from "../src/binding.ts";
 import { MAX_CLAIMS_PER_SENDER } from "../src/binding-messages.ts";
+import { WELCOME_BURST, WELCOME_REFILL_MS } from "../src/welcome-limit.ts";
 import { createHub, type FakeHub } from "./fake-channel.ts";
 import { participant } from "./fake-sdk.ts";
 
@@ -34,12 +35,14 @@ function aliceOn(
 ) {
   const claimed: string[] = [];
   let reconnected: readonly (() => void)[] = [];
+  let time = 0;
   const binding = createBinding({
     channel: hub.channel("alice"),
     room: ROOM,
     self: "alice",
     joinedAt: 100,
     isPresent: inRoom,
+    now: () => time,
     onClaim: (endpoint) => claimed.push(endpoint),
     onReconnect: (listener) => {
       reconnected = [...reconnected, listener];
@@ -52,7 +55,10 @@ function aliceOn(
   const reconnect = (): void => {
     for (const listener of reconnected) listener();
   };
-  return { binding, claimed, reconnect };
+  const advance = (ms: number): void => {
+    time += ms;
+  };
+  return { binding, claimed, reconnect, advance };
 }
 
 describe("who an open server's participant is", () => {
@@ -238,6 +244,31 @@ describe("telling the others who we are", () => {
     );
     expect(welcomes).toHaveLength(4);
     expect(claimed).toEqual(["ep-bob", "ep-bob-reloaded"]);
+  });
+
+  it("answers a sender's hellos up to a burst, then one every couple of seconds", async () => {
+    // Arrange
+    const hub = createHub();
+    const { binding, advance } = aliceOn(hub);
+    binding.announce("ep-alice");
+    const welcomesTo = (user: string): number =>
+      hub.sent.filter((s) => s.from === "alice" && s.recipients?.[0] === user)
+        .length;
+
+    // Act: a modified client keeps saying hello.
+    for (let i = 0; i < WELCOME_BURST + 2; i += 1)
+      hub.channel("mallory").send(claim(`ep-${String(i)}`));
+    hub.channel("bob").send(claim("ep-bob"));
+    await flush();
+    const inBurst = welcomesTo("mallory");
+    advance(WELCOME_REFILL_MS);
+    hub.channel("mallory").send(claim("ep-later"));
+    await flush();
+
+    // Assert
+    expect(inBurst).toBe(WELCOME_BURST);
+    expect(welcomesTo("mallory")).toBe(WELCOME_BURST + 1);
+    expect(welcomesTo("bob")).toBe(1);
   });
 
   it("answers no hello from an endpoint that already left", async () => {

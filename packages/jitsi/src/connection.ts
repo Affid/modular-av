@@ -292,6 +292,7 @@ function openParts(
     room: open.room,
     self: context.participant,
     joinedAt: openRoom.joinedAt,
+    now: options.now,
     isPresent: (endpoint) =>
       current().conference?.getParticipantById(endpoint) !== undefined,
     onClaim: (endpoint) => current().wired?.recheck(endpoint),

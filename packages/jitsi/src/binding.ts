@@ -6,6 +6,7 @@ import {
   readClaim,
 } from "./binding-messages.ts";
 import type { JitsiParticipant } from "./sdk-types.ts";
+import { type Allowances, drawWelcome } from "./welcome-limit.ts";
 
 /** The presence property naming a participant's Foundry user. */
 export const PRESENCE_KEY = "modular-av-user";
@@ -25,6 +26,7 @@ export interface BindingOptions {
   readonly joinedAt: number;
   /** Whether the endpoint is in the room, as our conference has it. */
   readonly isPresent: (endpoint: string) => boolean;
+  readonly now: () => number;
   /** A claim on this endpoint arrived: who it is may be known now. */
   readonly onClaim: (endpoint: string) => void;
   /** Foundry's socket connected again: messages meanwhile were lost. */
@@ -77,6 +79,7 @@ export function createBinding(options: BindingOptions): Binding {
   let held: readonly Held[] = [];
   let gone: readonly string[] = [];
   let ours: string | null = null;
+  let allowances: Allowances = new Map();
 
   const claim = (type: Claim["type"], endpoint: string): Claim => ({
     v: PROTOCOL,
@@ -89,17 +92,25 @@ export function createBinding(options: BindingOptions): Binding {
   const isHeld = (h: Held): boolean =>
     held.some((k) => k.user === h.user && k.endpoint === h.endpoint);
 
+  /** Our claim to a hello's sender, while they have welcomes left. */
+  const welcome = (sender: string, endpoint: string): void => {
+    const drawn = drawWelcome(allowances, sender, options.now());
+    allowances = drawn.allowances;
+    if (drawn.allowed)
+      channel.send(claim("welcome", endpoint), { recipients: [sender] });
+  };
+
   /**
    * Each claim is acted on once: a repeat changes nothing. Every hello is
-   * answered, though: its sender says it again when it may have missed
-   * ours. A claim on an endpoint that already left is dropped: whoever
-   * takes that name next would otherwise be placed by it.
+   * answered, though (within the sender's allowance): its sender says it
+   * again when it may have missed ours. A claim on an endpoint that
+   * already left is dropped: whoever takes that name next would otherwise
+   * be placed by it.
    */
   const unsubscribe = channel.on((data, sender) => {
     const read = readClaim(data, room);
     if (!read || gone.includes(read.endpoint)) return;
-    if (read.type === "hello" && ours !== null)
-      channel.send(claim("welcome", ours), { recipients: [sender] });
+    if (read.type === "hello" && ours !== null) welcome(sender, ours);
     const fresh = {
       user: sender,
       endpoint: read.endpoint,
