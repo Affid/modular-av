@@ -11,8 +11,15 @@ export type OpenAddress =
  */
 const ROOM = /^[a-z0-9_-]{1,128}$/i;
 
-/** Query parameters that carry a sign-in token in a Jitsi link. */
-const TOKEN_PARAMS: readonly string[] = ["jwt", "token"];
+/** Parameters that carry a sign-in token in a Jitsi link, in any case. */
+const TOKEN_KEY = /^(jwt|token|access_token)$/i;
+
+const hasToken = (params: URLSearchParams): boolean =>
+  [...params.keys()].some((key) => TOKEN_KEY.test(key));
+
+/** Jitsi's page reads settings, and could read a token, from the hash too. */
+const hashParams = (url: URL): URLSearchParams =>
+  new URLSearchParams(url.hash.slice(1));
 
 interface SitePath {
   /** The site's own path, e.g. "/jitsi", or "" at the host's root. */
@@ -60,12 +67,14 @@ export function parseOpenAddress(address: string): OpenAddress {
     : { ok: false, problem: "room" };
 }
 
+/** The link without token parameters; a hash holding one goes whole. */
 function withoutTokens(url: URL): URL {
   const kept = new URLSearchParams(
-    [...url.searchParams].filter(([key]) => !TOKEN_PARAMS.includes(key)),
+    [...url.searchParams].filter(([key]) => !TOKEN_KEY.test(key)),
   );
   const query = kept.size > 0 ? `?${kept.toString()}` : "";
-  return new URL(`${url.origin}${url.pathname}${query}${url.hash}`);
+  const hash = hasToken(hashParams(url)) ? "" : url.hash;
+  return new URL(`${url.origin}${url.pathname}${query}${hash}`);
 }
 
 const withRoom = (url: URL, room: string): URL =>
@@ -92,7 +101,7 @@ export function normalizeAddress(
 ): NormalizedAddress {
   const url = urlOf(value.trim());
   if (!url) return { value, removedToken: false };
-  const removedToken = TOKEN_PARAMS.some((key) => url.searchParams.has(key));
+  const removedToken = hasToken(url.searchParams) || hasToken(hashParams(url));
   const safe = removedToken ? withoutTokens(url) : url;
   const read = parseOpenAddress(safe.href);
   const needsRoom = open && read.ok && read.room === null;

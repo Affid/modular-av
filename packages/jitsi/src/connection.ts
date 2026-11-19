@@ -302,7 +302,10 @@ function openParts(
       );
     },
     onOutsider: (endpoint) => {
-      options.onError(new Error(`${OUTSIDER} (endpoint ${endpoint})`));
+      // The endpoint is the stranger's own word: kept short in the log.
+      options.onError(
+        new Error(`${OUTSIDER} (endpoint ${endpoint.slice(0, 32)})`),
+      );
       openRoom.onOutsider();
     },
   });

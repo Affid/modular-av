@@ -28,11 +28,15 @@ declare global {
   };
 }
 
-/** Like the core's log: SDK errors can carry a token in a URL. */
+/**
+ * Like the core's log: SDK errors can carry a token in a URL, and an open
+ * server's WebSocket address its room, which is all that keeps it private.
+ */
 const redact = (text: string): string =>
   text
     .replace(/eyJ[\w-]+\.[\w-]+\.[\w-]*/g, "[token]")
-    .replace(/((?:access_)?token|jwt)=[^&\s"']+/gi, "$1=[token]");
+    .replace(/((?:access_)?token|jwt)=[^&\s"']+/gi, "$1=[token]")
+    .replace(/([?&]room=)[^&\s"']+/gi, "$1[room]");
 
 const reportError = (error: unknown): void => {
   const text = error instanceof Error ? error.message : String(error);
@@ -50,6 +54,18 @@ const warn = (key: string): void => {
 };
 
 const isActiveGM = (): boolean => game.users.activeGM?.isSelf === true;
+
+/** One notice a minute at most, however many strangers come and go. */
+const OUTSIDER_NOTICE_GAP_MS = 60_000;
+let lastOutsiderNotice = -Infinity;
+
+const noticeOutsider = (): void => {
+  const now = Date.now();
+  if (!game.user.isGM || now - lastOutsiderNotice < OUTSIDER_NOTICE_GAP_MS)
+    return;
+  lastOutsiderNotice = now;
+  warn("outsider");
+};
 
 /**
  * On the active GM's browser: no token in the address, a room if open.
@@ -95,9 +111,7 @@ Hooks.once("modularAV.register", (api: ModularAV) => {
     createJitsiService({
       access: () => settings.access(),
       channel: api.socket("jitsi"),
-      onOutsider: () => {
-        if (game.user.isGM) warn("outsider");
-      },
+      onOutsider: noticeOutsider,
       server: async () => {
         const { serverOf } = await import("./server-address.ts");
         return serverOf(settings.serverSettings());

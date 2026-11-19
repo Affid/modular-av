@@ -85,6 +85,23 @@ describe("reaching an open server", () => {
     expect(domainsTried(sdk)).toEqual(["down.example.com", "meet.jitsi"]);
   });
 
+  it("tries nothing else when the link's own host turns the player away", async () => {
+    const sdk = createFakeSdk();
+    sdk.setup = (c) => {
+      c.outcome =
+        c.options.hosts.domain === DOCKER.domain
+          ? "connection.otherError"
+          : "connection.passwordRequired";
+    };
+
+    await expect(
+      connect(sdk, openServer("signin.example.com")),
+    ).rejects.toMatchObject({
+      serviceError: { code: "auth", final: true, message: /sign-in/ },
+    });
+    expect(domainsTried(sdk)).toEqual(["signin.example.com"]);
+  });
+
   it("tries nothing else once the attempt is aborted", async () => {
     const sdk = createFakeSdk();
     dockerOnly(sdk);

@@ -23,6 +23,8 @@ export interface Outsiders {
 export function createOutsiders(options: OutsidersOptions): Outsiders {
   let timers: ReadonlyMap<string, ReturnType<typeof setTimeout>> = new Map();
   let told: ReadonlySet<string> = new Set();
+  /** Left the room: whoever joins while it closes isn't watched. */
+  let stopped = false;
 
   const drop = (endpoint: string): void => {
     const rest = new Map(timers);
@@ -39,7 +41,7 @@ export function createOutsiders(options: OutsidersOptions): Outsiders {
 
   return {
     watch(endpoint) {
-      if (timers.has(endpoint) || told.has(endpoint)) return;
+      if (stopped || timers.has(endpoint) || told.has(endpoint)) return;
       const timer = setTimeout(() => {
         check(endpoint);
       }, options.graceMs);
@@ -51,6 +53,7 @@ export function createOutsiders(options: OutsidersOptions): Outsiders {
       drop(endpoint);
     },
     stop() {
+      stopped = true;
       for (const timer of timers.values()) clearTimeout(timer);
       timers = new Map();
     },

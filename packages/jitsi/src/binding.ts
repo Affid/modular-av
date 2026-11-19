@@ -62,9 +62,13 @@ function keep(held: readonly Held[], claim: Held): readonly Held[] {
   return [...others.filter((h) => !dropped.includes(h)), claim];
 }
 
+/** Endpoints that left, remembered so a late claim on one is dropped. */
+const MAX_GONE = 256;
+
 export function createBinding(options: BindingOptions): Binding {
   const { channel, room } = options;
   let held: readonly Held[] = [];
+  let gone: readonly string[] = [];
   let ours: string | null = null;
 
   const claim = (type: Claim["type"], endpoint: string): Claim => ({
@@ -75,10 +79,24 @@ export function createBinding(options: BindingOptions): Binding {
     joinedAt: options.joinedAt,
   });
 
+  const isHeld = (h: Held): boolean =>
+    held.some((k) => k.user === h.user && k.endpoint === h.endpoint);
+
+  /**
+   * Each claim is answered and acted on once: a repeat changes nothing. A
+   * claim on an endpoint that already left is dropped: whoever takes that
+   * name next would otherwise be placed by it.
+   */
   const unsubscribe = channel.on((data, sender) => {
     const read = readClaim(data, room);
     if (!read) return;
-    held = keep(held, { user: sender, ...read });
+    const fresh = {
+      user: sender,
+      endpoint: read.endpoint,
+      joinedAt: read.joinedAt,
+    };
+    if (isHeld(fresh) || gone.includes(fresh.endpoint)) return;
+    held = keep(held, fresh);
     if (read.type === "hello" && ours !== null)
       channel.send(claim("welcome", ours), { recipients: [sender] });
     options.onClaim(read.endpoint);
@@ -99,6 +117,7 @@ export function createBinding(options: BindingOptions): Binding {
     },
     forget(endpoint) {
       held = held.filter((h) => h.endpoint !== endpoint);
+      gone = [...gone.filter((g) => g !== endpoint), endpoint].slice(-MAX_GONE);
     },
     stop() {
       unsubscribe();

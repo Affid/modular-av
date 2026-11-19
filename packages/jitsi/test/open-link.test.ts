@@ -107,6 +107,40 @@ describe("the address a GM saves", () => {
     ).toEqual({ value: "https://meet.example.com/", removedToken: true });
   });
 
+  it.each([
+    [
+      "https://meet.example.com/table?JWT=eyJx",
+      "https://meet.example.com/table",
+    ],
+    [
+      "https://meet.example.com/table?access_token=abc&lang=de",
+      "https://meet.example.com/table?lang=de",
+    ],
+    [
+      "https://meet.example.com/table#jwt=eyJx&config.startWithAudioMuted=true",
+      "https://meet.example.com/table",
+    ],
+    [
+      "https://meet.example.com/table?lang=de#Token=abc",
+      "https://meet.example.com/table?lang=de",
+    ],
+  ])("loses a token however it is written: %s", (value, safe) => {
+    expect(normalizeAddress(value, true, room)).toEqual({
+      value: safe,
+      removedToken: true,
+    });
+  });
+
+  it("keeps a hash that holds no token", () => {
+    const value =
+      "https://meet.example.com/table#config.prejoinConfig.enabled=false";
+
+    expect(normalizeAddress(value, true, room)).toEqual({
+      value,
+      removedToken: false,
+    });
+  });
+
   it("does both at once, and a second pass changes nothing", () => {
     const first = normalizeAddress(
       "https://meet.example.com/?jwt=x",

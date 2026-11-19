@@ -95,6 +95,20 @@ describe("who an open server's participant is", () => {
 
     expect(binding.identify("ep-bob", present("ep-bob", "bob"))).toBeNull();
   });
+
+  it("takes no late claim on an endpoint that already left", async () => {
+    // A claim that comes after its endpoint left would place whoever takes
+    // that name next and names Bob in their presence.
+    const hub = createHub();
+    const { binding, claimed } = aliceOn(hub);
+
+    binding.forget("ep-bob");
+    hub.channel("bob").send(claim("ep-bob"));
+    await flush();
+
+    expect(claimed).toEqual([]);
+    expect(binding.identify("ep-bob", present("ep-bob", "bob"))).toBeNull();
+  });
 });
 
 describe("telling the others who we are", () => {
@@ -153,6 +167,22 @@ describe("telling the others who we are", () => {
     await flush();
 
     expect(hub.sent.filter((s) => s.from === "alice")).toEqual([]);
+  });
+
+  it("answers each claim once, however often it comes", async () => {
+    const hub = createHub();
+    const { binding } = aliceOn(hub);
+    binding.announce("ep-alice");
+    const bob = hub.channel("bob");
+
+    for (let i = 0; i < 5; i += 1) bob.send(claim("ep-bob", 5 + i));
+    bob.send(claim("ep-bob-reloaded", 9));
+    await flush();
+
+    const welcomes = hub.sent.filter(
+      (s) => s.from === "alice" && s.recipients !== undefined,
+    );
+    expect(welcomes).toHaveLength(2);
   });
 });
 

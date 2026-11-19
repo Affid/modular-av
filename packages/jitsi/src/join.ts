@@ -172,7 +172,10 @@ export async function openConnection(
     return connection;
   } catch (error: unknown) {
     const next = rest[0];
-    if (signal.aborted || !next) throw error;
+    // A final refusal (a sign-in asked for) came from the right server.
+    const final =
+      error instanceof JitsiServiceError && error.serviceError.final;
+    if (signal.aborted || !next || final) throw error;
     const connection = await openWith(sdk, server, next, attempt, signal);
     worked = new Map(worked).set(server.serviceUrl, next);
     return connection;

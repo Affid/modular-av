@@ -55,6 +55,7 @@ describe("people in an open room who aren't in the world", () => {
     outsiders.forget("ep-gone");
     outsiders.watch("ep-later");
     outsiders.stop();
+    outsiders.watch("ep-after-leaving");
     vi.advanceTimersByTime(GRACE);
 
     expect(told).toEqual([]);

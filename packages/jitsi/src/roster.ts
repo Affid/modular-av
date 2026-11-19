@@ -94,9 +94,8 @@ export function createRoster(hooks: RosterHooks): Roster {
         endpoint: hooks.selfEndpoint(),
         identity: { id: hooks.self, joinedAt: hooks.joinedAt },
       };
-      if (!isNewer(placed, self)) return ignore(placed.endpoint);
-      hooks.onDuplicate();
-      return null;
+      if (isNewer(placed, self)) hooks.onDuplicate();
+      return ignore(placed.endpoint);
     }
     if (started) hooks.onDuplicate();
     else ignore(placed.endpoint);
