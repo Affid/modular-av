@@ -292,6 +292,8 @@ function openParts(
     room: open.room,
     self: context.participant,
     joinedAt: openRoom.joinedAt,
+    isPresent: (endpoint) =>
+      current().conference?.getParticipantById(endpoint) !== undefined,
     onClaim: (endpoint) => current().wired?.recheck(endpoint),
     onReconnect: openRoom.onReconnect,
   });

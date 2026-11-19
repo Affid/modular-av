@@ -27,7 +27,11 @@ const present = (endpoint: string, user?: string) => {
   return p;
 };
 
-function aliceOn(hub: FakeHub) {
+/** `inRoom`: the endpoints Alice's conference has when she joins. */
+function aliceOn(
+  hub: FakeHub,
+  inRoom: (endpoint: string) => boolean = () => true,
+) {
   const claimed: string[] = [];
   let reconnected: readonly (() => void)[] = [];
   const binding = createBinding({
@@ -35,6 +39,7 @@ function aliceOn(hub: FakeHub) {
     room: ROOM,
     self: "alice",
     joinedAt: 100,
+    isPresent: inRoom,
     onClaim: (endpoint) => claimed.push(endpoint),
     onReconnect: (listener) => {
       reconnected = [...reconnected, listener];
@@ -105,6 +110,41 @@ describe("who an open server's participant is", () => {
     binding.forget("ep-bob");
 
     expect(binding.identify("ep-bob", present("ep-bob", "bob"))).toBeNull();
+  });
+
+  it("drops a claim from before it joined on an endpoint no longer in the room", async () => {
+    // Arrange: Bob joined and left while Alice was still connecting, so
+    // she never saw him leave; Carol is there.
+    const hub = createHub();
+    const { binding } = aliceOn(hub, (endpoint) => endpoint === "ep-carol");
+    hub.channel("bob").send(claim("ep-bob"));
+    hub.channel("carol").send(claim("ep-carol"));
+    await flush();
+
+    // Act
+    binding.announce("ep-alice");
+
+    // Assert: whoever takes Bob's old name and names him gets no place.
+    expect(binding.identify("ep-bob", present("ep-bob", "bob"))).toBeNull();
+    expect(
+      binding.identify("ep-carol", present("ep-carol", "carol")),
+    ).not.toBeNull();
+  });
+
+  it("takes a dropped claim again from the welcome that answers its hello", async () => {
+    // Dave's presence hadn't come yet when Alice joined.
+    const hub = createHub();
+    const { binding } = aliceOn(hub, () => false);
+    hub.channel("dave").send(claim("ep-dave"));
+    await flush();
+    binding.announce("ep-alice");
+
+    hub.channel("dave").send(claim("ep-dave", 1, "welcome"));
+    await flush();
+
+    expect(
+      binding.identify("ep-dave", present("ep-dave", "dave")),
+    ).not.toBeNull();
   });
 
   it("takes no late claim on an endpoint that already left", async () => {

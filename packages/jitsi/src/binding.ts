@@ -23,6 +23,8 @@ export interface BindingOptions {
   readonly self: ParticipantId;
   /** When this page first joined. */
   readonly joinedAt: number;
+  /** Whether the endpoint is in the room, as our conference has it. */
+  readonly isPresent: (endpoint: string) => boolean;
   /** A claim on this endpoint arrived: who it is may be known now. */
   readonly onClaim: (endpoint: string) => void;
   /** Foundry's socket connected again: messages meanwhile were lost. */
@@ -38,7 +40,10 @@ export interface BindingOptions {
  */
 export interface Binding {
   identify(endpoint: string, participant: JitsiParticipant): Identity | null;
-  /** Once joined: tells everyone our endpoint, and answers hellos from then on. */
+  /**
+   * Once joined: tells everyone our endpoint, and answers hellos from then
+   * on. Claims held for endpoints not in the room are dropped.
+   */
   announce(endpoint: string): void;
   /** The endpoint left the room. */
   forget(endpoint: string): void;
@@ -120,6 +125,10 @@ export function createBinding(options: BindingOptions): Binding {
     },
     announce(endpoint) {
       ours = endpoint;
+      // A claim from before we joined on an endpoint not here left unseen:
+      // whoever takes that name next would be placed by it. Anyone still
+      // coming claims again, in answer to our hello.
+      held = held.filter((h) => options.isPresent(h.endpoint));
       channel.send(claim("hello", endpoint));
     },
     forget(endpoint) {
