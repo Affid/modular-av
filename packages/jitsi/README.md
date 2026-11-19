@@ -69,6 +69,11 @@ their owners first.
   Foundry's server names the sender. A place in the room is a player's
   only when both name them: a modified client can't take another
   player's place, and nobody outside the world gets one.
+- **A player's tabs and devices.** The one that joined last stays, and
+  an older one stops, as with tokens. Which joined last goes by each
+  device's own clock, as with peer-to-peer: a device whose clock runs
+  behind can lose even when it joins later, until the other one leaves.
+  Devices that set their clocks automatically are seconds apart at most.
 - **Who else can be in the room.** Anyone who has the room link. They
   get no tile in Foundry, but the server sends them everyone's sound and
   video all the same, so keep the link private. When someone in the room
