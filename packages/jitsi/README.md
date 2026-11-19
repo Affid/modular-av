@@ -99,7 +99,8 @@ their owners first.
    - **Jitsi server address** (world): `https://meet.example.com`. For an
      open server, the room link instead, such as
      `https://meet.example.com/OurTable`; without a room, a random one is
-     added when you save. A sign-in token in a pasted link is taken out,
+     added when you save, and the room comes off again when you go back to
+     tokens. A sign-in token in a pasted link is taken out,
      since every player can read this setting. Plain `http://` works only
      on your own computer or a private network.
    - **XMPP domain** and **conference domain** (world): leave them empty

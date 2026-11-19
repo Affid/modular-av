@@ -77,6 +77,18 @@ function withoutTokens(url: URL): URL {
   return new URL(`${url.origin}${url.pathname}${query}${hash}`);
 }
 
+/**
+ * A room link back as its site's address, as tokens read the setting:
+ * the room (the last path segment, read as an open server reads it) and
+ * the page settings go. The same value when it names no room.
+ */
+export function siteAddressOf(value: string): string {
+  const url = urlOf(value.trim());
+  const read = url && parseOpenAddress(url.href);
+  if (!url || !read?.ok || read.room === null) return value;
+  return `${url.origin}${sitePathOf(url).base}`;
+}
+
 const withRoom = (url: URL, room: string): URL =>
   new URL(
     `${url.origin}${sitePathOf(url).base}/${room}${url.search}${url.hash}`,

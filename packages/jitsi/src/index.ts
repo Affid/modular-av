@@ -6,7 +6,7 @@ import {
   type FormRoot,
 } from "./mask.ts";
 import { debounced } from "./later.ts";
-import type { SavedAddressDeps } from "./saved-address.ts";
+import type { SavedAddressDeps, SeenAddress } from "./saved-address.ts";
 import { createJitsiService, MODULE_ID, SDK_PATH } from "./service.ts";
 import {
   readSettings,
@@ -68,22 +68,34 @@ const noticeOutsider = (): void => {
   warn("outsider");
 };
 
+/** The access and address at the last settle, in every browser: GMs change. */
+let seen: SeenAddress | null = null;
+
 /**
- * On the active GM's browser: no token in the address, a room if open.
- * Loaded there only, when the access or the address changes.
+ * On the active GM's browser: no token in the address, a room if open,
+ * none once tokens are chosen again. Loaded there only, when the access or
+ * the address changes.
  */
 const keepAddress = (): void => {
+  const before = seen;
+  seen = {
+    open: game.settings.get(MODULE_ID, "access") === "open",
+    address: game.settings.get(MODULE_ID, "serverUrl"),
+  };
   if (!isActiveGM()) return;
   Promise.all([import("./saved-address.ts"), import("./open-link.ts")])
     .then(([{ keepAddressSafe }, { randomRoom }]) =>
-      keepAddressSafe({
-        settings: game.settings,
-        isActiveGM,
-        randomRoom,
-        onTokenRemoved: () => {
-          warn("tokenRemoved");
+      keepAddressSafe(
+        {
+          settings: game.settings,
+          isActiveGM,
+          randomRoom,
+          onTokenRemoved: () => {
+            warn("tokenRemoved");
+          },
         },
-      }),
+        before,
+      ),
     )
     .catch(reportError);
 };

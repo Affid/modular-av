@@ -62,6 +62,52 @@ describe("the address in the world settings", () => {
     expect(world.writes).toEqual([]);
   });
 
+  it("goes back to the server's address when tokens are chosen again", async () => {
+    // Arrange: the open room is no site path, as tokens would read it.
+    const world = fakeWorld({
+      access: "token",
+      serverUrl:
+        "https://example.com/jitsi/ourtable#config.startWithAudioMuted=true",
+    });
+    const before = {
+      open: true,
+      address:
+        "https://example.com/jitsi/ourtable#config.startWithAudioMuted=true",
+    };
+
+    // Act
+    await keepAddressSafe(world.deps, before);
+
+    // Assert
+    expect(world.writes).toEqual([
+      ["modular-av-jitsi.serverUrl", "https://example.com/jitsi"],
+    ]);
+  });
+
+  it("keeps an address saved along with the switch to tokens", async () => {
+    const world = fakeWorld({
+      access: "token",
+      serverUrl: "https://example.com/jitsi",
+    });
+    const before = { open: true, address: "https://meet.example.com/table" };
+
+    await keepAddressSafe(world.deps, before);
+
+    expect(world.writes).toEqual([]);
+  });
+
+  it("keeps a site's own path when tokens were chosen all along", async () => {
+    const world = fakeWorld({
+      access: "token",
+      serverUrl: "https://example.com/jitsi",
+    });
+    const before = { open: false, address: "https://example.com/jitsi" };
+
+    await keepAddressSafe(world.deps, before);
+
+    expect(world.writes).toEqual([]);
+  });
+
   it("is written by nobody but the active GM", async () => {
     const world = fakeWorld(
       { access: "open", serverUrl: "https://meet.example.com/?jwt=x" },
