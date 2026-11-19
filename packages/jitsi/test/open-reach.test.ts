@@ -40,6 +40,7 @@ function connect(
         channel: createHub().channel("alice"),
         joinedAt: 1,
         onOutsider: () => undefined,
+        onReconnect: () => () => undefined,
       },
     },
   ).connect({ name: "World-1" }, token, signal);

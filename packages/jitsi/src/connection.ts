@@ -53,6 +53,8 @@ export interface OpenRoomDeps {
   /** Someone in the room whom nobody in the world vouched for. */
   readonly onOutsider: () => void;
   readonly outsiderGraceMs?: number;
+  /** Foundry's socket connected again (socket.io's "connect"). */
+  readonly onReconnect: (listener: () => void) => () => void;
 }
 
 /** Loaded with `import()` only when a call starts, with the SDK loaded. */
@@ -291,6 +293,7 @@ function openParts(
     self: context.participant,
     joinedAt: openRoom.joinedAt,
     onClaim: (endpoint) => current().wired?.recheck(endpoint),
+    onReconnect: openRoom.onReconnect,
   });
   const outsiders = createOutsiders({
     graceMs: openRoom.outsiderGraceMs ?? OUTSIDER_GRACE_MS,

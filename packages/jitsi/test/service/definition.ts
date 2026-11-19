@@ -72,6 +72,8 @@ export const createDefinition: CreateDefinition = (params, secrets) => {
       console.warn(OUTSIDER_LINE);
     },
     ...(grace === null ? {} : { outsiderGraceMs: Number(grace) }),
+    // The service contract runs without Foundry: its socket never drops.
+    onReconnect: () => () => undefined,
     sdkUrl: () => `/modules/${MODULE_ID}/${SDK_PATH}`,
     now: () => Date.now(),
     onLibraryLog: (line) => {

@@ -25,6 +25,8 @@ export interface BindingOptions {
   readonly joinedAt: number;
   /** A claim on this endpoint arrived: who it is may be known now. */
   readonly onClaim: (endpoint: string) => void;
+  /** Foundry's socket connected again: messages meanwhile were lost. */
+  readonly onReconnect: (listener: () => void) => () => void;
 }
 
 /**
@@ -83,23 +85,28 @@ export function createBinding(options: BindingOptions): Binding {
     held.some((k) => k.user === h.user && k.endpoint === h.endpoint);
 
   /**
-   * Each claim is answered and acted on once: a repeat changes nothing. A
-   * claim on an endpoint that already left is dropped: whoever takes that
-   * name next would otherwise be placed by it.
+   * Each claim is acted on once: a repeat changes nothing. Every hello is
+   * answered, though: its sender says it again when it may have missed
+   * ours. A claim on an endpoint that already left is dropped: whoever
+   * takes that name next would otherwise be placed by it.
    */
   const unsubscribe = channel.on((data, sender) => {
     const read = readClaim(data, room);
-    if (!read) return;
+    if (!read || gone.includes(read.endpoint)) return;
+    if (read.type === "hello" && ours !== null)
+      channel.send(claim("welcome", ours), { recipients: [sender] });
     const fresh = {
       user: sender,
       endpoint: read.endpoint,
       joinedAt: read.joinedAt,
     };
-    if (isHeld(fresh) || gone.includes(fresh.endpoint)) return;
+    if (isHeld(fresh)) return;
     held = keep(held, fresh);
-    if (read.type === "hello" && ours !== null)
-      channel.send(claim("welcome", ours), { recipients: [sender] });
     options.onClaim(read.endpoint);
+  });
+  // Claims sent or answered while Foundry's socket was down never came.
+  const stopReconnect = options.onReconnect(() => {
+    if (ours !== null) channel.send(claim("hello", ours));
   });
 
   return {
@@ -121,6 +128,7 @@ export function createBinding(options: BindingOptions): Binding {
     },
     stop() {
       unsubscribe();
+      stopReconnect();
       held = [];
     },
   };

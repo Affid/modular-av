@@ -29,14 +29,25 @@ const present = (endpoint: string, user?: string) => {
 
 function aliceOn(hub: FakeHub) {
   const claimed: string[] = [];
+  let reconnected: readonly (() => void)[] = [];
   const binding = createBinding({
     channel: hub.channel("alice"),
     room: ROOM,
     self: "alice",
     joinedAt: 100,
     onClaim: (endpoint) => claimed.push(endpoint),
+    onReconnect: (listener) => {
+      reconnected = [...reconnected, listener];
+      return () => {
+        reconnected = reconnected.filter((l) => l !== listener);
+      };
+    },
   });
-  return { binding, claimed };
+  /** Foundry's socket connected again, as socket.io's "connect" says. */
+  const reconnect = (): void => {
+    for (const listener of reconnected) listener();
+  };
+  return { binding, claimed, reconnect };
 }
 
 describe("who an open server's participant is", () => {
@@ -169,20 +180,66 @@ describe("telling the others who we are", () => {
     expect(hub.sent.filter((s) => s.from === "alice")).toEqual([]);
   });
 
-  it("answers each claim once, however often it comes", async () => {
+  it("acts on each claim once, and answers every hello: its sender may have missed ours", async () => {
+    // Arrange
     const hub = createHub();
-    const { binding } = aliceOn(hub);
+    const { binding, claimed } = aliceOn(hub);
     binding.announce("ep-alice");
     const bob = hub.channel("bob");
 
-    for (let i = 0; i < 5; i += 1) bob.send(claim("ep-bob", 5 + i));
+    // Act
+    for (let i = 0; i < 3; i += 1) bob.send(claim("ep-bob", 5 + i));
     bob.send(claim("ep-bob-reloaded", 9));
     await flush();
 
+    // Assert
     const welcomes = hub.sent.filter(
       (s) => s.from === "alice" && s.recipients !== undefined,
     );
-    expect(welcomes).toHaveLength(2);
+    expect(welcomes).toHaveLength(4);
+    expect(claimed).toEqual(["ep-bob", "ep-bob-reloaded"]);
+  });
+
+  it("answers no hello from an endpoint that already left", async () => {
+    const hub = createHub();
+    const { binding } = aliceOn(hub);
+    binding.announce("ep-alice");
+
+    binding.forget("ep-bob");
+    hub.channel("bob").send(claim("ep-bob"));
+    await flush();
+
+    expect(hub.sent.filter((s) => s.from === "alice")).toHaveLength(1);
+  });
+
+  it("says hello again once Foundry's socket reconnected, as messages meanwhile were lost", () => {
+    // Arrange
+    const hub = createHub();
+    const { binding, reconnect } = aliceOn(hub);
+    reconnect();
+    const beforeJoining = hub.sent.length;
+
+    // Act
+    binding.announce("ep-alice");
+    reconnect();
+
+    // Assert
+    expect(beforeJoining).toBe(0);
+    expect(hub.sent.map((s) => s.data)).toEqual([
+      claim("ep-alice", 100),
+      claim("ep-alice", 100),
+    ]);
+  });
+
+  it("says nothing on a reconnection once stopped", () => {
+    const hub = createHub();
+    const { binding, reconnect } = aliceOn(hub);
+    binding.announce("ep-alice");
+
+    binding.stop();
+    reconnect();
+
+    expect(hub.sent).toHaveLength(1);
   });
 });
 

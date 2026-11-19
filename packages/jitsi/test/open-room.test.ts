@@ -60,6 +60,7 @@ function setup(self = "alice", joinedAt = 100, hub = createHub()): Setup {
           channel: hub.channel(self),
           joinedAt,
           outsiderGraceMs: GRACE,
+          onReconnect: () => () => undefined,
           onOutsider: () => {
             s.outsiders += 1;
           },

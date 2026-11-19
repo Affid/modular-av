@@ -21,6 +21,10 @@ declare global {
     user: { isGM: boolean };
     users: { activeGM: { isSelf: boolean } | null };
     i18n: { localize(key: string): string };
+    socket: {
+      on(event: string, fn: () => void): unknown;
+      off(event: string, fn: () => void): unknown;
+    };
   };
   var ui: { notifications: { warn(message: string): unknown } };
   var Hooks: {
@@ -131,6 +135,13 @@ Hooks.once("modularAV.register", (api: ModularAV) => {
       access: () => settings.access(),
       channel: api.socket("jitsi"),
       onOutsider: noticeOutsider,
+      // socket.io's "connect" comes again after every reconnection.
+      onReconnect: (listener) => {
+        game.socket.on("connect", listener);
+        return () => {
+          game.socket.off("connect", listener);
+        };
+      },
       server: async () => {
         const { serverOf } = await import("./server-address.ts");
         return serverOf(settings.serverSettings());

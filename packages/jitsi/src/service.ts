@@ -20,6 +20,8 @@ export interface JitsiServiceDeps {
   readonly onOutsider: () => void;
   /** How long an unknown participant has to be vouched for (tests). */
   readonly outsiderGraceMs?: number;
+  /** Foundry's socket connected again: who is who is said again. */
+  readonly onReconnect: (listener: () => void) => () => void;
   readonly sdkUrl: () => string;
   readonly now: () => number;
   readonly onError: (error: unknown) => void;
@@ -91,6 +93,7 @@ export function createJitsiService(deps: JitsiServiceDeps): ServiceDefinition {
           channel: deps.channel,
           joinedAt,
           onOutsider: deps.onOutsider,
+          onReconnect: deps.onReconnect,
           ...(deps.outsiderGraceMs === undefined
             ? {}
             : { outsiderGraceMs: deps.outsiderGraceMs }),

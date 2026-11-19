@@ -21,6 +21,7 @@ const deps = (overrides: Partial<JitsiServiceDeps> = {}): JitsiServiceDeps => ({
   credentials: () => ({ appId: "app", appSecret: "secret" }),
   channel: createHub().channel("u"),
   onOutsider: () => undefined,
+  onReconnect: () => () => undefined,
   sdkUrl: () => "/modules/modular-av-jitsi/vendor/lib-jitsi-meet.min.js",
   now: () => 1_800_000_000_000,
   onError: () => undefined,
