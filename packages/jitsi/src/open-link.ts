@@ -1,4 +1,10 @@
-import { SOCKET_PATH, socketAt, socketScheme, urlOf } from "./address.ts";
+import {
+  SOCKET_PATH,
+  sitePathOf,
+  socketAt,
+  socketScheme,
+  urlOf,
+} from "./address.ts";
 
 /** An open server's address or room link, read; or what is wrong with it. */
 export type OpenAddress =
@@ -28,7 +34,7 @@ interface SitePath {
 }
 
 /** The last path segment names the room, unless it is the WebSocket. */
-function sitePathOf(url: URL): SitePath {
+function openPathOf(url: URL): SitePath {
   const segments = url.pathname.split("/").filter((s) => s.length > 0);
   const last = segments.at(-1);
   const site = last === undefined ? segments : segments.slice(0, -1);
@@ -58,7 +64,7 @@ export function parseOpenAddress(address: string): OpenAddress {
   const url = urlOf(address.trim());
   const scheme = url && socketScheme(url);
   if (!url || !scheme) return { ok: false, problem: "address" };
-  const { base, room } = sitePathOf(url);
+  const { base, room } = openPathOf(url);
   const socket = socketAt(scheme, url, base);
   if (room === undefined) return { ok: true, socket, room: null };
   const name = roomName(room);
@@ -86,12 +92,22 @@ export function siteAddressOf(value: string): string {
   const url = urlOf(value.trim());
   const read = url && parseOpenAddress(url.href);
   if (!url || !read?.ok || read.room === null) return value;
-  return `${url.origin}${sitePathOf(url).base}`;
+  return `${url.origin}${openPathOf(url).base}`;
+}
+
+/**
+ * A site's address as tokens read it, with a room after its whole path:
+ * for an open server chosen with the address tokens had. The same value
+ * when it isn't an address.
+ */
+export function siteWithRoom(value: string, room: string): string {
+  const url = urlOf(value.trim());
+  return url ? `${url.origin}${sitePathOf(url)}/${room}` : value;
 }
 
 const withRoom = (url: URL, room: string): URL =>
   new URL(
-    `${url.origin}${sitePathOf(url).base}/${room}${url.search}${url.hash}`,
+    `${url.origin}${openPathOf(url).base}/${room}${url.search}${url.hash}`,
   );
 
 export interface NormalizedAddress {

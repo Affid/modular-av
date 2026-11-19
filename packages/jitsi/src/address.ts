@@ -38,6 +38,17 @@ export function socketScheme(url: URL): string | null {
   );
 }
 
+/**
+ * A site's path as tokens read its address: the whole path, without a
+ * trailing slash or the WebSocket's own (e.g. "/jitsi", or "" at the root).
+ */
+export function sitePathOf(url: URL): string {
+  const path = url.pathname.replace(/\/+$/, "");
+  return path.endsWith(`/${SOCKET_PATH}`)
+    ? path.slice(0, -SOCKET_PATH.length - 1)
+    : path;
+}
+
 /** The XMPP WebSocket of a site at `path` (no trailing slash). */
 export const socketAt = (scheme: string, url: URL, path: string): URL =>
   new URL(`${scheme}//${url.host}${path}/${SOCKET_PATH}`);

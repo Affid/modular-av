@@ -1,4 +1,4 @@
-import { SOCKET_PATH, socketAt, socketScheme, urlOf } from "./address.ts";
+import { sitePathOf, socketAt, socketScheme, urlOf } from "./address.ts";
 import type { JitsiServer, XmppHosts } from "./join.ts";
 import { parseOpenAddress } from "./open-link.ts";
 import type { ServerSettings } from "./settings.ts";
@@ -13,12 +13,7 @@ export function webSocketOf(address: string): URL | null {
   const url = urlOf(address);
   if (!url || url.search || url.hash) return null;
   const scheme = socketScheme(url);
-  if (!scheme) return null;
-  const path = url.pathname.replace(/\/+$/, "");
-  const site = path.endsWith(`/${SOCKET_PATH}`)
-    ? path.slice(0, -SOCKET_PATH.length - 1)
-    : path;
-  return socketAt(scheme, url, site);
+  return scheme ? socketAt(scheme, url, sitePathOf(url)) : null;
 }
 
 /** A host name as XMPP uses it: letters, digits, dots and dashes. */

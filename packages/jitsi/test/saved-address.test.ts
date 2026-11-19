@@ -127,6 +127,53 @@ describe("the address in the world settings", () => {
   });
 
   it.each([
+    [
+      "at the host's root",
+      "https://meet.example.com",
+      "https://meet.example.com",
+    ],
+    ["in a folder", "https://example.com/jitsi/", "https://example.com/jitsi"],
+    [
+      "given as its WebSocket",
+      "https://example.com/jitsi/xmpp-websocket",
+      "https://example.com/jitsi",
+    ],
+  ])(
+    "gets a room after a site's whole path when an open server is chosen: %s",
+    async (_, site, base) => {
+      const world = fakeWorld({
+        access: "open",
+        serverUrl: site,
+        ...settled(false, site),
+      });
+
+      await keepAddressSafe(world.deps);
+
+      expect(world.writes[0]).toEqual([
+        "modular-av-jitsi.serverUrl",
+        `${base}/generatedroom`,
+      ]);
+    },
+  );
+
+  it("keeps a room link saved along with the switch to an open server", async () => {
+    const world = fakeWorld({
+      access: "open",
+      serverUrl: "https://meet.example.com/ourtable",
+      ...settled(false, "https://meet.example.com"),
+    });
+
+    await keepAddressSafe(world.deps);
+
+    expect(world.writes).toEqual([
+      [
+        "modular-av-jitsi.settledAddress",
+        { open: true, address: "https://meet.example.com/ourtable" },
+      ],
+    ]);
+  });
+
+  it.each([
     ["nothing settled yet", undefined],
     ["something else", "https://example.com/jitsi/ourtable"],
     ["a strange shape", { open: "yes", address: 1 }],

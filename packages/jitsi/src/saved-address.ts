@@ -1,4 +1,4 @@
-import { normalizeAddress, siteAddressOf } from "./open-link.ts";
+import { normalizeAddress, siteAddressOf, siteWithRoom } from "./open-link.ts";
 import { MODULE_ID } from "./service.ts";
 import { SETTLED_ADDRESS, type SettingsApi } from "./settings.ts";
 
@@ -29,18 +29,19 @@ function settledOf(value: unknown): Settled | null {
 }
 
 /**
- * The address as tokens read it, when an open server's access was turned
- * back to tokens and the address saved before it stayed: its room goes.
- * An address saved along with the switch is the GM's choice, kept.
+ * The address read the new way when the access changed and the address
+ * saved before it stayed: back to tokens, its room goes; to an open
+ * server, a room comes after the site's whole path. An address saved
+ * along with the switch is the GM's choice, kept.
  */
 function startingAddress(
   saved: string,
   open: boolean,
   before: Settled | null,
+  random: () => string,
 ): string {
-  const backToTokens =
-    before?.open === true && !open && before.address === saved;
-  return backToTokens ? siteAddressOf(saved) : saved;
+  if (before?.address !== saved || before.open === open) return saved;
+  return open ? siteWithRoom(saved, random()) : siteAddressOf(saved);
 }
 
 /**
@@ -59,7 +60,7 @@ export async function keepAddressSafe(deps: SavedAddressDeps): Promise<void> {
   const open = deps.settings.get(MODULE_ID, "access") === "open";
   const before = settledOf(deps.settings.get(MODULE_ID, SETTLED_ADDRESS));
   const { value, removedToken } = normalizeAddress(
-    startingAddress(saved, open, before),
+    startingAddress(saved, open, before, deps.randomRoom),
     open,
     deps.randomRoom,
   );
