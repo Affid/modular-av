@@ -68,6 +68,13 @@ edge a scattered tile sits against) and by state (`[data-speaking]`,
 - `--mav-dock-frame-top`, `-right`, `-bottom`, `-left` (the declared
   reach) and `--mav-dock-frame-across` (1 plus left and right) are set on
   `.mav-dock`.
+- `frames.gridReach` (optional, the same four sides) is the reach while
+  tiles are in a grid: docked, floating or in a window of the dock's own.
+  A theme whose frames take less room there than round a scattered tile,
+  such as frames that neighbours share, gives it; without it `reach` is
+  used in every layout. The properties above follow the layout.
+- The grid fits inside the tile list's padding (`.mav-dock-tiles`): a
+  theme may add some for artwork round the whole grid.
 
 ## Checking a theme
 

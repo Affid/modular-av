@@ -148,16 +148,24 @@ function build(ctx: DockContext, host: CamerasHost): Dock {
   return dock;
 }
 
-/** A theme's frame reach, as fractions of the tile's width. */
-const reachOf = (ctx: DockContext): Insets =>
-  ctx.themes.shown()?.frames?.reach ?? NO_INSETS;
+/**
+ * A theme's frame reach, as fractions of the tile's width: round a
+ * scattered tile, or round tiles in a grid, where a theme may ask for less.
+ */
+function reachOf(ctx: DockContext, scattered: boolean): Insets {
+  const frames = ctx.themes.shown()?.frames;
+  const reach = scattered
+    ? frames?.reach
+    : (frames?.gridReach ?? frames?.reach);
+  return reach ?? NO_INSETS;
+}
 
 /**
  * The frame layer reaches past each tile as the theme declares; the grid
  * leaves room for it, and so does the scattered layout.
  */
 function showFrames(ctx: DockContext, dock: Dock): void {
-  const reach = reachOf(ctx);
+  const reach = reachOf(ctx, dock.placement?.where === "scattered");
   const style = dock.root.style;
   const css = (value: number): string => String(Number(value.toFixed(4)));
   for (const side of ["top", "right", "bottom", "left"] as const)
@@ -220,7 +228,7 @@ async function scatter(
         panelHandle: dock.header.element,
         panelMove: dock.header.move,
       },
-      { reach: () => reachOf(ctx) },
+      { reach: () => reachOf(ctx, true) },
     );
   } catch (error: unknown) {
     // Back to a whole dock rather than half scattered.
@@ -264,6 +272,8 @@ export function camerasSurface(
         () => placement.where,
       );
       placement.onChange((where) => {
+        // A theme's frames may reach less far in a grid than scattered.
+        showFrames(ctx, dock);
         scatter(ctx, dock, where, load).catch(ctx.onError);
         // In or out of the Picture-in-Picture window: timers and observers follow.
         dock.tiles.rehome();

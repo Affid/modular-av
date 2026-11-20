@@ -27,6 +27,13 @@ export interface FrameDefinition {
    * tiles and keeping them on screen.
    */
   readonly reach: FrameReach;
+  /**
+   * The same while tiles are laid out in a grid: docked, floating or in a
+   * window of the dock's own. For artwork that takes less room there than
+   * round a scattered tile, such as frames that neighbours share. Without
+   * it, `reach` is used in every layout.
+   */
+  readonly gridReach?: FrameReach;
 }
 
 /** Layouts a theme may suggest; the player is offered it, never moved. */

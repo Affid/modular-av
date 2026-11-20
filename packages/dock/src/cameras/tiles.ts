@@ -27,6 +27,7 @@ import {
   type TileHandlers,
   tileKey,
 } from "./tile.ts";
+import { listSpace } from "./list-space.ts";
 
 /** What the list's custom properties say: the grid, or one player large. */
 interface Fitted {
@@ -200,17 +201,14 @@ export function createTileList(
   const fit = (fromResize = false): void => {
     // Scattered tiles have sizes of their own.
     if (scattered) return;
-    const view = element.ownerDocument.defaultView;
-    const gap = view
-      ? parseFloat(view.getComputedStyle(element).columnGap) || 0
-      : 0;
+    const space = listSpace(element);
     const focus = element.dataset.tileLayout === "focus";
     const result = fitted(
       {
         count: tiles.size,
-        width: element.clientWidth,
-        height: element.clientHeight,
-        gap,
+        width: space.width,
+        height: space.height,
+        gap: space.gap,
         // Thumbnails have a smaller floor of their own.
         ...(focus ? {} : { minTileWidth: MIN_TILE_WIDTH }),
         scroll: horizontal ? "sideways" : "down",

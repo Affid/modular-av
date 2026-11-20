@@ -87,6 +87,26 @@ describe("the theme registry", () => {
       { frames: { reach: { top: 0.1 } } },
       /frames.reach/,
     ],
+    [
+      "a grid frame reaching too far",
+      {
+        frames: {
+          reach: { top: 0.1, right: 0.1, bottom: 0.1, left: 0.1 },
+          gridReach: { top: 0.9, right: 0, bottom: 0, left: 0 },
+        },
+      },
+      /frames.gridReach/,
+    ],
+    [
+      "a grid frame missing a side",
+      {
+        frames: {
+          reach: { top: 0.1, right: 0.1, bottom: 0.1, left: 0.1 },
+          gridReach: { left: 0.1 },
+        },
+      },
+      /frames.gridReach/,
+    ],
     ["no such layout", { suggestedLayout: "spiral" }, /no such layout/],
   ])("refuses %s", (_name, change, message) => {
     const registry = createThemeRegistry();
@@ -96,6 +116,23 @@ describe("the theme registry", () => {
         registry.register({ ...vines, ...change } as ThemeDefinition);
       }).toThrow(message);
     });
+  });
+
+  it("keeps a frame's reach for grids when a theme gives one", () => {
+    const registry = createThemeRegistry();
+    const gridReach = { top: 0.05, right: 0.05, bottom: 0.05, left: 0.05 };
+
+    registry.run(() => {
+      registry.register({
+        ...vines,
+        frames: { reach: vines.frames?.reach ?? gridReach, gridReach },
+      });
+    });
+
+    expect(registry.get("vines")?.frames?.gridReach).toEqual(gridReach);
+    expect(Object.isFrozen(registry.get("vines")?.frames?.gridReach)).toBe(
+      true,
+    );
   });
 });
 
@@ -195,13 +232,16 @@ describe("applying a theme", () => {
 });
 
 /** Themes as the dock sees them, with the vines theme registered. */
-function fakeThemes(start: { own?: string; world?: string } = {}) {
+function fakeThemes(
+  start: { own?: string; world?: string } = {},
+  theme: ThemeDefinition = vines,
+) {
   let own = start.own ?? "";
   let world = start.world ?? "default";
   let listeners: (() => void)[] = [];
-  const known = (id: string) => (id === "vines" ? vines : null);
+  const known = (id: string) => (id === "vines" ? theme : null);
   const themes = {
-    list: () => [vines],
+    list: () => [theme],
     own: () => own,
     worldDefault: () => world,
     shown: () => (own === "default" ? null : (known(own) ?? known(world))),
@@ -248,6 +288,47 @@ describe("a theme's frames in the dock", () => {
     );
     await themes.choose("default");
     expect(root?.style.getPropertyValue("--mav-dock-frame-top")).toBe("0");
+  });
+
+  it("keeps a theme's grid reach round tiles in a grid, and its whole reach round scattered ones", async () => {
+    const even = (reach: number) => ({
+      top: reach,
+      right: reach,
+      bottom: reach,
+      left: reach,
+    });
+    const themes = fakeThemes(
+      { own: "vines" },
+      { ...vines, frames: { reach: even(0.11), gridReach: even(0.05) } },
+    );
+    const { ctx } = testDock({
+      state: avState({ participants: [me] }),
+      themes,
+    });
+    const host = fakeHost("left");
+    camerasSurface(ctx).mount(host);
+    const root = host.element.querySelector<HTMLElement>(".mav-dock");
+    const frame = (): string | undefined =>
+      root?.style.getPropertyValue("--mav-dock-frame-top");
+    const move = (where: string): void => {
+      host.element
+        .querySelector<HTMLButtonElement>(".mav-dock-placement")
+        ?.click();
+      document
+        .querySelector<HTMLElement>(
+          `[data-placement="${where}"][role="menuitemradio"]`,
+        )
+        ?.click();
+    };
+
+    expect(frame()).toBe("0.05");
+    expect(root?.style.getPropertyValue("--mav-dock-frame-across")).toBe("1.1");
+
+    move("scattered");
+    await expect.poll(frame).toBe("0.11");
+
+    move("floating");
+    await expect.poll(frame).toBe("0.05");
   });
 
   it("offers the theme's suggested layout, without moving the dock", () => {
