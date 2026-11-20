@@ -325,12 +325,12 @@ module that passes its contract fits the rest.
 
 ## Where to read next
 
-| You want to                    | Read                                        |
-| ------------------------------ | ------------------------------------------- |
-| Write a module against the API | [`packages/api`](../packages/api/README.md) |
-| Understand the voice chain     | [voice-routing.md](voice-routing.md)        |
-| Work on the mixer              | [audio-mixer.md](audio-mixer.md)            |
-| Make a theme for the dock      | [dock-theming.md](dock-theming.md)          |
-| Run Foundry locally            | [LOCAL-SETUP.md](LOCAL-SETUP.md)            |
-| Cut a release                  | [RELEASING.md](RELEASING.md)                |
-| See what is left before 1.0    | [ROADMAP.md](ROADMAP.md)                    |
+| You want to                    | Read                                                                       |
+| ------------------------------ | -------------------------------------------------------------------------- |
+| Write a module against the API | [`packages/api`](../packages/api/README.md)                                |
+| Understand the voice chain     | [voice-routing.md](voice-routing.md)                                       |
+| Work on the mixer              | [audio-mixer.md](audio-mixer.md)                                           |
+| Make a theme for the dock      | [dock-theming.md](dock-theming.md), [making-a-theme.md](making-a-theme.md) |
+| Run Foundry locally            | [LOCAL-SETUP.md](LOCAL-SETUP.md)                                           |
+| Cut a release                  | [RELEASING.md](RELEASING.md)                                               |
+| See what is left before 1.0    | [ROADMAP.md](ROADMAP.md)                                                   |

@@ -10,6 +10,9 @@ styles what it knows and leaves the rest to the dock's own look; one that
 uses something added in a minor version requires that dock (the release
 build writes the dock version it was built with into its requirement).
 
+This is the reference. How to go about making a theme, with what the
+vines theme taught, is in [making-a-theme.md](making-a-theme.md).
+
 ## Registering a theme
 
 A theme is a small Foundry module (`flags["modular-av"].kind = "theme"`,
