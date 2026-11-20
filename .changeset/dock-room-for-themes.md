@@ -17,4 +17,5 @@ frames, and are told the room under the tiles.
   and `--mav-dock-tile-room` on each tile the height left under it when
   it ends its column, for themes that draw there.
 
-Nothing changes for themes that use none of these.
+Nothing changes for themes that use none of these. The dock's entry
+budget goes from 92 KB to 94 KB for it.
