@@ -37,7 +37,7 @@ describe("the notice when no service is enabled", () => {
     ).toEqual([
       "LiveKit: Calls over LiveKit Cloud or your own LiveKit server. Most tables.",
       "Peer to peer: No server: players' browsers link to each other. Best up to 6 players.",
-      "Jitsi Meet: Your own Jitsi Meet server, with token sign-in.",
+      "Jitsi Meet: Your own Jitsi Meet server, open or with sign-in tokens.",
     ]);
   });
 });

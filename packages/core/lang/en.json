@@ -180,7 +180,7 @@
         },
         "modular-av-jitsi": {
           "title": "Jitsi Meet",
-          "what": "Your own Jitsi Meet server, with token sign-in."
+          "what": "Your own Jitsi Meet server, open or with sign-in tokens."
         },
         "modular-av-dock": {
           "title": "Dock",
@@ -380,9 +380,9 @@
           "jitsi": {
             "title": "Our own Jitsi Meet",
             "sub": "The Jitsi Meet server you run",
-            "line": "Uses a server you already run, with token sign-in.",
+            "line": "Uses a server you already run, open or with sign-in tokens.",
             "tableSize": "What your server handles",
-            "setup": "Address and app secret"
+            "setup": "Room link or app secret"
           }
         },
         "steps": "Load in, go live, soundcheck",

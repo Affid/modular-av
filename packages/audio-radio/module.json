@@ -10,7 +10,14 @@
   "esmodules": ["modular-av-audio-radio.js"],
   "languages": [{ "lang": "en", "name": "English", "path": "lang/en.json" }],
   "relationships": {
-    "requires": [{ "id": "modular-av", "type": "module" }]
+    "requires": [{ "id": "modular-av", "type": "module" }],
+    "recommends": [
+      {
+        "id": "modular-av-audio-mixer",
+        "type": "module",
+        "reason": "Where each player turns this effect on and sets it up."
+      }
+    ]
   },
   "flags": {
     "modular-av": {
