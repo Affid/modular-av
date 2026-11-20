@@ -17,7 +17,7 @@ scattered layout best, where each camera's ivy grows from the corner of
 the screen it sits in, and the dock offers that layout when the theme is
 chosen; it works in every layout.
 
-![Four cameras scattered to the corners of Foundry's screen, each framed in the theme's vines](../../docs/images/dock-scattered-vines.png)
+![Four cameras scattered to the corners of Foundry's screen, each in a frame of woven branches with ivy growing from its corner](../../docs/images/dock-scattered-vines.png)
 
 ## Install
 

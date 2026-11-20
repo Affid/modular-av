@@ -13,7 +13,7 @@ isn't running), and keeps your server's secret away from players.
 </picture>
 </a>
 
-![Four players' cameras scattered over Foundry's screen, each framed in vine leaves by the vines theme](docs/images/dock-scattered-vines.png)
+![Four players' cameras scattered over Foundry's screen, each in a frame of woven branches and ivy by the vines theme](docs/images/dock-scattered-vines.png)
 
 The user guide is the **[wiki](https://github.com/Affid/modular-av/wiki)**:
 [getting started](https://github.com/Affid/modular-av/wiki/Getting-Started),
