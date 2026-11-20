@@ -87,6 +87,36 @@ describe("the theme registry", () => {
       { frames: { reach: { top: 0.1 } } },
       /frames.reach/,
     ],
+    [
+      "too much room round a tile",
+      {
+        frames: {
+          reach: { top: 0.1, right: 0.1, bottom: 0.1, left: 0.1 },
+          room: { top: 0.9, right: 0, bottom: 0, left: 0 },
+        },
+      },
+      /frames.room/,
+    ],
+    [
+      "too much room round a tile in a grid",
+      {
+        frames: {
+          reach: { top: 0.1, right: 0.1, bottom: 0.1, left: 0.1 },
+          gridRoom: { top: 0.9, right: 0, bottom: 0, left: 0 },
+        },
+      },
+      /frames.gridRoom/,
+    ],
+    [
+      "room in a grid missing a side",
+      {
+        frames: {
+          reach: { top: 0.1, right: 0.1, bottom: 0.1, left: 0.1 },
+          gridRoom: { left: 0.1 },
+        },
+      },
+      /frames.gridRoom/,
+    ],
     ["no such layout", { suggestedLayout: "spiral" }, /no such layout/],
   ])("refuses %s", (_name, change, message) => {
     const registry = createThemeRegistry();
@@ -95,6 +125,55 @@ describe("the theme registry", () => {
       expect(() => {
         registry.register({ ...vines, ...change } as ThemeDefinition);
       }).toThrow(message);
+    });
+  });
+
+  it("keeps the room a theme asks for round its tiles, scattered and in a grid", () => {
+    const registry = createThemeRegistry();
+    const reach = { top: 0.11, right: 0.11, bottom: 0.11, left: 0.11 };
+    const room = { ...reach, bottom: 0.18 };
+    const gridRoom = { top: 0.05, right: 0.05, bottom: 0.12, left: 0.05 };
+
+    registry.run(() => {
+      registry.register({ ...vines, frames: { reach, room, gridRoom } });
+    });
+
+    const frames = registry.get("vines")?.frames;
+    expect(frames).toEqual({ reach, room, gridRoom });
+    expect(Object.isFrozen(frames?.room)).toBe(true);
+    expect(Object.isFrozen(frames?.gridRoom)).toBe(true);
+  });
+
+  it("reads each side of a reach once: what it checked is what it keeps", () => {
+    const registry = createThemeRegistry();
+    let reads = 0;
+    const shifty = {
+      right: 0.1,
+      bottom: 0.1,
+      left: 0.1,
+      // Fine when it is checked, far too much when it is read again.
+      get top(): number {
+        reads += 1;
+        return reads === 1 ? 0.1 : 9;
+      },
+    };
+
+    registry.run(() => {
+      registry.register({ ...vines, frames: { reach: shifty } });
+    });
+
+    expect(registry.get("vines")?.frames?.reach.top).toBe(0.1);
+  });
+
+  it("leaves out the room a theme doesn't give", () => {
+    const registry = createThemeRegistry();
+
+    registry.run(() => {
+      registry.register(vines);
+    });
+
+    expect(registry.get("vines")?.frames).toEqual({
+      reach: vines.frames?.reach,
     });
   });
 });
@@ -195,13 +274,16 @@ describe("applying a theme", () => {
 });
 
 /** Themes as the dock sees them, with the vines theme registered. */
-function fakeThemes(start: { own?: string; world?: string } = {}) {
+function fakeThemes(
+  start: { own?: string; world?: string } = {},
+  theme: ThemeDefinition = vines,
+) {
   let own = start.own ?? "";
   let world = start.world ?? "default";
   let listeners: (() => void)[] = [];
-  const known = (id: string) => (id === "vines" ? vines : null);
+  const known = (id: string) => (id === "vines" ? theme : null);
   const themes = {
-    list: () => [vines],
+    list: () => [theme],
     own: () => own,
     worldDefault: () => world,
     shown: () => (own === "default" ? null : (known(own) ?? known(world))),
@@ -231,7 +313,7 @@ function fakeThemes(start: { own?: string; world?: string } = {}) {
 const me = participantState({ id: "me", isLocal: true });
 
 describe("a theme's frames in the dock", () => {
-  it("sizes the frame layer to the theme's reach, and follows a change", async () => {
+  it("sizes the frame layer to the theme's reach and keeps as much room, and follows a change", async () => {
     const themes = fakeThemes({ own: "vines" });
     const { ctx } = testDock({
       state: avState({ participants: [me] }),
@@ -241,13 +323,92 @@ describe("a theme's frames in the dock", () => {
 
     camerasSurface(ctx).mount(host);
     const root = host.element.querySelector<HTMLElement>(".mav-dock");
+    const value = (name: string): string | undefined =>
+      root?.style.getPropertyValue(name);
 
-    expect(root?.style.getPropertyValue("--mav-dock-frame-top")).toBe("0.08");
-    expect(root?.style.getPropertyValue("--mav-dock-frame-across")).toBe(
-      "1.16",
-    );
+    expect(value("--mav-dock-frame-top")).toBe("0.08");
+    expect(value("--mav-dock-room-top")).toBe("0.08");
+    expect(value("--mav-dock-room-across")).toBe("1.16");
     await themes.choose("default");
-    expect(root?.style.getPropertyValue("--mav-dock-frame-top")).toBe("0");
+    expect(value("--mav-dock-frame-top")).toBe("0");
+    expect(value("--mav-dock-room-top")).toBe("0");
+    expect(value("--mav-dock-room-across")).toBe("1");
+  });
+
+  it("keeps a theme's room round tiles, by layout, while the frame layer stays its reach", async () => {
+    const even = (reach: number) => ({
+      top: reach,
+      right: reach,
+      bottom: reach,
+      left: reach,
+    });
+    const themes = fakeThemes(
+      { own: "vines" },
+      {
+        ...vines,
+        frames: {
+          reach: even(0.11),
+          room: { ...even(0.11), bottom: 0.18 },
+          gridRoom: even(0.05),
+        },
+      },
+    );
+    const { ctx } = testDock({
+      state: avState({ participants: [me] }),
+      themes,
+    });
+    const host = fakeHost("left");
+    camerasSurface(ctx).mount(host);
+    const root = host.element.querySelector<HTMLElement>(".mav-dock");
+    const value = (name: string): string | undefined =>
+      root?.style.getPropertyValue(name);
+    const move = (where: string): void => {
+      host.element
+        .querySelector<HTMLButtonElement>(".mav-dock-placement")
+        ?.click();
+      document
+        .querySelector<HTMLElement>(
+          `[data-placement="${where}"][role="menuitemradio"]`,
+        )
+        ?.click();
+    };
+
+    expect(value("--mav-dock-frame-top")).toBe("0.11");
+    expect(value("--mav-dock-room-top")).toBe("0.05");
+    expect(value("--mav-dock-room-across")).toBe("1.1");
+
+    move("scattered");
+    await expect.poll(() => value("--mav-dock-room-bottom")).toBe("0.18");
+    expect(value("--mav-dock-room-top")).toBe("0.11");
+    expect(value("--mav-dock-frame-bottom")).toBe("0.11");
+
+    move("floating");
+    await expect.poll(() => value("--mav-dock-room-top")).toBe("0.05");
+    expect(value("--mav-dock-frame-top")).toBe("0.11");
+  });
+
+  it("uses a theme's scattered room in a grid when it gives none for grids", () => {
+    const themes = fakeThemes(
+      { own: "vines" },
+      {
+        ...vines,
+        frames: {
+          reach: { top: 0.1, right: 0.1, bottom: 0.1, left: 0.1 },
+          room: { top: 0.1, right: 0.1, bottom: 0.2, left: 0.1 },
+        },
+      },
+    );
+    const { ctx } = testDock({
+      state: avState({ participants: [me] }),
+      themes,
+    });
+    const host = fakeHost("left");
+
+    camerasSurface(ctx).mount(host);
+    const root = host.element.querySelector<HTMLElement>(".mav-dock");
+
+    expect(root?.style.getPropertyValue("--mav-dock-room-bottom")).toBe("0.2");
+    expect(root?.style.getPropertyValue("--mav-dock-frame-bottom")).toBe("0.1");
   });
 
   it("offers the theme's suggested layout, without moving the dock", () => {

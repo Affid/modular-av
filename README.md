@@ -13,7 +13,7 @@ isn't running), and keeps your server's secret away from players.
 </picture>
 </a>
 
-![Four players' cameras scattered over Foundry's screen, each framed in vine leaves by the vines theme](docs/images/dock-scattered-vines.png)
+![Four players' cameras scattered over Foundry's screen, each in an uneven frame of twisted branches and ivy by the vines theme](docs/images/dock-scattered-vines.png)
 
 The user guide is the **[wiki](https://github.com/Affid/modular-av/wiki)**:
 [getting started](https://github.com/Affid/modular-av/wiki/Getting-Started),
@@ -78,24 +78,24 @@ module's id in place of `<id>`:
 https://raw.githubusercontent.com/Affid/modular-av/manifests/<id>/module.json
 ```
 
-| Kind    | Module id                                                        | What it does                                                           |
-| ------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| Core    | [`modular-av`](packages/core/README.md)                          | Needed by all the others                                               |
-| Service | [`modular-av-p2p`](packages/p2p/README.md)                       | Calls directly between players' browsers, no server                    |
-| Service | [`modular-av-livekit`](packages/livekit/README.md)               | Calls over your LiveKit server or LiveKit Cloud                        |
-| Service | [`modular-av-jitsi`](packages/jitsi/README.md)                   | Calls over your own Jitsi Meet server, open or with sign-in tokens     |
-| Cameras | [`modular-av-dock`](packages/dock/README.md)                     | The camera dock, voice panel and settings window                       |
-| Theme   | [`modular-av-dock-vines`](packages/dock-vines/README.md)         | Vine leaves around the cameras                                         |
-| Effect  | [`modular-av-mic-denoise`](packages/mic-denoise/README.md)       | Noise cancellation in your browser: RNNoise, Speex or GTCRN            |
-| Effect  | [`modular-av-livekit-krisp`](packages/livekit-krisp/README.md)   | Adds LiveKit's Krisp to noise cancellation, on LiveKit Cloud           |
-| Effect  | [`modular-av-cam-background`](packages/cam-background/README.md) | Blurs or replaces your camera's background, in your browser            |
-| Effect  | [`modular-av-audio-reverb`](packages/audio-reverb/README.md)     | A reverb for the voice                                                 |
-| Effect  | [`modular-av-audio-echo`](packages/audio-echo/README.md)         | An echo for the voice                                                  |
-| Effect  | [`modular-av-audio-eq`](packages/audio-eq/README.md)             | A three band equalizer for the voice                                   |
-| Effect  | [`modular-av-audio-radio`](packages/audio-radio/README.md)       | A walkie-talkie for the voice: static and squelch                      |
-| Effect  | [`modular-av-audio-boost`](packages/audio-boost/README.md)       | Raises a quiet microphone and evens out its peaks                      |
-| Mixer   | [`modular-av-audio-mixer`](packages/audio-mixer/README.md)       | A window for your voice's effects: order, levels, presets, a GM's view |
-| Set     | [`modular-av-starter-set`](packages/starter-set/README.md)       | No code: one install for the usual setup                               |
+| Kind    | Module id                                                        | What it does                                                              |
+| ------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Core    | [`modular-av`](packages/core/README.md)                          | Needed by all the others                                                  |
+| Service | [`modular-av-p2p`](packages/p2p/README.md)                       | Calls directly between players' browsers, no server                       |
+| Service | [`modular-av-livekit`](packages/livekit/README.md)               | Calls over your LiveKit server or LiveKit Cloud                           |
+| Service | [`modular-av-jitsi`](packages/jitsi/README.md)                   | Calls over your own Jitsi Meet server, open or with sign-in tokens        |
+| Cameras | [`modular-av-dock`](packages/dock/README.md)                     | The camera dock, voice panel and settings window                          |
+| Theme   | [`modular-av-dock-vines`](packages/dock-vines/README.md)         | A druid's grove: frames grown from branches, and a dock that is one plant |
+| Effect  | [`modular-av-mic-denoise`](packages/mic-denoise/README.md)       | Noise cancellation in your browser: RNNoise, Speex or GTCRN               |
+| Effect  | [`modular-av-livekit-krisp`](packages/livekit-krisp/README.md)   | Adds LiveKit's Krisp to noise cancellation, on LiveKit Cloud              |
+| Effect  | [`modular-av-cam-background`](packages/cam-background/README.md) | Blurs or replaces your camera's background, in your browser               |
+| Effect  | [`modular-av-audio-reverb`](packages/audio-reverb/README.md)     | A reverb for the voice                                                    |
+| Effect  | [`modular-av-audio-echo`](packages/audio-echo/README.md)         | An echo for the voice                                                     |
+| Effect  | [`modular-av-audio-eq`](packages/audio-eq/README.md)             | A three band equalizer for the voice                                      |
+| Effect  | [`modular-av-audio-radio`](packages/audio-radio/README.md)       | A walkie-talkie for the voice: static and squelch                         |
+| Effect  | [`modular-av-audio-boost`](packages/audio-boost/README.md)       | Raises a quiet microphone and evens out its peaks                         |
+| Mixer   | [`modular-av-audio-mixer`](packages/audio-mixer/README.md)       | A window for your voice's effects: order, levels, presets, a GM's view    |
+| Set     | [`modular-av-starter-set`](packages/starter-set/README.md)       | No code: one install for the usual setup                                  |
 
 ## Browsers
 

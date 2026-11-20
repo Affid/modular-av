@@ -1,5 +1,6 @@
 import type {
   FrameDefinition,
+  FrameReach,
   SuggestedLayout,
   ThemeDefinition,
   ThemeRegistry,
@@ -38,21 +39,29 @@ const isLoose = (value: unknown): value is Loose =>
 
 const SIDES = ["top", "right", "bottom", "left"] as const;
 
+/** Four sides as given under `name` (a reach, or room), checked and frozen. */
+function checkReach(id: string, name: string, reach: unknown): FrameReach {
+  // Each side is read once: what is checked is what is kept.
+  const given = isLoose(reach) ? SIDES.map((side) => reach[side]) : [];
+  if (given.length !== SIDES.length || !given.every(isReach))
+    throw new ThemeError(
+      `Theme "${id}": frames.${name} needs top, right, bottom and left from 0 to ${String(MAX_REACH)}`,
+    );
+  const [top = 0, right = 0, bottom = 0, left = 0] = given;
+  return Object.freeze({ top, right, bottom, left });
+}
+
 function checkFrames(id: string, frames: unknown): FrameDefinition | undefined {
   if (frames === undefined) return undefined;
-  const reach = isLoose(frames) ? frames.reach : undefined;
-  if (!isLoose(reach) || !SIDES.every((side) => isReach(reach[side])))
-    throw new ThemeError(
-      `Theme "${id}": frames.reach needs top, right, bottom and left from 0 to ${String(MAX_REACH)}`,
-    );
-  const [top, right, bottom, left] = SIDES.map((side) => Number(reach[side]));
+  const given = isLoose(frames) ? frames : {};
+  const optional = (name: "room" | "gridRoom"): Partial<FrameDefinition> =>
+    given[name] === undefined
+      ? {}
+      : { [name]: checkReach(id, name, given[name]) };
   return {
-    reach: Object.freeze({
-      top: top ?? 0,
-      right: right ?? 0,
-      bottom: bottom ?? 0,
-      left: left ?? 0,
-    }),
+    reach: checkReach(id, "reach", given.reach),
+    ...optional("room"),
+    ...optional("gridRoom"),
   };
 }
 

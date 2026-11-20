@@ -43,7 +43,7 @@ export interface ScatteredParts {
 }
 
 export interface ScatteredOptions {
-  /** How far tile frames reach past a tile, as fractions of its width. */
+  /** The room a theme asks for round each tile, as fractions of its width. */
   readonly reach: () => Insets;
 }
 

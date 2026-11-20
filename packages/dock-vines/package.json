@@ -2,7 +2,7 @@
   "name": "@modular-av/dock-vines",
   "version": "0.15.0",
   "private": true,
-  "description": "Modular A/V theme module: vine-leaf frames and a green palette for modular-av-dock.",
+  "description": "Modular A/V theme module: frames grown from branches, with ivy, and a palette of bark and leaf, for modular-av-dock.",
   "license": "MIT",
   "type": "module",
   "scripts": {
@@ -16,6 +16,6 @@
   },
   "modularAV": {
     "entryBudgetBytes": 2000,
-    "styleBudgetBytes": 8000
+    "styleBudgetBytes": 19000
   }
 }

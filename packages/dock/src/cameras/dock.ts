@@ -148,25 +148,32 @@ function build(ctx: DockContext, host: CamerasHost): Dock {
   return dock;
 }
 
-/** A theme's frame reach, as fractions of the tile's width. */
-const reachOf = (ctx: DockContext): Insets =>
-  ctx.themes.shown()?.frames?.reach ?? NO_INSETS;
+/**
+ * The room a theme asks for round each tile, as fractions of the tile's
+ * width: its own for grids if it gives one, else the room round a
+ * scattered tile, which without any is the frames' reach.
+ */
+function roomOf(ctx: DockContext, scattered: boolean): Insets {
+  const frames = ctx.themes.shown()?.frames;
+  const room = scattered ? frames?.room : (frames?.gridRoom ?? frames?.room);
+  return room ?? frames?.reach ?? NO_INSETS;
+}
 
 /**
- * The frame layer reaches past each tile as the theme declares; the grid
- * leaves room for it, and so does the scattered layout.
+ * The frame layer reaches past each tile as the theme declares, in every
+ * layout; the grid and the scattered layout keep the theme's room.
  */
 function showFrames(ctx: DockContext, dock: Dock): void {
-  const reach = reachOf(ctx);
+  const reach = ctx.themes.shown()?.frames?.reach ?? NO_INSETS;
+  const room = roomOf(ctx, dock.placement?.where === "scattered");
   const style = dock.root.style;
   const css = (value: number): string => String(Number(value.toFixed(4)));
-  for (const side of ["top", "right", "bottom", "left"] as const)
+  for (const side of ["top", "right", "bottom", "left"] as const) {
     style.setProperty(`--mav-dock-frame-${side}`, css(reach[side]));
-  style.setProperty(
-    "--mav-dock-frame-across",
-    css(1 + reach.left + reach.right),
-  );
-  dock.tiles.setFrameReach(reach);
+    style.setProperty(`--mav-dock-room-${side}`, css(room[side]));
+  }
+  style.setProperty("--mav-dock-room-across", css(1 + room.left + room.right));
+  dock.tiles.setFrameReach(room);
   dock.scattered?.relayout();
 }
 
@@ -220,7 +227,7 @@ async function scatter(
         panelHandle: dock.header.element,
         panelMove: dock.header.move,
       },
-      { reach: () => reachOf(ctx) },
+      { reach: () => roomOf(ctx, true) },
     );
   } catch (error: unknown) {
     // Back to a whole dock rather than half scattered.
@@ -264,6 +271,8 @@ export function camerasSurface(
         () => placement.where,
       );
       placement.onChange((where) => {
+        // A theme's frames may reach less far in a grid than scattered.
+        showFrames(ctx, dock);
         scatter(ctx, dock, where, load).catch(ctx.onError);
         // In or out of the Picture-in-Picture window: timers and observers follow.
         dock.tiles.rehome();

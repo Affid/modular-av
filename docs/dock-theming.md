@@ -10,6 +10,9 @@ styles what it knows and leaves the rest to the dock's own look; one that
 uses something added in a minor version requires that dock (the release
 build writes the dock version it was built with into its requirement).
 
+This is the reference. How to go about making a theme, with what the
+vines theme taught, is in [making-a-theme.md](making-a-theme.md).
+
 ## Registering a theme
 
 A theme is a small Foundry module (`flags["modular-av"].kind = "theme"`,
@@ -53,8 +56,9 @@ A frame is artwork around a tile, declared rather than scripted: the
 dock gives each tile an empty layer, `.mav-dock-tile-frame`, sized to
 `frames.reach` (how far the artwork reaches past the video on each side,
 as a fraction of the tile's width, 0 to 0.5: the furthest of all its
-variants). The grid fits tiles with room for it, and the scattered
-layout keeps it on screen and off Foundry's controls. The theme draws in
+variants), in every layout. The grid fits tiles with room for it, and the
+scattered layout keeps it on screen and off Foundry's controls. The theme
+draws in
 that layer and its `::before` and `::after` (an SVG background, or a
 9-slice `border-image`), with variants by `[data-anchor]` (the corner or
 edge a scattered tile sits against) and by state (`[data-speaking]`,
@@ -66,8 +70,38 @@ edge a scattered tile sits against) and by state (`[data-speaking]`,
 - Within 15% of each side of the video at most: inside that margin the
   frame draws nothing (`MAX_FRAME_COVER`).
 - `--mav-dock-frame-top`, `-right`, `-bottom`, `-left` (the declared
-  reach) and `--mav-dock-frame-across` (1 plus left and right) are set on
-  `.mav-dock`.
+  reach) are set on `.mav-dock`.
+- `frames.room` (optional, the same four sides) is how much room the dock
+  keeps round each tile where that differs from the reach: more, for what
+  a theme hangs outside the frame layer (a name under the tile); less,
+  where neighbours' frames may overlap. `frames.gridRoom` (optional) is
+  the room while tiles are in a grid: docked, floating or in a window of
+  the dock's own; without it `room` is used there too, and without either
+  the room is `reach`. The dock sets the room it keeps on `.mav-dock` as
+  `--mav-dock-room-top`, `-right`, `-bottom`, `-left` and
+  `--mav-dock-room-across` (1 plus left and right); these follow the
+  layout. So a theme says each size once, where it registers, and its
+  stylesheet reads it from these properties.
+- The grid fits inside the tile list's padding (`.mav-dock-tiles`): a
+  theme may add some for artwork round the whole grid.
+
+## The room under the tiles
+
+A grid seldom fills the dock's height, and a theme may draw in what is
+left. The dock says how much there is, as plain numbers:
+
+- `--mav-dock-spare` on `.mav-dock-tiles`: the height left under the
+  whole grid, in CSS pixels.
+- `--mav-dock-tile-room` on each `.mav-dock-tile`: the height left under
+  that tile, in tile widths, when no tile is under it in its column;
+  otherwise 0.
+
+Both are 0 where tiles are scattered or docked at the top or bottom. They
+are numbers without a unit so that a stylesheet can switch on them: a
+picture that should show from 200 pixels of spare height takes
+`opacity: clamp(0, var(--mav-dock-spare) - 199, 1)`, and a length scales
+the same way. Whatever a theme draws there takes no clicks and adds
+nothing to what the list scrolls.
 
 ## Checking a theme
 
@@ -119,7 +153,8 @@ and the voice panel, the side columns around the tiles). `-width` and
 sets their own on `#camera-views`, which wins over the theme's until they
 reset it (Home on the grip or a double-click on the edge), and the dock
 never takes more than half the window. Set by the dock on elements:
-`--mav-dock-columns` and `--mav-dock-tile-width` (the fitted grid, which
+`--mav-dock-spare` and `--mav-dock-tile-room` (the room under the tiles,
+above), `--mav-dock-columns` and `--mav-dock-tile-width` (the fitted grid, which
 docked at the top or bottom also has as many rows as fit; with one player
 large, the thumbnails), `--mav-dock-focus-width` and `--mav-dock-focus-span`
 (the large tile's width, and how many thumbnail columns, or rows at the top

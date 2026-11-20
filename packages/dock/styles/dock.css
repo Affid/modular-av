@@ -265,10 +265,10 @@
   --mav-dock-columns: 1;
   --mav-dock-tile-width: 100%;
   display: grid;
-  /* A cell holds a tile and its theme's frame (--mav-dock-frame-*). */
+  /* A cell holds a tile and the room its theme asks for (--mav-dock-room-*). */
   grid-template-columns: repeat(
     var(--mav-dock-columns),
-    calc(var(--mav-dock-tile-width) * var(--mav-dock-frame-across, 1))
+    calc(var(--mav-dock-tile-width) * var(--mav-dock-room-across, 1))
   );
   align-content: start;
   justify-content: center;
@@ -311,7 +311,7 @@
   grid-template-rows: repeat(var(--mav-dock-focus-span), auto);
   grid-auto-flow: column;
   grid-auto-columns: calc(
-    var(--mav-dock-tile-width) * var(--mav-dock-frame-across, 1)
+    var(--mav-dock-tile-width) * var(--mav-dock-room-across, 1)
   );
 }
 
@@ -326,10 +326,10 @@
 .mav-dock-tile {
   position: relative;
   aspect-ratio: 16 / 9;
-  margin: calc(var(--mav-dock-tile-width) * var(--mav-dock-frame-top, 0))
-    calc(var(--mav-dock-tile-width) * var(--mav-dock-frame-right, 0))
-    calc(var(--mav-dock-tile-width) * var(--mav-dock-frame-bottom, 0))
-    calc(var(--mav-dock-tile-width) * var(--mav-dock-frame-left, 0));
+  margin: calc(var(--mav-dock-tile-width) * var(--mav-dock-room-top, 0))
+    calc(var(--mav-dock-tile-width) * var(--mav-dock-room-right, 0))
+    calc(var(--mav-dock-tile-width) * var(--mav-dock-room-bottom, 0))
+    calc(var(--mav-dock-tile-width) * var(--mav-dock-room-left, 0));
   border-radius: var(--mav-dock-radius);
   background: var(--mav-dock-tile-bg);
   outline: var(--mav-dock-ring) solid transparent;

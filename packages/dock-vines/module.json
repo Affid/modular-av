@@ -1,7 +1,7 @@
 {
   "id": "modular-av-dock-vines",
   "title": "Modular A/V: Vines theme",
-  "description": "Vine leaves around the cameras of the Modular A/V dock, growing from the corner each one sits in, and a green palette. Best with the scattered layout.",
+  "description": "A druid's grove for the Modular A/V dock. Each camera sits in a frame of branches that look grown, with ivy, its name on a strip of bark under it. Docked, the dock is one plant: a trunk with boughs, and the cameras hang from them. The ivy turns to autumn while its player is muted, and a soft light shows on the picture while they speak.",
   "authors": [{ "name": "Andrei Fedorov", "url": "https://github.com/Affid" }],
   "url": "https://github.com/Affid/modular-av",
   "bugs": "https://github.com/Affid/modular-av/issues",

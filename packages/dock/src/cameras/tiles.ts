@@ -27,6 +27,8 @@ import {
   type TileHandlers,
   tileKey,
 } from "./tile.ts";
+import { listSpace } from "./list-space.ts";
+import { createRoomTeller, type Laid } from "./room-told.ts";
 
 /** What the list's custom properties say: the grid, or one player large. */
 interface Fitted {
@@ -191,6 +193,19 @@ export function createTileList(
 
   /** The tile width last fitted, to damp the dock's own resizes. */
   let last: Fitted | null = null;
+  /** The grid as it was last fitted: what the room under the tiles is worked out from. */
+  let laid: Laid | null = null;
+  const teller = createRoomTeller(element);
+  /** Tells a theme the room under the tiles; none where they are scattered or scroll sideways. */
+  const tellRoom = (): void => {
+    const order = [...tiles.values()].map((tile) => tile.element);
+    teller({
+      tiles: order,
+      large: order.findIndex((tile) => tile.hasAttribute("data-focused")),
+      laid: scattered || horizontal ? null : laid,
+      reach,
+    });
+  };
 
   /**
    * Fits the grid. A resize the list's own content caused (frames reach
@@ -199,18 +214,18 @@ export function createTileList(
    */
   const fit = (fromResize = false): void => {
     // Scattered tiles have sizes of their own.
-    if (scattered) return;
-    const view = element.ownerDocument.defaultView;
-    const gap = view
-      ? parseFloat(view.getComputedStyle(element).columnGap) || 0
-      : 0;
+    if (scattered) {
+      tellRoom();
+      return;
+    }
+    const space = listSpace(element);
     const focus = element.dataset.tileLayout === "focus";
     const result = fitted(
       {
         count: tiles.size,
-        width: element.clientWidth,
-        height: element.clientHeight,
-        gap,
+        width: space.width,
+        height: space.height,
+        gap: space.gap,
         // Thumbnails have a smaller floor of their own.
         ...(focus ? {} : { minTileWidth: MIN_TILE_WIDTH }),
         scroll: horizontal ? "sideways" : "down",
@@ -222,13 +237,20 @@ export function createTileList(
       fromResize &&
       last?.columns === result.columns &&
       Math.abs(last.width - result.width) <= 1;
-    if (nudge) return;
+    if (nudge) {
+      // The tiles keep their size; the room under them may still have changed.
+      laid = { fit: last ?? result, space, focus };
+      tellRoom();
+      return;
+    }
     last = result;
+    laid = { fit: result, space, focus };
     const style = element.style;
     style.setProperty("--mav-dock-columns", String(result.columns));
     style.setProperty("--mav-dock-tile-width", px(result.width));
     style.setProperty("--mav-dock-focus-width", px(result.focusWidth));
     style.setProperty("--mav-dock-focus-span", String(result.span));
+    tellRoom();
   };
 
   const markFocus = (): void => {
@@ -239,6 +261,7 @@ export function createTileList(
     const id = focused && tiles.has(focused) ? focused : (firstOther ?? own);
     for (const [tileId, tile] of tiles)
       tile.element.toggleAttribute("data-focused", tileId === id);
+    tellRoom();
   };
 
   /** The strip back to its start, where the focused tile now is. */
