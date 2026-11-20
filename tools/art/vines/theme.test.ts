@@ -31,7 +31,7 @@ describe("the vines theme", () => {
     );
   });
 
-  it("registers half a shared branch as its reach in a grid, and draws the cell in a layer as wide as the lattice's", async () => {
+  it("registers half a shared branch as its room in a grid, and draws the cell in a layer as wide as the lattice's", async () => {
     const [entry, css] = [
       await read("src/index.ts"),
       await read("public/vines.css"),
@@ -39,7 +39,7 @@ describe("the vines theme", () => {
     const share = String(Math.round(GRID_SHARE * 1000) / 1000);
 
     expect(entry).toContain(
-      `gridReach: { top: ${share}, right: ${share}, bottom: ${share}, left: ${share} }`,
+      `gridRoom: { top: ${share}, right: ${share}, bottom: ${share}, left: ${share} }`,
     );
     expect(css).toContain(`--mav-dock-frame-top: ${String(GRID_REACH)};`);
     expect(css).toContain(`--mav-dock-frame-left: ${String(GRID_REACH)};`);
