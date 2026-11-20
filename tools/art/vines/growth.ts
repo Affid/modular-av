@@ -6,12 +6,12 @@ import {
   inBox,
   inView,
   lerp,
-  type Mirror,
   mirrorFor,
   type Origin,
   type Point,
 } from "./geometry.ts";
 import type { LeafShape } from "./leaves.ts";
+import { bendOnto, type Outline, PLAIN_OUTLINE } from "./outline.ts";
 import { createRandom, type Random } from "./random.ts";
 import {
   FAR,
@@ -74,12 +74,38 @@ export function leafExtent({ base, angle, length }: Placed): readonly Point[] {
   ];
 }
 
-/** The largest size up to `size` at which a leaf fits there; 0 if none worth drawing does. */
-function fitLeaf(base: Point, angle: number, size: number): number {
+/**
+ * Where what is grown round the straight frame ends up: mirrored for its
+ * corner, then bent onto its frame's outline.
+ */
+interface Placement {
+  readonly point: (p: Point) => Point;
+  readonly leaf: (placed: Placed) => Placed;
+}
+
+function placementFor(origin: Origin, outline: Outline): Placement {
+  const mirror = mirrorFor(origin);
+  const bend = bendOnto(outline);
+  return {
+    point: (p) => bend(mirror.point(p)).at,
+    leaf: ({ base, angle, length }) => {
+      const bent = bend(mirror.point(base));
+      return { base: bent.at, angle: mirror.angle(angle) + bent.turn, length };
+    },
+  };
+}
+
+/** The largest size up to `size` at which a leaf fits where it ends up; 0 if none worth drawing does. */
+function fitLeaf(
+  base: Point,
+  angle: number,
+  size: number,
+  place: Placement,
+): number {
   const fits = (length: number): boolean =>
-    leafExtent({ base, angle, length })
-      .slice(1)
-      .every((p) => inView(p, 5) && !inBox(FACES, p));
+    leafExtent(place.leaf({ base, angle, length })).every(
+      (p) => inView(p, 5) && !inBox(FACES, p),
+    );
   return (
     [1, 0.8, 0.62, 0.48]
       .map((k) => size * k)
@@ -122,6 +148,7 @@ function leafAt(
   i: number,
   side: number,
   plan: LeafPlan,
+  place: Placement,
 ): Foliage {
   const sample = stem[i];
   if (!sample) return NO_FOLIAGE;
@@ -135,7 +162,7 @@ function leafAt(
       sample.at[1] + Math.sin(angle) * reach,
     ];
     const size = lerp(plan.big, plan.small, t) * random.between(0.8, 1.15);
-    return { base, angle, length: fitLeaf(base, angle, size) };
+    return { base, angle, length: fitLeaf(base, angle, size, place) };
   });
   const placed = tries.find((leaf) => leaf.length > 0);
   if (!placed) return NO_FOLIAGE;
@@ -149,7 +176,12 @@ function leafAt(
 }
 
 /** Leaves along a stem, on alternate sides, smaller toward its tip. */
-function leavesAlong(random: Random, stem: Stem, plan: LeafPlan): Foliage {
+function leavesAlong(
+  random: Random,
+  stem: Stem,
+  plan: LeafPlan,
+  place: Placement,
+): Foliage {
   const start = {
     next: random.between(20, 50),
     side: random.next() < 0.5 ? 1 : -1,
@@ -160,7 +192,7 @@ function leavesAlong(random: Random, stem: Stem, plan: LeafPlan): Foliage {
     const next =
       sample.along + random.between(plan.every * 0.7, plan.every * 1.3);
     if (!sample.shown) return { ...state, next };
-    const grown = leafAt(random, stem, i, state.side, plan);
+    const grown = leafAt(random, stem, i, state.side, plan, place);
     return { next, side: -state.side, foliage: joined([state.foliage, grown]) };
   }, start).foliage;
 }
@@ -172,6 +204,7 @@ function cornerLeaves(
   out: number,
   count: number,
   size: number,
+  place: Placement,
 ): readonly Leaf[] {
   return Array.from({ length: count }).flatMap((_, i) => {
     const across = count > 1 ? i / (count - 1) : 0.5;
@@ -180,7 +213,7 @@ function cornerLeaves(
       corner[0] + random.between(-14, 14),
       corner[1] + random.between(-14, 14),
     ];
-    const length = fitLeaf(base, angle, size * random.between(0.8, 1.1));
+    const length = fitLeaf(base, angle, size * random.between(0.8, 1.1), place);
     const shape = random.pick<LeafShape>(["ivy5", "ivy5", "ivy3", "heart"]);
     return length > 0 ? [finish(random, { base, angle, length }, shape)] : [];
   });
@@ -200,43 +233,48 @@ const SMALL: LeafPlan = {
   shapes: ["heart", "ivy3", "young"],
 };
 
-function mirrored(growth: Growth, mirror: Mirror): Growth {
+/** The plant as it was grown, moved to where it ends up. */
+function placed(growth: Growth, place: Placement): Growth {
   const stem = (s: Stem): Stem =>
-    s.map((q) => ({ ...q, at: mirror.point(q.at) }));
+    s.map((q) => ({ ...q, at: place.point(q.at) }));
   return {
     stems: growth.stems.map(stem),
     shoots: growth.shoots.map(stem),
-    stalks: growth.stalks.map(([a, b]) => [mirror.point(a), mirror.point(b)]),
-    leaves: growth.leaves.map((leaf) => ({
-      ...leaf,
-      base: mirror.point(leaf.base),
-      angle: mirror.angle(leaf.angle),
-    })),
+    stalks: growth.stalks.map(([a, b]) => [place.point(a), place.point(b)]),
+    leaves: growth.leaves.map((leaf) => ({ ...leaf, ...place.leaf(leaf) })),
   };
 }
 
-/** One tile's vines, grown from the corner `origin`. */
-export function grow(seed: number, origin: Origin): Growth {
+/**
+ * One tile's vines, grown from the corner `origin` along its frame's
+ * outline (a plain rounded frame if none is given).
+ */
+export function grow(
+  seed: number,
+  origin: Origin,
+  outline: Outline = PLAIN_OUTLINE,
+): Growth {
   const random = createRandom(seed);
+  const place = placementFor(origin, outline);
   const stems = mainStems(random);
   const onStems = stems.map((stem, i) =>
-    leavesAlong(random, stem, i < 2 ? LONG : SHORT),
+    leavesAlong(random, stem, i < 2 ? LONG : SHORT, place),
   );
-  const hanging = hangingShoots(random, stems);
-  const onShoots = hanging.map((s) => leavesAlong(random, s, SMALL));
-  const curled = tendrils(random, stems);
+  const hanging = hangingShoots(random, stems, place.point);
+  const onShoots = hanging.map((s) => leavesAlong(random, s, SMALL, place));
+  const curled = tendrils(random, stems, place.point);
   const foliage = joined([...onStems, ...onShoots]);
   const corners = [
-    ...cornerLeaves(random, NEAR, -Math.PI * 0.75, 6, 100),
-    ...cornerLeaves(random, FAR, Math.PI * 0.25, 4, 84),
+    ...cornerLeaves(random, NEAR, -Math.PI * 0.75, 6, 100, place),
+    ...cornerLeaves(random, FAR, Math.PI * 0.25, 4, 84, place),
   ];
-  return mirrored(
+  return placed(
     {
       stems,
       shoots: [...hanging, ...curled],
       stalks: foliage.stalks,
       leaves: [...foliage.leaves, ...corners],
     },
-    mirrorFor(origin),
+    place,
   );
 }

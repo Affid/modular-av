@@ -43,22 +43,32 @@ export const blurFilter = (id: string, deviation: number): string =>
 
 /** How thick a side of the frame is, and how much of it lies over the video. */
 export const THICKNESS = 58;
-export const COVER = 12;
+const OVERLAP = 12;
 
 /** The centre line of each side of the frame. */
 export const SIDES = {
-  top: TILE.top + COVER - THICKNESS / 2,
-  bottom: TILE.bottom - COVER + THICKNESS / 2,
-  left: TILE.left + COVER - THICKNESS / 2,
-  right: TILE.right - COVER + THICKNESS / 2,
+  top: TILE.top + OVERLAP - THICKNESS / 2,
+  bottom: TILE.bottom - OVERLAP + THICKNESS / 2,
+  left: TILE.left + OVERLAP - THICKNESS / 2,
+  right: TILE.right - OVERLAP + THICKNESS / 2,
 } as const;
 
-/** Faces: no leaf or stem is drawn inside this box. */
+/**
+ * How much of each side of the video the dock lets a frame cover (its
+ * MAX_FRAME_COVER): the rest, the middle, is the faces'.
+ */
+export const COVER = 0.15;
+
+/**
+ * Faces: no leaf or stem is drawn inside this box, the picture's middle and
+ * enough spare for the shadows they cast.
+ */
+const SPARE = 14;
 export const FACES: Box = {
-  left: TILE.left + 84,
-  top: TILE.top + 64,
-  right: TILE.right - 84,
-  bottom: TILE.bottom - 64,
+  left: TILE.left + COVER * TILE_WIDTH - SPARE,
+  top: TILE.top + COVER * TILE_HEIGHT - SPARE,
+  right: TILE.right - COVER * TILE_WIDTH + SPARE,
+  bottom: TILE.bottom - COVER * TILE_HEIGHT + SPARE,
 };
 
 export const inBox = (box: Box, [x, y]: Point): boolean =>

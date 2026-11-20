@@ -8,16 +8,18 @@
 </a>
 
 A theme for [Modular A/V](../../README.md)'s dock, `modular-av-dock`: each
-camera sits in a frame of woven branches, with ivy growing from one of its
-corners. While someone speaks, the picture's edge glows in a light tint of
-their colour. While they're muted, their leaves turn to autumn, and a
-player who is out of the call has bare stems. The dock, its menus and the
-settings window take a palette of bark and leaf. It suits the dock's
-scattered layout best, where each camera's ivy grows from the corner of
-the screen it sits in, and the dock offers that layout when the theme is
-chosen; it works in every layout.
+camera sits in a frame that looks grown rather than built, branches twisted
+into an uneven loop, with ivy growing from one of its corners. There are
+four frames, no two the same shape, and the picture is cut to its frame.
+While someone speaks, a soft light in a tint of their colour shows on the
+picture's rim, between the branches. While they're muted, their leaves
+turn to autumn, and a player who is out of the call has bare stems. The
+dock, its menus and the settings window take a palette of bark and leaf.
+It suits the dock's scattered layout best, where each camera takes the
+frame for the corner of the screen it sits in, and the dock offers that
+layout when the theme is chosen; it works in every layout.
 
-![Four cameras scattered to the corners of Foundry's screen, each in a frame of woven branches with ivy growing from its corner](../../docs/images/dock-scattered-vines.png)
+![Four cameras scattered to the corners of Foundry's screen, each in an uneven frame of twisted branches with ivy growing from its corner](../../docs/images/dock-scattered-vines.png)
 
 ## Install
 
@@ -48,14 +50,15 @@ For someone reading the code. How the modules fit together is in
 
 - **What it adds**: one theme, registered with the dock's
   `themes.register` (`src/index.ts`, 29 lines).
-- **Code**: that file and a stylesheet of about 170 lines
+- **Code**: that file and a stylesheet of about 180 lines
   (`public/vines.css`). No logic of its own. The entry file is held
   under 2 KB and the stylesheet under 8 KB.
-- **Pictures**: 13 SVG files in `public/frames`, about 240 KB together:
-  the frame, and for each of the four corners the ivy in summer, its
-  autumn leaves, and its bare stems. They are drawn by a script,
-  `tools/art/vines` (run `pnpm art:vines` after changing it): the same
-  pictures every time, from a fixed seed for each corner. A test fails
+- **Pictures**: 24 SVG files in `public/frames`, about 365 KB together.
+  For each of the four frames: its branches, the picture's shape (the
+  video's mask and the ground behind it), the speaking light, and the ivy
+  in summer, its autumn leaves and its bare stems. They are drawn by a
+  script, `tools/art/vines` (run `pnpm art:vines` after changing it): the
+  same pictures every time, from fixed seeds for each frame. A test fails
   when the files here aren't what the script draws.
 - **Third-party code**: none. **Network**: none. **Storage**: none.
 - **Tests**: one browser test file (`pnpm playwright test
@@ -63,7 +66,8 @@ packages/dock-vines`) that runs the shared theme contract from
   `@modular-av/testing` in every layout and state (contrast, faces left
   clear, every state still shown, nothing moving under reduced motion)
   and checks each state's pictures. The script has unit tests of its
-  own: no leaf over a face, nothing outside the frame layer.
+  own: no branch or leaf in the middle of the picture, nothing outside
+  the frame layer.
 
 ## Licence
 

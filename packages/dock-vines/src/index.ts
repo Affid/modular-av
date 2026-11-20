@@ -13,9 +13,9 @@ declare global {
 const file = (path: string): string => `modules/${MODULE_ID}/${path}`;
 
 /**
- * Woven branches round each camera, with vines from one corner: the art
- * reaches 11% of a tile's width past every side, as it was drawn
- * (`REACH` in tools/art/vines/geometry.ts).
+ * Branches grown into a loop round each camera, with vines from one
+ * corner: the art reaches 11% of a tile's width past every side, as it
+ * was drawn (`REACH` in tools/art/vines/geometry.ts).
  */
 Hooks.once(DOCK_REGISTER_HOOK, (dock) => {
   dock.themes.register({

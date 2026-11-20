@@ -37,7 +37,8 @@ interface Climb {
 
 /** A stem winding round a side: in front of it, behind it, in front. */
 function climb(random: Random, spec: Climb): Stem {
-  const reach = THICKNESS / 2 + 5;
+  // A little less than the bundle's own half-width: the stem stays on it.
+  const reach = THICKNESS / 2 - 3;
   const start = random.between(0, 2 * Math.PI);
   const wobble = random.between(0, 6);
   return Array.from({ length: Math.floor(spec.length / STEP) + 1 }, (_, i) => {
@@ -144,13 +145,20 @@ export function mainStems(random: Random): readonly Stem[] {
 const sampleAt = (stem: Stem, t: number): Sample | undefined =>
   stem[Math.round(t * (stem.length - 1))];
 
-const clear = (sample: Sample): boolean =>
-  inView(sample.at, 6) && !inBox(FACES, sample.at);
+/** Where a point grown round the straight frame ends up. */
+type Place = (p: Point) => Point;
+
+/** Whether a sample ends up in the picture and off the faces. */
+const clear = (sample: Sample, place: Place): boolean => {
+  const at = place(sample.at);
+  return inView(at, 6) && !inBox(FACES, at);
+};
 
 /** Shoots that hang a little way into the picture; one that would cover a face isn't grown. */
 export function hangingShoots(
   random: Random,
   stems: readonly Stem[],
+  place: Place,
 ): readonly Stem[] {
   const hang = (
     stem: Stem | undefined,
@@ -168,7 +176,7 @@ export function hangingShoots(
       curl: 0,
       width: 4.5,
     });
-    return from && grown.every(clear) ? [grown] : [];
+    return from && grown.every((sample) => clear(sample, place)) ? [grown] : [];
   };
   return [
     ...hang(stems[0], [0.25, 0.4], [1.2, 1.9], [58, 74], 0.004),
@@ -182,6 +190,7 @@ export function hangingShoots(
 export function tendrils(
   random: Random,
   stems: readonly Stem[],
+  place: Place,
 ): readonly Stem[] {
   const spots = [
     [0, 0.5, -Math.PI / 2],
@@ -201,7 +210,7 @@ export function tendrils(
       curl: 0.22 * way(),
       width: 2.6,
     });
-    const end = grown.findIndex((sample) => !clear(sample));
+    const end = grown.findIndex((sample) => !clear(sample, place));
     const kept = end < 0 ? grown : grown.slice(0, end);
     return from && kept.length > 6 ? [kept] : [];
   });

@@ -4,34 +4,45 @@
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ROOT } from "../../workspace.ts";
-import { wovenFrame } from "./frame.ts";
+import { drawFrame } from "./frame.ts";
 import { type Origin, ORIGINS } from "./geometry.ts";
 import { grow } from "./growth.ts";
+import { createOutline } from "./outline.ts";
 import { paintFoliage, paintVines } from "./paint.ts";
 
 export const ART_DIR = join(ROOT, "packages", "dock-vines", "public", "frames");
 
-/** Each corner's own vines: chosen by eye, for vines that fill their corner. */
-const SEEDS: Readonly<Record<Origin, number>> = {
-  tl: 11,
-  tr: 23,
-  bl: 37,
-  br: 53,
+/**
+ * Each corner's own frame and vines: its outline, its branches and its
+ * ivy, chosen by eye for frames that differ and vines that fill their corner.
+ */
+const SEEDS: Readonly<
+  Record<Origin, { outline: number; frame: number; vines: number }>
+> = {
+  tl: { outline: 9, frame: 109, vines: 11 },
+  tr: { outline: 4, frame: 104, vines: 23 },
+  bl: { outline: 17, frame: 117, vines: 37 },
+  br: { outline: 31, frame: 131, vines: 53 },
 };
 
 /** Every picture, by file name. */
 export function artFiles(): ReadonlyMap<string, string> {
-  return new Map([
-    ["frame.svg", wovenFrame()],
-    ...ORIGINS.flatMap((origin): readonly (readonly [string, string])[] => {
-      const growth = grow(SEEDS[origin], origin);
+  return new Map(
+    ORIGINS.flatMap((origin): readonly (readonly [string, string])[] => {
+      const seeds = SEEDS[origin];
+      const outline = createOutline(seeds.outline);
+      const art = drawFrame(outline, seeds.frame);
+      const growth = grow(seeds.vines, origin, outline);
       return [
+        [`frame-${origin}.svg`, art.frame],
+        [`shape-${origin}.svg`, art.shape],
+        [`light-${origin}.svg`, art.light],
         [`vines-${origin}-green.svg`, paintVines(growth, "green")],
         [`leaves-${origin}-autumn.svg`, paintFoliage(growth, "autumn")],
         [`vines-${origin}-bare.svg`, paintVines(growth, "bare")],
       ];
     }),
-  ]);
+  );
 }
 
 /** `fallback` when the file or folder isn't there; any other failure stands. */

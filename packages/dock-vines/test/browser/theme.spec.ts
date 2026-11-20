@@ -11,8 +11,14 @@ themeContract({
   layouts: ["Docked on the left", "Floating", "Scattered over the screen"],
 });
 
-/** The vines palette's tile background, #17110b. */
-const VINE_TILE = "rgb(23, 17, 11)";
+/** Whether a picture's ground is one of the theme's shapes. */
+const shaped = (page: Page): Promise<boolean> =>
+  page
+    .locator(".mav-dock-tile-media")
+    .first()
+    .evaluate((media) =>
+      getComputedStyle(media).backgroundImage.includes("frames/shape-"),
+    );
 
 async function open(
   page: Page,
@@ -35,7 +41,7 @@ const tileOf = (page: Page, id: string): Locator =>
 /** A style of a tile's frame layer, or of one of its two painted layers. */
 const frameStyle = (
   tile: Locator,
-  property: "backgroundImage" | "opacity",
+  property: "backgroundImage" | "maskImage" | "opacity",
   layer?: "::before" | "::after",
 ): Promise<string> =>
   tile
@@ -58,7 +64,7 @@ const CORNER_OF: Readonly<Record<string, string>> = {
   bottom: "br",
 };
 
-test("frames each tile in woven branches, with vines from a corner of its own", async ({
+test("frames each tile in branches of its own shape, with vines from its corner", async ({
   page,
 }) => {
   const loaded: number[] = [];
@@ -68,22 +74,31 @@ test("frames each tile in woven branches, with vines from a corner of its own", 
   });
   await open(page, "vines", ["p1", "p2", "p3"]);
 
-  const pictures = await Promise.all(
-    ["gm1", "p1", "p2", "p3"].map((id) =>
-      frameStyle(tileOf(page, id), "backgroundImage"),
-    ),
-  );
-
-  // Docked, the tiles take the four corners in turn; the frame is under each.
-  pictures.forEach((picture, i) => {
-    expect(picture).toMatch(
+  // Docked, the tiles take the four frames in turn.
+  for (const [i, id] of ["gm1", "p1", "p2", "p3"].entries()) {
+    const corner = CORNERS[i] ?? "";
+    expect(await frameStyle(tileOf(page, id), "backgroundImage")).toMatch(
       new RegExp(
-        `frames/vines-${CORNERS[i] ?? ""}-green\\.svg.*frames/frame\\.svg`,
+        `frames/vines-${corner}-green\\.svg.*frames/frame-${corner}\\.svg`,
       ),
     );
-  });
-  // Each tile's summer vines and autumn leaves, and the one frame.
-  await expect.poll(() => loaded.length).toBeGreaterThanOrEqual(9);
+    // The picture is cut to that frame's shape, over ground of the same shape.
+    const media = tileOf(page, id).locator(".mav-dock-tile-media");
+    expect(
+      await media
+        .locator(".mav-dock-tile-video")
+        .evaluate((video) => getComputedStyle(video).maskImage),
+    ).toContain(`frames/shape-${corner}.svg`);
+    expect(
+      await media.evaluate((el) => getComputedStyle(el).backgroundImage),
+    ).toContain(`frames/shape-${corner}.svg`);
+    await expect(tileOf(page, id)).toHaveCSS(
+      "background-color",
+      "rgba(0, 0, 0, 0)",
+    );
+  }
+  // Each tile's frame, shape, light, summer vines and autumn leaves.
+  await expect.poll(() => loaded.length).toBeGreaterThanOrEqual(20);
   expect(new Set(loaded)).toEqual(new Set([200]));
 });
 
@@ -132,7 +147,7 @@ test("turns a muted player's leaves to autumn, over the same vines", async ({
   expect(await frameStyle(other, "opacity", "::before")).toBe("0");
 });
 
-test("glows inside the frame while a player speaks, in place of the dock's ring", async ({
+test("lights the picture's rim while a player speaks, in place of the dock's ring", async ({
   page,
 }) => {
   await open(page, "vines");
@@ -143,25 +158,13 @@ test("glows inside the frame while a player speaks, in place of the dock's ring"
 
   await expect(tile).toHaveAttribute("data-speaking", "");
   await expect.poll(() => frameStyle(tile, "opacity", "::after")).toBe("1");
-  // The ring is kept, clear: forced colours draw it, where a glow is lost.
+  // The light is its frame's own picture: it stops at the branches.
+  expect(await frameStyle(tile, "maskImage", "::after")).toContain(
+    "frames/light-tr.svg",
+  );
+  // The ring is kept, clear: forced colours draw it, where a light is lost.
   await expect(tile).toHaveCSS("outline-color", "rgba(0, 0, 0, 0)");
   await expect(tile).not.toHaveCSS("outline-style", "none");
-  // The glow lies inside the video's edge, clear of the branches.
-  const inset = await tile.evaluate((element) => {
-    const frame = element.querySelector(".mav-dock-tile-frame");
-    if (!frame) return undefined;
-    const video = element.getBoundingClientRect();
-    const layer = frame.getBoundingClientRect();
-    const glow = getComputedStyle(frame, "::after");
-    return {
-      left: layer.left + parseFloat(glow.left) - video.left,
-      top: layer.top + parseFloat(glow.top) - video.top,
-      width: video.width,
-    };
-  });
-  expect(inset?.left).toBeGreaterThan(0);
-  expect(inset?.top).toBeGreaterThan(0);
-  expect(inset?.left).toBeLessThan((inset?.width ?? 0) * 0.03);
 });
 
 test("shows bare stems while the player is out of the call", async ({
@@ -181,7 +184,7 @@ test("shows bare stems while the player is out of the call", async ({
 
   await expect(own).not.toHaveAttribute("data-connected");
   expect(await frameStyle(own, "backgroundImage")).toMatch(
-    /frames\/vines-tl-bare\.svg.*frames\/frame\.svg/,
+    /frames\/vines-tl-bare\.svg.*frames\/frame-tl\.svg/,
   );
   expect(await frameStyle(own, "opacity", "::before")).toBe("0");
 });
@@ -196,10 +199,7 @@ test("loads only its own stylesheet, and only while chosen", async ({
     "href",
     "/modules/modular-av-dock-vines/vines.css",
   );
-  await expect(page.locator(".mav-dock-tile").first()).toHaveCSS(
-    "background-color",
-    VINE_TILE,
-  );
+  expect(await shaped(page)).toBe(true);
 
   await page.evaluate(() =>
     window.harness?.client.game.settings.set(
@@ -210,10 +210,7 @@ test("loads only its own stylesheet, and only while chosen", async ({
   );
 
   await expect(page.locator("link[data-mav-theme]")).toHaveCount(0);
-  await expect(page.locator(".mav-dock-tile").first()).not.toHaveCSS(
-    "background-color",
-    VINE_TILE,
-  );
+  expect(await shaped(page)).toBe(false);
 });
 
 test("is offered without it: the dock's own look stays", async ({ page }) => {
@@ -307,17 +304,20 @@ for (const { kind, choice } of [
           const api = window.harness?.client.game.modules.get("modular-av")
             ?.api as ModularAV;
           const doc = api.windows[which].current?.document;
-          const tile = doc?.querySelector(".mav-dock-tile");
+          const tile = doc?.querySelector(".mav-dock-tile-media");
           return tile && doc
             ? {
                 themed:
                   doc.documentElement.classList.contains("mav-theme-vines"),
-                background: getComputedStyle(tile).backgroundColor,
+                shaped:
+                  getComputedStyle(tile).backgroundImage.includes(
+                    "frames/shape-",
+                  ),
               }
             : null;
         }, kind),
       )
-      .toEqual({ themed: true, background: VINE_TILE });
+      .toEqual({ themed: true, shaped: true });
   });
 
 test("the docked grid settles with frames that reach past the tiles", async ({

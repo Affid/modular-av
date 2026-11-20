@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { ROOT } from "../../workspace.ts";
 import { artFiles } from "./files.ts";
-import { COVER, REACH, TILE, VIEW } from "./geometry.ts";
+import { REACH } from "./geometry.ts";
 
 const THEME = join(ROOT, "packages", "dock-vines");
 const read = (path: string): Promise<string> =>
@@ -38,13 +38,17 @@ describe("the vines theme", () => {
     expect(artFiles().has(preview ?? "")).toBe(true);
   });
 
-  it("lays the speaking glow just inside the branches", async () => {
+  it("cuts the video to its frame's shape, and the light to where the branches aren't", async () => {
     const css = await read("public/vines.css");
-    const percent = (n: number): string =>
-      `${String(Math.round(n * 1000) / 10)}%`;
-    const fromTop = (TILE.top + COVER) / VIEW.height;
-    const fromSide = (TILE.left + COVER) / VIEW.width;
 
-    expect(css).toContain(`inset: ${percent(fromTop)} ${percent(fromSide)};`);
+    expect(css).toMatch(
+      /\.mav-dock-tile-video \{[^}]*mask: var\(--vines-shape\)/,
+    );
+    expect(css).toMatch(
+      /\.mav-dock-tile-media \{[^}]*background: var\(--vines-shape\)/,
+    );
+    expect(css).toMatch(
+      /\.mav-dock-tile-frame::after \{[^}]*mask: var\(--vines-light\)/,
+    );
   });
 });

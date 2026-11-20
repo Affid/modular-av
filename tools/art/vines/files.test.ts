@@ -9,17 +9,29 @@ const scratch = (): Promise<string> => mkdtemp(join(tmpdir(), "vines-art-"));
 describe("artFiles", () => {
   const files = artFiles();
 
-  it("draws the frame, and each corner's vines in summer, autumn and bare", () => {
+  it("draws each corner's frame, the picture's shape, the speaking light, and its vines in summer, autumn and bare", () => {
     expect([...files.keys()].sort()).toEqual(
-      [
-        "frame.svg",
-        ...["tl", "tr", "bl", "br"].flatMap((corner) => [
+      ["tl", "tr", "bl", "br"]
+        .flatMap((corner) => [
+          `frame-${corner}.svg`,
+          `shape-${corner}.svg`,
+          `light-${corner}.svg`,
           `vines-${corner}-green.svg`,
           `leaves-${corner}-autumn.svg`,
           `vines-${corner}-bare.svg`,
-        ]),
-      ].sort(),
+        ])
+        .sort(),
     );
+  });
+
+  it("gives each corner a frame of its own shape", () => {
+    for (const kind of ["frame", "shape", "light"]) {
+      const pictures = ["tl", "tr", "bl", "br"].map((c) =>
+        files.get(`${kind}-${c}.svg`),
+      );
+
+      expect(new Set(pictures).size).toBe(4);
+    }
   });
 
   it("grows each corner's vines differently", () => {
@@ -36,7 +48,7 @@ describe("artFiles", () => {
       0,
     );
 
-    expect(total).toBeLessThan(260_000);
+    expect(total).toBeLessThan(420_000);
   });
 });
 
@@ -55,8 +67,8 @@ describe("writeArt and staleArt", () => {
     await writeArt(dir);
 
     expect(await staleArt(dir)).toEqual([]);
-    expect(await readFile(join(dir, "frame.svg"), "utf8")).toBe(
-      artFiles().get("frame.svg"),
+    expect(await readFile(join(dir, "frame-tl.svg"), "utf8")).toBe(
+      artFiles().get("frame-tl.svg"),
     );
   });
 
@@ -71,9 +83,9 @@ describe("writeArt and staleArt", () => {
   it("reports a file someone edited", async () => {
     const dir = await scratch();
     await writeArt(dir);
-    await writeFile(join(dir, "frame.svg"), "<svg/>");
+    await writeFile(join(dir, "frame-tl.svg"), "<svg/>");
 
-    expect(await staleArt(dir)).toEqual(["frame.svg"]);
+    expect(await staleArt(dir)).toEqual(["frame-tl.svg"]);
   });
 
   it("reports and removes a picture the generator no longer draws, and nothing else", async () => {

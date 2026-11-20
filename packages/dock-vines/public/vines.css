@@ -22,15 +22,19 @@
   --mav-dock-radius: 6px;
 }
 
-/* ---- Frames: woven branches, with vines from one corner ---- */
+/* ---- Frames: branches grown into a loop, with ivy from one corner ---- */
 
-/* Each tile's vines grow from a corner of its own: its place in the list
-   picks one, in turn. */
+/* There are four frames, each with an outline, branches and ivy of its
+   own. A scattered tile takes the one for the corner or edge of the
+   screen it sits against; elsewhere the tiles take them in turn. */
 .mav-theme-vines .mav-dock-tile {
+  --vines-frame: url("frames/frame-tl.svg");
+  --vines-shape: url("frames/shape-tl.svg");
+  --vines-light: url("frames/light-tl.svg");
   --vines-summer: url("frames/vines-tl-green.svg");
   --vines-autumn: url("frames/leaves-tl-autumn.svg");
   --vines-bare: url("frames/vines-tl-bare.svg");
-  /* The speaker's colour, lightened so that a dark one still glows. */
+  /* The speaker's colour, lightened so that a dark one still shows. */
   --vines-glow: color-mix(
     in oklab,
     var(--mav-dock-tile-color, var(--mav-speaking)) 55%,
@@ -38,86 +42,93 @@
   );
 }
 
-.mav-theme-vines .mav-dock-tile:nth-child(4n + 2) {
-  --vines-summer: url("frames/vines-tr-green.svg");
-  --vines-autumn: url("frames/leaves-tr-autumn.svg");
-  --vines-bare: url("frames/vines-tr-bare.svg");
-}
-
-.mav-theme-vines .mav-dock-tile:nth-child(4n + 3) {
-  --vines-summer: url("frames/vines-bl-green.svg");
-  --vines-autumn: url("frames/leaves-bl-autumn.svg");
-  --vines-bare: url("frames/vines-bl-bare.svg");
-}
-
-.mav-theme-vines .mav-dock-tile:nth-child(4n) {
-  --vines-summer: url("frames/vines-br-green.svg");
-  --vines-autumn: url("frames/leaves-br-autumn.svg");
-  --vines-bare: url("frames/vines-br-bare.svg");
-}
-
-/* Scattered, a tile sits against a corner or an edge of the screen: its
-   vines grow from there. */
 .mav-theme-vines
-  .mav-dock-tile:is([data-anchor="top-left"], [data-anchor="top"]) {
-  --vines-summer: url("frames/vines-tl-green.svg");
-  --vines-autumn: url("frames/leaves-tl-autumn.svg");
-  --vines-bare: url("frames/vines-tl-bare.svg");
-}
-
-.mav-theme-vines
-  .mav-dock-tile:is([data-anchor="top-right"], [data-anchor="right"]) {
+  .mav-dock-tile:is(
+    :not([data-anchor]):nth-child(4n + 2),
+    [data-anchor="top-right"],
+    [data-anchor="right"]
+  ) {
+  --vines-frame: url("frames/frame-tr.svg");
+  --vines-shape: url("frames/shape-tr.svg");
+  --vines-light: url("frames/light-tr.svg");
   --vines-summer: url("frames/vines-tr-green.svg");
   --vines-autumn: url("frames/leaves-tr-autumn.svg");
   --vines-bare: url("frames/vines-tr-bare.svg");
 }
 
 .mav-theme-vines
-  .mav-dock-tile:is([data-anchor="bottom-left"], [data-anchor="left"]) {
+  .mav-dock-tile:is(
+    :not([data-anchor]):nth-child(4n + 3),
+    [data-anchor="bottom-left"],
+    [data-anchor="left"]
+  ) {
+  --vines-frame: url("frames/frame-bl.svg");
+  --vines-shape: url("frames/shape-bl.svg");
+  --vines-light: url("frames/light-bl.svg");
   --vines-summer: url("frames/vines-bl-green.svg");
   --vines-autumn: url("frames/leaves-bl-autumn.svg");
   --vines-bare: url("frames/vines-bl-bare.svg");
 }
 
 .mav-theme-vines
-  .mav-dock-tile:is([data-anchor="bottom-right"], [data-anchor="bottom"]) {
+  .mav-dock-tile:is(
+    :not([data-anchor]):nth-child(4n),
+    [data-anchor="bottom-right"],
+    [data-anchor="bottom"]
+  ) {
+  --vines-frame: url("frames/frame-br.svg");
+  --vines-shape: url("frames/shape-br.svg");
+  --vines-light: url("frames/light-br.svg");
   --vines-summer: url("frames/vines-br-green.svg");
   --vines-autumn: url("frames/leaves-br-autumn.svg");
   --vines-bare: url("frames/vines-br-bare.svg");
 }
 
-/* The frame casts its own shadow, and the glow below is the speaking cue.
-   The dock's ring stays, clear: forced colours draw it, where a glow is
-   lost. */
+/* The tile itself shows nothing: the picture is cut to its frame's shape,
+   the frame casts its own shadow, and the light below is the speaking
+   cue. The dock's ring stays, clear: forced colours draw it, where a
+   light is lost. */
 .mav-theme-vines .mav-dock .mav-dock-tile {
+  border-color: transparent;
   outline-color: transparent;
+  background: none;
   box-shadow: none;
+}
+
+/* One picture is both the ground behind the video and the video's mask.
+   The avatar over the ground is left alone: a mask would redraw it. */
+.mav-theme-vines .mav-dock-tile-media {
+  border-radius: 0;
+  background: var(--vines-shape) 0 0 / 100% 100% no-repeat;
+}
+
+.mav-theme-vines .mav-dock-tile-video {
+  mask: var(--vines-shape) 0 0 / 100% 100% no-repeat;
 }
 
 /* The pictures fill the frame layer, which the dock sizes to the declared
    reach: summer's vines over the branches. */
 .mav-theme-vines .mav-dock-tile-frame {
-  container-type: size;
   background:
     var(--vines-summer) 0 0 / 100% 100% no-repeat,
-    url("frames/frame.svg") 0 0 / 100% 100% no-repeat;
+    var(--vines-frame) 0 0 / 100% 100% no-repeat;
 }
 
 /* Out of the call: bare stems. */
 .mav-theme-vines .mav-dock-tile:not([data-connected]) .mav-dock-tile-frame {
-  background-image: var(--vines-bare), url("frames/frame.svg");
+  background-image: var(--vines-bare), var(--vines-frame);
 }
 
 .mav-theme-vines .mav-dock-tile-frame::before,
 .mav-theme-vines .mav-dock-tile-frame::after {
   content: "";
   position: absolute;
+  inset: 0;
   opacity: 0;
 }
 
 /* Muted: autumn's leaves, each over the summer leaf it was. */
 .mav-theme-vines .mav-dock-tile-frame::before {
-  inset: 0;
   background: var(--vines-autumn) 0 0 / 100% 100% no-repeat;
   transition: opacity 0.6s ease-in-out;
 }
@@ -128,19 +139,12 @@
   opacity: 1;
 }
 
-/* Speaking: a line of light and a glow just inside the branches (the video
-   within the frame layer is inset 14.06% and 9.02%; the branches cover a
-   little more). Sized by the frame layer's width, in pixels where container
-   units aren't known. */
+/* Speaking: a soft light on the picture's rim, in the speaker's colour.
+   Its picture has the branches cut out of it, so it draws no line of its
+   own: its edge is the edge they make. */
 .mav-theme-vines .mav-dock-tile-frame::after {
-  inset: 15.6% 10%;
-  border-radius: 3px;
-  box-shadow:
-    inset 0 0 0 2px var(--vines-glow),
-    inset 0 0 8px 3px var(--vines-glow);
-  box-shadow:
-    inset 0 0 0 0.35cqw var(--vines-glow),
-    inset 0 0 2.6cqw 0.8cqw var(--vines-glow);
+  background: var(--vines-glow);
+  mask: var(--vines-light) 0 0 / 100% 100% no-repeat;
   transition: opacity 0.2s ease-out;
 }
 
