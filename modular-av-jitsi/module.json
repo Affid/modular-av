@@ -1,7 +1,7 @@
 {
   "id": "modular-av-jitsi",
   "title": "Modular A/V: Jitsi",
-  "description": "Carries Modular A/V calls over a self-hosted Jitsi Meet server with token authentication.",
+  "description": "Carries Modular A/V calls over a self-hosted Jitsi Meet server: one with token authentication, or an open one joined by its room link.",
   "authors": [
     {
       "name": "Andrei Fedorov",
@@ -32,7 +32,7 @@
         "type": "module",
         "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av/module.json",
         "compatibility": {
-          "minimum": "0.14.1"
+          "minimum": "0.15.0"
         }
       }
     ]
@@ -52,12 +52,12 @@
         },
         {
           "label": "After installing",
-          "value": "Server address and app secret"
+          "value": "A room link, or the server address and app secret"
         }
       ]
     }
   },
-  "version": "0.14.1",
+  "version": "0.15.0",
   "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-jitsi/module.json",
-  "download": "https://github.com/Affid/modular-av/releases/download/modular-av-jitsi-v0.14.1/modular-av-jitsi.zip"
+  "download": "https://github.com/Affid/modular-av/releases/download/modular-av-jitsi-v0.15.0/modular-av-jitsi.zip"
 }

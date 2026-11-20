@@ -242,12 +242,12 @@
     {
       "id": "modular-av-jitsi",
       "title": "Modular A/V: Jitsi",
-      "description": "Carries Modular A/V calls over a self-hosted Jitsi Meet server with token authentication.",
+      "description": "Carries Modular A/V calls over a self-hosted Jitsi Meet server: one with token authentication, or an open one joined by its room link.",
       "kind": "service",
       "requires": [
         {
           "id": "modular-av",
-          "minimum": "0.14.1"
+          "minimum": "0.15.0"
         }
       ],
       "facts": [
@@ -261,11 +261,11 @@
         },
         {
           "label": "After installing",
-          "value": "Server address and app secret"
+          "value": "A room link, or the server address and app secret"
         }
       ],
       "icon": "fa-solid fa-server",
-      "version": "0.14.1",
+      "version": "0.15.0",
       "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-jitsi/module.json"
     },
     {
