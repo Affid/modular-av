@@ -144,6 +144,27 @@ describe("the theme registry", () => {
     expect(Object.isFrozen(frames?.gridRoom)).toBe(true);
   });
 
+  it("reads each side of a reach once: what it checked is what it keeps", () => {
+    const registry = createThemeRegistry();
+    let reads = 0;
+    const shifty = {
+      right: 0.1,
+      bottom: 0.1,
+      left: 0.1,
+      // Fine when it is checked, far too much when it is read again.
+      get top(): number {
+        reads += 1;
+        return reads === 1 ? 0.1 : 9;
+      },
+    };
+
+    registry.run(() => {
+      registry.register({ ...vines, frames: { reach: shifty } });
+    });
+
+    expect(registry.get("vines")?.frames?.reach.top).toBe(0.1);
+  });
+
   it("leaves out the room a theme doesn't give", () => {
     const registry = createThemeRegistry();
 
@@ -387,9 +408,7 @@ describe("a theme's frames in the dock", () => {
     const root = host.element.querySelector<HTMLElement>(".mav-dock");
 
     expect(root?.style.getPropertyValue("--mav-dock-room-bottom")).toBe("0.2");
-    expect(root?.style.getPropertyValue("--mav-dock-frame-bottom")).toBe(
-      "0.1",
-    );
+    expect(root?.style.getPropertyValue("--mav-dock-frame-bottom")).toBe("0.1");
   });
 
   it("offers the theme's suggested layout, without moving the dock", () => {
