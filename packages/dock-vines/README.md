@@ -7,9 +7,11 @@
 </picture>
 </a>
 
-A theme for [Modular A/V](../../README.md)'s dock, `modular-av-dock`:
-cameras framed in branches that look grown rather than built, with ivy,
-on a dock that is one plant.
+A theme for [Modular A/V](../../README.md)'s dock, `modular-av-dock`: a
+druid's grove. Cameras framed in branches that look grown rather than
+built, with ivy, on a dock that is one plant. It is the look for a druid
+or a ranger at the table, and each player picks their own theme, so it
+doesn't have to be everyone's.
 
 - **Each camera** sits in a frame of its own: branches twisted into an
   uneven loop, with ivy growing from one corner. There are four frames,
@@ -38,8 +40,10 @@ camera, cameras are somewhat smaller than in the dock's own look when
 they fill the dock. A collapsed dock is too narrow for it and stays
 plain.
 
-It suits the dock's scattered layout best, and the dock offers that
-layout when the theme is chosen; it works in every layout.
+The dock offers its scattered layout when the theme is chosen, where
+the frames have the most room; docked, the dock itself is the plant. It
+works in every layout. In the theme list it is **Vines (a druid's
+grove)**.
 
 ![Four cameras scattered to the corners of Foundry's screen, each in an uneven frame of twisted branches with ivy growing from its corner](../../docs/images/dock-scattered-vines.png)
 

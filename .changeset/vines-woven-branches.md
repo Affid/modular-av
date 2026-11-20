@@ -2,7 +2,8 @@
 "@modular-av/dock-vines": minor
 ---
 
-The vines theme is redrawn, and the dock under it is one plant.
+The vines theme is redrawn, and the dock under it is one plant. In the
+theme list it is now "Vines (a druid's grove)".
 
 - Each camera sits in a frame that looks grown from branches, twisted
   into an uneven loop with ivy from one of its corners: four frames, no

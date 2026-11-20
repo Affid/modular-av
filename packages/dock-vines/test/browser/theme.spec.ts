@@ -269,7 +269,7 @@ test("is offered without it: the dock's own look stays", async ({ page }) => {
   await expect(choice).toHaveValue("default");
   await expect(choice.locator("option")).toHaveText([
     "Modular A/V's own look",
-    "Vines",
+    "Vines (a druid's grove)",
   ]);
 });
 
