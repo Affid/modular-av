@@ -19,16 +19,16 @@ import { svgDocument } from "./svg.ts";
 
 const STEP = 26;
 const TAU = 2 * Math.PI;
-const DARK = "#1b1108";
+export const DARK = "#1b1108";
 /** Ripples of the outline the light keeps clear of, and how far its blur spreads. */
 const RIPPLE = 10;
 const LIGHT_BLUR = 9;
 
-type Tone = readonly [body: string, light: string];
+export type Tone = readonly [body: string, light: string];
 /** How far out from the bundle's centre line, at a distance round the loop. */
-type Sway = (distance: number) => number;
+export type Sway = (distance: number) => number;
 
-interface Branch {
+export interface Branch {
   readonly id: string;
   readonly width: number;
   readonly tone: Tone;
@@ -187,11 +187,11 @@ function twigs(random: Random, outline: Outline): string {
   }).join("");
 }
 
-const stroke = (id: string, attributes: string): string =>
+export const stroke = (id: string, attributes: string): string =>
   `<use href="#${id}" ${attributes}/>`;
 
 /** A branch painted round: outline, body, shade, light, grain. */
-function bark({ id, width, tone }: Branch): string {
+export function bark({ id, width, tone }: Branch): string {
   const moved = (dx: number, dy: number): string =>
     `transform="translate(${num(width * dx)} ${num(width * dy)})"`;
   return (
@@ -220,7 +220,7 @@ function bark({ id, width, tone }: Branch): string {
   );
 }
 
-const defined = (branches: readonly Branch[]): string =>
+export const defined = (branches: readonly Branch[]): string =>
   branches.map((b) => `<path id="${b.id}" d="${b.d}"/>`).join("");
 
 /** The bundle's centre line, closed: inside it is the picture. */

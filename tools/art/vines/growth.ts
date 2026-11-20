@@ -3,6 +3,7 @@
 // their season's colours.
 import {
   FACES,
+  GRID_VIEW,
   inBox,
   inView,
   lerp,
@@ -18,6 +19,7 @@ import {
   hangingShoots,
   mainStems,
   NEAR,
+  type Place,
   type Stem,
   tangent,
   tendrils,
@@ -76,10 +78,10 @@ export function leafExtent({ base, angle, length }: Placed): readonly Point[] {
 
 /**
  * Where what is grown round the straight frame ends up: mirrored for its
- * corner, then bent onto its frame's outline.
+ * corner, then bent onto its frame's outline, or left straight on the
+ * lattice of a grid.
  */
-interface Placement {
-  readonly point: (p: Point) => Point;
+interface Placement extends Place {
   readonly leaf: (placed: Placed) => Placed;
 }
 
@@ -88,10 +90,29 @@ function placementFor(origin: Origin, outline: Outline): Placement {
   const bend = bendOnto(outline);
   return {
     point: (p) => bend(mirror.point(p)).at,
+    shows: inView,
     leaf: ({ base, angle, length }) => {
       const bent = bend(mirror.point(base));
       return { base: bent.at, angle: mirror.angle(angle) + bent.turn, length };
     },
+  };
+}
+
+/** On the lattice the straight frame is the frame: only the picture is smaller. */
+function latticePlacement(origin: Origin): Placement {
+  const mirror = mirrorFor(origin);
+  return {
+    point: (p) => mirror.point(p),
+    shows: ([x, y], pad) =>
+      x > GRID_VIEW.left + pad &&
+      x < GRID_VIEW.right - pad &&
+      y > GRID_VIEW.top + pad &&
+      y < GRID_VIEW.bottom - pad,
+    leaf: ({ base, angle, length }) => ({
+      base: mirror.point(base),
+      angle: mirror.angle(angle),
+      length,
+    }),
   };
 }
 
@@ -104,7 +125,7 @@ function fitLeaf(
 ): number {
   const fits = (length: number): boolean =>
     leafExtent(place.leaf({ base, angle, length })).every(
-      (p) => inView(p, 5) && !inBox(FACES, p),
+      (p) => place.shows(p, 5) && !inBox(FACES, p),
     );
   return (
     [1, 0.8, 0.62, 0.48]
@@ -247,22 +268,26 @@ function placed(growth: Growth, place: Placement): Growth {
 
 /**
  * One tile's vines, grown from the corner `origin` along its frame's
- * outline (a plain rounded frame if none is given).
+ * outline (a plain rounded frame if none is given), or on the lattice of
+ * a grid.
  */
 export function grow(
   seed: number,
   origin: Origin,
-  outline: Outline = PLAIN_OUTLINE,
+  frame: Outline | "lattice" = PLAIN_OUTLINE,
 ): Growth {
   const random = createRandom(seed);
-  const place = placementFor(origin, outline);
+  const place =
+    frame === "lattice"
+      ? latticePlacement(origin)
+      : placementFor(origin, frame);
   const stems = mainStems(random);
   const onStems = stems.map((stem, i) =>
     leavesAlong(random, stem, i < 2 ? LONG : SHORT, place),
   );
-  const hanging = hangingShoots(random, stems, place.point);
+  const hanging = hangingShoots(random, stems, place);
   const onShoots = hanging.map((s) => leavesAlong(random, s, SMALL, place));
-  const curled = tendrils(random, stems, place.point);
+  const curled = tendrils(random, stems, place);
   const foliage = joined([...onStems, ...onShoots]);
   const corners = [
     ...cornerLeaves(random, NEAR, -Math.PI * 0.75, 6, 100, place),

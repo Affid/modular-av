@@ -1,7 +1,7 @@
 {
   "id": "modular-av-dock-vines",
   "title": "Modular A/V: Vines theme",
-  "description": "Frames that look grown from branches, with ivy, for the cameras of the Modular A/V dock: no two the same shape. The ivy turns to autumn while its player is muted, and a soft light shows on the picture while they speak. Best with the scattered layout.",
+  "description": "Cameras framed in branches that look grown, with ivy, for the Modular A/V dock: a frame of its own shape round each scattered camera, one shared lattice when docked. The ivy turns to autumn while its player is muted, and a soft light shows on the picture while they speak. Best with the scattered layout.",
   "authors": [{ "name": "Andrei Fedorov", "url": "https://github.com/Affid" }],
   "url": "https://github.com/Affid/modular-av",
   "bugs": "https://github.com/Affid/modular-av/issues",

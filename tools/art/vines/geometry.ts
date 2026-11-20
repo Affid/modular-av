@@ -71,6 +71,24 @@ export const FACES: Box = {
   bottom: TILE.bottom - COVER * TILE_HEIGHT + SPARE,
 };
 
+/**
+ * In a grid (docked, floating, in a window) the cameras sit in the openings
+ * of one lattice: a frame's sides are shared with its neighbours'. The art
+ * then reaches this far past the video, what the theme registers as
+ * `frames.gridReach`, and neighbours are this far apart on each side: half
+ * a shared side, whose centre line is `SIDES`.
+ */
+export const GRID_REACH = 0.05;
+export const GRID_SHARE = (TILE.left - SIDES.left) / TILE_WIDTH;
+
+/** The frame layer in a grid: the view box of the lattice's pictures. */
+export const GRID_VIEW: Box = {
+  left: TILE.left - GRID_REACH * TILE_WIDTH,
+  top: TILE.top - GRID_REACH * TILE_WIDTH,
+  right: TILE.right + GRID_REACH * TILE_WIDTH,
+  bottom: TILE.bottom + GRID_REACH * TILE_WIDTH,
+};
+
 export const inBox = (box: Box, [x, y]: Point): boolean =>
   x > box.left && x < box.right && y > box.top && y < box.bottom;
 

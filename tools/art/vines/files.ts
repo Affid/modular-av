@@ -5,8 +5,9 @@ import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ROOT } from "../../workspace.ts";
 import { drawFrame } from "./frame.ts";
-import { type Origin, ORIGINS } from "./geometry.ts";
+import { GRID_VIEW, type Origin, ORIGINS } from "./geometry.ts";
 import { grow } from "./growth.ts";
+import { drawLattice } from "./lattice.ts";
 import { createOutline } from "./outline.ts";
 import { paintFoliage, paintVines } from "./paint.ts";
 
@@ -27,13 +28,28 @@ const SEEDS: Readonly<
 
 /** Every picture, by file name. */
 export function artFiles(): ReadonlyMap<string, string> {
-  return new Map(
-    ORIGINS.flatMap((origin): readonly (readonly [string, string])[] => {
+  return new Map([
+    ["lattice.svg", drawLattice()],
+    ...ORIGINS.flatMap((origin): readonly (readonly [string, string])[] => {
       const seeds = SEEDS[origin];
       const outline = createOutline(seeds.outline);
       const art = drawFrame(outline, seeds.frame);
       const growth = grow(seeds.vines, origin, outline);
+      // The same plant where cameras share a lattice: it has less room there.
+      const onLattice = grow(seeds.vines, origin, "lattice");
       return [
+        [
+          `grid-vines-${origin}-green.svg`,
+          paintVines(onLattice, "green", GRID_VIEW),
+        ],
+        [
+          `grid-leaves-${origin}-autumn.svg`,
+          paintFoliage(onLattice, "autumn", GRID_VIEW),
+        ],
+        [
+          `grid-vines-${origin}-bare.svg`,
+          paintVines(onLattice, "bare", GRID_VIEW),
+        ],
         [`frame-${origin}.svg`, art.frame],
         [`shape-${origin}.svg`, art.shape],
         [`light-${origin}.svg`, art.light],
@@ -42,7 +58,7 @@ export function artFiles(): ReadonlyMap<string, string> {
         [`vines-${origin}-bare.svg`, paintVines(growth, "bare")],
       ];
     }),
-  );
+  ]);
 }
 
 /** `fallback` when the file or folder isn't there; any other failure stands. */

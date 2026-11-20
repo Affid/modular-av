@@ -3,7 +3,6 @@
 import {
   FACES,
   inBox,
-  inView,
   lerp,
   type Point,
   SIDES,
@@ -145,13 +144,17 @@ export function mainStems(random: Random): readonly Stem[] {
 const sampleAt = (stem: Stem, t: number): Sample | undefined =>
   stem[Math.round(t * (stem.length - 1))];
 
-/** Where a point grown round the straight frame ends up. */
-type Place = (p: Point) => Point;
+/** Where a point grown round the straight frame ends up, and whether that is in its picture. */
+export interface Place {
+  readonly point: (p: Point) => Point;
+  /** Inside the picture, at least `pad` from its edges. */
+  readonly shows: (p: Point, pad: number) => boolean;
+}
 
 /** Whether a sample ends up in the picture and off the faces. */
 const clear = (sample: Sample, place: Place): boolean => {
-  const at = place(sample.at);
-  return inView(at, 6) && !inBox(FACES, at);
+  const at = place.point(sample.at);
+  return place.shows(at, 6) && !inBox(FACES, at);
 };
 
 /** Shoots that hang a little way into the picture; one that would cover a face isn't grown. */

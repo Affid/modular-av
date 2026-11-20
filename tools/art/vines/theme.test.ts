@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { ROOT } from "../../workspace.ts";
 import { artFiles } from "./files.ts";
-import { REACH } from "./geometry.ts";
+import { GRID_REACH, GRID_SHARE, GRID_VIEW, REACH, TILE } from "./geometry.ts";
 
 const THEME = join(ROOT, "packages", "dock-vines");
 const read = (path: string): Promise<string> =>
@@ -29,6 +29,31 @@ describe("the vines theme", () => {
     expect(entry).toContain(
       `reach: { top: ${reach}, right: ${reach}, bottom: ${reach}, left: ${reach} }`,
     );
+  });
+
+  it("registers half a shared branch as its reach in a grid, and draws the cell in a layer as wide as the lattice's", async () => {
+    const [entry, css] = [
+      await read("src/index.ts"),
+      await read("public/vines.css"),
+    ];
+    const share = String(Math.round(GRID_SHARE * 1000) / 1000);
+
+    expect(entry).toContain(
+      `gridReach: { top: ${share}, right: ${share}, bottom: ${share}, left: ${share} }`,
+    );
+    expect(css).toContain(`--mav-dock-frame-top: ${String(GRID_REACH)};`);
+    expect(css).toContain(`--mav-dock-frame-left: ${String(GRID_REACH)};`);
+  });
+
+  it("lays the grid's speaking light on the video inside the frame layer", async () => {
+    const css = await read("public/vines.css");
+    const percent = (n: number): string =>
+      `${String(Math.round(n * 10000) / 100)}%`;
+    const wide = TILE.right - TILE.left;
+    const fromSide = (GRID_REACH * wide) / (GRID_VIEW.right - GRID_VIEW.left);
+    const fromTop = (GRID_REACH * wide) / (GRID_VIEW.bottom - GRID_VIEW.top);
+
+    expect(css).toContain(`inset: ${percent(fromTop)} ${percent(fromSide)};`);
   });
 
   it("shows a picture the generator draws as its preview", async () => {

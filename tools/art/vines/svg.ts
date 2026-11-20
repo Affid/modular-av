@@ -1,8 +1,15 @@
-import { VIEW } from "./geometry.ts";
+import { type Box, VIEW } from "./geometry.ts";
 
-/** A picture that fills the frame layer, stretched with it. */
-export const svgDocument = (body: string): string =>
-  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${VIEW.width} ${VIEW.height}" preserveAspectRatio="none">${body}</svg>\n`;
+/**
+ * A picture that fills the frame layer, stretched with it: the layer round
+ * a scattered tile, or with `box` another, such as the layer in a grid.
+ */
+export function svgDocument(body: string, box?: Box): string {
+  const view = box
+    ? `${box.left} ${box.top} ${box.right - box.left} ${box.bottom - box.top}`
+    : `0 0 ${VIEW.width} ${VIEW.height}`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${view}" preserveAspectRatio="none">${body}</svg>\n`;
+}
 
 /** Every `id` a picture defines. */
 export const idsOf = (svg: string): readonly string[] =>

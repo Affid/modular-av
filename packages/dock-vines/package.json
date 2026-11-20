@@ -16,6 +16,6 @@
   },
   "modularAV": {
     "entryBudgetBytes": 2000,
-    "styleBudgetBytes": 8000
+    "styleBudgetBytes": 10000
   }
 }

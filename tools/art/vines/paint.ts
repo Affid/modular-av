@@ -1,5 +1,13 @@
 // Paints grown vines in a season's colours, as SVG that fills the frame layer.
-import { at, blurFilter, curve, num, type Point, whole } from "./geometry.ts";
+import {
+  at,
+  blurFilter,
+  type Box,
+  curve,
+  num,
+  type Point,
+  whole,
+} from "./geometry.ts";
 import type { Growth, Leaf } from "./growth.ts";
 import { type Stem, tangent } from "./stems.ts";
 import { leafDefs } from "./leaves.ts";
@@ -152,19 +160,25 @@ function foliageArt(growth: Growth, palette: Palette): string {
 
 const BLUR = blurFilter("sb", 3);
 
-/** The whole plant in a season: stems, shoots and leaves. */
-export const paintVines = (growth: Growth, season: Season): string =>
+/** The whole plant in a season: stems, shoots and leaves. `box` is the frame layer it fills, if not a scattered tile's. */
+export const paintVines = (growth: Growth, season: Season, box?: Box): string =>
   svgDocument(
     `<defs>${leafDefs()}${BLUR}</defs>` +
       stemArt(growth, PALETTES[season]) +
       foliageArt(growth, PALETTES[season]),
+    box,
   );
 
 /**
  * Only the leaves and their stalks in a season, to lay over the whole plant
  * of another: each leaf covers the one under it.
  */
-export const paintFoliage = (growth: Growth, season: Season): string =>
+export const paintFoliage = (
+  growth: Growth,
+  season: Season,
+  box?: Box,
+): string =>
   svgDocument(
     `<defs>${leafDefs()}</defs>${foliageArt(growth, PALETTES[season])}`,
+    box,
   );

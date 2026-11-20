@@ -9,18 +9,22 @@ const scratch = (): Promise<string> => mkdtemp(join(tmpdir(), "vines-art-"));
 describe("artFiles", () => {
   const files = artFiles();
 
-  it("draws each corner's frame, the picture's shape, the speaking light, and its vines in summer, autumn and bare", () => {
+  it("draws the lattice, and each corner's frame, the picture's shape, the speaking light, and its vines in summer, autumn and bare, scattered and in a grid", () => {
     expect([...files.keys()].sort()).toEqual(
-      ["tl", "tr", "bl", "br"]
-        .flatMap((corner) => [
+      [
+        "lattice.svg",
+        ...["tl", "tr", "bl", "br"].flatMap((corner) => [
+          `grid-vines-${corner}-green.svg`,
+          `grid-leaves-${corner}-autumn.svg`,
+          `grid-vines-${corner}-bare.svg`,
           `frame-${corner}.svg`,
           `shape-${corner}.svg`,
           `light-${corner}.svg`,
           `vines-${corner}-green.svg`,
           `leaves-${corner}-autumn.svg`,
           `vines-${corner}-bare.svg`,
-        ])
-        .sort(),
+        ]),
+      ].sort(),
     );
   });
 
@@ -48,7 +52,7 @@ describe("artFiles", () => {
       0,
     );
 
-    expect(total).toBeLessThan(420_000);
+    expect(total).toBeLessThan(600_000);
   });
 });
 
