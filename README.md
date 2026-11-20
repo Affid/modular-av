@@ -85,7 +85,7 @@ https://raw.githubusercontent.com/Affid/modular-av/manifests/<id>/module.json
 | Service | [`modular-av-livekit`](packages/livekit/README.md)               | Calls over your LiveKit server or LiveKit Cloud                        |
 | Service | [`modular-av-jitsi`](packages/jitsi/README.md)                   | Calls over your own Jitsi Meet server, open or with sign-in tokens     |
 | Cameras | [`modular-av-dock`](packages/dock/README.md)                     | The camera dock, voice panel and settings window                       |
-| Theme   | [`modular-av-dock-vines`](packages/dock-vines/README.md)         | Vine leaves around the cameras                                         |
+| Theme   | [`modular-av-dock-vines`](packages/dock-vines/README.md)         | Woven branches and ivy around the cameras                              |
 | Effect  | [`modular-av-mic-denoise`](packages/mic-denoise/README.md)       | Noise cancellation in your browser: RNNoise, Speex or GTCRN            |
 | Effect  | [`modular-av-livekit-krisp`](packages/livekit-krisp/README.md)   | Adds LiveKit's Krisp to noise cancellation, on LiveKit Cloud           |
 | Effect  | [`modular-av-cam-background`](packages/cam-background/README.md) | Blurs or replaces your camera's background, in your browser            |

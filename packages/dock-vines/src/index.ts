@@ -13,17 +13,17 @@ declare global {
 const file = (path: string): string => `modules/${MODULE_ID}/${path}`;
 
 /**
- * Vine leaves around each camera, growing from the corner it sits in: the
- * artwork reaches 8% of a tile's width past every side, the widest of its
- * mirrored variants.
+ * Woven branches round each camera, with vines from one corner: the art
+ * reaches 11% of a tile's width past every side, as it was drawn
+ * (`REACH` in tools/art/vines/geometry.ts).
  */
 Hooks.once(DOCK_REGISTER_HOOK, (dock) => {
   dock.themes.register({
     id: "vines",
     label: `${MODULE_ID}.label`,
     stylesheet: file("vines.css"),
-    frames: { reach: { top: 0.08, right: 0.08, bottom: 0.08, left: 0.08 } },
-    preview: file("frames/vine-corner.svg"),
+    frames: { reach: { top: 0.11, right: 0.11, bottom: 0.11, left: 0.11 } },
+    preview: file("frames/vines-tl-green.svg"),
     suggestedLayout: "scattered",
   });
 });
