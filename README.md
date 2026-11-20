@@ -83,7 +83,7 @@ https://raw.githubusercontent.com/Affid/modular-av/manifests/<id>/module.json
 | Core    | [`modular-av`](packages/core/README.md)                          | Needed by all the others                                               |
 | Service | [`modular-av-p2p`](packages/p2p/README.md)                       | Calls directly between players' browsers, no server                    |
 | Service | [`modular-av-livekit`](packages/livekit/README.md)               | Calls over your LiveKit server or LiveKit Cloud                        |
-| Service | [`modular-av-jitsi`](packages/jitsi/README.md)                   | Calls over your own Jitsi Meet server (with token authentication)      |
+| Service | [`modular-av-jitsi`](packages/jitsi/README.md)                   | Calls over your own Jitsi Meet server, open or with sign-in tokens     |
 | Cameras | [`modular-av-dock`](packages/dock/README.md)                     | The camera dock, voice panel and settings window                       |
 | Theme   | [`modular-av-dock-vines`](packages/dock-vines/README.md)         | Vine leaves around the cameras                                         |
 | Effect  | [`modular-av-mic-denoise`](packages/mic-denoise/README.md)       | Noise cancellation in your browser: RNNoise, Speex or GTCRN            |
