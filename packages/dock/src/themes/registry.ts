@@ -39,7 +39,7 @@ const isLoose = (value: unknown): value is Loose =>
 
 const SIDES = ["top", "right", "bottom", "left"] as const;
 
-/** A frame's reach as given under `name`, checked and frozen. */
+/** Four sides as given under `name` (a reach, or room), checked and frozen. */
 function checkReach(id: string, name: string, reach: unknown): FrameReach {
   if (!isLoose(reach) || !SIDES.every((side) => isReach(reach[side])))
     throw new ThemeError(
@@ -57,10 +57,15 @@ function checkReach(id: string, name: string, reach: unknown): FrameReach {
 function checkFrames(id: string, frames: unknown): FrameDefinition | undefined {
   if (frames === undefined) return undefined;
   const given = isLoose(frames) ? frames : {};
-  const reach = checkReach(id, "reach", given.reach);
-  return given.gridReach === undefined
-    ? { reach }
-    : { reach, gridReach: checkReach(id, "gridReach", given.gridReach) };
+  const optional = (name: "room" | "gridRoom"): Partial<FrameDefinition> =>
+    given[name] === undefined
+      ? {}
+      : { [name]: checkReach(id, name, given[name]) };
+  return {
+    reach: checkReach(id, "reach", given.reach),
+    ...optional("room"),
+    ...optional("gridRoom"),
+  };
 }
 
 const isLayout = (value: unknown): value is SuggestedLayout =>

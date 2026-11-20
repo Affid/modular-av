@@ -23,17 +23,22 @@ export interface FrameDefinition {
   /**
    * How far the artwork reaches past the video on each side, as a fraction
    * of the tile's width, 0 to 0.5: the furthest any variant reaches. The
-   * dock sizes the frame layer to it and keeps room for it when fitting
-   * tiles and keeping them on screen.
+   * dock sizes the frame layer to it, in every layout.
    */
   readonly reach: FrameReach;
   /**
-   * The same while tiles are laid out in a grid: docked, floating or in a
-   * window of the dock's own. For artwork that takes less room there than
-   * round a scattered tile, such as frames that neighbours share. Without
-   * it, `reach` is used in every layout.
+   * How much room the dock keeps round each tile, the same four fractions:
+   * when it fits tiles, and when it keeps scattered ones on screen. Without
+   * it the room is `reach`. More, for what a theme hangs outside the frame
+   * layer, such as a name under the tile; less, where neighbours' frames
+   * may overlap.
    */
-  readonly gridReach?: FrameReach;
+  readonly room?: FrameReach;
+  /**
+   * The room while tiles are laid out in a grid: docked, floating or in a
+   * window of the dock's own. Without it, `room` is used there too.
+   */
+  readonly gridRoom?: FrameReach;
 }
 
 /** Layouts a theme may suggest; the player is offered it, never moved. */

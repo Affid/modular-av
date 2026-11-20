@@ -27,7 +27,8 @@ import {
   type TileHandlers,
   tileKey,
 } from "./tile.ts";
-import { listSpace } from "./list-space.ts";
+import { type ListSpace, listSpace } from "./list-space.ts";
+import { roomUnder } from "./room-under.ts";
 
 /** What the list's custom properties say: the grid, or one player large. */
 interface Fitted {
@@ -59,6 +60,16 @@ function fitted(space: GridSpace, focus: boolean): Fitted {
 
 /** Below this, tiles stop shrinking and the list scrolls. */
 const MIN_TILE_WIDTH = 120;
+
+/** A 16:9 tile's height, as a fraction of its width. */
+const TILE_HEIGHT = 9 / 16;
+
+/** The grid as it was last fitted, and the space it was fitted to. */
+interface Laid {
+  readonly fit: Fitted;
+  readonly space: ListSpace;
+  readonly focus: boolean;
+}
 
 export interface TileList {
   readonly element: HTMLElement;
@@ -192,6 +203,58 @@ export function createTileList(
 
   /** The tile width last fitted, to damp the dock's own resizes. */
   let last: Fitted | null = null;
+  /** What the room under the tiles was last worked out from. */
+  let laid: Laid | null = null;
+  let roomTold = "";
+
+  /**
+   * Tells a theme the room under the tiles: the height left under the
+   * grid (`--mav-dock-spare`, in pixels) and under each tile that ends its
+   * column (`--mav-dock-tile-room`, in tile widths). None where tiles are
+   * scattered or scroll sideways. Only what the fit already knows: no
+   * layout is read, and nothing is written when nothing changed.
+   */
+  const tellRoom = (): void => {
+    const order = [...tiles.values()];
+    const large = order.findIndex((t) =>
+      t.element.hasAttribute("data-focused"),
+    );
+    const none = scattered || horizontal || !laid || laid.fit.width <= 1;
+    const key = none
+      ? `none:${String(order.length)}`
+      : JSON.stringify([laid, reach, order.length, large]);
+    if (key === roomTold) return;
+    roomTold = key;
+    const row = (width: number): number =>
+      width * (TILE_HEIGHT + reach.top + reach.bottom);
+    const room =
+      none || !laid
+        ? { spare: 0, under: order.map(() => 0) }
+        : roomUnder({
+            count: order.length,
+            columns: laid.fit.columns,
+            rowHeight: row(laid.fit.width),
+            height: laid.space.height,
+            gap: laid.space.gap,
+            ...(laid.focus && large >= 0
+              ? { large: { index: large, rowHeight: row(laid.fit.focusWidth) } }
+              : {}),
+          });
+    element.style.setProperty(
+      "--mav-dock-spare",
+      String(Math.floor(room.spare)),
+    );
+    order.forEach((tile, i) => {
+      const width =
+        laid?.focus && i === large
+          ? laid.fit.focusWidth
+          : (laid?.fit.width ?? 1);
+      tile.element.style.setProperty(
+        "--mav-dock-tile-room",
+        String(Number(((room.under[i] ?? 0) / Math.max(1, width)).toFixed(3))),
+      );
+    });
+  };
 
   /**
    * Fits the grid. A resize the list's own content caused (frames reach
@@ -200,7 +263,10 @@ export function createTileList(
    */
   const fit = (fromResize = false): void => {
     // Scattered tiles have sizes of their own.
-    if (scattered) return;
+    if (scattered) {
+      tellRoom();
+      return;
+    }
     const space = listSpace(element);
     const focus = element.dataset.tileLayout === "focus";
     const result = fitted(
@@ -220,13 +286,20 @@ export function createTileList(
       fromResize &&
       last?.columns === result.columns &&
       Math.abs(last.width - result.width) <= 1;
-    if (nudge) return;
+    if (nudge) {
+      // The tiles keep their size; the room under them may still have changed.
+      laid = { fit: last ?? result, space, focus };
+      tellRoom();
+      return;
+    }
     last = result;
+    laid = { fit: result, space, focus };
     const style = element.style;
     style.setProperty("--mav-dock-columns", String(result.columns));
     style.setProperty("--mav-dock-tile-width", px(result.width));
     style.setProperty("--mav-dock-focus-width", px(result.focusWidth));
     style.setProperty("--mav-dock-focus-span", String(result.span));
+    tellRoom();
   };
 
   const markFocus = (): void => {
@@ -237,6 +310,7 @@ export function createTileList(
     const id = focused && tiles.has(focused) ? focused : (firstOther ?? own);
     for (const [tileId, tile] of tiles)
       tile.element.toggleAttribute("data-focused", tileId === id);
+    tellRoom();
   };
 
   /** The strip back to its start, where the focused tile now is. */

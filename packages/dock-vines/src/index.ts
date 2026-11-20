@@ -26,7 +26,7 @@ Hooks.once(DOCK_REGISTER_HOOK, (dock) => {
     stylesheet: file("vines.css"),
     frames: {
       reach: { top: 0.11, right: 0.11, bottom: 0.11, left: 0.11 },
-      gridReach: { top: 0.017, right: 0.017, bottom: 0.017, left: 0.017 },
+      gridRoom: { top: 0.017, right: 0.017, bottom: 0.017, left: 0.017 },
     },
     preview: file("frames/vines-tl-green.svg"),
     suggestedLayout: "scattered",
