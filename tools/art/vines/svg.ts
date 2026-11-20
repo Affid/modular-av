@@ -1,14 +1,26 @@
 import { type Box, VIEW } from "./geometry.ts";
 
+/** A picture's own size in CSS pixels, for one a stylesheet cuts into slices. */
+export interface PictureSize {
+  readonly width: number;
+  readonly height: number;
+}
+
 /**
  * A picture that fills the frame layer, stretched with it: the layer round
- * a scattered tile, or with `box` another, such as the layer in a grid.
+ * a scattered tile, or with `box` whatever else it is drawn for. With
+ * `size` it has a size of its own, which a `border-image` slices by.
  */
-export function svgDocument(body: string, box?: Box): string {
+export function svgDocument(
+  body: string,
+  box?: Box,
+  size?: PictureSize,
+): string {
   const view = box
     ? `${box.left} ${box.top} ${box.right - box.left} ${box.bottom - box.top}`
     : `0 0 ${VIEW.width} ${VIEW.height}`;
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${view}" preserveAspectRatio="none">${body}</svg>\n`;
+  const own = size ? ` width="${size.width}" height="${size.height}"` : "";
+  return `<svg xmlns="http://www.w3.org/2000/svg"${own} viewBox="${view}" preserveAspectRatio="none">${body}</svg>\n`;
 }
 
 /** Every `id` a picture defines. */

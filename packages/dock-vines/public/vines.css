@@ -24,9 +24,9 @@
 
 /* ---- Every tile: one of four sets of pictures ---- */
 
-/* Each set has a frame, branches and ivy of its own. A scattered tile
-   takes the one for the corner or edge of the screen it sits against;
-   elsewhere the tiles take them in turn. */
+/* Each set has a frame, branches and ivy of its own, and lianas tied to
+   that frame. A scattered tile takes the one for the corner or edge of
+   the screen it sits against; elsewhere the tiles take them in turn. */
 .mav-theme-vines .mav-dock-tile {
   --vines-frame: url("frames/frame-tl.svg");
   --vines-shape: url("frames/shape-tl.svg");
@@ -34,9 +34,12 @@
   --vines-summer: url("frames/vines-tl-green.svg");
   --vines-autumn: url("frames/leaves-tl-autumn.svg");
   --vines-bare: url("frames/vines-tl-bare.svg");
-  --vines-grid-summer: url("frames/grid-vines-tl-green.svg");
-  --vines-grid-autumn: url("frames/grid-leaves-tl-autumn.svg");
-  --vines-grid-bare: url("frames/grid-vines-tl-bare.svg");
+  --vines-hang: url("frames/hang-tl.svg");
+  --vines-ends: url("frames/loose-tl.svg");
+  --vines-ends-short: url("frames/loose-short-tl.svg");
+  --vines-knots: url("frames/knots-tl.svg");
+  /* The withy that ties a tile to its lianas: only where it hangs on them. */
+  --vines-tie: none;
   /* The speaker's colour, lightened so that a dark one still shows. */
   --vines-glow: color-mix(
     in oklab,
@@ -57,9 +60,10 @@
   --vines-summer: url("frames/vines-tr-green.svg");
   --vines-autumn: url("frames/leaves-tr-autumn.svg");
   --vines-bare: url("frames/vines-tr-bare.svg");
-  --vines-grid-summer: url("frames/grid-vines-tr-green.svg");
-  --vines-grid-autumn: url("frames/grid-leaves-tr-autumn.svg");
-  --vines-grid-bare: url("frames/grid-vines-tr-bare.svg");
+  --vines-hang: url("frames/hang-tr.svg");
+  --vines-ends: url("frames/loose-tr.svg");
+  --vines-ends-short: url("frames/loose-short-tr.svg");
+  --vines-knots: url("frames/knots-tr.svg");
 }
 
 .mav-theme-vines
@@ -74,9 +78,10 @@
   --vines-summer: url("frames/vines-bl-green.svg");
   --vines-autumn: url("frames/leaves-bl-autumn.svg");
   --vines-bare: url("frames/vines-bl-bare.svg");
-  --vines-grid-summer: url("frames/grid-vines-bl-green.svg");
-  --vines-grid-autumn: url("frames/grid-leaves-bl-autumn.svg");
-  --vines-grid-bare: url("frames/grid-vines-bl-bare.svg");
+  --vines-hang: url("frames/hang-bl.svg");
+  --vines-ends: url("frames/loose-bl.svg");
+  --vines-ends-short: url("frames/loose-short-bl.svg");
+  --vines-knots: url("frames/knots-bl.svg");
 }
 
 .mav-theme-vines
@@ -91,9 +96,10 @@
   --vines-summer: url("frames/vines-br-green.svg");
   --vines-autumn: url("frames/leaves-br-autumn.svg");
   --vines-bare: url("frames/vines-br-bare.svg");
-  --vines-grid-summer: url("frames/grid-vines-br-green.svg");
-  --vines-grid-autumn: url("frames/grid-leaves-br-autumn.svg");
-  --vines-grid-bare: url("frames/grid-vines-br-bare.svg");
+  --vines-hang: url("frames/hang-br.svg");
+  --vines-ends: url("frames/loose-br.svg");
+  --vines-ends-short: url("frames/loose-short-br.svg");
+  --vines-knots: url("frames/knots-br.svg");
 }
 
 /* The tile itself shows nothing: the pictures cast their own shadows, and
@@ -106,9 +112,31 @@
   box-shadow: none;
 }
 
+/* ---- A frame of its own round each camera, in every layout ---- */
+
+/* One picture is both the ground behind the video and the video's mask.
+   The avatar over the ground is left alone: a mask would redraw it. */
 .mav-theme-vines .mav-dock-tile-media {
   border-radius: 0;
-  background: var(--mav-dock-tile-bg);
+  background: var(--vines-shape) 0 0 / 100% 100% no-repeat;
+}
+
+.mav-theme-vines .mav-dock-tile-video {
+  mask: var(--vines-shape) 0 0 / 100% 100% no-repeat;
+}
+
+/* The pictures fill the frame layer, which the dock sizes to the declared
+   reach: summer's vines over the branches, and the withy over both. */
+.mav-theme-vines .mav-dock-tile-frame {
+  background:
+    var(--vines-tie) 0 0 / 100% 100% no-repeat,
+    var(--vines-summer) 0 0 / 100% 100% no-repeat,
+    var(--vines-frame) 0 0 / 100% 100% no-repeat;
+}
+
+/* Out of the call: bare stems. */
+.mav-theme-vines .mav-dock-tile:not([data-connected]) .mav-dock-tile-frame {
+  background-image: var(--vines-tie), var(--vines-bare), var(--vines-frame);
 }
 
 .mav-theme-vines .mav-dock-tile-frame::before,
@@ -119,44 +147,13 @@
   opacity: 0;
 }
 
-/* ---- Scattered: a frame of its own round each camera ---- */
-
-/* One picture is both the ground behind the video and the video's mask.
-   The avatar over the ground is left alone: a mask would redraw it. */
-.mav-theme-vines .mav-dock[data-placement="scattered"] .mav-dock-tile-media {
-  background: var(--vines-shape) 0 0 / 100% 100% no-repeat;
-}
-
-.mav-theme-vines .mav-dock[data-placement="scattered"] .mav-dock-tile-video {
-  mask: var(--vines-shape) 0 0 / 100% 100% no-repeat;
-}
-
-/* The pictures fill the frame layer, which the dock sizes to the declared
-   reach: summer's vines over the branches. */
-.mav-theme-vines .mav-dock[data-placement="scattered"] .mav-dock-tile-frame {
-  background:
-    var(--vines-summer) 0 0 / 100% 100% no-repeat,
-    var(--vines-frame) 0 0 / 100% 100% no-repeat;
-}
-
-/* Out of the call: bare stems. */
-.mav-theme-vines
-  .mav-dock[data-placement="scattered"]
-  .mav-dock-tile:not([data-connected])
-  .mav-dock-tile-frame {
-  background-image: var(--vines-bare), var(--vines-frame);
-}
-
 /* Muted: autumn's leaves, each over the summer leaf it was. */
-.mav-theme-vines
-  .mav-dock[data-placement="scattered"]
-  .mav-dock-tile-frame::before {
+.mav-theme-vines .mav-dock-tile-frame::before {
   background: var(--vines-autumn) 0 0 / 100% 100% no-repeat;
   transition: opacity 0.6s ease-in-out;
 }
 
 .mav-theme-vines
-  .mav-dock[data-placement="scattered"]
   .mav-dock-tile[data-muted][data-connected]
   .mav-dock-tile-frame::before {
   opacity: 1;
@@ -165,102 +162,374 @@
 /* Speaking: a soft light on the picture's rim, in the speaker's colour.
    Its picture has the branches cut out of it, so it draws no line of its
    own: its edge is the edge they make. */
-.mav-theme-vines
-  .mav-dock[data-placement="scattered"]
-  .mav-dock-tile-frame::after {
+.mav-theme-vines .mav-dock-tile-frame::after {
   background: var(--vines-glow);
   mask: var(--vines-light) 0 0 / 100% 100% no-repeat;
   transition: opacity 0.2s ease-out;
 }
 
-.mav-theme-vines
-  .mav-dock[data-placement="scattered"]
-  .mav-dock-tile[data-speaking]
-  .mav-dock-tile-frame::after {
+.mav-theme-vines .mav-dock-tile[data-speaking] .mav-dock-tile-frame::after {
   opacity: 1;
 }
 
-/* ---- In a grid: the cameras sit in the openings of one lattice ---- */
+/* ---- The name: cut into a strip of bark that hangs under its camera ---- */
 
-/* Every tile draws the same cell of it, and neighbours' cells overlap by
-   a side, so the branch between two cameras is one branch. The dock keeps
-   the declared grid reach round each tile: 1.7% of its width, half a
-   shared branch. The padding is room for the outer half of the branches
-   round the whole grid: 3.3% of a tile's width, and never less than 12px,
-   which is enough for any tile a docked dock holds without the padding
-   following the tiles there. */
-.mav-theme-vines .mav-dock:not([data-placement="scattered"]) .mav-dock-tiles {
-  gap: 0;
-  padding: max(12px, calc(var(--mav-dock-tile-width) * 0.033));
+/* The dock keeps room for it under every tile (the room the theme
+   registers). 105.33% of the tile's height is 3% of its width under it:
+   under the bottom branch. */
+.mav-theme-vines .mav-dock .mav-dock-tile-bar {
+  inset: calc(105.33% + 1px) 0 auto;
+  justify-content: center;
+  max-width: none;
+  z-index: 2;
+  container-type: inline-size;
 }
 
-/* The cell is drawn in a frame layer that reaches 5% past the tile, over
-   its neighbours' edges. */
-.mav-theme-vines
-  .mav-dock:not([data-placement="scattered"])
-  .mav-dock-tile-frame {
-  --mav-dock-frame-top: 0.05;
-  --mav-dock-frame-right: 0.05;
-  --mav-dock-frame-bottom: 0.05;
-  --mav-dock-frame-left: 0.05;
-  container-type: size;
-}
-
-/* Speaking: a light inside the video's edge (inset 7.55% and 4.55% in the
-   frame layer), under the branches, which make its edge. */
-.mav-theme-vines
-  .mav-dock:not([data-placement="scattered"])
-  .mav-dock-tile-frame::before {
-  inset: 7.55% 4.55%;
-  box-shadow: inset 0 0 12px 2px var(--vines-glow);
-  box-shadow: inset 0 0 4cqw 0.7cqw var(--vines-glow);
-  transition: opacity 0.2s ease-out;
-}
-
-.mav-theme-vines
-  .mav-dock:not([data-placement="scattered"])
-  .mav-dock-tile[data-speaking]
-  .mav-dock-tile-frame::before {
-  opacity: 0.8;
-}
-
-/* The lattice's cell, with summer's vines over it. */
-.mav-theme-vines
-  .mav-dock:not([data-placement="scattered"])
-  .mav-dock-tile-frame::after {
-  background:
-    var(--vines-grid-summer) 0 0 / 100% 100% no-repeat,
-    url("frames/lattice.svg") 0 0 / 100% 100% no-repeat;
-  opacity: 1;
-}
-
-/* Muted: autumn's leaves over summer's. Out of the call: bare stems,
-   whether muted or not: that rule is as specific and comes second. */
-.mav-theme-vines
-  .mav-dock:not([data-placement="scattered"])
-  .mav-dock-tile[data-muted]
-  .mav-dock-tile-frame::after {
-  background:
-    var(--vines-grid-autumn) 0 0 / 100% 100% no-repeat,
-    var(--vines-grid-summer) 0 0 / 100% 100% no-repeat,
-    url("frames/lattice.svg") 0 0 / 100% 100% no-repeat;
-}
-
-.mav-theme-vines
-  .mav-dock:not([data-placement="scattered"])
-  .mav-dock-tile:not([data-connected])
-  .mav-dock-tile-frame::after {
-  background:
-    var(--vines-grid-bare) 0 0 / 100% 100% no-repeat,
-    url("frames/lattice.svg") 0 0 / 100% 100% no-repeat;
-}
-
-/* ---- Names, the panel and popovers ---- */
-
+/* The strip's ends keep their shape; its middle stretches with the name. */
 .mav-theme-vines .mav-dock-tile-name {
-  background: rgb(28 21 14 / 85%);
-  box-shadow: 0 0 0 1px rgb(147 122 80 / 55%);
+  position: relative;
+  /* As a flex item it may shrink to its tile: a long name is cut short. */
+  min-width: 0;
+  overflow: clip;
+  overflow-clip-margin: 24px;
+  padding: 3px 5px;
+  border: solid transparent;
+  border-width: 0 11px;
+  border-image: url("frames/plate.svg") 0 15 fill / 0 9px stretch;
+  border-radius: 0;
+  background: #33251a content-box;
+  box-shadow: none;
+  color: #e2cb9a;
+  font:
+    400 16px/1 "Modesto Condensed",
+    "Palatino Linotype",
+    serif;
+  letter-spacing: 0.03em;
+  text-shadow:
+    0 -1px 0 rgb(0 0 0 / 80%),
+    0 1px 0 rgb(255 232 180 / 16%);
 }
+
+/* Two loops of withy over the bottom branch, which is 6% of the tile's
+   width thick. */
+.mav-theme-vines .mav-dock-tile-name::before,
+.mav-theme-vines .mav-dock-tile-name::after {
+  content: "";
+  position: absolute;
+  bottom: calc(100% - 3px);
+  left: calc(12% - 9px);
+  width: 9px;
+  height: calc(6.2cqw + 6px);
+  background: url("frames/loop.svg") 50% / 100% 100% no-repeat;
+}
+
+.mav-theme-vines .mav-dock-tile-name::after {
+  right: calc(12% - 9px);
+  left: auto;
+  transform: scaleX(-1);
+}
+
+/* States beside the name, and the tile's buttons: chips of the same bark. */
+.mav-theme-vines
+  .mav-dock-tile
+  :is(
+    .mav-indicator,
+    .mav-dock-tile-menu,
+    .mav-dock-tile-move,
+    .mav-dock-tile-resize
+  ) {
+  border-radius: 4px 6px 5px 7px;
+  background-color: rgb(46 32 20 / 92%);
+}
+
+/* The player's own level: a shoot creeping along the bottom branch, dry
+   until their voice greens it. The meter shows through the shoot's shape. */
+.mav-theme-vines .mav-dock-tile .mav-meter {
+  inset: auto 7% -6px;
+  z-index: 1;
+  height: 13px;
+  border-radius: 0;
+  background: rgb(52 38 22 / 90%);
+  mask: url("frames/meter.svg") 0 50% / 65px 100% repeat-x;
+}
+
+/* ---- In a grid: the cameras hang on lianas ---- */
+
+.mav-theme-vines .mav-dock:not([data-placement="scattered"]) {
+  isolation: isolate;
+
+  .mav-dock-tiles {
+    position: relative;
+    gap: 0;
+    /* At its foot, room for the last row's names: a plate is a fixed
+       height, and under small tiles it hangs lower than their own room. */
+    padding: 12px 0 14px;
+    /* How much spare height each size of the branch needs: 1 for the
+       one that shows, 0 for the others. */
+    --vines-small-from: 85;
+    --vines-medium-from: 190;
+    --vines-large-from: 350;
+    --vines-large: clamp(
+      0,
+      var(--mav-dock-spare, 0) - var(--vines-large-from) + 1,
+      1
+    );
+    --vines-not-small: clamp(
+      0,
+      var(--mav-dock-spare, 0) - var(--vines-medium-from) + 1,
+      1
+    );
+    --vines-medium: calc(var(--vines-not-small) - var(--vines-large));
+    --vines-small: calc(
+      clamp(0, var(--mav-dock-spare, 0) - var(--vines-small-from) + 1, 1) -
+        var(--vines-not-small)
+    );
+  }
+
+  .mav-dock-tile {
+    --vines-tie: var(--vines-knots);
+    /* The pictures' heights, as shares of the tile's, and how much room
+       under the tile (in tile widths) the loose ends need. */
+    --vines-tied-tall: 128%;
+    --vines-short-tall: 258.22%;
+    --vines-loose-tall: 322.22%;
+    --vines-short-from: 0.24;
+    --vines-loose-from: 0.6;
+    --vines-loose: clamp(
+      0,
+      (var(--mav-dock-tile-room, 0) - var(--vines-loose-from)) * 1000 + 1,
+      1
+    );
+    --vines-some: clamp(
+      0,
+      (var(--mav-dock-tile-room, 0) - var(--vines-short-from)) * 1000 + 1,
+      1
+    );
+    --vines-short: calc(var(--vines-some) - var(--vines-loose));
+  }
+
+  /* The lianas, behind every camera: from above the tile, where they pass
+     behind what hangs there, down to its frame. Where nothing is under
+     the tile their loose ends hang on, as far as there is room for. */
+  .mav-dock-tile::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    top: -94.22%;
+    left: -11%;
+    width: 122%;
+    height: calc(
+      var(--vines-tied-tall) +
+        (var(--vines-short-tall) - var(--vines-tied-tall)) *
+        var(--vines-short) +
+        (var(--vines-loose-tall) - var(--vines-tied-tall)) * var(--vines-loose)
+    );
+    background:
+      var(--vines-ends) 0 0 / calc(100% * var(--vines-loose)) 100% no-repeat,
+      var(--vines-ends-short) 0 0 / calc(100% * var(--vines-short)) 100%
+        no-repeat,
+      var(--vines-hang) 0 0 / calc(100% * (1 - var(--vines-some))) 100%
+        no-repeat;
+    pointer-events: none;
+  }
+}
+
+/* ---- The dock as one plant: a trunk down its free edge ---- */
+
+/* Upright and open: docked on a side, floating, or in a window. The
+   trunk's centre line is 12px from the edge; the dock's ground stops
+   under it, so the edge toward the scene is the trunk's own. */
+.mav-theme-vines
+  .mav-dock:not(
+    [data-placement="scattered"],
+    [data-placement="top"],
+    [data-placement="bottom"],
+    [data-collapsed]
+  ) {
+  --vines-trunk: 12px;
+  --vines-bough: 44px;
+  /* From the tile list's edge, which is the dock's, to the branch's picture. */
+  --vines-branch-foot: 4.5px;
+  gap: 14px;
+  padding: 13px 24px 13px 6px;
+  background: linear-gradient(
+      var(--mav-surface-sunken),
+      var(--mav-surface-sunken)
+    )
+    0 0 / calc(100% - var(--vines-trunk)) 100% no-repeat;
+
+  &::after {
+    content: "";
+    position: absolute;
+    z-index: 1;
+    inset: 0 0 0 auto;
+    width: 40px;
+    background: url("frames/trunk.svg") 0 0 / 40px 440px repeat-y;
+    pointer-events: none;
+  }
+
+  /* The header and the voice panel are boards the boughs hold. */
+  .mav-dock-header,
+  .mav-dock-panel {
+    position: relative;
+    border: 1px solid rgb(147 122 80 / 30%);
+    border-radius: var(--mav-dock-radius);
+    background: var(--mav-surface);
+    box-shadow: none;
+  }
+
+  .mav-dock-header {
+    padding: 4px 6px 5px;
+  }
+
+  /* Four boughs off the trunk, each from the trunk's centre to 2px from
+     the dock's other edge: over and under each board. A bough's joint and
+     tip keep their size; its middle repeats to fill the dock's width. */
+  :is(.mav-dock-header, .mav-dock-panel)::before,
+  :is(.mav-dock-header, .mav-dock-panel)::after {
+    content: "";
+    position: absolute;
+    z-index: 1;
+    inset: calc(-8px - var(--vines-bough) / 2) calc(var(--vines-trunk) - 25px)
+      auto -5px;
+    height: var(--vines-bough);
+    border: solid transparent;
+    border-width: 0 50px 0 116px;
+    pointer-events: none;
+  }
+
+  :is(.mav-dock-header, .mav-dock-panel)::after {
+    top: calc(100% + 8px - var(--vines-bough) / 2);
+  }
+
+  .mav-dock-header::before {
+    border-image: url("frames/bough-top.svg") 0 50 0 116 fill / 0 50px 0 116px
+      round;
+  }
+
+  .mav-dock-header::after {
+    border-image: url("frames/bough-header.svg") 0 50 0 116 fill / 0 50px 0
+      116px round;
+  }
+
+  .mav-dock-panel::before {
+    border-image: url("frames/bough-panel.svg") 0 50 0 116 fill / 0 50px 0 116px
+      round;
+  }
+
+  .mav-dock-panel::after {
+    border-image: url("frames/bough-foot.svg") 0 50 0 116 fill / 0 50px 0 116px
+      round;
+  }
+
+  /* The tile list runs on to both of the dock's edges, under the trunk:
+     what hangs and grows in it reaches the trunk, and a frame's ivy isn't
+     cut short of the edge. It scrolls down only. */
+  .mav-dock-tiles {
+    margin: 0 -24px 0 -6px;
+    padding-right: 24px;
+    padding-left: 6px;
+    overflow-x: hidden;
+  }
+
+  /* A branch off the trunk into the room under the cameras, behind them:
+     a sprig, a branch or a tall one, by how much room there is. */
+  .mav-dock-tiles::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    background:
+      url("frames/branch-large.svg") right var(--vines-branch-foot) bottom 0 /
+        calc(275px * var(--vines-large)) 450px no-repeat,
+      url("frames/branch-medium.svg") right var(--vines-branch-foot) bottom 0 /
+        calc(275px * var(--vines-medium)) 260px no-repeat,
+      url("frames/branch-small.svg") right var(--vines-branch-foot) bottom 0 /
+        calc(210px * var(--vines-small)) 125px no-repeat;
+    pointer-events: none;
+  }
+
+  /* The floating dock's own grip stays in reach, over the trunk. */
+  .mav-dock-resize {
+    z-index: 2;
+  }
+}
+
+/* Floating, its edge is the trunk's: no line or shadow of a box. In a
+   window of its own there is no scene beside it: the ground runs on. */
+.mav-theme-vines .mav-dock[data-placement="floating"]:not([data-collapsed]) {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.mav-theme-vines
+  .mav-dock:is([data-placement="window"], [data-placement="on-top"]):not(
+    [data-collapsed]
+  ) {
+  background: var(--mav-surface-sunken);
+}
+
+/* Docked on the right, the same plant the other way round. */
+.mav-theme-vines .mav-dock[data-placement="right"]:not([data-collapsed]) {
+  padding: 13px 6px 13px 24px;
+  background-position: 100% 0;
+
+  &::after {
+    inset: 0 auto 0 0;
+    transform: scaleX(-1);
+  }
+
+  :is(.mav-dock-header, .mav-dock-panel)::before,
+  :is(.mav-dock-header, .mav-dock-panel)::after {
+    right: -5px;
+    left: calc(var(--vines-trunk) - 25px);
+    transform: scaleX(-1);
+  }
+
+  .mav-dock-tiles {
+    margin: 0 -6px 0 -24px;
+    padding-right: 6px;
+    padding-left: 24px;
+  }
+
+  .mav-dock-tiles::after {
+    transform: scaleX(-1);
+  }
+}
+
+/* Docked at the top or bottom, the trunk runs across the top and the
+   cameras hang under it. At the bottom that is the dock's free edge. */
+.mav-theme-vines
+  .mav-dock:is([data-placement="top"], [data-placement="bottom"]):not(
+    [data-collapsed]
+  ) {
+  --vines-trunk: 12px;
+  padding-top: 20px;
+
+  &::after {
+    content: "";
+    position: absolute;
+    z-index: 1;
+    inset: 0 0 auto;
+    height: 40px;
+    background: url("frames/trunk-across.svg") 0 0 / 440px 40px repeat-x;
+    pointer-events: none;
+  }
+
+  .mav-dock-tiles {
+    padding: 2px 14px 12px;
+  }
+}
+
+.mav-theme-vines .mav-dock[data-placement="bottom"]:not([data-collapsed]) {
+  background: linear-gradient(
+      var(--mav-surface-sunken),
+      var(--mav-surface-sunken)
+    )
+    0 100% / 100% calc(100% - var(--vines-trunk)) no-repeat;
+}
+
+/* ---- The panel and popovers ---- */
 
 .mav-theme-vines .mav-dock-panel,
 .mav-theme-vines .mav-popover {
@@ -280,8 +549,8 @@
 
 /* As specific as the rules above that set a transition, and after them. */
 @media (prefers-reduced-motion: reduce) {
-  .mav-theme-vines .mav-dock[data-placement] .mav-dock-tile-frame::before,
-  .mav-theme-vines .mav-dock[data-placement] .mav-dock-tile-frame::after {
+  .mav-theme-vines .mav-dock-tile .mav-dock-tile-frame::before,
+  .mav-theme-vines .mav-dock-tile .mav-dock-tile-frame::after {
     transition: none;
   }
 }

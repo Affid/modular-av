@@ -158,14 +158,18 @@ function foliageArt(growth: Growth, palette: Palette): string {
   return `<path d="${stalks}" fill="none" stroke="${palette.shoot}" stroke-width="3" stroke-linecap="round"/>${leaves}`;
 }
 
-const BLUR = blurFilter("sb", 3);
+/** What a picture with a plant in it defines: the leaf shapes and its shadow's blur, over the frame layer or `box`. */
+export const growthDefs = (box?: Box): string =>
+  leafDefs() + blurFilter("sb", 3, box);
+
+/** A plant in a season, to go in a picture that has `growthDefs`. */
+export const growthArt = (growth: Growth, season: Season): string =>
+  stemArt(growth, PALETTES[season]) + foliageArt(growth, PALETTES[season]);
 
 /** The whole plant in a season: stems, shoots and leaves. `box` is the frame layer it fills, if not a scattered tile's. */
 export const paintVines = (growth: Growth, season: Season, box?: Box): string =>
   svgDocument(
-    `<defs>${leafDefs()}${BLUR}</defs>` +
-      stemArt(growth, PALETTES[season]) +
-      foliageArt(growth, PALETTES[season]),
+    `<defs>${growthDefs(box)}</defs>${growthArt(growth, season)}`,
     box,
   );
 

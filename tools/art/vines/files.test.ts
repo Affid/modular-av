@@ -9,23 +9,70 @@ const scratch = (): Promise<string> => mkdtemp(join(tmpdir(), "vines-art-"));
 describe("artFiles", () => {
   const files = artFiles();
 
-  it("draws the lattice, and each corner's frame, the picture's shape, the speaking light, and its vines in summer, autumn and bare, scattered and in a grid", () => {
-    expect([...files.keys()].sort()).toEqual(
+  it("draws each corner's frame, the picture's shape, the speaking light, its vines in summer, autumn and bare, and the lianas it hangs on", () => {
+    const corners = ["tl", "tr", "bl", "br"].flatMap((corner) => [
+      `frame-${corner}.svg`,
+      `shape-${corner}.svg`,
+      `light-${corner}.svg`,
+      `vines-${corner}-green.svg`,
+      `leaves-${corner}-autumn.svg`,
+      `vines-${corner}-bare.svg`,
+      `hang-${corner}.svg`,
+      `loose-${corner}.svg`,
+      `loose-short-${corner}.svg`,
+      `knots-${corner}.svg`,
+    ]);
+
+    expect(
+      [...files.keys()]
+        .filter((name) => /-(tl|tr|bl|br)[.-]/.test(name))
+        .sort(),
+    ).toEqual(corners.sort());
+  });
+
+  it("draws the dock's own plant once: the trunk both ways, four boughs, the branch in three sizes, and what a name hangs on", () => {
+    expect(
+      [...files.keys()]
+        .filter((name) => !/-(tl|tr|bl|br)[.-]/.test(name))
+        .sort(),
+    ).toEqual(
       [
-        "lattice.svg",
-        ...["tl", "tr", "bl", "br"].flatMap((corner) => [
-          `grid-vines-${corner}-green.svg`,
-          `grid-leaves-${corner}-autumn.svg`,
-          `grid-vines-${corner}-bare.svg`,
-          `frame-${corner}.svg`,
-          `shape-${corner}.svg`,
-          `light-${corner}.svg`,
-          `vines-${corner}-green.svg`,
-          `leaves-${corner}-autumn.svg`,
-          `vines-${corner}-bare.svg`,
-        ]),
+        "trunk.svg",
+        "trunk-across.svg",
+        "bough-top.svg",
+        "bough-header.svg",
+        "bough-panel.svg",
+        "bough-foot.svg",
+        "branch-small.svg",
+        "branch-medium.svg",
+        "branch-large.svg",
+        "plate.svg",
+        "loop.svg",
+        "meter.svg",
       ].sort(),
     );
+  });
+
+  it("gives each corner's frame lianas tied in its own places", () => {
+    for (const kind of ["hang", "loose", "loose-short", "knots"]) {
+      const pictures = ["tl", "tr", "bl", "br"].map((c) =>
+        files.get(`${kind}-${c}.svg`),
+      );
+
+      expect(new Set(pictures).size).toBe(4);
+    }
+  });
+
+  it("draws the main boughs thicker than the lesser ones, and no two alike", () => {
+    const boughs = ["top", "header", "panel", "foot"].map(
+      (name) => files.get(`bough-${name}.svg`) ?? "",
+    );
+
+    expect(new Set(boughs).size).toBe(4);
+    for (const main of [boughs[1], boughs[2]])
+      expect(main).toContain('id="bd"');
+    for (const lesser of [boughs[0], boughs[3]])
+      expect(lesser).not.toContain('id="bd"');
   });
 
   it("gives each corner a frame of its own shape", () => {
@@ -52,7 +99,8 @@ describe("artFiles", () => {
       0,
     );
 
-    expect(total).toBeLessThan(600_000);
+    // About half of it is the four frames; a page loads only the pictures it shows.
+    expect(total).toBeLessThan(800_000);
   });
 });
 

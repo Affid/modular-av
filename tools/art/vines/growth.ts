@@ -3,7 +3,6 @@
 // their season's colours.
 import {
   FACES,
-  GRID_VIEW,
   inBox,
   inView,
   lerp,
@@ -78,8 +77,7 @@ export function leafExtent({ base, angle, length }: Placed): readonly Point[] {
 
 /**
  * Where what is grown round the straight frame ends up: mirrored for its
- * corner, then bent onto its frame's outline, or left straight on the
- * lattice of a grid.
+ * corner, then bent onto its frame's outline.
  */
 interface Placement extends Place {
   readonly leaf: (placed: Placed) => Placed;
@@ -95,24 +93,6 @@ function placementFor(origin: Origin, outline: Outline): Placement {
       const bent = bend(mirror.point(base));
       return { base: bent.at, angle: mirror.angle(angle) + bent.turn, length };
     },
-  };
-}
-
-/** On the lattice the straight frame is the frame: only the picture is smaller. */
-function latticePlacement(origin: Origin): Placement {
-  const mirror = mirrorFor(origin);
-  return {
-    point: (p) => mirror.point(p),
-    shows: ([x, y], pad) =>
-      x > GRID_VIEW.left + pad &&
-      x < GRID_VIEW.right - pad &&
-      y > GRID_VIEW.top + pad &&
-      y < GRID_VIEW.bottom - pad,
-    leaf: ({ base, angle, length }) => ({
-      base: mirror.point(base),
-      angle: mirror.angle(angle),
-      length,
-    }),
   };
 }
 
@@ -268,19 +248,15 @@ function placed(growth: Growth, place: Placement): Growth {
 
 /**
  * One tile's vines, grown from the corner `origin` along its frame's
- * outline (a plain rounded frame if none is given), or on the lattice of
- * a grid.
+ * outline (a plain rounded frame if none is given).
  */
 export function grow(
   seed: number,
   origin: Origin,
-  frame: Outline | "lattice" = PLAIN_OUTLINE,
+  frame: Outline = PLAIN_OUTLINE,
 ): Growth {
   const random = createRandom(seed);
-  const place =
-    frame === "lattice"
-      ? latticePlacement(origin)
-      : placementFor(origin, frame);
+  const place = placementFor(origin, frame);
   const stems = mainStems(random);
   const onStems = stems.map((stem, i) =>
     leavesAlong(random, stem, i < 2 ? LONG : SHORT, place),

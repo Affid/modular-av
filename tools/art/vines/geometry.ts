@@ -35,11 +35,15 @@ export const VIEW = {
 } as const;
 
 /**
- * A blur over the whole picture: a filter sized to what it blurs would cut
- * the blur off at a thin shape's edges.
+ * A blur over the whole picture (the frame layer, or `box`): a filter
+ * sized to what it blurs would cut the blur off at a thin shape's edges.
  */
-export const blurFilter = (id: string, deviation: number): string =>
-  `<filter id="${id}" filterUnits="userSpaceOnUse" x="0" y="0" width="${VIEW.width}" height="${VIEW.height}"><feGaussianBlur stdDeviation="${deviation}"/></filter>`;
+export function blurFilter(id: string, deviation: number, box?: Box): string {
+  const [x, y] = [box?.left ?? 0, box?.top ?? 0];
+  const width = box ? box.right - box.left : VIEW.width;
+  const height = box ? box.bottom - box.top : VIEW.height;
+  return `<filter id="${id}" filterUnits="userSpaceOnUse" x="${x}" y="${y}" width="${width}" height="${height}"><feGaussianBlur stdDeviation="${deviation}"/></filter>`;
+}
 
 /** How thick a side of the frame is, and how much of it lies over the video. */
 export const THICKNESS = 58;
@@ -72,21 +76,24 @@ export const FACES: Box = {
 };
 
 /**
- * In a grid (docked, floating, in a window) the cameras sit in the openings
- * of one lattice: a frame's sides are shared with its neighbours'. The art
- * then reaches this far past the video, what the theme registers as
- * `frames.gridReach`, and neighbours are this far apart on each side: half
- * a shared side, whose centre line is `SIDES`.
+ * The room the dock keeps round a scattered tile, what the theme registers
+ * as `frames.room`: the art's reach, and more under the tile, where its
+ * name hangs on a plate.
  */
-export const GRID_REACH = 0.05;
-export const GRID_SHARE = (TILE.left - SIDES.left) / TILE_WIDTH;
+export const ROOM = { top: REACH, right: REACH, bottom: 0.19, left: REACH };
 
-/** The frame layer in a grid: the view box of the lattice's pictures. */
-export const GRID_VIEW: Box = {
-  left: TILE.left - GRID_REACH * TILE_WIDTH,
-  top: TILE.top - GRID_REACH * TILE_WIDTH,
-  right: TILE.right + GRID_REACH * TILE_WIDTH,
-  bottom: TILE.bottom + GRID_REACH * TILE_WIDTH,
+/**
+ * The room round a tile in a grid (docked, floating, in a window), what
+ * the theme registers as `frames.gridRoom`: less than the art reaches, as
+ * neighbours' ivy may overlap, with room under each tile for its name.
+ * Two columns of tiles 120 wide, the dock's smallest, still fit a docked
+ * dock of 300 beside the trunk.
+ */
+export const GRID_ROOM = {
+  top: 0.058,
+  right: 0.058,
+  bottom: 0.128,
+  left: 0.058,
 };
 
 export const inBox = (box: Box, [x, y]: Point): boolean =>

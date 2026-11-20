@@ -172,19 +172,28 @@ function twigs(random: Random, outline: Outline): string {
     ];
     const from = outline.point(distance, 6);
     const length = random.between(34, 62);
-    const bow = random.between(-10, 10);
-    const middle: Point = [
-      from[0] + (way[0] * length) / 2 - way[1] * bow,
-      from[1] + (way[1] * length) / 2 + way[0] * bow,
-    ];
-    const tip: Point = [from[0] + way[0] * length, from[1] + way[1] * length];
-    const d = `M${at(from)}Q${at(middle)} ${at(tip)}`;
-    return (
-      `<path d="${d}" stroke="${DARK}" stroke-width="10.5"/><path d="${d}" stroke="#6f4d2c" stroke-width="7"/>` +
-      `<path d="${d}" transform="translate(-1 -1.6)" stroke="#c49a63" stroke-opacity=".7" stroke-width="2"/>` +
-      `<circle cx="${num(tip[0])}" cy="${num(tip[1])}" r="3.6" fill="#d9bb86" stroke="${DARK}" stroke-width="1.3"/>`
-    );
+    return twigArt(from, way, length, random.between(-10, 10));
   }).join("");
+}
+
+/** A short twig from a point, bowed to one side and cut off pale. */
+export function twigArt(
+  from: Point,
+  way: Point,
+  length: number,
+  bow: number,
+): string {
+  const middle: Point = [
+    from[0] + (way[0] * length) / 2 - way[1] * bow,
+    from[1] + (way[1] * length) / 2 + way[0] * bow,
+  ];
+  const tip: Point = [from[0] + way[0] * length, from[1] + way[1] * length];
+  const d = `M${at(from)}Q${at(middle)} ${at(tip)}`;
+  return (
+    `<path d="${d}" stroke="${DARK}" stroke-width="10.5"/><path d="${d}" stroke="#6f4d2c" stroke-width="7"/>` +
+    `<path d="${d}" transform="translate(-1 -1.6)" stroke="#c49a63" stroke-opacity=".7" stroke-width="2"/>` +
+    `<circle cx="${num(tip[0])}" cy="${num(tip[1])}" r="3.6" fill="#d9bb86" stroke="${DARK}" stroke-width="1.3"/>`
+  );
 }
 
 export const stroke = (id: string, attributes: string): string =>
