@@ -2,30 +2,30 @@
 <title>Modular A/V downloads</title>
 <rect x="0.5" y="0.5" width="799" height="177" rx="6" fill="#0d1117" stroke="#3d444d"/>
 <text x="24" y="34" font-size="14" fill="#f0f6fc" font-weight="600">Modular A/V downloads</text>
-<text x="776" y="34" font-size="12" fill="#9198a1" text-anchor="end">Updated Nov 19, 2026</text>
+<text x="776" y="34" font-size="12" fill="#9198a1" text-anchor="end">Updated Nov 20, 2026</text>
 <line x1="24" x2="38" y1="64" y2="64" stroke="#3987e5" stroke-width="2" stroke-linecap="round"/>
 <text x="44" y="68" font-size="12" fill="#9198a1">Core</text>
-<text x="24" y="106" font-size="30" fill="#f0f6fc" font-weight="600">160</text>
-<text x="24" y="128" font-size="12" fill="#3fb950">+26 since Nov 16</text>
-<path d="M92 108 L125.3 104 L158.7 90 L192 82" fill="none" stroke="#656c76" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="24" y="106" font-size="30" fill="#f0f6fc" font-weight="600">176</text>
+<text x="24" y="128" font-size="12" fill="#3fb950">+42 since Nov 16</text>
+<path d="M92 108 L117 105.5 L142 96.9 L167 91.9 L192 82" fill="none" stroke="#656c76" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
 <circle cx="192" cy="82" r="4" fill="#3987e5" stroke="#0d1117" stroke-width="2"/>
 <line x1="216" x2="230" y1="64" y2="64" stroke="#d95926" stroke-width="2" stroke-linecap="round"/>
 <text x="236" y="68" font-size="12" fill="#9198a1">Services</text>
-<text x="216" y="106" font-size="30" fill="#f0f6fc" font-weight="600">270</text>
-<text x="216" y="128" font-size="12" fill="#3fb950">+47 since Nov 16</text>
-<path d="M284 108 L317.3 103 L350.7 88.1 L384 82" fill="none" stroke="#656c76" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="216" y="106" font-size="30" fill="#f0f6fc" font-weight="600">302</text>
+<text x="216" y="128" font-size="12" fill="#3fb950">+79 since Nov 16</text>
+<path d="M284 108 L309 105 L334 96.2 L359 92.5 L384 82" fill="none" stroke="#656c76" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
 <circle cx="384" cy="82" r="4" fill="#d95926" stroke="#0d1117" stroke-width="2"/>
 <line x1="408" x2="422" y1="64" y2="64" stroke="#199e70" stroke-width="2" stroke-linecap="round"/>
 <text x="428" y="68" font-size="12" fill="#9198a1">Dock</text>
-<text x="408" y="106" font-size="30" fill="#f0f6fc" font-weight="600">203</text>
-<text x="408" y="128" font-size="12" fill="#3fb950">+34 since Nov 16</text>
-<path d="M476 108 L509.3 103.4 L542.7 88.1 L576 82" fill="none" stroke="#656c76" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="408" y="106" font-size="30" fill="#f0f6fc" font-weight="600">222</text>
+<text x="408" y="128" font-size="12" fill="#3fb950">+53 since Nov 16</text>
+<path d="M476 108 L501 105.1 L526 95.2 L551 91.3 L576 82" fill="none" stroke="#656c76" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
 <circle cx="576" cy="82" r="4" fill="#199e70" stroke="#0d1117" stroke-width="2"/>
 <line x1="600" x2="614" y1="64" y2="64" stroke="#c98500" stroke-width="2" stroke-linecap="round"/>
 <text x="620" y="68" font-size="12" fill="#9198a1">Sound &amp; camera</text>
-<text x="600" y="106" font-size="30" fill="#f0f6fc" font-weight="600">290</text>
-<text x="600" y="128" font-size="12" fill="#3fb950">+49 since Nov 16</text>
-<path d="M668 108 L701.3 106.4 L734.7 89.4 L768 82" fill="none" stroke="#656c76" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="600" y="106" font-size="30" fill="#f0f6fc" font-weight="600">333</text>
+<text x="600" y="128" font-size="12" fill="#3fb950">+92 since Nov 16</text>
+<path d="M668 108 L693 107.2 L718 98.1 L743 94.2 L768 82" fill="none" stroke="#656c76" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
 <circle cx="768" cy="82" r="4" fill="#c98500" stroke="#0d1117" stroke-width="2"/>
 <text x="24" y="162" font-size="11" fill="#9198a1">Zip downloads from GitHub releases: installs and updates. The starter set and manifest lookups are left out.</text>
 </svg>
