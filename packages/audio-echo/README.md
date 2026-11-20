@@ -11,8 +11,9 @@ An echo for your voice: a canyon, a distant call, a spirit. It runs in your
 browser, on a send beside the voice by default, so the repeats carry on after
 you stop speaking without holding the voice gate open. Requires `modular-av`.
 
-Turn it on and set it in `modular-av-audio-mixer`. Without the mixer, the core's
-API is the only way to reach it: the dock shows noise suppression alone.
+Turn it on and set it in `modular-av-audio-mixer`, which Foundry offers when you
+install or enable this module. Without the mixer, the core's API is the only way
+to reach it: the dock shows noise suppression alone.
 
 | Setting | Range           | Starts at |
 | ------- | --------------- | --------- |

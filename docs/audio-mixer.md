@@ -11,7 +11,9 @@ installs: `modular-av-audio-reverb`, `modular-av-audio-echo`,
 `modular-av-audio-eq`, `modular-av-audio-radio`, `modular-av-audio-boost`,
 `modular-av-mic-denoise`, and any other. The mixer
 neither requires nor recommends them, because a Foundry recommendation prompts
-the GM to turn them on.
+the GM to turn them on. Each audio effect recommends the mixer instead, so
+Foundry offers it with the effect, and none requires it, so another module can
+turn the effects on.
 
 The dock has no mixer. For audio it shows only noise suppression. Without the
 mixer the rest of the pipeline is API only.

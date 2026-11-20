@@ -12,8 +12,9 @@ evens out its peaks so a laugh doesn't drown the table. It runs in your browser,
 ahead of the voice gate by default, so the gate hears the raised voice. Requires
 `modular-av`.
 
-Turn it on and set it in `modular-av-audio-mixer`. Without the mixer, the core's
-API is the only way to reach it: the dock shows noise suppression alone.
+Turn it on and set it in `modular-av-audio-mixer`, which Foundry offers when you
+install or enable this module. Without the mixer, the core's API is the only way
+to reach it: the dock shows noise suppression alone.
 
 | Setting  | What it does                                               | Range      | Starts at |
 | -------- | ---------------------------------------------------------- | ---------- | --------- |
