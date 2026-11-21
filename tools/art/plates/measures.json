@@ -1,0 +1,104 @@
+{
+  "tile": {
+    "width": 1000,
+    "height": 562.5
+  },
+  "reach": {
+    "top": 0.06,
+    "right": 0.06,
+    "bottom": 0.17,
+    "left": 0.06
+  },
+  "unitsPerMetre": 100,
+  "frameDensity": 0.75,
+  "pixelsPerUnit": 25,
+  "plate": {
+    "out": 44,
+    "below": 150,
+    "cover": 10,
+    "bead": 6,
+    "ribAt": 9,
+    "ribHalf": 5,
+    "cordOut": 4,
+    "seeds": [7, 23]
+  },
+  "knife": {
+    "y": 674,
+    "pommel": 168,
+    "gripFrom": 180,
+    "gripTo": 262,
+    "guard": 270,
+    "tip": 850,
+    "half": 14
+  },
+  "level": {
+    "left": 280,
+    "top": 656,
+    "right": 856,
+    "bottom": 692
+  },
+  "pictures": {
+    "mail": {
+      "width": 300,
+      "height": 300,
+      "density": 2,
+      "span": 12,
+      "across": 24
+    },
+    "steel": {
+      "width": 300,
+      "height": 300,
+      "density": 1.5,
+      "span": 12
+    },
+    "lame": {
+      "width": 480,
+      "height": 192,
+      "density": 2,
+      "span": 19.2,
+      "edge": 30
+    },
+    "tab-1": {
+      "width": 32,
+      "height": 32,
+      "density": 2,
+      "span": 2
+    },
+    "tab-2": {
+      "width": 32,
+      "height": 32,
+      "density": 2,
+      "span": 2
+    },
+    "tab-left": {
+      "width": 32,
+      "height": 32,
+      "density": 2,
+      "span": 2
+    },
+    "tab-right": {
+      "width": 16,
+      "height": 32,
+      "density": 2,
+      "span": 1
+    },
+    "mace": {
+      "width": 260,
+      "height": 84,
+      "density": 2,
+      "span": 10.4
+    },
+    "gauntlets": {
+      "width": 170,
+      "height": 180,
+      "density": 2,
+      "span": 6.8
+    },
+    "buckler": {
+      "width": 190,
+      "height": 236,
+      "density": 2,
+      "span": 7.6
+    }
+  }
+}

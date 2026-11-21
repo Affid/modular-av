@@ -33,6 +33,7 @@
     "art:scrolls:render": "node scripts/art/scrolls-render.ts",
     "art:hides": "node tools/art/hides/cli.ts",
     "art:hides:render": "node scripts/art/hides-render.ts",
+    "art:plates:render": "node scripts/art/plates-render.ts",
     "theme:shots": "node scripts/themes/shots.ts",
     "theme:sheet": "node scripts/themes/sheet.ts",
     "theme:foundry": "node scripts/themes/foundry-check.ts",
