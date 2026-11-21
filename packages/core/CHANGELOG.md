@@ -1,5 +1,16 @@
 # @modular-av/core
 
+## 0.16.0
+
+### Patch Changes
+
+- 771ccf0: Plan your modules and the notice for a world with no service now
+  describe Jitsi as it is since 0.15.0: your own Jitsi Meet server, open
+  or with sign-in tokens. The Jitsi build's setup reads "Room link or app
+  secret" instead of "Address and app secret".
+- @modular-av/api@0.16.0
+  - @modular-av/kit@0.16.0
+
 ## 0.15.0
 
 ### Patch Changes

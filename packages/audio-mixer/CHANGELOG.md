@@ -1,5 +1,11 @@
 # @modular-av/audio-mixer
 
+## 0.16.0
+
+### Patch Changes
+
+- @modular-av/kit@0.16.0
+
 ## 0.15.0
 
 ### Patch Changes
