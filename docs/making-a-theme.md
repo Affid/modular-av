@@ -153,6 +153,38 @@ things are rendered with Blender instead; only what is flat by nature
 - **WebP** keeps 15 pictures near 380 KB. Nothing here writes it but a
   browser: the render script converts through Chromium.
 
+### What metal taught
+
+The plates theme (`tools/art/plates`) is steel, mail and a little cloth,
+all rendered. Metal has its own traps:
+
+- **A metal looks like what it reflects.** Under this studio a metal
+  comes out pale as zinc unless its own tone is low (about 0.09 for dark
+  steel), and smooth it is chrome. "Polished" is the same dark steel with
+  only the parts that stand proud made bright: the mesh says where, in an
+  attribute the material reads (`render/steel.py`, `worn`).
+- **A ground that repeats takes only lights that are the same
+  everywhere**: the sun and the sky. A lamp lights the middle of the
+  picture more than its edges, and the repeat shows as a seam in a wide
+  dock. Measure it: the mean light of a strip at each edge
+  (the mail and the header's steel are even to 2%).
+- **Many small things of one mesh** (the mail's rings) are linked copies,
+  and each takes its chance from its place within the repeat, so the
+  picture meets itself.
+- **A face seen straight on must be curved to read as a solid.** A flat
+  disc takes one even tone however much texture is on it: the buckler
+  read as drawn until its face was dished.
+- **What grows with a camera can't meet what doesn't.** A plate scales
+  with its tile and the mail has a size of its own: rings through holes
+  in the plate would come in two sizes. The plates lie on the mail
+  instead.
+- **A small thing's shadow is kept close to it.** A shadow catcher's
+  pale veil reaches far, and lies on the ground as a stain
+  (`render/stage.py`, `close_shadow`).
+- **Red-brown beside steel is rust**, whatever it is meant to be, and a
+  theme that uses rust as a state can't have it as a ground. The cloth
+  under the mail is blue.
+
 ## What must stretch is drawn to be cut
 
 The dock's width and height are the player's. Nothing may be drawn for
@@ -261,6 +293,15 @@ tiles and no further". Everything drawn has `pointer-events: none`.
   (`background-blend-mode` between its own layers): the hides theme
   lights a hide by drawing it once more with the light over it, cut to
   the hide by a mask.
+- **A state that brightens the ground under text.** Contrast is checked
+  from `background-color`, and a name on a picture has none: measure it
+  on the pixels of a screenshot, in every state (a saved picture's
+  numbers are coded for the screen; undo that first). A polished plate
+  took the name from 9.9 to 1 down to 3.2 to 1; the plates leave a band
+  under the picture that a voice never polishes.
+- **A layer that isn't shown still loads its picture.** A pseudo-element
+  at `opacity: 0`, or a background layer of no width, is fetched all the
+  same. Only a picture named by a rule that doesn't match yet waits.
 - **A module's description** is at most 500 characters: the planner's
   catalog refuses a longer one, and the core's build with it.
 - **One gap.** The dock fits its grid with one gap. A row gap unlike the
