@@ -120,6 +120,18 @@ things are rendered with Blender instead; only what is flat by nature
 - **Photographed textures stay out of the repository.** They are pinned
   by address and hash and fetched before rendering
   (`tools/art/scrolls/textures.ts`), and named in the module's notices.
+- **A second rendered theme reuses the first one's studio.** The hides
+  theme (`tools/art/hides`) has scenes, measures and a list of its own,
+  and stands them in the scrolls theme's room and light; one script
+  renders either (`scripts/art/render-theme.ts`). It also shows a
+  scanned shape, a skull from a museum's open collection: pinned and
+  fetched like a texture, its licence read in the collection's own
+  catalogue, and named in the notices.
+- **Render no larger than a sharp screen shows.** A hide's leather,
+  lacing and wood are fine detail: at a pixel to a tile unit a frame
+  picture weighed 148 KB, at three quarters of that 88 KB with nothing
+  to see of the loss. Small things (a tag, a button) need two pixels to
+  a CSS pixel, not four.
 - **Colour comes from the stylesheet.** The stones are rendered without
   colour and tinted by `background-blend-mode: multiply` over the
   player's colour, their flashes laid over that in a picture of their
@@ -236,6 +248,15 @@ tiles and no further". Everything drawn has `pointer-events: none`.
   its cameras are a test pattern, and it has none of Foundry's styles
   for form fields: a menu looks cramped there under any theme. Judge
   menus and the settings window in Foundry.
+- **No blend mode against the camera.** `mix-blend-mode` on a layer over
+  a tile has the browser draw the camera's picture through a group of
+  its own: its pixels change, even where the layer is empty, and the
+  contract's check that faces stay clear fails. Blend inside one element
+  (`background-blend-mode` between its own layers): the hides theme
+  lights a hide by drawing it once more with the light over it, cut to
+  the hide by a mask.
+- **A module's description** is at most 500 characters: the planner's
+  catalog refuses a longer one, and the core's build with it.
 - **One gap.** The dock fits its grid with one gap. A row gap unlike the
   column gap made the scrolls theme's grid flip between two sizes.
 - **Turned tiles.** A tile may be turned a little (`rotate`): its boxes
