@@ -17,7 +17,11 @@ no module's zip contains any of it, and it has no Foundry id.
   audio or video effect must pass media through, stop cleanly and cost
   what it says; a theme must keep contrast and every state visible.
 - **A browser harness** (`src/harness/`): pages for the Playwright
-  tests, with real audio and video in Chromium.
+  tests, with real audio and video in Chromium. It listens on port 5174,
+  or on the one `MAV_HARNESS_PORT` names, so a second checkout's tests
+  can run beside the first's. Its address can also ask for a trial theme
+  (`?trial=<id>:<reach>`, for pictures of a look that has no module yet)
+  and for players with colours of their own (`?colours=1`).
 
 How the tiers of tests fit together is in
 [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md), "How it is tested".

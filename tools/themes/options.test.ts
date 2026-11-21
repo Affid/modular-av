@@ -14,7 +14,59 @@ describe("parseShotArgs", () => {
       placements: ["left"],
       layouts: ["grid"],
       scale: 2,
+      states: [],
+      viewer: "in",
+      docks: ["open"],
+      widths: [300],
+      trial: null,
     });
+  });
+
+  it("reads what each player is doing, in their order, and whether the viewer has left", () => {
+    const options = parseShotArgs([
+      "out",
+      "--states",
+      "muted+deafened+poor,speaking,-,camera-off+menu",
+      "--viewer",
+      "out",
+    ]);
+
+    expect(options.states).toEqual([
+      ["muted", "deafened", "poor"],
+      ["speaking"],
+      [],
+      ["camera-off", "menu"],
+    ]);
+    expect(options.viewer).toBe("out");
+  });
+
+  it("reads the dock put away and its widths, as more pictures to take", () => {
+    const options = parseShotArgs([
+      "out",
+      "--docks",
+      "open,collapsed",
+      "--widths",
+      "300,480",
+    ]);
+
+    expect(options.docks).toEqual(["open", "collapsed"]);
+    expect(options.widths).toEqual([300, 480]);
+  });
+
+  it("reads a trial theme, which is then the theme of the pictures", () => {
+    const options = parseShotArgs([
+      "out",
+      "--trial",
+      "moss:0.1,0.05,0.2,0.05",
+      "--css",
+      "moss.css",
+    ]);
+
+    expect(options.trial).toEqual({
+      id: "moss",
+      reach: { top: 0.1, right: 0.05, bottom: 0.2, left: 0.05 },
+    });
+    expect(options.theme).toBe("moss");
   });
 
   it("reads a theme, trial stylesheets and pictures, and lists of what to shoot", () => {
@@ -70,6 +122,16 @@ describe("parseShotArgs", () => {
       ["out", "--heights", "20"],
       /--heights/,
     ],
+    ["a state no player has", ["out", "--states", "asleep"], /asleep/],
+    ["a viewer neither in nor out", ["out", "--viewer", "away"], /away/],
+    ["a dock neither open nor collapsed", ["out", "--docks", "ajar"], /ajar/],
+    ["a dock too narrow to be one", ["out", "--widths", "40"], /--widths/],
+    ["a trial theme with a bad reach", ["out", "--trial", "moss:1,1"], /four/],
+    [
+      "a trial theme beside another theme",
+      ["out", "--theme", "vines", "--trial", "moss"],
+      /--trial.*--theme|--theme.*--trial/,
+    ],
   ])("refuses %s", (_name, argv, message) => {
     expect(() => parseShotArgs(argv)).toThrow(message);
   });
@@ -96,8 +158,30 @@ describe("shotsOf", () => {
       height: 900,
       placement: "left",
       layout: "grid",
+      dock: "open",
+      width: 300,
     });
     expect(new Set(shots.map((shot) => shot.name)).size).toBe(8);
+  });
+
+  it("takes a picture more for each way the dock is put away and each width, and says so in its name", () => {
+    const shots = shotsOf(
+      parseShotArgs([
+        "out",
+        "--docks",
+        "open,collapsed",
+        "--widths",
+        "300,480",
+      ]),
+    );
+
+    expect(shots.map((shot) => shot.name)).toEqual([
+      "left-grid-3-cameras-900",
+      "left-grid-3-cameras-900-480w",
+      "left-grid-3-cameras-900-collapsed",
+      "left-grid-3-cameras-900-collapsed-480w",
+    ]);
+    expect(shots[3]).toMatchObject({ dock: "collapsed", width: 480 });
   });
 
   it("names every placement by its entry in the dock's menu", () => {

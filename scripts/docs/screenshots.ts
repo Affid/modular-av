@@ -8,8 +8,8 @@
 // and deleted afterwards.
 //
 // The camera files aren't in the repository: see docs/images/README.md.
-import { copyFileSync, existsSync, mkdirSync, rmSync } from "node:fs";
-import { extname, join, resolve } from "node:path";
+import { existsSync, mkdirSync } from "node:fs";
+import { join, resolve } from "node:path";
 import {
   type Browser,
   chromium,
@@ -24,7 +24,14 @@ import {
   type Player,
   turnOffEffects,
 } from "../../tests/foundry/world.ts";
-import { loadFoundryEnv } from "../foundry/env.ts";
+import {
+  closeUserConfig,
+  createScene,
+  type MapScene,
+  removeScene,
+  setPaused,
+  showCanvas,
+} from "../foundry/map-scene.ts";
 import { FAKE_SPEECH_WAV, writeFakeSpeech } from "../foundry/fake-speech.ts";
 
 const OUT = resolve("docs/images");
@@ -68,84 +75,6 @@ const corner = (
     clip: { x: 0, y: 0, width, height },
   });
 
-/** Foundry asks a player with no character to configure their user. */
-async function closeUserConfig(page: Page): Promise<void> {
-  const close = page.locator(
-    '.application:has-text("User Configuration") [data-action="close"]',
-  );
-  if ((await close.count()) > 0) await close.first().click();
-}
-
-interface DocsScene {
-  readonly id: string;
-  /** The map's copy in the world's folder. */
-  readonly file: string;
-}
-
-/** A scene with `map` as its background, active for everyone. */
-async function createScene(gm: Player, map: string): Promise<DocsScene> {
-  const world = await gm.page.evaluate(
-    () =>
-      (globalThis as unknown as { game: { world: { id: string } } }).game.world
-        .id,
-  );
-  const name = `docs-map${extname(map)}`;
-  const file = join(loadFoundryEnv().dataDir, "Data", "worlds", world, name);
-  copyFileSync(map, file);
-  const id = await gm.page.evaluate(async (src) => {
-    const g = globalThis as unknown as {
-      Scene: { create(data: object): Promise<{ id: string }> };
-    };
-    const scene = await g.Scene.create({
-      name: "The cavern",
-      active: true,
-      navigation: false,
-      // Foundry v14 keeps a scene's picture on its levels.
-      levels: [{ name: "Ground", background: { src } }],
-      width: 2000,
-      height: 2000,
-      padding: 0,
-      grid: { type: 0 },
-      tokenVision: false,
-      initial: { x: 1000, y: 1000, scale: 0.75 },
-    });
-    return scene.id;
-  }, `worlds/${world}/${name}`);
-  return { id, file };
-}
-
-async function removeScene(gm: Player, scene: DocsScene): Promise<void> {
-  await gm.page.evaluate(async (id) => {
-    const g = globalThis as unknown as {
-      game: {
-        scenes: { get(id: string): { delete(): Promise<unknown> } | undefined };
-      };
-    };
-    await g.game.scenes.get(id)?.delete();
-  }, scene.id);
-  rmSync(scene.file, { force: true });
-}
-
-/** Foundry's canvas on for this player: the others stay without (session.ts). */
-async function showCanvas(player: Player): Promise<void> {
-  await player.page.context().addInitScript(() => {
-    localStorage.setItem("core.noCanvas", "false");
-  });
-  await player.page.reload();
-  await player.page.waitForFunction(
-    () =>
-      (globalThis as { canvas?: { ready?: boolean } }).canvas?.ready === true,
-    null,
-    { timeout: 120_000 },
-  );
-  await expectStatus(player, "connected");
-  await closeUserConfig(player.page);
-  // Headless Chrome has no GPU, and Foundry's warning about it never leaves.
-  await player.page.locator("#notifications > *").evaluateAll((notices) => {
-    for (const notice of notices) notice.remove();
-  });
-}
-
 /** Turns a module on or off for the world; returns what it was. */
 async function setModule(
   browser: Browser,
@@ -177,15 +106,6 @@ async function setModule(
   await gm.close();
   return was;
 }
-
-/** The pause banner carries the game system's logo: not ours to publish. */
-const setPaused = (gm: Player, paused: boolean): Promise<void> =>
-  gm.page.evaluate((to) => {
-    const g = globalThis as unknown as {
-      game: { togglePause(paused: boolean, options: object): void };
-    };
-    g.game.togglePause(to, { broadcast: true });
-  }, paused);
 
 /** The dock's own settings back to their defaults (kept with the user). */
 async function resetDock(player: Player): Promise<void> {
@@ -478,7 +398,7 @@ async function main(): Promise<void> {
   if (!first) throw new Error("No browser");
   const map = process.argv[3] ? resolve(process.argv[3]) : null;
   let players: readonly Player[] = [];
-  let scene: DocsScene | null = null;
+  let scene: MapScene | null = null;
   let unreleasedWasOn = false;
   try {
     await configureWorld(first, "p2p", "dock");

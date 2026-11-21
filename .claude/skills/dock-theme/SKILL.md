@@ -11,10 +11,10 @@ file is the order of work.
 
 Before starting, see who else is on the machine: the test harness has one
 port (5174) and there is one local Foundry (30000). `ss -ltn` shows
-whether either is in use, and another session may be using them. A
-harness of your own runs beside it on another port (`pnpm exec vite
---config packages/testing/src/harness/vite.config.ts --port 5175`);
-Foundry is agreed by message, never taken.
+whether either is in use, and another session may be using them. With
+`MAV_HARNESS_PORT=5175` before a command (`pnpm test:browser`,
+`pnpm verify`, `pnpm theme:shots`, Playwright) the harness runs on a port
+of your own beside theirs; Foundry is agreed by message, never taken.
 
 ## 1. Words
 
@@ -33,10 +33,17 @@ Nothing in the repository changes in this step. Keep trial stylesheets and
 trial pictures in the scratchpad and shoot them with:
 
 ```bash
-pnpm theme:shots <out> --modules dock,dock-<theme> --theme <id> \
+pnpm theme:shots <out> --trial <id>:<top>,<right>,<bottom>,<left> \
   --css <trial.css> --art <trial pictures> \
   --players 2,8 --heights 900,1080 --placements left --layouts grid,focus
 ```
+
+`--trial` registers a theme for the pictures alone (its frames' reach as
+fractions of a tile's width), so a new look needs no module yet; for a
+theme that exists, `--modules dock,dock-<theme> --theme <id>`. Add
+`--states`, `--viewer out`, `--docks open,collapsed` and `--widths` for
+the states and shapes listed below (`docs/making-a-theme.md` has the
+forms).
 
 For each round:
 
@@ -76,9 +83,9 @@ together must have shown:
 - **The dock's own parts:** the header, the voice panel, a button with
   its menu arrow, and a pressed button.
 
-Make the states happen, don't paint them: mute through the player's own
-command, leave the call for an out-of-the-call tile (in the harness only
-the viewer's own tile stays when its player leaves). A state set by
+Make the states happen, don't paint them: `theme:shots --states` and
+`--viewer out` do it through the players' own commands (in the harness
+only the viewer's own tile stays when its player leaves). A state set by
 adding an attribute shows no icon, and the dock takes it back.
 
 Keep the mock to what the dock can do: one gap between tiles, the reach
@@ -122,9 +129,11 @@ unless that change is part of the plan.
 4. `pnpm verify`, and read its exit code in a step of its own. It takes
    about ten minutes: start the reviewers of step 6 while it runs, they
    only read.
-5. `pnpm theme:foundry <out> <id> [camera files]` with Foundry running
-   (`pnpm foundry:start`, `pnpm foundry:setup`, `pnpm build`,
-   `pnpm foundry:link`). Look at the pictures; stop the server after.
+5. `pnpm theme:foundry <out> <id> [camera files] [map image]` with
+   Foundry running (`pnpm foundry:start`, `pnpm foundry:setup`,
+   `pnpm build`, `pnpm foundry:link`): every placement, then the states,
+   the menus and the settings window. Look at the pictures; stop the
+   server after.
    Menus and the settings window are judged here, never in the harness,
    which has none of Foundry's styles for form fields. Show the user
    pictures from Foundry, with people in the cameras

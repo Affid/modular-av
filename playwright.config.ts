@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import { defineConfig, devices } from "@playwright/test";
+import { harnessUrl } from "./packages/testing/src/harness/port.ts";
 import {
   FAKE_CAMERA_Y4M,
   writeFakeCamera,
@@ -18,10 +19,9 @@ const FAKE_MEDIA = [
   "--use-fake-device-for-media-stream",
 ];
 
-// IPv6 loopback only: under WSL's mirrored networking a connection to an
-// unused port on 127.0.0.1 times out after about two minutes instead of
-// being refused, which stalled Playwright's "already running?" check.
-const HARNESS_URL = "http://[::1]:5174";
+// The harness's own port, or the one MAV_HARNESS_PORT names: a second
+// checkout's tests then start a server of their own beside the first's.
+const HARNESS_URL = harnessUrl(process.env);
 
 export default defineConfig({
   testDir: "packages",

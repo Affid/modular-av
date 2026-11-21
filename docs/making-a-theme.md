@@ -27,6 +27,33 @@ repository changed.
   `url("/theme-shots/art/<file>")`. Each picture's line also says the
   tile's width, the spare height and whether the list scrolls.
 
+  A look that has no module yet is shot as a trial theme, registered for
+  the pictures alone, with the trial stylesheets as its own:
+
+  ```bash
+  pnpm theme:shots out --trial moss:0.1,0.05,0.2,0.05 --css moss.css --art moss-art
+  ```
+
+  The numbers are how far its frames reach past a tile (top, right,
+  bottom, left, as fractions of its width): what the theme will register.
+
+- **Show the states and the dock's other shapes too**, not only cameras
+  at rest:
+
+  ```bash
+  pnpm theme:shots out --theme scrolls --modules dock,dock-scrolls --players 3 \
+    --states muted+deafened+poor,speaking,camera-off+menu \
+    --docks open,collapsed --widths 300,480
+  ```
+
+  `--states` says what each player after the viewer is doing, in their
+  order (`speaking`, `muted`, `deafened`, `poor` for a poor link,
+  `camera-off`, `menu` for the pointer over their camera; `-` for
+  nothing), and they are made to happen through the players' own
+  commands. `--viewer out` takes the viewer out of the call. `--docks`
+  and `--widths` add pictures of the dock put away and at other widths.
+  The harness's players have colours of their own in these pictures.
+
 - **Show every idea large and small, with few cameras and many.** A tile
   in a docked dock is anywhere from 120 to about 255 pixels wide. Ideas
   that work on a large tile often fail on a small one.
@@ -200,6 +227,11 @@ tiles and no further". Everything drawn has `pointer-events: none`.
 - **Budgets.** `pnpm size:check` holds the stylesheet's and the entry's
   size; the art's total has a test. Run it early: it is the last step of
   `pnpm verify`.
+- **One port, one Foundry.** The harness listens on one port and there
+  is one local Foundry. A second checkout (a worktree, another session)
+  runs its harness beside the first with `MAV_HARNESS_PORT=5175` before
+  `pnpm test:browser`, `pnpm verify` or `pnpm theme:shots`; Foundry has
+  to be taken in turns.
 - **The harness is not Foundry.** Its docked dock has no height limit,
   its cameras are a test pattern, and it has none of Foundry's styles
   for form fields: a menu looks cramped there under any theme. Judge
@@ -233,7 +265,11 @@ tiles and no further". Everything drawn has `pointer-events: none`.
    a width), not pixels. See `packages/dock-vines/test/browser`.
 3. `pnpm verify`.
 4. In Foundry, with real video: `pnpm theme:foundry out <theme id>
-[camera files]` puts four users in a call and takes the GM's dock
-   through every placement, with a picture and the layout's numbers for
-   each, and the page's errors at the end.
+[camera files] [map image]` puts four users in a call and takes the
+   GM's dock through every placement, with a picture and the layout's
+   numbers for each; then the players' states, each of the dock's menus
+   and the settings window, which only Foundry styles as players see
+   them; and the page's errors at the end. With camera files of people
+   and a map (`docs/images/README.md`) these are the pictures to show
+   someone.
 5. A review by someone who didn't write it.
