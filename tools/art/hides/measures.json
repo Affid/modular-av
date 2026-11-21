@@ -56,7 +56,19 @@
       "span": 9.6,
       "edge": 24
     },
-    "stud": {
+    "stud-1": {
+      "width": 96,
+      "height": 96,
+      "density": 1,
+      "span": 2
+    },
+    "stud-2": {
+      "width": 96,
+      "height": 96,
+      "density": 1,
+      "span": 2
+    },
+    "stud-3": {
       "width": 96,
       "height": 96,
       "density": 1,

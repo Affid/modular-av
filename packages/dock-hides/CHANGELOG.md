@@ -27,7 +27,7 @@
     firelight.
 
   The pictures are rendered with Blender from scenes kept in the
-  repository as scripts. The four photographed textures they use and the
+  repository as scripts. The five photographed textures they use and the
   scanned skull are CC0 and named in the module's notices. A frame takes
   room: cameras that fill the dock are somewhat smaller than in the
   dock's own look.

@@ -86,12 +86,12 @@ For someone reading the code. How the modules fit together is in
   (`public/hides.css`). No logic of its own: what follows the room under
   the cameras does so in the stylesheet, from a number the dock sets. The
   entry file is held under 2 KB and the stylesheet under 14 KB.
-- **Pictures**: 17 files in `public/art`, about 580 KB together; a page
+- **Pictures**: 19 files in `public/art`, about 585 KB together; a page
   loads only those for the layout and states it shows.
-  - _Rendered_ (16 WebP files): the wall; two hides, and for each the
+  - _Rendered_ (18 WebP files): the wall; two hides, and for each the
     same hide with its thongs cut, where light shows through it, and its
-    paint; the name's tag, the nailed piece and the leather under it, a
-    nail's head whole and in two parts, and the skull. They are rendered
+    paint; the name's tag, the nailed piece and the leather under it,
+    three nail heads and a longer one in two parts, and the skull. They are rendered
     with Blender from scenes that are scripts in this repository
     (`tools/art/hides/render`), all under one light. Making them again
     needs Blender 4.5 or later: `pnpm art:hides:render` renders them,
@@ -101,9 +101,10 @@ For someone reading the code. How the modules fit together is in
   - _Drawn_ (1 SVG file): the tally marks, as the mask the level meter is
     cut to. A script draws it from a fixed seed (`pnpm art:hides`), the
     same every time, and a test fails when the file here isn't what it
-    draws. The war paint's daubs are drawn by the same script and
-    rendered on the hide, so they ship as pictures.
-- **Third-party code**: none. The rendered pictures show four
+    draws. The war paint's daubs are drawn too (`tools/art/hides/paint.ts`),
+    by the render script, which has the hide's scene paint them on the
+    hide: they ship as rendered pictures.
+- **Third-party code**: none. The rendered pictures show five
   photographed textures from Poly Haven and one scanned skull from the
   Smithsonian's open-access collection, all under CC0: see
   [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). **Network**: none.
@@ -121,6 +122,6 @@ packages/dock-hides`). One runs the shared theme contract from
 
 MIT, artwork included: the pictures in `public/art` were made for this
 module by the scripts in `tools/art/hides`, which are part of this
-repository. No image model went into them. The four photographed
+repository. No image model went into them. The five photographed
 textures the renders use and the scanned skull are in the public domain
 (CC0); the skull's horns were made here.

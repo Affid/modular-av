@@ -233,18 +233,32 @@
 
 /* ---- Buttons: the heads of hand-forged iron nails ---- */
 
-/* Light and shade over the button's own colour: iron at rest, and paint
-   daubed on it for a camera that is on, for muted and for leaving. */
+/* Light and shade over the button's own colour: dark iron at rest, and
+   paint daubed on it for a camera that is on, for muted and for leaving.
+   The head's edge falls away: lit above, dark below. */
 .mav-theme-hides .mav-dock :is(.mav-dock-tools, .mav-dock-buttons) {
-  --mav-surface-raised: #4a4744;
+  --mav-surface-raised: #3d3a38;
 
   .mav-dock-button {
     border: 1px solid #120c08;
-    background-image: url("art/stud.webp");
+    background-image: url("art/stud-1.webp");
     background-size: 100% 100%;
     background-blend-mode: hard-light;
-    box-shadow: 0 2px 3px rgb(0 0 0 / 60%);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 18%),
+      inset 0 -2px 2px rgb(0 0 0 / 50%),
+      0 2px 3px rgb(0 0 0 / 60%);
     color: #f3e6c8;
+  }
+
+  /* No two heads side by side are the same: every other button takes a
+     second head, and every fourth a third. */
+  .mav-dock-button:nth-child(odd) {
+    background-image: url("art/stud-2.webp");
+  }
+
+  .mav-dock-button:nth-child(4n + 2) {
+    background-image: url("art/stud-3.webp");
   }
 
   .mav-dock-button:hover:not(:disabled) {
@@ -264,7 +278,8 @@
     background-image: url("art/stud-left.webp");
   }
 
-  .mav-dock-menu-arrow {
+  /* Said as a button too: it outweighs the rules that share the three heads out. */
+  .mav-dock-button.mav-dock-menu-arrow {
     margin-inline-start: calc(-1 * var(--mav-dock-button-gap, 2px));
     border-inline-start-width: 0;
     background-image: url("art/stud-right.webp");
@@ -372,7 +387,7 @@
   .mav-dock-button:has(+ .mav-dock-menu-arrow) {
     border-inline-end-width: 1px;
     border-radius: var(--mav-dock-radius);
-    background-image: url("art/stud.webp");
+    background-image: url("art/stud-1.webp");
   }
 }
 

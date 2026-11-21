@@ -24,7 +24,6 @@ def pulled_outline(rng, x0, y0, x1, y1, across, down, sag=0.17, most=17.0, loose
             off = rng.uniform(-4, 3)
             ties.append(((ax + (bx - ax) * t + nx * off, ay + (by - ay) * t + ny * off), (nx, ny)))
     # A tie that has been cut pulls no more: there the edge falls back, and hangs a little.
-    middle = ((x0 + x1) / 2, (y0 + y1) / 2)
     for i in loose:
         (tx, ty), (nx, ny) = ties[i]
         back = most * rng.uniform(0.75, 1.1) + (9 if abs(nx) + abs(ny) > 1.2 else 0)

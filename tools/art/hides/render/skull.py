@@ -3,7 +3,6 @@
 The bone is real: the Smithsonian's scan of its cast of a white-tailed deer's skull (CC0; see ../textures.ts). A
 deer carries antlers, and this skull has only the two stumps they grew from. The horns set on them are made
 here, so the beast is invented."""
-import math
 import os
 import sys
 
@@ -17,7 +16,7 @@ import numpy as np
 from mathutils import Vector
 
 from forms import cord, peg, ring
-from materials import _math, _mix, material
+from materials import _mix, material
 from measures import out, picture, span, texture
 from pixels import clean, load_rgba, save_rgba
 from stage import start

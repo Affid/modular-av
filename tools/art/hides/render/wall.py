@@ -1,6 +1,5 @@
 """The wall of the hall: dark timbers standing upright, one whole repeat of the photograph each way, so that it
 runs on under a dock of any size."""
-import math
 import os
 import sys
 

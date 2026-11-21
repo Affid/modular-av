@@ -13,6 +13,10 @@ const CLEAR = "rgba(0, 0, 0, 0)";
 const skullWidth = async (page: Page): Promise<number> =>
   parseFloat(await style(list(page), "background-size"));
 
+/** What the dock says of the room under the cameras; empty until it has measured. */
+const spareOf = (page: Page): Promise<string> =>
+  list(page).evaluate((el) => el.style.getPropertyValue("--mav-dock-spare"));
+
 const pieces = (page: Page): readonly Locator[] => [
   page.locator(".mav-dock-header"),
   page.locator(".mav-dock-panel"),
@@ -81,8 +85,8 @@ test("the buttons are iron nail heads: iron at rest, green paint for a camera th
   await open(page, 1);
 
   for (const name of ["deafen", "settings", "leave"]) {
-    expect(await style(button(page, name), "background-image"), name).toContain(
-      "art/stud.webp",
+    expect(await style(button(page, name), "background-image"), name).toMatch(
+      /art\/stud-[123]\.webp/,
     );
     // Light and shade over the button's own colour, whatever that is.
     await expect(button(page, name)).toHaveCSS(
@@ -92,7 +96,7 @@ test("the buttons are iron nail heads: iron at rest, green paint for a camera th
   }
   await expect(button(page, "settings")).toHaveCSS(
     "background-color",
-    "rgb(74, 71, 68)",
+    "rgb(61, 58, 56)",
   );
   await expect(button(page, "video")).toHaveCSS(
     "background-color",
@@ -108,7 +112,18 @@ test("the buttons are iron nail heads: iron at rest, green paint for a camera th
       page.locator(".mav-dock-tools .mav-dock-collapse"),
       "background-image",
     ),
-  ).toContain("art/stud.webp");
+  ).toMatch(/art\/stud-[123]\.webp/);
+  // No two buttons side by side show the same head.
+  const heads = await page
+    .locator(".mav-dock-buttons .mav-dock-button:not(.mav-dock-menu-arrow)")
+    .evaluateAll((all) =>
+      all
+        .filter((el) => el.checkVisibility())
+        .map((el) => getComputedStyle(el).backgroundImage),
+    );
+  expect(heads.length).toBeGreaterThan(3);
+  for (const [i, head] of heads.entries())
+    if (i > 0) expect(head, String(i)).not.toBe(heads[i - 1]);
 });
 
 test("a button and its menu arrow are one longer head in two parts, and a pressed button's paint runs over both", async ({
@@ -153,7 +168,9 @@ for (const side of ["left", "right"] as const)
 
     const mic = button(page, "mute");
     await expect(page.locator(".mav-dock-mic-menu")).toBeHidden();
-    expect(await style(mic, "background-image")).toContain("art/stud.webp");
+    expect(await style(mic, "background-image")).toMatch(
+      /art\/stud-[123]\.webp/,
+    );
     await expect(mic).toHaveCSS("border-right-width", "1px");
     await expect(mic).toHaveCSS("border-top-right-radius", "6px");
     // Nothing of a button is cut off: each lies inside the panel and the rail.
@@ -176,6 +193,8 @@ test("a horned skull hangs on the wall where the cameras leave room, and nowhere
 }) => {
   // Five cameras fill the dock; nine, two abreast, leave room under them.
   await open(page, 4);
+  // Once the dock has said how much room is left: before that there is no skull either way.
+  await expect.poll(() => spareOf(page)).not.toBe("");
   await expect.poll(() => skullWidth(page)).toBe(0);
   expect(await style(list(page), "background-image")).toContain(
     "art/skull.webp",
@@ -184,17 +203,12 @@ test("a horned skull hangs on the wall where the cameras leave room, and nowhere
   await open(page, 8);
   await expect.poll(() => skullWidth(page)).toBe(240);
   await expect(list(page)).toHaveCSS("background-size", "240px 160px");
-  // It is painted on the list itself: nothing of it scrolls or takes clicks.
+  // It is painted on the list itself: nothing of it scrolls.
   expect(
     await list(page).evaluate((el) => el.scrollHeight - el.clientHeight),
   ).toBe(0);
   // Its foot is clear of the panel below, and its horns of the frames above.
-  const spare = Number(
-    await list(page).evaluate((el) =>
-      el.style.getPropertyValue("--mav-dock-spare"),
-    ),
-  );
-  expect(spare).toBeGreaterThanOrEqual(164);
+  expect(Number(await spareOf(page))).toBeGreaterThanOrEqual(164);
 });
 
 test("upright the list scrolls down only; across the top it still scrolls sideways, and no skull hangs there", async ({
@@ -206,6 +220,11 @@ test("upright the list scrolls down only; across the top it still scrolls sidewa
   await place(page, /^Docked at the top/);
 
   await expect(list(page)).toHaveCSS("overflow-x", "auto");
+  // The wall is still there, and the dock says no room is left under a row.
+  expect(await style(dock(page), "background-image")).toContain(
+    "art/wall.webp",
+  );
+  await expect.poll(() => spareOf(page)).toBe("0");
   await expect.poll(() => skullWidth(page)).toBe(0);
 });
 

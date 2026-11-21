@@ -179,8 +179,21 @@ export async function renderTheme(
     await theme.prepare?.(out);
     for (const scene of scenes) renderScene(theme, scene, out, textures);
     await mkdir(theme.artDir, { recursive: true });
-    // Some scenes: the others' pictures stay listed. All of them: the list is what they made.
-    const kept = named.length > 0 ? listed(theme.manifest) : {};
+    // Some scenes: the others' pictures stay listed, but none that no scene makes any more.
+    // All of them: the list is what they made.
+    const made = new Set(
+      theme.scenes.flatMap((scene) =>
+        scene.pictures.map((name) => `${name}.webp`),
+      ),
+    );
+    const kept =
+      named.length > 0
+        ? Object.fromEntries(
+            Object.entries(listed(theme.manifest)).filter(([name]) =>
+              made.has(name),
+            ),
+          )
+        : {};
     const manifest = { ...kept, ...(await convert(theme, scenes, out)) };
     const sorted = Object.fromEntries(
       Object.entries(manifest).sort(([a], [b]) => a.localeCompare(b)),

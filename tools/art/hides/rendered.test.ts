@@ -13,14 +13,16 @@ describe("the hides theme's rendered pictures", () => {
     ]);
   });
 
-  it("are WebP files: two hides, and for each its cut thongs, where light shows through it and its paint", () => {
+  it("are WebP files: two hides, and for each its cut thongs, where light shows through it and its paint; three nail heads, so that neighbours differ", () => {
     expect([...renderedNames()].sort()).toEqual(
       [
         "wall.webp",
         "tag.webp",
         "piece.webp",
         "leather.webp",
-        "stud.webp",
+        "stud-1.webp",
+        "stud-2.webp",
+        "stud-3.webp",
         "stud-left.webp",
         "stud-right.webp",
         "skull.webp",

@@ -5,12 +5,16 @@ const fileOf = (source: (typeof TEXTURES)[number]): string =>
   "file" in source ? source.file : "";
 
 describe("what the hides scenes read", () => {
-  it("is photographed leather, wood and a timber wall from Poly Haven, and one scanned skull from the Smithsonian", () => {
+  it("is photographed leather, wood, rusted iron and a timber wall from Poly Haven, and one scanned skull from the Smithsonian", () => {
     expect(TEXTURES.map(fileOf).sort()).toEqual(
       [
-        ...["fabric_leather_02", "fabric_leather_01", "rough_wood"].flatMap(
-          (asset) =>
-            ["diff", "nor", "rough"].map((map) => `${asset}_${map}.jpg`),
+        ...[
+          "fabric_leather_02",
+          "fabric_leather_01",
+          "rough_wood",
+          "rusty_metal_04",
+        ].flatMap((asset) =>
+          ["diff", "nor", "rough"].map((map) => `${asset}_${map}.jpg`),
         ),
         ...["diff", "nor", "rough", "disp"].map(
           (map) => `wood_trunk_wall_${map}.jpg`,

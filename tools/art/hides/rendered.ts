@@ -39,7 +39,10 @@ export const SCENES: readonly Scene[] = [
   },
   { script: "tag.py", pictures: ["tag"] },
   { script: "piece.py", pictures: ["piece", "leather"] },
-  { script: "stud.py", pictures: ["stud", "stud-left", "stud-right"] },
+  {
+    script: "stud.py",
+    pictures: ["stud-1", "stud-2", "stud-3", "stud-left", "stud-right"],
+  },
   { script: "skull.py", pictures: ["skull"] },
 ];
 

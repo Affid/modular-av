@@ -113,8 +113,21 @@ describe("the hides theme", () => {
     expect(from + 1).toBeGreaterThanOrEqual(skull.height + foot);
   });
 
-  it("lays a button's iron over it whole, and in two parts where an arrow stands beside it", () => {
-    for (const name of ["stud", "stud-left", "stud-right"])
+  it("lays one of three nail heads over a button, and one longer head in two parts where an arrow stands beside it", () => {
+    for (const name of [
+      "stud-1",
+      "stud-2",
+      "stud-3",
+      "stud-left",
+      "stud-right",
+    ])
       expect(flat).toContain(`background-image: url("art/${name}.webp")`);
+    // Neighbours differ: every other button, then every fourth, takes another head.
+    expect(flat).toContain(
+      '.mav-dock-button:nth-child(odd) { background-image: url("art/stud-2.webp"); }',
+    );
+    expect(flat).toContain(
+      '.mav-dock-button:nth-child(4n + 2) { background-image: url("art/stud-3.webp"); }',
+    );
   });
 });

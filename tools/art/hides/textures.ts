@@ -1,5 +1,5 @@
 // What the hides scenes read that was not made here: photographed leather,
-// wood and a timber wall from Poly Haven, and one scanned skull from the
+// wood, rusted iron and a timber wall from Poly Haven, and one scanned skull from the
 // Smithsonian's open-access collection. All of it is CC0. None of it is in
 // the repository: each file is pinned by its address and hash and fetched
 // into a cache before rendering, as the scrolls theme's textures are
@@ -82,6 +82,22 @@ export const TEXTURES: readonly TextureSource[] = [
     "rough_wood",
     "rough",
     "38343cb062e7fadcda513ded0b17271c9d7f1da56765d03508dc84c8ff1bd475",
+  ),
+  // The iron of the buttons.
+  polyHaven(
+    "rusty_metal_04",
+    "diff",
+    "dc17baa7c113af0a8db59a7166dbebd1d8bc842e69b1f07b89d9e90531ebbd22",
+  ),
+  polyHaven(
+    "rusty_metal_04",
+    "nor_gl",
+    "b230568d198778afbf3d104d2951e2e2306ddb276bc1ed2f441b9040c58af537",
+  ),
+  polyHaven(
+    "rusty_metal_04",
+    "rough",
+    "b59cb33b478c70404b14294e39979c7a12db25e8f7fac3688cf665fcb0fdd19d",
   ),
   // The wall of the hall.
   polyHaven(

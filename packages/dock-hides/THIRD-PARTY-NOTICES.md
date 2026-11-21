@@ -6,11 +6,11 @@ for this module and is under its MIT licence: the rendered pictures
 (`tools/art/hides`), and the drawn one (SVG) by a script in the same
 place. No image model went into them.
 
-The rendered pictures show five things that were not made here. All five
+The rendered pictures show six things that were not made here. All six
 are published under CC0 1.0 (public domain), which asks for no credit;
 they are named here so that the pictures can be traced and made again.
 
-Four photographed surfaces, used as textures, from Poly Haven:
+Five photographed surfaces, used as textures, from Poly Haven:
 
 - `fabric_leather_02` (the hides, the name's tag, the nailed pieces):
   <https://polyhaven.com/a/fabric_leather_02>
@@ -18,6 +18,8 @@ Four photographed surfaces, used as textures, from Poly Haven:
   <https://polyhaven.com/a/fabric_leather_01>
 - `rough_wood` (the poles and the pegs):
   <https://polyhaven.com/a/rough_wood>
+- `rusty_metal_04` (the iron of the buttons, without its colour):
+  <https://polyhaven.com/a/rusty_metal_04>
 - `wood_trunk_wall` (the wall of the hall):
   <https://polyhaven.com/a/wood_trunk_wall>
 

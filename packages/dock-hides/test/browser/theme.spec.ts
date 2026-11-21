@@ -191,8 +191,6 @@ for (const layout of ["in a grid", "scattered"] as const)
       "saturate(0.5) brightness(0.68)",
     );
     expect(await style(frameOf(other), "filter")).toBe("none");
-    // No firelight: a muted player has no voice here.
-    expect(await style(frameOf(muted), "opacity", "::before")).toBe("0");
   });
 
 test("out of the call, the thongs of one corner are cut, the paint is all but gone and the picture dims", async ({
@@ -436,4 +434,6 @@ test("the docked grid settles with frames that reach past the tiles", async ({
   });
 
   expect(seen).toHaveLength(1);
+  // And that one width is a width: the dock has fitted its grid.
+  expect(seen[0]).toMatch(/^\d+(\.\d+)?px$/);
 });

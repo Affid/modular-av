@@ -58,6 +58,13 @@ describe("the hides theme's measures", () => {
     }
   });
 
+  it("forges three nail heads of one size, so that neighbouring buttons differ", () => {
+    const heads = [PICTURES["stud-1"], PICTURES["stud-2"], PICTURES["stud-3"]];
+
+    for (const head of heads) expect(head).toEqual(heads[0]);
+    expect(PICTURES["stud-left"].height).toBe(heads[0]?.height);
+  });
+
   it("cuts a button's iron in two where its arrow begins: two parts of one head", () => {
     expect(PICTURES["stud-left"].height).toBe(PICTURES["stud-right"].height);
     expect(PICTURES["stud-left"].density).toBe(PICTURES["stud-right"].density);
