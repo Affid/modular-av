@@ -222,6 +222,10 @@
           "title": "Vines theme",
           "what": "Vine leaves around the cameras, glowing while someone speaks."
         },
+        "modular-av-dock-scrolls": {
+          "title": "Scrolls theme",
+          "what": "Each camera in a scroll on a wizard's desk, held open by stones that glow while someone speaks."
+        },
         "modular-av-livekit-krisp": {
           "title": "Krisp noise filter, for LiveKit Cloud"
         },

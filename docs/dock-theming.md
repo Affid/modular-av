@@ -84,6 +84,10 @@ edge a scattered tile sits against) and by state (`[data-speaking]`,
   stylesheet reads it from these properties.
 - The grid fits inside the tile list's padding (`.mav-dock-tiles`): a
   theme may add some for artwork round the whole grid.
+- The gap between tiles (`gap` on `.mav-dock-tiles`) is one length, the
+  same between rows and between columns: the dock fits its grid with the
+  column gap. With a different row gap the fit and the page disagree, and
+  the grid can flip between two tile sizes.
 
 ## The room under the tiles
 

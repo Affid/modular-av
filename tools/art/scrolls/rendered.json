@@ -1,0 +1,92 @@
+{
+  "desk.webp": {
+    "width": 1200,
+    "height": 1200,
+    "bytes": 93926,
+    "sha256": "01ba1323c2a4c658d9c511d95096f56c01f5a0ea8c24df89057806de2fd753d8"
+  },
+  "glow-1.webp": {
+    "width": 1150,
+    "height": 782,
+    "bytes": 17474,
+    "sha256": "7f5c97711918e7c6fa6f709a903142412393f82978fc2abc77ae2953d9b4d752"
+  },
+  "glow-2.webp": {
+    "width": 1150,
+    "height": 782,
+    "bytes": 17690,
+    "sha256": "25074fd8ddd98883c160ccc0f2ea020a1b6a632629d1228e570e7eed18bb548e"
+  },
+  "paper.webp": {
+    "width": 384,
+    "height": 384,
+    "bytes": 11792,
+    "sha256": "79646afa5ec50cc255af28065bc0a741a0b00780cb4c872a9f647e9f31e14c83"
+  },
+  "plate.webp": {
+    "width": 800,
+    "height": 272,
+    "bytes": 10202,
+    "sha256": "615a471ed4cf6417973eff2bcb02a0f7de417cfb01ad1e9d3c1301e86a3b173c"
+  },
+  "scroll-1.webp": {
+    "width": 1150,
+    "height": 782,
+    "bytes": 34720,
+    "sha256": "eb91d3d994d600ae76c46f61aadc602a2e72403afe273cbf067646b32c443b46"
+  },
+  "scroll-2.webp": {
+    "width": 1150,
+    "height": 782,
+    "bytes": 34862,
+    "sha256": "6d10e88f1af7d3ba1576c3b5c5d430794d394c24acfd533b239d26f2c2542032"
+  },
+  "shadow-1.webp": {
+    "width": 1150,
+    "height": 782,
+    "bytes": 20170,
+    "sha256": "7b9014c813ca3f2261a80ac27b9b4866682d4ad846ad24856d9d216767f037df"
+  },
+  "shadow-2.webp": {
+    "width": 1150,
+    "height": 782,
+    "bytes": 18656,
+    "sha256": "910aa41b3ef5443a0edea48182c47731e52cb161d1a78ca2b9bb9572ce64936e"
+  },
+  "spark-1.webp": {
+    "width": 1150,
+    "height": 782,
+    "bytes": 13814,
+    "sha256": "872931855ff8d9d73f22173a0c7adb5484c4536770cb294c6167e480988258ed"
+  },
+  "spark-2.webp": {
+    "width": 1150,
+    "height": 782,
+    "bytes": 14356,
+    "sha256": "8bc1d719ff124022fbe0e543925d1b0afa95e68718d3e541b35f87968aa74188"
+  },
+  "stones-1.webp": {
+    "width": 1150,
+    "height": 782,
+    "bytes": 16404,
+    "sha256": "2d217db9d1847efcd9fa5cc5ae9c9bbd2ac23c1f19315a8205e4e7b6b328cb43"
+  },
+  "stones-2.webp": {
+    "width": 1150,
+    "height": 782,
+    "bytes": 16200,
+    "sha256": "9207dfa21a883ccbfaa190d09c2d1d1132a82816d16ef05be2cf92f04c1af03a"
+  },
+  "things.webp": {
+    "width": 720,
+    "height": 360,
+    "bytes": 49558,
+    "sha256": "14e37c20e134f8d6e7950ce9433a51eab2d860eaa7dec07b9d2a93c5916a8e3e"
+  },
+  "wand.webp": {
+    "width": 840,
+    "height": 330,
+    "bytes": 11952,
+    "sha256": "9e67ad32194898f22c4a9eb8bc1fe30494034c26d5f4ceda0cb7a462df42f9c5"
+  }
+}

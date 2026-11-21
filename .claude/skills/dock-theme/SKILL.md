@@ -16,6 +16,10 @@ the dock becomes under it, in a handful of questions, and write their
 answers down in their words. Restate your reading of each answer and mark
 it as yours.
 
+The theme's name is what it shows (vines, scrolls), never the character
+class it is for: that goes in its label. Ask the user to pick the name
+before any folder is made.
+
 ## 2. Pictures, in rounds
 
 Nothing in the repository changes in this step. Keep trial stylesheets and
@@ -55,7 +59,10 @@ when the look is settled and the user has said so.
 2. The pictures: a seeded script under `tools/art/<theme>` (reuse
    `tools/art/vines/strands.ts`, `sprig.ts`, `svg.ts`, `random.ts`). One
    module and one test file per kind of picture. A test ties the
-   stylesheet's numbers to the script's.
+   stylesheet's numbers to the script's. Where a material can't be
+   drawn (glass, stone), render it: `tools/art/scrolls` is the model
+   (Blender scenes as scripts, one file of measures, a list that locks
+   the rendered pictures).
 3. The stylesheet and the theme's registration, then browser tests that
    read computed styles: the theme contract in each layout, and the
    theme's own for every placement and state.
@@ -72,6 +79,10 @@ when the look is settled and the user has said so.
 5. `pnpm theme:foundry <out> <id> [camera files]` with Foundry running
    (`pnpm foundry:start`, `pnpm foundry:setup`, `pnpm build`,
    `pnpm foundry:link`). Look at the pictures; stop the server after.
+   Menus and the settings window are judged here, never in the harness,
+   which has none of Foundry's styles for form fields. Show the user
+   pictures from Foundry, with people in the cameras
+   (`docs/images/README.md`), as soon as the theme runs there.
 6. A code review and a security review by agents that did not write it,
    with the diff and no conclusions of yours. Fix what they find, tests
    first, and run verify again.

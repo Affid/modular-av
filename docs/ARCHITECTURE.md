@@ -14,7 +14,7 @@ flowchart TB
   subgraph ui["UI modules"]
     dock["dock<br/>camera dock, voice panel,<br/>settings window"]
     mixer["audio-mixer<br/>window for the<br/>voice's effects"]
-    theme["dock-vines<br/>a theme for the dock"]
+    theme["dock-vines<br/>dock-scrolls<br/>themes for the dock"]
   end
 
   subgraph effects["Effect modules"]
@@ -293,7 +293,7 @@ A pnpm workspace. A package's directory is its Foundry id without the
 | `testing`                                  | Fake Foundry, mock service, shared test suites       |
 | `p2p`, `livekit`, `jitsi`                  | Services                                             |
 | `livekit-krisp`                            | Effect: Krisp, offered on LiveKit Cloud only         |
-| `dock`, `dock-vines`                       | The dock and a theme for it                          |
+| `dock`, `dock-vines`, `dock-scrolls`       | The dock and themes for it                           |
 | `audio-mixer`                              | A window over the voice's effects; planned with them |
 | `mic-denoise`, `audio-*`, `cam-background` | Effects                                              |
 | `starter-set`                              | No code: requires the usual four, offers a fifth     |
