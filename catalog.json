@@ -215,6 +215,31 @@
       "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-dock/module.json"
     },
     {
+      "id": "modular-av-dock-scrolls",
+      "title": "Modular A/V: Scrolls theme",
+      "description": "A wizard's desk for the Modular A/V dock. Each camera is a picture in a scroll of worn vellum, held open by four cut stones in its player's colour. The stones glow while their player speaks, go dull while they're muted and crack when they leave the call, and a row of pen-drawn signs under the name lights with the voice. The header and the voice panel are papers, and the buttons are cut stones.",
+      "kind": "theme",
+      "requires": [
+        {
+          "id": "modular-av-dock",
+          "minimum": "0.16.0"
+        }
+      ],
+      "facts": [
+        {
+          "label": "Needs",
+          "value": "The Dock"
+        },
+        {
+          "label": "Who picks it",
+          "value": "The GM, as the table's look, or each player"
+        }
+      ],
+      "icon": "fa-solid fa-scroll",
+      "version": "0.16.0",
+      "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-dock-scrolls/module.json"
+    },
+    {
       "id": "modular-av-dock-vines",
       "title": "Modular A/V: Vines theme",
       "description": "A druid's grove for the Modular A/V dock. Each camera sits in a frame of branches that look grown, with ivy, its name on a strip of bark under it. Docked, the dock is one plant: a trunk with boughs, and the cameras hang from them. The ivy turns to autumn while its player is muted, and a soft light shows on the picture while they speak.",
