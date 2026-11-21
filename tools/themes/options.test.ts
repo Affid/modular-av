@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseShotArgs, PLACEMENTS, shotsOf } from "./options.ts";
+import { parseShotArgs, PLACEMENTS, shotsOf, wantsSample } from "./options.ts";
 
 describe("parseShotArgs", () => {
   it("takes the folder for the pictures and falls back on one docked picture of the dock's own look", () => {
@@ -15,7 +15,7 @@ describe("parseShotArgs", () => {
       layouts: ["grid"],
       scale: 2,
       states: [],
-      viewer: "in",
+      viewer: [],
       docks: ["open"],
       widths: [300],
       trial: null,
@@ -37,7 +37,27 @@ describe("parseShotArgs", () => {
       [],
       ["camera-off", "menu"],
     ]);
-    expect(options.viewer).toBe("out");
+    expect(options.viewer).toEqual(["out"]);
+  });
+
+  it("reads another module's badge as something a player shows", () => {
+    const options = parseShotArgs(["out", "--states", "badge,muted+badge"]);
+
+    expect(options.states).toEqual([["badge"], ["muted", "badge"]]);
+  });
+
+  it("reads the viewer's own states, which press the dock's buttons", () => {
+    const options = parseShotArgs([
+      "out",
+      "--viewer",
+      "muted+deafened+camera-off",
+    ]);
+
+    expect(options.viewer).toEqual(["muted", "deafened", "camera-off"]);
+  });
+
+  it("takes a viewer who is in the call as one doing nothing", () => {
+    expect(parseShotArgs(["out", "--viewer", "in"]).viewer).toEqual([]);
   });
 
   it("reads the dock put away and its widths, as more pictures to take", () => {
@@ -124,6 +144,16 @@ describe("parseShotArgs", () => {
     ],
     ["a state no player has", ["out", "--states", "asleep"], /asleep/],
     ["a viewer neither in nor out", ["out", "--viewer", "away"], /away/],
+    [
+      "a viewer in the call and doing something",
+      ["out", "--viewer", "in+muted"],
+      /in stands alone/,
+    ],
+    [
+      "a state the viewer can't be put in",
+      ["out", "--viewer", "speaking"],
+      /speaking/,
+    ],
     ["a dock neither open nor collapsed", ["out", "--docks", "ajar"], /ajar/],
     ["a dock too narrow to be one", ["out", "--widths", "40"], /--widths/],
     ["a trial theme with a bad reach", ["out", "--trial", "moss:1,1"], /four/],
@@ -134,6 +164,18 @@ describe("parseShotArgs", () => {
     ],
   ])("refuses %s", (_name, argv, message) => {
     expect(() => parseShotArgs(argv)).toThrow(message);
+  });
+});
+
+describe("wantsSample", () => {
+  it("asks the harness for its sample module only when a player shows a badge", () => {
+    // The sample module adds a button and rows of its own to the dock.
+    expect(wantsSample(parseShotArgs(["out", "--states", "muted"]))).toBe(
+      false,
+    );
+    expect(
+      wantsSample(parseShotArgs(["out", "--states", "-,muted+badge"])),
+    ).toBe(true);
   });
 });
 

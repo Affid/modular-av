@@ -20,6 +20,7 @@ import {
   type ShotOptions,
   shotsOf,
   type StateName,
+  wantsSample,
 } from "../../tools/themes/options.ts";
 import { harnessUrl } from "../../packages/testing/src/harness/port.ts";
 import {
@@ -27,6 +28,7 @@ import {
   trialParam,
 } from "../../packages/testing/src/harness/trial-theme.ts";
 import type {} from "../../packages/testing/src/harness/types.ts";
+import type { AVCommands } from "@modular-av/api";
 import { loadFoundryEnv } from "../foundry/env.ts";
 
 /** As in playwright.config.ts: the harness's own port, or the one MAV_HARNESS_PORT names. */
@@ -134,7 +136,8 @@ function address(options: ShotOptions, shot: Shot): string {
   );
   const theme = options.theme ? `&theme=${options.theme}` : "";
   const trial = options.trial ? `&trial=${trialParam(options.trial)}` : "";
-  return `${HARNESS}/?module=${options.modules}&service=mock&colours=1&players=${players.join(",")}${theme}${trial}`;
+  const sample = wantsSample(options) ? "&sample=1" : "";
+  return `${HARNESS}/?module=${options.modules}&service=mock&colours=1&players=${players.join(",")}${theme}${trial}${sample}`;
 }
 
 /** Makes the players' states happen, through their own commands and the mock service. */
@@ -148,7 +151,12 @@ async function act(
   );
   await page.evaluate(
     async (players) => {
-      const { ui } = window.harness ?? {};
+      const { ui, sample } = window.harness ?? {};
+      sample?.setIndicated(
+        players
+          .filter(([, states]) => states.includes("badge"))
+          .map(([id]) => id),
+      );
       for (const [id, states] of players) {
         const commands = ui?.players[id]?.commands;
         const has = (state: string): boolean => states.includes(state);
@@ -161,12 +169,7 @@ async function act(
     },
     cast as readonly (readonly [string, readonly string[]])[],
   );
-  if (options.viewer === "out")
-    await page.evaluate(() => {
-      const api = window.harness?.client.game.modules.get("modular-av")?.api as
-        { commands: { leave(): Promise<void> } } | undefined;
-      return api?.commands.leave();
-    });
+  await viewerActs(page, options);
   const under: StateName = "menu";
   const hovered = cast.find(([, states]) => states.includes(under));
   // A dock put away shows no cameras to point at.
@@ -175,6 +178,18 @@ async function act(
       .locator(`.mav-dock-tile[data-participant-id="${hovered[0]}"]`)
       .hover();
 }
+
+/** The viewer's own states, through the core's commands: what the dock's buttons show. */
+const viewerActs = (page: Page, options: ShotOptions): Promise<void> =>
+  page.evaluate(async (states) => {
+    const api = window.harness?.client.game.modules.get("modular-av")?.api as
+      { commands: AVCommands } | undefined;
+    const commands = api?.commands;
+    if (states.includes("muted")) await commands?.setMuted(true);
+    if (states.includes("deafened")) await commands?.setDeafened(true);
+    if (states.includes("camera-off")) await commands?.setVideoEnabled(false);
+    if (states.includes("out")) await commands?.leave();
+  }, options.viewer);
 
 async function open(
   page: Page,

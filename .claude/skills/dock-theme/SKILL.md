@@ -41,8 +41,9 @@ pnpm theme:shots <out> --trial <id>:<top>,<right>,<bottom>,<left> \
 `--trial` registers a theme for the pictures alone (its frames' reach as
 fractions of a tile's width), so a new look needs no module yet; for a
 theme that exists, `--modules dock,dock-<theme> --theme <id>`. Add
-`--states`, `--viewer out`, `--docks open,collapsed` and `--widths` for
-the states and shapes listed below (`docs/making-a-theme.md` has the
+`--states` (with `badge` for another module's badge), `--viewer` (`out`,
+or `muted` for a pressed button), `--docks open,collapsed` and `--widths`
+for the states and shapes listed below (`docs/making-a-theme.md` has the
 forms).
 
 For each round:
@@ -84,7 +85,7 @@ together must have shown:
   its menu arrow, and a pressed button.
 
 Make the states happen, don't paint them: `theme:shots --states` and
-`--viewer out` do it through the players' own commands (in the harness
+`--viewer` do it through the players' own commands (in the harness
 only the viewer's own tile stays when its player leaves). A state set by
 adding an attribute shows no icon, and the dock takes it back.
 
