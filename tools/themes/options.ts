@@ -21,7 +21,8 @@ export type LayoutName = (typeof LAYOUTS)[number];
 
 /**
  * What a player in a picture can be doing: the states a theme has to
- * show. `menu` puts the pointer over their camera, for its menu button.
+ * show. `menu` puts the pointer over their camera, for its menu button;
+ * `badge` shows another module's badge on it (the harness's sample module).
  */
 const STATES = [
   "speaking",
@@ -30,12 +31,19 @@ const STATES = [
   "poor",
   "camera-off",
   "menu",
+  "badge",
 ] as const;
 export type StateName = (typeof STATES)[number];
 
-const VIEWERS = ["in", "out"] as const;
-/** Whether the viewer is in the call; out of it, their own camera stays. */
-export type ViewerState = (typeof VIEWERS)[number];
+/**
+ * What the viewer can be doing. Out of the call their own camera stays;
+ * muted, deafened and with the camera off, the dock's own buttons show it
+ * pressed (the camera's button is pressed while the camera is on).
+ */
+const VIEWER_STATES = ["out", "muted", "deafened", "camera-off"] as const;
+export type ViewerState = (typeof VIEWER_STATES)[number];
+/** The viewer in the call and doing nothing, as `--viewer` takes it. */
+const IN = "in";
 
 const DOCKS = ["open", "collapsed"] as const;
 export type DockState = (typeof DOCKS)[number];
@@ -67,7 +75,7 @@ export interface ShotOptions {
   readonly scale: number;
   /** What each player after the viewer is doing, in their order; none for the rest. */
   readonly states: readonly (readonly StateName[])[];
-  readonly viewer: ViewerState;
+  readonly viewer: readonly ViewerState[];
   /** The dock open, put away, or a picture of each. */
   readonly docks: readonly DockState[];
   /** The docked dock's widths, in CSS pixels. */
@@ -84,7 +92,9 @@ export const USAGE = `Usage: node scripts/themes/shots.ts <folder for the pictur
   [--scale 2]
   [--states ${STATES.slice(0, 3).join("+")},speaking,-,camera-off+menu]
       what each player is doing, in their order: ${STATES.join(", ")}; - for nothing
-  [--viewer ${VIEWERS.join("|")}] [--docks ${DOCKS.join(",")}] [--widths 300,480]
+  [--viewer muted+deafened]
+      what the viewer is doing: ${VIEWER_STATES.join(", ")}, or ${IN} for nothing
+  [--docks ${DOCKS.join(",")}] [--widths 300,480]
   [--trial id:top,right,bottom,left]
       a theme registered for these pictures, its stylesheet the --css files`;
 
@@ -139,7 +149,7 @@ const DEFAULTS: Omit<ShotOptions, "out"> = {
   layouts: ["grid"],
   scale: 2,
   states: [],
-  viewer: "in",
+  viewer: [],
   docks: ["open"],
   widths: [DOCK_WIDTH],
   trial: null,
@@ -153,6 +163,17 @@ function statesOf(option: string, value: string): ShotOptions["states"] {
       ? []
       : among(option, named.replaceAll("+", ","), STATES);
   });
+}
+
+/** `muted+deafened`, `out`, or `in` for none: the viewer's states. */
+function viewerOf(option: string, value: string): ShotOptions["viewer"] {
+  const named = list(value.replaceAll("+", ","));
+  if (named.length === 1 && named[0] === IN) return [];
+  if (named.includes(IN))
+    throw new OptionsError(
+      `${option}: ${IN} stands alone; for a viewer doing something, name only that, e.g. ${option} muted`,
+    );
+  return among(option, named.join(","), VIEWER_STATES);
 }
 
 function trialOf(value: string): TrialTheme {
@@ -200,7 +221,7 @@ function withOption(
     case "--states":
       return { ...options, states: statesOf(option, value) };
     case "--viewer":
-      return { ...options, viewer: among(option, value, VIEWERS)[0] ?? "in" };
+      return { ...options, viewer: viewerOf(option, value) };
     case "--docks":
       return { ...options, docks: among(option, value, DOCKS) };
     case "--widths":
@@ -236,6 +257,13 @@ export function parseShotArgs(argv: readonly string[]): ShotOptions {
     );
   return { ...options, theme: options.trial.id };
 }
+
+/**
+ * Whether the pictures need the harness's sample module: for its badge.
+ * It also adds a button and rows of its own, so only then.
+ */
+export const wantsSample = (options: ShotOptions): boolean =>
+  options.states.some((states) => states.includes("badge"));
 
 /** One picture to take. */
 export interface Shot {

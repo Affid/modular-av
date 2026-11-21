@@ -42,15 +42,21 @@ repository changed.
 
   ```bash
   pnpm theme:shots out --theme scrolls --modules dock,dock-scrolls --players 3 \
-    --states muted+deafened+poor,speaking,camera-off+menu \
-    --docks open,collapsed --widths 300,480
+    --states muted+deafened+poor,speaking+badge,camera-off+menu \
+    --viewer muted --docks open,collapsed --widths 300,480
   ```
 
   `--states` says what each player after the viewer is doing, in their
   order (`speaking`, `muted`, `deafened`, `poor` for a poor link,
-  `camera-off`, `menu` for the pointer over their camera; `-` for
-  nothing), and they are made to happen through the players' own
-  commands. `--viewer out` takes the viewer out of the call. `--docks`
+  `camera-off`, `menu` for the pointer over their camera, `badge` for
+  another module's badge; `-` for nothing), and they are made to happen
+  through the players' own commands. A badge comes from the harness's
+  sample module, which also adds a button and rows of its own to the
+  dock; it is loaded only when a player has `badge`. `--viewer` says what
+  the viewer is doing: `out` takes them out of the call, and `muted`,
+  `deafened` and `camera-off` go through the core's commands, so the
+  dock's own buttons show pressed (the camera's button is pressed while
+  the camera is on, so `camera-off` shows it at rest). `--docks`
   and `--widths` add pictures of the dock put away and at other widths.
   The harness's players have colours of their own in these pictures.
 
