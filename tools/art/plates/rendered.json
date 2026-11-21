@@ -1,0 +1,134 @@
+{
+  "blade.webp": {
+    "width": 432,
+    "height": 27,
+    "bytes": 1540,
+    "sha256": "33c1f1fab0361d1e016b526791db5e58f52e4881e7af6cd2cd84165c75bec364"
+  },
+  "buckler.webp": {
+    "width": 380,
+    "height": 472,
+    "bytes": 28234,
+    "sha256": "dc515e869fdb956eb63d34a82896004ea9cb55136701967ebad9ec3befaf292c"
+  },
+  "cord-1.webp": {
+    "width": 840,
+    "height": 594,
+    "bytes": 28160,
+    "sha256": "766f4a1e8eb1c55da5591ee8a764dab0fe5a5267207a2b4c54ad6d488f6622af"
+  },
+  "cord-2.webp": {
+    "width": 840,
+    "height": 594,
+    "bytes": 28298,
+    "sha256": "419d70dc9c61844bdcb904fe7d71829879423593440bfeda92ff30422cd7a63a"
+  },
+  "cord-out-1.webp": {
+    "width": 840,
+    "height": 594,
+    "bytes": 23254,
+    "sha256": "1d2fbf95a8fdbdb2b9705358b0d2cee7deada6f465b65ef5e27de5b2a1842b07"
+  },
+  "cord-out-2.webp": {
+    "width": 840,
+    "height": 594,
+    "bytes": 23338,
+    "sha256": "df36e8294e8c03cf1c830115ddd3eedaee282e7ebf6d007e6dc9834b6bfd85f7"
+  },
+  "gauntlets.webp": {
+    "width": 340,
+    "height": 360,
+    "bytes": 24868,
+    "sha256": "b371ee4ef5b131a84b686b4e739aad791b68969eb7c00cc516c46736b0cf740d"
+  },
+  "knife.webp": {
+    "width": 840,
+    "height": 594,
+    "bytes": 8838,
+    "sha256": "00d01e4956d46ceb0c2a91e91693eaa1153025b63240768eaf26d44ae3da4f61"
+  },
+  "lame.webp": {
+    "width": 960,
+    "height": 384,
+    "bytes": 23190,
+    "sha256": "e38c14c3449e6b3dbc4192ec28bbb59400b03e6a3a00b00235268356250b9ed4"
+  },
+  "mace.webp": {
+    "width": 520,
+    "height": 168,
+    "bytes": 14346,
+    "sha256": "fd9dec5f3fed999254be629ef1658655e22519e745419a0677557fbd2b2db28a"
+  },
+  "mail.webp": {
+    "width": 600,
+    "height": 600,
+    "bytes": 151078,
+    "sha256": "3b281dbf8dc09b9e9a33040cfefe4c0f61afef35b2a09098a1e5dcf50a578b6e"
+  },
+  "plate-1.webp": {
+    "width": 840,
+    "height": 594,
+    "bytes": 51402,
+    "sha256": "6e5e382bbfd6672e49a359469b467643c7acb93ee38b704311f72e474cbb7256"
+  },
+  "plate-2.webp": {
+    "width": 840,
+    "height": 594,
+    "bytes": 50184,
+    "sha256": "65b3abbf8c2d8222ad5dc5368d3fb378def7b91e960b1e035745226ea3a6650c"
+  },
+  "plate-out-1.webp": {
+    "width": 840,
+    "height": 594,
+    "bytes": 46350,
+    "sha256": "6976d55a0b75927934801259eb27bf7ef6b078c16a7378f2b2755b82bcb949ac"
+  },
+  "plate-out-2.webp": {
+    "width": 840,
+    "height": 594,
+    "bytes": 45836,
+    "sha256": "c434bbea5a9f95500003b66fc7f413d974141e096fa02829734d261ac0d6c6f6"
+  },
+  "plate-polished-1.webp": {
+    "width": 840,
+    "height": 594,
+    "bytes": 55124,
+    "sha256": "874f4fb2505820b707e1d187915ce11932b617efefafad5ee06f422fab8a6d8b"
+  },
+  "plate-polished-2.webp": {
+    "width": 840,
+    "height": 594,
+    "bytes": 54254,
+    "sha256": "b5709c91d7d4a2b5603d5c0a91da6cad328d7f87e618401f840244dc20a08ca6"
+  },
+  "steel.webp": {
+    "width": 450,
+    "height": 450,
+    "bytes": 4638,
+    "sha256": "60fb07c44fb683836c489370fa9536cc783e7b117559b4992d728ea0f9e303d1"
+  },
+  "tab-1.webp": {
+    "width": 64,
+    "height": 64,
+    "bytes": 1306,
+    "sha256": "f73d0d32ede38623cbb712fad9c9b4d8d6b5ca7ab70a67aa58bf00c662850f01"
+  },
+  "tab-2.webp": {
+    "width": 64,
+    "height": 64,
+    "bytes": 1260,
+    "sha256": "fa1e29ec53cb5e52fa06e60bfc52dd575c07a4de2e4fc8900d5da6c3cf1827e9"
+  },
+  "tab-left.webp": {
+    "width": 64,
+    "height": 64,
+    "bytes": 1316,
+    "sha256": "6375893e010614fe5d52563c5e24a292fa63963c933930a6c55492d6d7508432"
+  },
+  "tab-right.webp": {
+    "width": 32,
+    "height": 64,
+    "bytes": 848,
+    "sha256": "c1564f5460539c3b79233e59eeec120efe64cf3bc97f04537c836a161607da58"
+  }
+}

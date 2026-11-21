@@ -1,0 +1,419 @@
+/*
+ * Modular A/V: Plates theme. Loaded by modular-av-dock only while the theme
+ * is chosen; every rule starts with the class it puts on <html>.
+ * The pictures in art/ are rendered with Blender (pnpm art:plates:render):
+ * tools/art/plates.
+ */
+
+/* ---- Dark steel, bright where it is rubbed: the palette (text and icons meet WCAG AA on it) ---- */
+
+:root.mav-theme-plates {
+  --mav-text: #e9e7e2;
+  --mav-text-muted: #b9b7b0;
+  --mav-surface: #25282c;
+  --mav-surface-raised: #3d4248;
+  --mav-surface-sunken: #131517;
+  --mav-border: #767c84;
+  --mav-speaking: #f2f5f8;
+  --mav-focus: #ffd98a;
+  --mav-accent: #2d5f9e;
+  --mav-on-accent: #ffffff;
+  --mav-meter: #f2f5f8;
+  --mav-dock-tile-bg: #111315;
+  --mav-dock-radius: 4px;
+}
+
+/* ---- Every tile: one of two plates, laced with a cord in its player's colour ---- */
+
+/* Neighbours differ: odd and even tiles have a plate each, with its own
+   dents and rust, and its own cord. */
+.mav-theme-plates .mav-dock-tile {
+  --plates-plate: url("art/plate-1.webp");
+  --plates-polished: url("art/plate-polished-1.webp");
+  --plates-out: url("art/plate-out-1.webp");
+  --plates-cord: url("art/cord-1.webp");
+  --plates-cord-out: url("art/cord-out-1.webp");
+  /* Dyed cloth: the player's colour. */
+  --plates-dye: var(--mav-dock-tile-color, #9a2b2b);
+}
+
+.mav-theme-plates .mav-dock-tile:nth-child(even) {
+  --plates-plate: url("art/plate-2.webp");
+  --plates-polished: url("art/plate-polished-2.webp");
+  --plates-out: url("art/plate-out-2.webp");
+  --plates-cord: url("art/cord-2.webp");
+  --plates-cord-out: url("art/cord-out-2.webp");
+}
+
+/* The viewer's own plate carries a knife under the name: only it has a
+   level to show. */
+.mav-theme-plates .mav-dock-tile:has(> .mav-meter) {
+  --plates-knife: url("art/knife.webp");
+}
+
+/* The frame is the plate's own: the tile draws none. */
+.mav-theme-plates .mav-dock .mav-dock-tile {
+  border-color: transparent;
+  border-radius: 0;
+  outline-color: transparent;
+  background: none;
+  box-shadow: none;
+}
+
+/* A camera that is off is no hole in the plate: the picture's ground. */
+.mav-theme-plates .mav-dock-tile-media {
+  border-radius: 0;
+  background: var(--mav-dock-tile-bg);
+}
+
+/* The plate, over the whole frame layer, and the knife on it. */
+.mav-theme-plates .mav-dock-tile-frame {
+  background:
+    var(--plates-knife, none) 0 0 / 100% 100% no-repeat,
+    var(--plates-plate) 0 0 / 100% 100% no-repeat;
+}
+
+.mav-theme-plates .mav-dock-tile-frame::before,
+.mav-theme-plates .mav-dock-tile-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+/* A voice: the same plate polished, laid over the dull one. Its rib, its
+   rolled edge and the steel round the picture go bright; the band under
+   the picture stays black, so the name keeps its ground. */
+.mav-theme-plates .mav-dock-tile-frame::before {
+  background:
+    var(--plates-knife, none) 0 0 / 100% 100% no-repeat,
+    var(--plates-polished) 0 0 / 100% 100% no-repeat;
+  opacity: 0;
+  transition: opacity 0.2s ease-out;
+}
+
+/* Only a plate in the call: one out of it stays rusted, even if its
+   player is still marked speaking for a moment. */
+.mav-theme-plates
+  .mav-dock-tile[data-speaking][data-connected]
+  .mav-dock-tile-frame::before {
+  opacity: 1;
+}
+
+/* The cord: rendered white under the same light, dyed here. The dye and
+   the cord are blended inside this one layer: a blend mode against what
+   lies under it would have the browser draw the camera's picture
+   differently too. */
+.mav-theme-plates .mav-dock-tile-frame::after {
+  background:
+    var(--plates-cord) 0 0 / 100% 100% no-repeat,
+    var(--plates-dye);
+  background-blend-mode: multiply, normal;
+  mask: var(--plates-cord) 0 0 / 100% 100% no-repeat;
+}
+
+/* Muted: the steel goes dull and dark, the cord with it. */
+.mav-theme-plates
+  .mav-dock-tile[data-muted][data-connected]:not([data-speaking])
+  .mav-dock-tile-frame {
+  filter: brightness(0.6) saturate(0.55);
+}
+
+/* Out of the call: rust from the corners, a rivet gone, the cord lost down
+   one side and its dye faded. The tile stays whole: a see-through plate is
+   no plate. */
+.mav-theme-plates .mav-dock .mav-dock-tile:not([data-connected]) {
+  opacity: 1;
+}
+
+.mav-theme-plates .mav-dock-tile:not([data-connected]) .mav-dock-tile-frame {
+  background-image: var(--plates-knife, none), var(--plates-out);
+}
+
+.mav-theme-plates
+  .mav-dock-tile:not([data-connected])
+  .mav-dock-tile-frame::after {
+  background-image: var(--plates-cord-out);
+  mask-image: var(--plates-cord-out);
+  filter: saturate(0.35) brightness(0.75);
+}
+
+.mav-theme-plates .mav-dock-tile:not([data-connected]) .mav-dock-tile-media {
+  filter: brightness(0.42) saturate(0.4);
+}
+
+/* ---- The name: cut into the black band under the picture ---- */
+
+/* Its middle 55 of the tile's 1000 units under the picture, between the
+   rib and the knife, whatever its size: the name grows with its tile. */
+.mav-theme-plates .mav-dock .mav-dock-tile-bar {
+  inset: 109.78% 0 auto;
+  translate: 0 -50%;
+  justify-content: center;
+  gap: 0;
+  max-width: none;
+  z-index: 2;
+  container-type: inline-size;
+}
+
+/* Bright where the black has gone, struck in: dark above, a little light
+   below. No plate of its own: the steel is its plate. */
+.mav-theme-plates .mav-dock-tile-name {
+  max-width: 84cqw;
+  padding: 0 0.3em;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  color: #dfe2e6;
+  font:
+    700 clamp(11px, 7.4cqw, 19px) / 1.15 "Modesto Condensed",
+    "Palatino Linotype",
+    serif;
+  letter-spacing: 0.06em;
+  text-align: center;
+  text-shadow:
+    0 -1px 0 rgb(0 0 0 / 90%),
+    0 1px 0 rgb(255 255 255 / 14%);
+}
+
+.mav-theme-plates .mav-dock-tile:not([data-connected]) .mav-dock-tile-name {
+  color: #c4c7ca;
+}
+
+/* What stands beside the name is taken out of its row, so the name stays
+   in the middle: states at the plate's upper left corner, other modules'
+   badges at its upper right. The bar's middle is 61.76% of the tile's
+   width down; they are placed 4% of it under the tile's top, and a little
+   onto the plate's side. */
+.mav-theme-plates
+  .mav-dock
+  .mav-dock-tile-bar
+  > :is(.mav-dock-tile-indicators, .mav-dock-tile-badges) {
+  position: absolute;
+  top: calc(50% - 57.76cqw);
+  left: calc(var(--mav-dock-frame-left, 0) * -60cqw);
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mav-theme-plates .mav-dock .mav-dock-tile-bar > .mav-dock-tile-badges {
+  right: calc(var(--mav-dock-frame-right, 0) * -60cqw);
+  left: auto;
+}
+
+/* They shrink with their camera: full size from a tile 160 wide, three
+   quarters on the smallest, so that three leave more of a small picture
+   clear. */
+.mav-theme-plates .mav-dock .mav-dock-tile-bar .mav-indicator {
+  min-width: clamp(15px, 12.5cqw, 20px);
+  height: clamp(15px, 12.5cqw, 20px);
+  font-size: clamp(9px, 7.6cqw, 12px);
+}
+
+/* States and the tile's buttons: chips of blackened steel. */
+.mav-theme-plates
+  .mav-dock-tile
+  :is(
+    .mav-indicator,
+    .mav-dock-tile-menu,
+    .mav-dock-tile-move,
+    .mav-dock-tile-resize
+  ) {
+  z-index: 2;
+  border-radius: 2px;
+  background-color: rgb(22 24 27 / 92%);
+}
+
+/* The player's own level: the blade of the knife under their name, which
+   no other plate has. It shines from the guard as far as the voice goes;
+   duller while it isn't sent (too quiet, or out of the call). */
+.mav-theme-plates .mav-dock-tile .mav-meter {
+  inset: 116.62% 14.4% auto 28%;
+  z-index: 1;
+  height: 6.4%;
+  border-radius: 0;
+  background: none;
+  mask: url("art/blade.webp") 0 0 / 100% 100% no-repeat;
+}
+
+.mav-theme-plates .mav-dock-tile .mav-meter .mav-meter-fill {
+  background: linear-gradient(180deg, #8f969d 0 47%, #5d646b 53% 100%);
+}
+
+/* Lit: a ridge down the blade, darker below it, and a sheen toward where
+   the level ends. */
+.mav-theme-plates
+  .mav-dock-tile[data-connected]
+  .mav-meter[data-open]
+  .mav-meter-fill {
+  background:
+    linear-gradient(180deg, transparent 0 47%, rgb(60 72 84 / 55%) 53% 100%),
+    linear-gradient(90deg, #c9d1d8, #f7f9fb 55%, #ffffff 88%, #dfe5ea);
+}
+
+/* ---- Buttons: small hammered plates ---- */
+
+/* Light and shade over the button's own colour: dark steel at rest, blued
+   steel for a camera that is on, red paint for muted and for leaving. */
+.mav-theme-plates .mav-dock :is(.mav-dock-tools, .mav-dock-buttons) {
+  --mav-surface-raised: #3f444a;
+
+  .mav-dock-button {
+    border: 1px solid #0c0d0e;
+    border-radius: 3px;
+    background-image: url("art/tab-1.webp");
+    background-size: 100% 100%;
+    background-blend-mode: hard-light;
+    box-shadow: 0 2px 3px rgb(0 0 0 / 60%);
+    color: #eceef0;
+  }
+
+  /* No two plates side by side are the same. */
+  .mav-dock-button:nth-child(even) {
+    background-image: url("art/tab-2.webp");
+  }
+
+  .mav-dock-button:hover:not(:disabled) {
+    border-color: #f3d588;
+  }
+
+  /* The sign on each is struck in: dark above, a little light below. */
+  .mav-dock-button i {
+    text-shadow:
+      0 -1px 0 rgb(0 0 0 / 85%),
+      0 1px 0 rgb(255 255 255 / 22%);
+  }
+
+  /* A button and the arrow beside it are one longer plate, in two parts. */
+  .mav-dock-button:has(+ .mav-dock-menu-arrow) {
+    border-inline-end-width: 0;
+    border-start-end-radius: 0;
+    border-end-end-radius: 0;
+    background-image: url("art/tab-left.webp");
+  }
+
+  /* Said as a button too: it outweighs the rule that shares the two plates out. */
+  .mav-dock-button.mav-dock-menu-arrow {
+    margin-inline-start: calc(-1 * var(--mav-dock-button-gap, 2px));
+    border-inline-start-width: 0;
+    border-start-start-radius: 0;
+    border-end-start-radius: 0;
+    background-image: url("art/tab-right.webp");
+  }
+
+  /* The chevron in the middle of its part of the plate: at the dock's own
+     size it is 11.4 px wide in a part 16 wide, a pixel from the border. */
+  .mav-dock-menu-arrow i {
+    font-size: 9px;
+    translate: 0 -1px;
+  }
+
+  /* The arrow takes its button's paint. */
+  .mav-dock-button[aria-pressed="true"]:is(.mav-dock-mute, .mav-dock-deafen)
+    + .mav-dock-menu-arrow {
+    background-color: #a12828;
+  }
+
+  .mav-dock-button[aria-pressed="true"].mav-dock-video + .mav-dock-menu-arrow {
+    background-color: var(--mav-accent);
+  }
+}
+
+/* ---- The mail: the dock, wherever it is one box ---- */
+
+.mav-theme-plates .mav-dock:not([data-placement="scattered"]) {
+  isolation: isolate;
+  gap: 6px;
+  padding: 4px;
+  /* One repeat of the mail each way, over blue cloth: it runs on under a
+     dock of any size. */
+  background: #16191f url("art/mail.webp") 0 0 / 300px 300px;
+
+  /* A little mail between the plates: one gap both ways, the dock fits its
+     grid with one. */
+  .mav-dock-tiles {
+    gap: 4px;
+    margin: 0;
+    padding: 6px 2px;
+    /* Each 1 from this much free height under the cameras, else 0. */
+    --plates-low: clamp(0, var(--mav-dock-spare, 0) - 87, 1);
+    --plates-mid: clamp(0, var(--mav-dock-spare, 0) - 183, 1);
+    --plates-high: clamp(0, var(--mav-dock-spare, 0) - 239, 1);
+    /* Where the cameras leave room, one of the fighter's things, the
+       tallest that fits whole: the buckler by its strap, the gauntlets on
+       their hook, the mace in its staples. */
+    background:
+      url("art/buckler.webp") 50% calc(100% - 2px) /
+        calc(190px * var(--plates-high)) 236px no-repeat,
+      url("art/gauntlets.webp") 50% calc(100% - 2px) /
+        calc(170px * (var(--plates-mid) - var(--plates-high))) 180px no-repeat,
+      url("art/mace.webp") 50% calc(100% - 2px) /
+        calc(260px * (var(--plates-low) - var(--plates-mid))) 84px no-repeat;
+  }
+}
+
+/* Upright, a plate's shadow may pass the list's edge: the list scrolls
+   down only. */
+.mav-theme-plates
+  .mav-dock:not(
+    [data-placement="scattered"],
+    [data-placement="top"],
+    [data-placement="bottom"]
+  )
+  .mav-dock-tiles {
+  overflow-x: hidden;
+}
+
+/* ---- The header and the voice panel: larger plates ---- */
+
+/* The plate's rolled edge and rivets, cut in nine, over its steel, which
+   repeats and never stretches. Under the pictures, the steel's own colour:
+   what contrast is read from. */
+.mav-theme-plates .mav-dock :is(.mav-dock-header, .mav-dock-panel) {
+  position: relative;
+  padding: 5px 6px 7px;
+  border: 3px solid transparent;
+  border-image: url("art/lame.webp") 60 / 30px / 6px round;
+  border-radius: 0;
+  background: #2b2e32 url("art/steel.webp") 0 0 / 300px 300px padding-box;
+  box-shadow: none;
+  color: var(--mav-text);
+}
+
+/* Scattered, the header lies on the panel's plate: it is no plate of its own. */
+.mav-theme-plates .mav-dock .mav-dock-panel .mav-dock-header {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+/* Collapsed at a side: a rail one button wide. The plates give up their
+   room at the sides, and with the menu arrows put away each button is a
+   whole plate again. */
+.mav-theme-plates
+  .mav-dock:is(
+    [data-placement="left"],
+    [data-placement="right"]
+  )[data-collapsed] {
+  padding-inline: 2px;
+
+  :is(.mav-dock-header, .mav-dock-panel) {
+    padding-inline: 3px;
+  }
+
+  .mav-dock-button:has(+ .mav-dock-menu-arrow) {
+    border-inline-end-width: 1px;
+    border-radius: 3px;
+    background-image: url("art/tab-1.webp");
+  }
+}
+
+.mav-theme-plates .mav-popover {
+  border: 1px solid var(--mav-border);
+}
+
+/* More specific than the rule that sets the transition, and after it. */
+@media (prefers-reduced-motion: reduce) {
+  .mav-theme-plates .mav-dock-tile .mav-dock-tile-frame::before {
+    transition: none;
+  }
+}

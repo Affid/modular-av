@@ -230,6 +230,10 @@
           "title": "Hides theme",
           "what": "Each camera on a hide in a barbarian's hall, with firelight through it while someone speaks."
         },
+        "modular-av-dock-plates": {
+          "title": "Plates theme",
+          "what": "Each camera in a plate of a fighter's harness, on mail, polished while someone speaks."
+        },
         "modular-av-livekit-krisp": {
           "title": "Krisp noise filter, for LiveKit Cloud"
         },

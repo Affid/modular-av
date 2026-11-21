@@ -164,6 +164,9 @@ async function boxOf(target: Locator) {
 }
 
 async function expectAA(page: Page, selector: string): Promise<void> {
+  // A popover opens a moment after its button is pressed: axe scans what
+  // is there when it starts, and fails outright when nothing is.
+  await expect(page.locator(selector).first()).toBeVisible();
   const results = await new AxeBuilder({ page })
     .include(selector)
     .withTags(AA)

@@ -130,11 +130,12 @@ async function shootDock(viewer: Player): Promise<void> {
   await shot(page, "dock-scattered-vines");
   await shootTheme(viewer, "scrolls");
   await shootTheme(viewer, "hides");
+  await shootTheme(viewer, "plates");
 }
 
 /**
  * A theme whose dock is a ground of its own (the scrolls' desk, the hides'
- * wall): scattered over the map, then docked on the left.
+ * wall, the plates' mail): scattered over the map, then docked on the left.
  */
 async function shootTheme(viewer: Player, theme: string): Promise<void> {
   const page = viewer.page;

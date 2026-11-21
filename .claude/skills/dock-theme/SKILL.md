@@ -60,6 +60,8 @@ For each round:
   being asked about, with one sentence on what is already settled.
 - If the user rejects every option, ask what they see in their own words
   before drawing more. Their idea is usually the better one.
+- When they say something looks off (flat, all one tone), measure it,
+  say what you found, and show two ways to mend it side by side.
 - The harness has none of Foundry's fonts and no height limit. The script
   handles both; a hand-made shot must too.
 
@@ -83,6 +85,9 @@ together must have shown:
   pixels, where anything that repeats shows its seam.
 - **The dock's own parts:** the header, the voice panel, a button with
   its menu arrow, and a pressed button.
+- **The name's contrast, measured** on the pixels in every state, where
+  the name lies on a picture: a state that brightens its ground can
+  break it.
 
 Make the states happen, don't paint them: `theme:shots --states` and
 `--viewer` do it through the players' own commands (in the harness
