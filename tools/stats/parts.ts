@@ -85,6 +85,7 @@ export const MODULES: readonly ModuleEntry[] = [
   entry("modular-av-dock", "Dock", "dock"),
   entry("modular-av-dock-vines", "Vines theme", "dock"),
   entry("modular-av-dock-scrolls", "Scrolls theme", "dock"),
+  entry("modular-av-dock-hides", "Hides theme", "dock"),
   entry("modular-av-mic-denoise", "Noise cancellation", "effects"),
   entry("modular-av-cam-background", "Camera background", "effects"),
   entry("modular-av-audio-mixer", "Audio mixer", "effects"),

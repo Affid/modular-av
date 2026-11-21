@@ -1,0 +1,388 @@
+/*
+ * Modular A/V: Hides theme. Loaded by modular-av-dock only while the theme
+ * is chosen; every rule starts with the class it puts on <html>.
+ * The pictures in art/ are rendered with Blender (pnpm art:hides:render)
+ * or drawn by a script (pnpm art:hides): tools/art/hides.
+ */
+
+/* ---- Smoke, tallow and firelight: the palette (text and icons meet WCAG AA on it) ---- */
+
+:root.mav-theme-hides {
+  --mav-text: #f0e4cd;
+  --mav-text-muted: #cdbb9c;
+  --mav-surface: #2b1d13;
+  --mav-surface-raised: #4b3524;
+  --mav-surface-sunken: #170f09;
+  --mav-border: #8e6f43;
+  --mav-speaking: #ffb347;
+  --mav-focus: #ffd98a;
+  --mav-accent: #2f7d4f;
+  --mav-on-accent: #ffffff;
+  --mav-meter: #ffb347;
+  --mav-dock-tile-bg: #1a120c;
+  --mav-dock-radius: 6px;
+}
+
+/* ---- Every tile: one of two hides, painted in its player's colour ---- */
+
+/* Neighbours differ: odd and even tiles have a hide each, with its own
+   poles and ties, its own cut thongs, and its own hand in the paint. */
+.mav-theme-hides .mav-dock-tile {
+  --hides-hide: url("art/hide-1.webp");
+  --hides-cut: url("art/hide-cut-1.webp");
+  --hides-light: url("art/light-1.webp");
+  --hides-daubs: url("art/paint-1.webp");
+  /* War paint: the player's colour. */
+  --hides-paint: var(--mav-dock-tile-color, #b3262e);
+}
+
+.mav-theme-hides .mav-dock-tile:nth-child(even) {
+  --hides-hide: url("art/hide-2.webp");
+  --hides-cut: url("art/hide-cut-2.webp");
+  --hides-light: url("art/light-2.webp");
+  --hides-daubs: url("art/paint-2.webp");
+}
+
+/* The frame is the hide's own: the tile draws none. */
+.mav-theme-hides .mav-dock .mav-dock-tile {
+  border-color: transparent;
+  border-radius: 0;
+  outline-color: transparent;
+  background: none;
+  box-shadow: none;
+}
+
+/* A camera that is off is no hole in the hide: the picture's ground. */
+.mav-theme-hides .mav-dock-tile-media {
+  border-radius: 0;
+  background: var(--mav-dock-tile-bg);
+}
+
+/* The hide in its frame of poles, over the whole frame layer. */
+.mav-theme-hides .mav-dock-tile-frame {
+  background: var(--hides-hide) 0 0 / 100% 100% no-repeat;
+}
+
+.mav-theme-hides .mav-dock-tile-frame::before,
+.mav-theme-hides .mav-dock-tile-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+/* A voice: firelight through the hide, strongest round the picture and
+   redder toward the edge. The hide is drawn once more, lit, and shown only
+   where the hide itself is, never on the poles. The light and the hide are
+   blended inside this one layer: a blend mode against what lies under it
+   would have the browser draw the camera's picture differently too. */
+.mav-theme-hides .mav-dock-tile-frame::before {
+  background:
+    radial-gradient(
+      ellipse 62% 72% at 50% 46%,
+      #ffd27a 0 55%,
+      #ff9a2e 72%,
+      #e2560f 100%
+    ),
+    var(--hides-hide) 0 0 / 100% 100% no-repeat;
+  background-blend-mode: hard-light, normal;
+  mask: var(--hides-light) 0 0 / 100% 100% no-repeat;
+  opacity: 0;
+  transition: opacity 0.25s ease-out;
+}
+
+.mav-theme-hides .mav-dock-tile[data-speaking] .mav-dock-tile-frame::before {
+  opacity: 0.5;
+}
+
+/* The paint round the picture: rendered white on the hide, under the same
+   light, so the hide's grain shows in it; here it takes its colour. */
+.mav-theme-hides .mav-dock-tile-frame::after {
+  background:
+    var(--hides-daubs) 0 0 / 100% 100% no-repeat,
+    var(--hides-paint);
+  background-blend-mode: multiply, normal;
+  mask: var(--hides-daubs) 0 0 / 100% 100% no-repeat;
+}
+
+/* Muted: the hide goes dark and dry, its paint dull. */
+.mav-theme-hides
+  .mav-dock-tile[data-muted][data-connected]:not([data-speaking])
+  .mav-dock-tile-frame {
+  filter: saturate(0.5) brightness(0.68);
+}
+
+/* Out of the call: the thongs of one corner are cut and hang, the hide is
+   slack there, and its paint is all but gone. The tile stays whole: a
+   see-through hide is no hide. */
+.mav-theme-hides .mav-dock .mav-dock-tile:not([data-connected]) {
+  opacity: 1;
+}
+
+.mav-theme-hides .mav-dock-tile:not([data-connected]) .mav-dock-tile-frame {
+  background-image: var(--hides-cut);
+  filter: saturate(0.6) brightness(0.82);
+}
+
+.mav-theme-hides
+  .mav-dock-tile:not([data-connected])
+  .mav-dock-tile-frame::after {
+  opacity: 0.28;
+}
+
+.mav-theme-hides .mav-dock-tile:not([data-connected]) .mav-dock-tile-media {
+  filter: brightness(0.42) saturate(0.4);
+}
+
+/* ---- The name: branded into a tag of pale rawhide ---- */
+
+/* Over the picture's lower edge, in the middle, stitched to the hide. */
+.mav-theme-hides .mav-dock .mav-dock-tile-bar {
+  inset: 90% 0 auto;
+  justify-content: center;
+  gap: 0;
+  max-width: none;
+  z-index: 2;
+  container-type: inline-size;
+}
+
+/* The tag's ends keep their stitches; its middle stretches with the name.
+   The name grows with its tile. Under the picture of rawhide, rawhide's
+   own colour: what contrast is read from. */
+.mav-theme-hides .mav-dock-tile-name {
+  min-width: 3.2em;
+  max-width: 72cqw;
+  padding: 0;
+  border: solid transparent;
+  border-width: 0 0.86em;
+  border-image: url("art/tag.webp") 0 70 fill / 0 0.95em / 0.2em 0.27em 0.5em
+    stretch;
+  border-radius: 0;
+  background: #d8c39a content-box;
+  box-shadow: none;
+  color: #2a1408;
+  font:
+    700 clamp(11px, 7.4cqw, 19px) / 1.15 "Modesto Condensed",
+    "Palatino Linotype",
+    serif;
+  letter-spacing: 0.04em;
+  text-align: center;
+  text-shadow: 0 0 1px rgb(74 30 6 / 70%);
+}
+
+.mav-theme-hides .mav-dock-tile:not([data-connected]) .mav-dock-tile-name {
+  color: #4f3a2a;
+}
+
+/* What stands beside the name is taken out of its row, so the tag stays
+   in the middle, and off the picture: states hang on the frame's left
+   pole, and other modules' badges on the right one. The bar is 90% of the
+   tile's height down, 50.63% of its width: they are placed from the
+   tile's top. */
+.mav-theme-hides
+  .mav-dock
+  .mav-dock-tile-bar
+  > :is(.mav-dock-tile-indicators, .mav-dock-tile-badges) {
+  position: absolute;
+  top: calc(10cqw - 50.63cqw);
+  left: calc(var(--mav-dock-frame-left, 0) * -100cqw);
+  flex-direction: column;
+}
+
+.mav-theme-hides .mav-dock .mav-dock-tile-bar > .mav-dock-tile-badges {
+  right: calc(var(--mav-dock-frame-right, 0) * -100cqw);
+  left: auto;
+}
+
+/* States and the tile's buttons: chips of smoked hide, over the poles. */
+.mav-theme-hides
+  .mav-dock-tile
+  :is(
+    .mav-indicator,
+    .mav-dock-tile-menu,
+    .mav-dock-tile-move,
+    .mav-dock-tile-resize
+  ) {
+  z-index: 2;
+  border-radius: 3px;
+  background-color: rgb(38 24 14 / 92%);
+}
+
+/* The player's own level: tally marks daubed under their name, which no
+   other hide has. Dark where the voice doesn't reach, lit from the left
+   as far as it does; paler while it isn't sent (too quiet, or out of the
+   call). */
+.mav-theme-hides .mav-dock-tile .mav-meter {
+  inset: 107.91% 13% auto;
+  z-index: 1;
+  height: 8.18%;
+  border-radius: 0;
+  background: rgb(53 25 13 / 82%);
+  mask: url("art/tally.svg") 0 0 / 100% 100% no-repeat;
+}
+
+.mav-theme-hides .mav-dock-tile .mav-meter .mav-meter-fill {
+  background: #c9a26a;
+}
+
+.mav-theme-hides
+  .mav-dock-tile[data-connected]
+  .mav-meter[data-open]
+  .mav-meter-fill {
+  background: linear-gradient(90deg, #ff7a1a, #ffd35a);
+}
+
+/* ---- Buttons: the heads of hand-forged iron nails ---- */
+
+/* Light and shade over the button's own colour: iron at rest, and paint
+   daubed on it for a camera that is on, for muted and for leaving. */
+.mav-theme-hides .mav-dock :is(.mav-dock-tools, .mav-dock-buttons) {
+  --mav-surface-raised: #4a4744;
+
+  .mav-dock-button {
+    border: 1px solid #120c08;
+    background-image: url("art/stud.webp");
+    background-size: 100% 100%;
+    background-blend-mode: hard-light;
+    box-shadow: 0 2px 3px rgb(0 0 0 / 60%);
+    color: #f3e6c8;
+  }
+
+  .mav-dock-button:hover:not(:disabled) {
+    border-color: #f3d588;
+  }
+
+  /* The sign on each is struck in: dark above, a little light below. */
+  .mav-dock-button i {
+    text-shadow:
+      0 -1px 0 rgb(0 0 0 / 85%),
+      0 1px 0 rgb(255 255 255 / 22%);
+  }
+
+  /* A button and the arrow beside it are one longer head, in two parts. */
+  .mav-dock-button:has(+ .mav-dock-menu-arrow) {
+    border-inline-end-width: 0;
+    background-image: url("art/stud-left.webp");
+  }
+
+  .mav-dock-menu-arrow {
+    margin-inline-start: calc(-1 * var(--mav-dock-button-gap, 2px));
+    border-inline-start-width: 0;
+    background-image: url("art/stud-right.webp");
+  }
+
+  /* The chevron in the middle of its part of the head: at the dock's own
+     size it is 11.4 px wide in a part 16 wide, a pixel from the border. */
+  .mav-dock-menu-arrow i {
+    font-size: 9px;
+    translate: 0 -1px;
+  }
+
+  /* The arrow takes its button's paint. */
+  .mav-dock-button[aria-pressed="true"]:is(.mav-dock-mute, .mav-dock-deafen)
+    + .mav-dock-menu-arrow {
+    background-color: #a12828;
+  }
+
+  .mav-dock-button[aria-pressed="true"].mav-dock-video + .mav-dock-menu-arrow {
+    background-color: var(--mav-accent);
+  }
+}
+
+/* ---- The wall of the hall: the dock, wherever it is one box ---- */
+
+.mav-theme-hides .mav-dock:not([data-placement="scattered"]) {
+  isolation: isolate;
+  gap: 6px;
+  padding: 4px;
+  /* One repeat of the timbers each way: they run on under a dock of any size. */
+  background: #20140d url("art/wall.webp") 0 0 / 600px 600px;
+
+  /* A little wall between the frames: one gap both ways, the dock fits
+     its grid with one. */
+  .mav-dock-tiles {
+    gap: 4px;
+    margin: 0;
+    padding: 6px 2px;
+    /* 1 from this much spare height under the cameras, else 0. */
+    --hides-trophy: clamp(0, var(--mav-dock-spare, 0) - 164, 1);
+    /* Where the cameras leave room, a trophy hangs on the wall. */
+    background: url("art/skull.webp") 50% calc(100% - 4px) /
+      calc(240px * var(--hides-trophy)) 160px no-repeat;
+  }
+}
+
+/* Upright, a frame's shadow may pass the list's edge: the list scrolls
+   down only. */
+.mav-theme-hides
+  .mav-dock:not(
+    [data-placement="scattered"],
+    [data-placement="top"],
+    [data-placement="bottom"]
+  )
+  .mav-dock-tiles {
+  overflow-x: hidden;
+}
+
+/* ---- The header and the voice panel: pieces of hide, nailed up ---- */
+
+/* The piece's edges and nails, cut in nine, over the hide itself, which
+   repeats and never stretches. Under the pictures, the hide's own
+   colour: what contrast is read from. On pale hide, dark text, and
+   states dark enough to read. */
+.mav-theme-hides .mav-dock :is(.mav-dock-header, .mav-dock-panel) {
+  --mav-text: #2a1408;
+  --mav-text-muted: #4a3016;
+  --mav-speaking: #8a3d00;
+  --mav-warning: #7a3f00;
+  --mav-muted: #9a1418;
+  --mav-blocked: #9a1418;
+  --mav-focus: #3a1c00;
+  --mav-border: #6b4a22;
+  position: relative;
+  padding: 6px 7px 8px;
+  border: 2px solid transparent;
+  border-image: url("art/piece.webp") 48 / 24px / 5px round;
+  border-radius: 0;
+  background: #b08a58 url("art/leather.webp") 0 0 / 300px 300px content-box;
+  box-shadow: none;
+  color: var(--mav-text);
+}
+
+/* Scattered, the header lies on the panel's hide: it is no piece of its own. */
+.mav-theme-hides .mav-dock .mav-dock-panel .mav-dock-header {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+/* Collapsed at a side: a rail one button wide. The pieces give up their
+   room at the sides, and with the menu arrows put away each button is a
+   whole nail head again. */
+.mav-theme-hides
+  .mav-dock:is(
+    [data-placement="left"],
+    [data-placement="right"]
+  )[data-collapsed] {
+  padding-inline: 2px;
+
+  :is(.mav-dock-header, .mav-dock-panel) {
+    padding-inline: 3px;
+  }
+
+  .mav-dock-button:has(+ .mav-dock-menu-arrow) {
+    border-inline-end-width: 1px;
+    border-radius: var(--mav-dock-radius);
+    background-image: url("art/stud.webp");
+  }
+}
+
+.mav-theme-hides .mav-popover {
+  border: 1px solid var(--mav-border);
+}
+
+/* As specific as the rule above that sets a transition, and after it. */
+@media (prefers-reduced-motion: reduce) {
+  .mav-theme-hides .mav-dock-tile .mav-dock-tile-frame::before {
+    transition: none;
+  }
+}

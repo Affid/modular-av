@@ -1,0 +1,98 @@
+{
+  "hide-1.webp": {
+    "width": 870,
+    "height": 609,
+    "bytes": 89900,
+    "sha256": "a52d567c42aa2d6634d63dc9a1c0db8fab3b63faf75040dcab4960560e098bad"
+  },
+  "hide-2.webp": {
+    "width": 870,
+    "height": 609,
+    "bytes": 87132,
+    "sha256": "ddffdce1816e6a57b7328b375bd006c1e67e178e6ee9373c120458fb7e7a072e"
+  },
+  "hide-cut-1.webp": {
+    "width": 870,
+    "height": 609,
+    "bytes": 84398,
+    "sha256": "1953c9bc46200f54937c615dd0159c14c92f36ff27c9756a3d9e1b38a183c2cb"
+  },
+  "hide-cut-2.webp": {
+    "width": 870,
+    "height": 609,
+    "bytes": 88172,
+    "sha256": "36752cfb71de34839b830bb1089950c9ed6216db78a811e556f4cdb3952f4bf0"
+  },
+  "leather.webp": {
+    "width": 450,
+    "height": 450,
+    "bytes": 28260,
+    "sha256": "9f298e81c6b1c8ba7d9a4753e3de8a9a4c3417e9f0dfb6491f91117943882a17"
+  },
+  "light-1.webp": {
+    "width": 870,
+    "height": 609,
+    "bytes": 9500,
+    "sha256": "f6860538f732dfd4e3f89755ebdba26a79c1ba13751e568ee80b8e39031acc0d"
+  },
+  "light-2.webp": {
+    "width": 870,
+    "height": 609,
+    "bytes": 9434,
+    "sha256": "874a24ea47f775cfd8bbfa1942ed3484511130a7d7bf8bc8fbcd6101145b97df"
+  },
+  "paint-1.webp": {
+    "width": 870,
+    "height": 609,
+    "bytes": 19644,
+    "sha256": "a94162d696b3303eb8b7dbb0ae26bec051f0da4f2e7924f26710da936b2cc637"
+  },
+  "paint-2.webp": {
+    "width": 870,
+    "height": 609,
+    "bytes": 18876,
+    "sha256": "7e1883e33528cf71c454aae2a563260b621854f3cde33834b4f620001ba369ce"
+  },
+  "piece.webp": {
+    "width": 480,
+    "height": 192,
+    "bytes": 12300,
+    "sha256": "92b1e59e64f33995da396b55d229db51fb56e92fd7d540dec3811b4596303975"
+  },
+  "skull.webp": {
+    "width": 720,
+    "height": 480,
+    "bytes": 34658,
+    "sha256": "598ef17363c895e2b7e06a2194abaf9411c4cf431bb5f5cda364ff9577485ee8"
+  },
+  "stud-left.webp": {
+    "width": 96,
+    "height": 96,
+    "bytes": 1444,
+    "sha256": "c81513803e45db5a1b40832775270472c5b50ac74e7d725f1e34809669cf873c"
+  },
+  "stud-right.webp": {
+    "width": 48,
+    "height": 96,
+    "bytes": 1266,
+    "sha256": "afa23fadd8032b2fe76b650c43f8ea4f5abfb895d6d2ea317e3294a897ad0291"
+  },
+  "stud.webp": {
+    "width": 96,
+    "height": 96,
+    "bytes": 1858,
+    "sha256": "77f05c84247210187b9b742c1b5fe4d50608181baf7352f72824d8e8ad3c925d"
+  },
+  "tag.webp": {
+    "width": 400,
+    "height": 136,
+    "bytes": 10102,
+    "sha256": "646e29ae9fe94b83377b93df6f6dd46e0cae48adfaa80e1775d8a90cbb22e381"
+  },
+  "wall.webp": {
+    "width": 1200,
+    "height": 1200,
+    "bytes": 77438,
+    "sha256": "cb87bcd30bfab16f3e2e254d7549e23928ad63b2ef9001cbe06677287fa0efe8"
+  }
+}
