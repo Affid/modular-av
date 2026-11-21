@@ -212,6 +212,14 @@ tiles and no further". Everything drawn has `pointer-events: none`.
 - **A tile with no camera.** The tile's own ground is usually cleared
   for the frame; give the media a ground, or a camera that is off is a
   hole.
+- **Light surfaces.** The dock's tokens are for a dark dock. On a light
+  part (paper), set the ones used there again: text, the focus ring, and
+  the colours of states (`--mav-warning`, `--mav-muted`, `--mav-blocked`,
+  `--mav-speaking`), dark enough for 3 to 1.
+- **A dock put away.** Collapsed at a side, the dock hides the menu
+  arrows: a rule for a button "with an arrow beside it" still matches.
+  At the top or bottom the list scrolls sideways: hide overflow across
+  only where the dock is upright.
 - **Name it after what it shows.** `vines`, `scrolls`: not after the
   character class it is for, which goes in its label ("Scrolls (a
   wizard's desk)").
