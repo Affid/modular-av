@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="800" height="577" viewBox="0 0 800 577" role="img" aria-label="Downloads by module. Zip downloads so far over all releases, with the change over the last 7 days" font-family='system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif'>
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="603" viewBox="0 0 800 603" role="img" aria-label="Downloads by module. Zip downloads so far over all releases, with the change over the last 7 days" font-family='system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif'>
 <title>Downloads by module. Zip downloads so far over all releases, with the change over the last 7 days</title>
-<rect x="0.5" y="0.5" width="799" height="576" rx="6" fill="#ffffff" stroke="#d1d9e0"/>
+<rect x="0.5" y="0.5" width="799" height="602" rx="6" fill="#ffffff" stroke="#d1d9e0"/>
 <text x="24" y="38" font-size="16" fill="#1f2328" font-weight="600">Downloads by module</text>
 <text x="24" y="58" font-size="12" fill="#59636e">Zip downloads so far over all releases, with the change over the last 7 days</text>
 <line x1="24" x2="38" y1="78" y2="78" stroke="#2a78d6" stroke-width="2" stroke-linecap="round"/>
@@ -15,50 +15,53 @@
 <text x="436" y="82" font-size="12" fill="#59636e">Starter set</text>
 <text x="194" y="120" font-size="12" fill="#59636e" text-anchor="end">Core</text>
 <rect x="204" y="110" width="412" height="12" rx="2" fill="#2a78d6"/>
-<text x="624" y="120" font-size="12" font-weight="600" fill="#1f2328">176<tspan dx="8" font-weight="400" fill="#1a7f37">+42 since Nov 16</tspan></text>
+<text x="624" y="120" font-size="12" font-weight="600" fill="#1f2328">189<tspan dx="8" font-weight="400" fill="#1a7f37">+55 since Nov 16</tspan></text>
 <text x="194" y="156" font-size="12" fill="#59636e" text-anchor="end">LiveKit</text>
-<rect x="204" y="146" width="295" height="12" rx="2" fill="#eb6834"/>
-<text x="507" y="156" font-size="12" font-weight="600" fill="#1f2328">126<tspan dx="8" font-weight="400" fill="#1a7f37">+32 since Nov 16</tspan></text>
+<rect x="204" y="146" width="294.3" height="12" rx="2" fill="#eb6834"/>
+<text x="506.3" y="156" font-size="12" font-weight="600" fill="#1f2328">135<tspan dx="8" font-weight="400" fill="#1a7f37">+41 since Nov 16</tspan></text>
 <text x="194" y="182" font-size="12" fill="#59636e" text-anchor="end">P2P</text>
-<rect x="204" y="172" width="196.6" height="12" rx="2" fill="#eb6834"/>
-<text x="408.6" y="182" font-size="12" font-weight="600" fill="#1f2328">84<tspan dx="8" font-weight="400" fill="#1a7f37">+17 since Nov 16</tspan></text>
+<rect x="204" y="172" width="200.6" height="12" rx="2" fill="#eb6834"/>
+<text x="412.6" y="182" font-size="12" font-weight="600" fill="#1f2328">92<tspan dx="8" font-weight="400" fill="#1a7f37">+25 since Nov 16</tspan></text>
 <text x="194" y="208" font-size="12" fill="#59636e" text-anchor="end">Jitsi</text>
-<rect x="204" y="198" width="145.1" height="12" rx="2" fill="#eb6834"/>
-<text x="357.1" y="208" font-size="12" font-weight="600" fill="#1f2328">62<tspan dx="8" font-weight="400" fill="#1a7f37">+9 since Nov 16</tspan></text>
+<rect x="204" y="198" width="146.1" height="12" rx="2" fill="#eb6834"/>
+<text x="358.1" y="208" font-size="12" font-weight="600" fill="#1f2328">67<tspan dx="8" font-weight="400" fill="#1a7f37">+14 since Nov 16</tspan></text>
 <text x="194" y="234" font-size="12" fill="#59636e" text-anchor="end">Krisp for LiveKit Cloud</text>
-<rect x="204" y="224" width="70.2" height="12" rx="2" fill="#eb6834"/>
-<text x="282.2" y="234" font-size="12" font-weight="600" fill="#1f2328">30<tspan dx="8" font-weight="400" fill="#1a7f37">+21 since Nov 16</tspan></text>
+<rect x="204" y="224" width="80.7" height="12" rx="2" fill="#eb6834"/>
+<text x="292.7" y="234" font-size="12" font-weight="600" fill="#1f2328">37<tspan dx="8" font-weight="400" fill="#1a7f37">+28 since Nov 16</tspan></text>
 <text x="194" y="270" font-size="12" fill="#59636e" text-anchor="end">Dock</text>
-<rect x="204" y="260" width="355.8" height="12" rx="2" fill="#1baf7a"/>
-<text x="567.8" y="270" font-size="12" font-weight="600" fill="#1f2328">152<tspan dx="8" font-weight="400" fill="#1a7f37">+45 since Nov 16</tspan></text>
+<rect x="204" y="260" width="359.7" height="12" rx="2" fill="#1baf7a"/>
+<text x="571.7" y="270" font-size="12" font-weight="600" fill="#1f2328">165<tspan dx="8" font-weight="400" fill="#1a7f37">+58 since Nov 16</tspan></text>
 <text x="194" y="296" font-size="12" fill="#59636e" text-anchor="end">Vines theme</text>
-<rect x="204" y="286" width="163.9" height="12" rx="2" fill="#1baf7a"/>
-<text x="375.9" y="296" font-size="12" font-weight="600" fill="#1f2328">70<tspan dx="8" font-weight="400" fill="#1a7f37">+8 since Nov 16</tspan></text>
-<text x="194" y="332" font-size="12" fill="#59636e" text-anchor="end">Noise cancellation</text>
-<rect x="204" y="322" width="250.5" height="12" rx="2" fill="#eda100"/>
-<text x="462.5" y="332" font-size="12" font-weight="600" fill="#1f2328">107<tspan dx="8" font-weight="400" fill="#1a7f37">+23 since Nov 16</tspan></text>
-<text x="194" y="358" font-size="12" fill="#59636e" text-anchor="end">Camera background</text>
-<rect x="204" y="348" width="227.1" height="12" rx="2" fill="#eda100"/>
-<text x="439.1" y="358" font-size="12" font-weight="600" fill="#1f2328">97<tspan dx="8" font-weight="400" fill="#1a7f37">+25 since Nov 16</tspan></text>
-<text x="194" y="384" font-size="12" fill="#59636e" text-anchor="end">Audio mixer</text>
-<rect x="204" y="374" width="74.9" height="12" rx="2" fill="#eda100"/>
-<text x="286.9" y="384" font-size="12" font-weight="600" fill="#1f2328">32<tspan dx="8" font-weight="400" fill="#1a7f37">+12 since Nov 16</tspan></text>
-<text x="194" y="410" font-size="12" fill="#59636e" text-anchor="end">Reverb</text>
-<rect x="204" y="400" width="58.5" height="12" rx="2" fill="#eda100"/>
-<text x="270.5" y="410" font-size="12" font-weight="600" fill="#1f2328">25<tspan dx="8" font-weight="400" fill="#1a7f37">+8 since Nov 16</tspan></text>
-<text x="194" y="436" font-size="12" fill="#59636e" text-anchor="end">Echo</text>
-<rect x="204" y="426" width="51.5" height="12" rx="2" fill="#eda100"/>
-<text x="263.5" y="436" font-size="12" font-weight="600" fill="#1f2328">22<tspan dx="8" font-weight="400" fill="#1a7f37">+7 since Nov 16</tspan></text>
-<text x="194" y="462" font-size="12" fill="#59636e" text-anchor="end">Mic boost</text>
-<rect x="204" y="452" width="42.1" height="12" rx="2" fill="#eda100"/>
-<text x="254.1" y="462" font-size="12" font-weight="600" fill="#1f2328">18<tspan dx="8" font-weight="400" fill="#1a7f37">+7 since Nov 16</tspan></text>
-<text x="194" y="488" font-size="12" fill="#59636e" text-anchor="end">Radio</text>
-<rect x="204" y="478" width="42.1" height="12" rx="2" fill="#eda100"/>
-<text x="254.1" y="488" font-size="12" font-weight="600" fill="#1f2328">18<tspan dx="8" font-weight="400" fill="#1a7f37">+7 since Nov 16</tspan></text>
-<text x="194" y="514" font-size="12" fill="#59636e" text-anchor="end">EQ</text>
-<rect x="204" y="504" width="32.8" height="12" rx="2" fill="#eda100"/>
-<text x="244.8" y="514" font-size="12" font-weight="600" fill="#1f2328">14<tspan dx="8" font-weight="400" fill="#1a7f37">+3 since Nov 16</tspan></text>
-<text x="194" y="550" font-size="12" fill="#59636e" text-anchor="end">Starter set</text>
-<rect x="204" y="540" width="117" height="12" rx="2" fill="#8c959f"/>
-<text x="329" y="550" font-size="12" font-weight="600" fill="#1f2328">50<tspan dx="8" font-weight="400" fill="#1a7f37">+10 since Nov 16</tspan></text>
+<rect x="204" y="286" width="161.3" height="12" rx="2" fill="#1baf7a"/>
+<text x="373.3" y="296" font-size="12" font-weight="600" fill="#1f2328">74<tspan dx="8" font-weight="400" fill="#1a7f37">+12 since Nov 16</tspan></text>
+<text x="194" y="322" font-size="12" fill="#59636e" text-anchor="end">Scrolls theme</text>
+<rect x="204" y="312" width="4.4" height="12" rx="2" fill="#1baf7a"/>
+<text x="216.4" y="322" font-size="12" font-weight="600" fill="#1f2328">2<tspan dx="8" font-weight="400" fill="#1a7f37">+2 since Nov 16</tspan></text>
+<text x="194" y="358" font-size="12" fill="#59636e" text-anchor="end">Noise cancellation</text>
+<rect x="204" y="348" width="252.9" height="12" rx="2" fill="#eda100"/>
+<text x="464.9" y="358" font-size="12" font-weight="600" fill="#1f2328">116<tspan dx="8" font-weight="400" fill="#1a7f37">+32 since Nov 16</tspan></text>
+<text x="194" y="384" font-size="12" fill="#59636e" text-anchor="end">Camera background</text>
+<rect x="204" y="374" width="231.1" height="12" rx="2" fill="#eda100"/>
+<text x="443.1" y="384" font-size="12" font-weight="600" fill="#1f2328">106<tspan dx="8" font-weight="400" fill="#1a7f37">+34 since Nov 16</tspan></text>
+<text x="194" y="410" font-size="12" fill="#59636e" text-anchor="end">Audio mixer</text>
+<rect x="204" y="400" width="89.4" height="12" rx="2" fill="#eda100"/>
+<text x="301.4" y="410" font-size="12" font-weight="600" fill="#1f2328">41<tspan dx="8" font-weight="400" fill="#1a7f37">+21 since Nov 16</tspan></text>
+<text x="194" y="436" font-size="12" fill="#59636e" text-anchor="end">Reverb</text>
+<rect x="204" y="426" width="71.9" height="12" rx="2" fill="#eda100"/>
+<text x="283.9" y="436" font-size="12" font-weight="600" fill="#1f2328">33<tspan dx="8" font-weight="400" fill="#1a7f37">+16 since Nov 16</tspan></text>
+<text x="194" y="462" font-size="12" fill="#59636e" text-anchor="end">Echo</text>
+<rect x="204" y="452" width="63.2" height="12" rx="2" fill="#eda100"/>
+<text x="275.2" y="462" font-size="12" font-weight="600" fill="#1f2328">29<tspan dx="8" font-weight="400" fill="#1a7f37">+14 since Nov 16</tspan></text>
+<text x="194" y="488" font-size="12" fill="#59636e" text-anchor="end">Mic boost</text>
+<rect x="204" y="478" width="56.7" height="12" rx="2" fill="#eda100"/>
+<text x="268.7" y="488" font-size="12" font-weight="600" fill="#1f2328">26<tspan dx="8" font-weight="400" fill="#1a7f37">+15 since Nov 16</tspan></text>
+<text x="194" y="514" font-size="12" fill="#59636e" text-anchor="end">Radio</text>
+<rect x="204" y="504" width="52.3" height="12" rx="2" fill="#eda100"/>
+<text x="264.3" y="514" font-size="12" font-weight="600" fill="#1f2328">24<tspan dx="8" font-weight="400" fill="#1a7f37">+13 since Nov 16</tspan></text>
+<text x="194" y="540" font-size="12" fill="#59636e" text-anchor="end">EQ</text>
+<rect x="204" y="530" width="45.8" height="12" rx="2" fill="#eda100"/>
+<text x="257.8" y="540" font-size="12" font-weight="600" fill="#1f2328">21<tspan dx="8" font-weight="400" fill="#1a7f37">+10 since Nov 16</tspan></text>
+<text x="194" y="576" font-size="12" fill="#59636e" text-anchor="end">Starter set</text>
+<rect x="204" y="566" width="119.9" height="12" rx="2" fill="#8c959f"/>
+<text x="331.9" y="576" font-size="12" font-weight="600" fill="#1f2328">55<tspan dx="8" font-weight="400" fill="#1a7f37">+15 since Nov 16</tspan></text>
 </svg>
