@@ -72,6 +72,42 @@ Reusable as they are, for another material drawn as lines:
 `pnpm theme:sheet sheet.png 275 260 a.svg b.svg …` lays candidates side
 by side, to choose a seed by eye.
 
+## Render what can't be drawn
+
+The scrolls theme (`packages/dock-scrolls`) is glass, cut stone, bone and
+worn vellum, and drawn gradients never looked like them. Its pictures of
+things are rendered with Blender instead; only what is flat by nature
+(ink, gold leaf, cracks, a button's facets) is drawn. What that takes:
+
+- **Scenes are scripts** (`tools/art/scrolls/render`, run headless by
+  `pnpm art:scrolls:render`), one to a picture, with every seed and
+  number in them. One room and one light for all of them (`room()`), or
+  shadows disagree between neighbours.
+- **The measures are said once**, in `tools/art/scrolls/measures.json`,
+  which the scenes, the drawing script and a test of the stylesheet all
+  read.
+- **No test can render**, and a render differs a little between
+  machines. The shipped pictures are locked instead: the render script
+  lists each with its size and hash (`rendered.json`), and a test fails
+  when the files are not the ones listed.
+- **Photographed textures stay out of the repository.** They are pinned
+  by address and hash and fetched before rendering
+  (`tools/art/scrolls/textures.ts`), and named in the module's notices.
+- **Colour comes from the stylesheet.** The stones are rendered without
+  colour and tinted by `background-blend-mode: multiply` over the
+  player's colour, their flashes laid over that in a picture of their
+  own.
+- **Shadows are pictures too.** A shadow catcher puts a thing's shadow in
+  the picture's transparency. Fade it out before the picture's edge, or
+  it shows as a box on a light scene; and keep a shadow picture clear
+  away from what casts it, or its noise lies on faces and fails the
+  contract.
+- **A ground that repeats is one whole repeat of its texture each way.**
+  Half a repeat looks right in a dock 300 wide and shows a seam in a
+  wider one.
+- **WebP** keeps 15 pictures near 380 KB. Nothing here writes it but a
+  browser: the render script converts through Chromium.
+
 ## What must stretch is drawn to be cut
 
 The dock's width and height are the player's. Nothing may be drawn for
@@ -165,7 +201,20 @@ tiles and no further". Everything drawn has `pointer-events: none`.
   size; the art's total has a test. Run it early: it is the last step of
   `pnpm verify`.
 - **The harness is not Foundry.** Its docked dock has no height limit,
-  and its cameras are a test pattern.
+  its cameras are a test pattern, and it has none of Foundry's styles
+  for form fields: a menu looks cramped there under any theme. Judge
+  menus and the settings window in Foundry.
+- **One gap.** The dock fits its grid with one gap. A row gap unlike the
+  column gap made the scrolls theme's grid flip between two sizes.
+- **Turned tiles.** A tile may be turned a little (`rotate`): its boxes
+  on screen grow by a pixel or two, so tests measure the layout
+  (`offsetLeft`), and a turned picture is drawn a touch softer.
+- **A tile with no camera.** The tile's own ground is usually cleared
+  for the frame; give the media a ground, or a camera that is off is a
+  hole.
+- **Name it after what it shows.** `vines`, `scrolls`: not after the
+  character class it is for, which goes in its label ("Scrolls (a
+  wizard's desk)").
 
 ## Checking
 
