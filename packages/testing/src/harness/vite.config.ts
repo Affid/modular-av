@@ -4,9 +4,8 @@ import { defineConfig, type Plugin } from "vite";
 import { readAssets } from "../../../../tools/assets/assets.ts";
 import { fetchDownloads } from "../../../../tools/assets/downloads.ts";
 import { readWorkers } from "../../../../tools/assets/workers.ts";
+import { harnessPort } from "./port.ts";
 import { signalRelay } from "./signal-relay.ts";
-
-export const HARNESS_PORT = 5174;
 
 const PACKAGES = join(import.meta.dirname, "..", "..", "..");
 
@@ -154,7 +153,7 @@ export default defineConfig({
   server: {
     // The browser tier reaches it at [::1] (see playwright.config.ts).
     host: "::1",
-    port: HARNESS_PORT,
+    port: harnessPort(process.env),
     strictPort: true,
     fs: { allow: [join(import.meta.dirname, "..", "..", "..", "..")] },
   },
