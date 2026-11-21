@@ -50,7 +50,9 @@ repository changed.
   order (`speaking`, `muted`, `deafened`, `poor` for a poor link,
   `camera-off`, `menu` for the pointer over their camera, `badge` for
   another module's badge; `-` for nothing), and they are made to happen
-  through the players' own commands. A badge comes from the harness's
+  through the players' own commands. With several `--players` counts, a
+  picture with fewer players than `--states` names leaves the rest out;
+  it is an error only when no picture has them all. A badge comes from the harness's
   sample module, which also adds a button and rows of its own to the
   dock; it is loaded only when a player has `badge`. `--viewer` says what
   the viewer is doing: `out` takes them out of the call, and `muted`,

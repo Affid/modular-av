@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { parseShotArgs, PLACEMENTS, shotsOf, wantsSample } from "./options.ts";
+import {
+  castOf,
+  parseShotArgs,
+  PLACEMENTS,
+  shotsOf,
+  wantsSample,
+} from "./options.ts";
 
 describe("parseShotArgs", () => {
   it("takes the folder for the pictures and falls back on one docked picture of the dock's own look", () => {
@@ -25,6 +31,9 @@ describe("parseShotArgs", () => {
   it("reads what each player is doing, in their order, and whether the viewer has left", () => {
     const options = parseShotArgs([
       "out",
+      // Four players are named, so a picture has to have four.
+      "--players",
+      "4",
       "--states",
       "muted+deafened+poor,speaking,-,camera-off+menu",
       "--viewer",
@@ -143,6 +152,16 @@ describe("parseShotArgs", () => {
       /--heights/,
     ],
     ["a state no player has", ["out", "--states", "asleep"], /asleep/],
+    [
+      "states for more players than any picture has",
+      ["out", "--players", "1,2", "--states", "muted,speaking,deafened"],
+      /--states names 3 players.*--players 1,2.*2 at most/,
+    ],
+    [
+      "states for more players than the default picture has",
+      ["out", "--states", "-,-,muted"],
+      /--states names 3 players.*2 at most/,
+    ],
     ["a viewer neither in nor out", ["out", "--viewer", "away"], /away/],
     [
       "a viewer in the call and doing something",
@@ -167,15 +186,71 @@ describe("parseShotArgs", () => {
   });
 });
 
+describe("parseShotArgs and the players that states name", () => {
+  it("takes states for as many players as the largest picture has, whichever option comes first", () => {
+    const states = ["--states", "muted,speaking,deafened"];
+    const players = ["--players", "2,8"];
+
+    for (const argv of [
+      ["out", ...states, ...players],
+      ["out", ...players, ...states],
+    ])
+      expect(parseShotArgs(argv).states).toHaveLength(3);
+  });
+
+  it("doesn't count players at the end who do nothing", () => {
+    // Two players, and a third `-` that names no one who needs to be there.
+    expect(
+      parseShotArgs(["out", "--players", "2", "--states", "muted,speaking,-"])
+        .states,
+    ).toEqual([["muted"], ["speaking"], []]);
+  });
+});
+
+describe("castOf", () => {
+  const options = parseShotArgs([
+    "out",
+    "--players",
+    "2,8",
+    "--states",
+    "muted+deafened,-,speaking+badge",
+  ]);
+
+  it("gives each player of a picture who is doing something, by their id, in their order", () => {
+    expect(castOf(options, 8)).toEqual([
+      ["p1", ["muted", "deafened"]],
+      ["p3", ["speaking", "badge"]],
+    ]);
+  });
+
+  it("leaves out the players a smaller picture doesn't have, where the script used to stop", () => {
+    expect(castOf(options, 2)).toEqual([["p1", ["muted", "deafened"]]]);
+    expect(castOf(options, 0)).toEqual([]);
+  });
+});
+
 describe("wantsSample", () => {
   it("asks the harness for its sample module only when a player shows a badge", () => {
     // The sample module adds a button and rows of its own to the dock.
-    expect(wantsSample(parseShotArgs(["out", "--states", "muted"]))).toBe(
+    expect(wantsSample(parseShotArgs(["out", "--states", "muted"]), 2)).toBe(
       false,
     );
     expect(
-      wantsSample(parseShotArgs(["out", "--states", "-,muted+badge"])),
+      wantsSample(parseShotArgs(["out", "--states", "-,muted+badge"]), 2),
     ).toBe(true);
+  });
+
+  it("asks only for a picture that has the player with the badge", () => {
+    const options = parseShotArgs([
+      "out",
+      "--players",
+      "2,8",
+      "--states",
+      "muted,-,badge",
+    ]);
+
+    expect(wantsSample(options, 8)).toBe(true);
+    expect(wantsSample(options, 2)).toBe(false);
   });
 });
 

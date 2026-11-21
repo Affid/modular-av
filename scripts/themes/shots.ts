@@ -13,6 +13,7 @@ import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { type Browser, chromium, type Page } from "@playwright/test";
 import {
+  castOf,
   OptionsError,
   parseShotArgs,
   PLACEMENTS,
@@ -136,7 +137,7 @@ function address(options: ShotOptions, shot: Shot): string {
   );
   const theme = options.theme ? `&theme=${options.theme}` : "";
   const trial = options.trial ? `&trial=${trialParam(options.trial)}` : "";
-  const sample = wantsSample(options) ? "&sample=1" : "";
+  const sample = wantsSample(options, shot.players) ? "&sample=1" : "";
   return `${HARNESS}/?module=${options.modules}&service=mock&colours=1&players=${players.join(",")}${theme}${trial}${sample}`;
 }
 
@@ -146,9 +147,8 @@ async function act(
   options: ShotOptions,
   shot: Shot,
 ): Promise<void> {
-  const cast = options.states.map(
-    (states, i) => [`p${String(i + 1)}`, states] as const,
-  );
+  // Only the players this picture has: a smaller one leaves the rest out.
+  const cast = castOf(options, shot.players);
   await page.evaluate(
     async (players) => {
       const { ui, sample } = window.harness ?? {};
