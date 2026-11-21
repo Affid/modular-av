@@ -1,0 +1,21 @@
+{
+  "name": "@modular-av/dock-hides",
+  "version": "0.16.0",
+  "private": true,
+  "description": "Modular A/V theme module: a barbarian's hall for modular-av-dock, each camera on a hide laced into a frame of poles on a timber wall.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p test/browser"
+  },
+  "devDependencies": {
+    "@modular-av/dock": "workspace:*",
+    "@modular-av/testing": "workspace:*"
+  },
+  "modularAV": {
+    "entryBudgetBytes": 2000,
+    "styleBudgetBytes": 14000
+  }
+}

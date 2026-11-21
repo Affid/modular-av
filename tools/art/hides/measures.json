@@ -1,0 +1,96 @@
+{
+  "tile": {
+    "width": 1000,
+    "height": 562.5
+  },
+  "reach": {
+    "top": 0.08,
+    "right": 0.08,
+    "bottom": 0.17,
+    "left": 0.08
+  },
+  "unitsPerMetre": 100,
+  "frameDensity": 0.75,
+  "hide": {
+    "below": 108,
+    "tip": 30,
+    "cover": 12,
+    "poleOut": 58,
+    "poleUnder": 43.5,
+    "poleRadius": 15.5
+  },
+  "tally": {
+    "left": 130,
+    "top": 607,
+    "right": 870,
+    "bottom": 653
+  },
+  "paint": {
+    "inset": 8,
+    "seeds": [41, 97]
+  },
+  "pictures": {
+    "wall": {
+      "width": 600,
+      "height": 600,
+      "density": 2,
+      "span": 12
+    },
+    "leather": {
+      "width": 300,
+      "height": 300,
+      "density": 1.5,
+      "span": 12
+    },
+    "tag": {
+      "width": 200,
+      "height": 68,
+      "density": 2,
+      "span": 4,
+      "end": 35
+    },
+    "piece": {
+      "width": 240,
+      "height": 96,
+      "density": 2,
+      "span": 9.6,
+      "edge": 24
+    },
+    "stud-1": {
+      "width": 96,
+      "height": 96,
+      "density": 1,
+      "span": 2
+    },
+    "stud-2": {
+      "width": 96,
+      "height": 96,
+      "density": 1,
+      "span": 2
+    },
+    "stud-3": {
+      "width": 96,
+      "height": 96,
+      "density": 1,
+      "span": 2
+    },
+    "stud-left": {
+      "width": 96,
+      "height": 96,
+      "density": 1,
+      "span": 2
+    },
+    "stud-right": {
+      "width": 48,
+      "height": 96,
+      "density": 1,
+      "span": 1
+    },
+    "skull": {
+      "width": 240,
+      "height": 160,
+      "density": 3,
+      "span": 9.6
+    }
+  }
+}

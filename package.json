@@ -31,6 +31,8 @@
     "art:vines": "node tools/art/vines/cli.ts",
     "art:scrolls": "node tools/art/scrolls/cli.ts",
     "art:scrolls:render": "node scripts/art/scrolls-render.ts",
+    "art:hides": "node tools/art/hides/cli.ts",
+    "art:hides:render": "node scripts/art/hides-render.ts",
     "theme:shots": "node scripts/themes/shots.ts",
     "theme:sheet": "node scripts/themes/sheet.ts",
     "theme:foundry": "node scripts/themes/foundry-check.ts",

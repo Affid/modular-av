@@ -128,17 +128,25 @@ async function shootDock(viewer: Player): Promise<void> {
   }, null);
   await page.waitForTimeout(3_000);
   await shot(page, "dock-scattered-vines");
-  await shootScrolls(viewer);
+  await shootTheme(viewer, "scrolls");
+  await shootTheme(viewer, "hides");
 }
 
-/** The scrolls theme: scattered over the map, then docked, where the dock is the desk. */
-async function shootScrolls(viewer: Player): Promise<void> {
+/**
+ * A theme whose dock is a ground of its own (the scrolls' desk, the hides'
+ * wall): scattered over the map, then docked on the left.
+ */
+async function shootTheme(viewer: Player, theme: string): Promise<void> {
   const page = viewer.page;
-  await viewer.run(async (_api, game) => {
-    await game.settings.set("modular-av-dock", "theme", "scrolls");
-  }, null);
+  await viewer.run(async (_api, game, id) => {
+    await game.settings.set("modular-av-dock", "theme", id);
+  }, theme);
+  await page.locator(".mav-dock-placement").first().click();
+  await page
+    .getByRole("menuitemradio", { name: /Scattered over the screen/ })
+    .click();
   await page.waitForTimeout(3_000);
-  await shot(page, "dock-scattered-scrolls");
+  await shot(page, `dock-scattered-${theme}`);
   await page.locator(".mav-dock-placement").first().click();
   await page
     .getByRole("menuitemradio", { name: /^Docked on the left/ })
@@ -148,7 +156,7 @@ async function shootScrolls(viewer: Player): Promise<void> {
   if ((await large.count()) > 0)
     await page.locator("#camera-views .mav-dock-layout").click();
   await page.waitForTimeout(3_000);
-  await shot(page, "dock-scrolls");
+  await shot(page, `dock-${theme}`);
 }
 
 /** Each voice effect's own settings, open in the mixer, for its listing. */
