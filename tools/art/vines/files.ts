@@ -115,9 +115,14 @@ const picturesIn = async (dir: string): Promise<readonly string[]> => {
   return names.filter((name) => name.endsWith(".svg"));
 };
 
-/** The pictures in `dir` that are missing, changed, or no longer drawn. */
-export async function staleArt(dir: string): Promise<readonly string[]> {
-  const files = artFiles();
+/**
+ * The pictures of `files` (by name, as text) that are missing from `dir`
+ * or changed there, and the SVG pictures in it that aren't among them.
+ */
+export async function staleFiles(
+  dir: string,
+  files: ReadonlyMap<string, string>,
+): Promise<readonly string[]> {
   const strays = (await picturesIn(dir)).filter((name) => !files.has(name));
   const differing = await Promise.all(
     [...files].map(async ([name, text]) => {
@@ -130,9 +135,11 @@ export async function staleArt(dir: string): Promise<readonly string[]> {
   return [...differing.flat(), ...strays];
 }
 
-/** Writes every picture into `dir` and removes pictures no longer drawn. */
-export async function writeArt(dir: string): Promise<readonly string[]> {
-  const files = artFiles();
+/** Writes `files` into `dir` and removes SVG pictures that aren't among them. */
+export async function writeFiles(
+  dir: string,
+  files: ReadonlyMap<string, string>,
+): Promise<readonly string[]> {
   await mkdir(dir, { recursive: true });
   const strays = (await picturesIn(dir)).filter((name) => !files.has(name));
   await Promise.all(strays.map((name) => rm(join(dir, name))));
@@ -141,3 +148,11 @@ export async function writeArt(dir: string): Promise<readonly string[]> {
   );
   return [...files.keys()];
 }
+
+/** The pictures in `dir` that are missing, changed, or no longer drawn. */
+export const staleArt = (dir: string): Promise<readonly string[]> =>
+  staleFiles(dir, artFiles());
+
+/** Writes every picture into `dir` and removes pictures no longer drawn. */
+export const writeArt = (dir: string): Promise<readonly string[]> =>
+  writeFiles(dir, artFiles());

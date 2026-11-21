@@ -85,31 +85,46 @@ async function cached(file: string, hash: string): Promise<boolean> {
   }
 }
 
+/**
+ * What `item.url` serves, once its hash is the pinned one. `label` names
+ * the download in an error.
+ */
+export async function fetchChecked(
+  label: string,
+  item: Pick<Download, "url" | "sha256">,
+  fetcher: typeof fetch = fetch,
+): Promise<Uint8Array> {
+  const response = await fetcher(item.url, {
+    signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS),
+  });
+  if (!response.ok)
+    throw new Error(
+      `${label}: download failed with HTTP ${String(response.status)} (${item.url})`,
+    );
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  const got = sha256(bytes);
+  if (got !== item.sha256)
+    throw new Error(
+      `${label}: sha256 ${got} doesn't match the pinned ${item.sha256} (${item.url})`,
+    );
+  return bytes;
+}
+
 async function download(
   path: string,
   item: Download,
   file: string,
   fetcher: typeof fetch,
 ): Promise<void> {
-  const response = await fetcher(item.url, {
-    signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS),
-  });
-  if (!response.ok)
-    throw new Error(
-      `${path}: download failed with HTTP ${String(response.status)} (${item.url})`,
-    );
-  const bytes = new Uint8Array(await response.arrayBuffer());
-  const got = sha256(bytes);
-  if (got !== item.sha256)
-    throw new Error(
-      `${path}: sha256 ${got} doesn't match the pinned ${item.sha256} (${item.url})`,
-    );
   // A unique partial name: two paths may pin the same file.
-  await writeWhole(file, bytes);
+  await writeWhole(file, await fetchChecked(path, item, fetcher));
 }
 
 /** Writes aside, then moves: a cut-off write never looks complete. */
-async function writeWhole(file: string, bytes: Uint8Array): Promise<void> {
+export async function writeWhole(
+  file: string,
+  bytes: Uint8Array,
+): Promise<void> {
   const partial = `${file}.${randomUUID()}.partial`;
   try {
     await writeFile(partial, bytes);
