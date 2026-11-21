@@ -82,6 +82,39 @@ const detail = (page: Page, participant: string): Promise<Detail> =>
       };
     });
 
+/** Readings half a second apart, of which the middle one is kept. */
+const READINGS = 5;
+const BETWEEN_READINGS_MS = 500;
+
+const middle = (values: readonly number[]): number =>
+  values.toSorted((a, b) => a - b)[Math.floor(values.length / 2)] ?? -1;
+
+/**
+ * The detail once the picture has settled: the middle of several readings.
+ * A stream's first frames are unlike what follows. Measured here over
+ * LiveKit, the shelf read 6.3, 6.9 and 9.0 on the first frame of three
+ * runs and 7.6 from the second frame on, and one reading taken on that
+ * first frame failed this test in about one run of three.
+ */
+async function settledDetail(page: Page, participant: string): Promise<Detail> {
+  let readings: readonly Detail[] = [];
+  for (let taken = 0; taken < READINGS; taken += 1) {
+    if (taken > 0) await page.waitForTimeout(BETWEEN_READINGS_MS);
+    readings = [...readings, await detail(page, participant)];
+  }
+  return {
+    shelf: middle(readings.map((reading) => reading.shelf)),
+    face: middle(readings.map((reading) => reading.face)),
+  };
+}
+
+/**
+ * How much of the shelf's detail is left when its background is blurred,
+ * at most. Measured at the 240 by 180 pixels the dock receives: 7.6
+ * unblurred and 3.56 blurred, 0.47 of it, the same in every run.
+ */
+const BLURRED_AT_MOST = 0.6;
+
 test.describe("with LiveKit", () => {
   test.beforeAll(async ({ browser }) => {
     await configureWorld(browser, "livekit", "dock");
@@ -100,7 +133,7 @@ test.describe("with LiveKit", () => {
         timeout: 30_000,
       })
       .toBeGreaterThan(0);
-    const raw = await detail(gm.page, p1Id);
+    const raw = await settledDetail(gm.page, p1Id);
 
     // Act
     await setEffect(p1, "background-blur", true);
@@ -116,8 +149,9 @@ test.describe("with LiveKit", () => {
       .poll(async () => (await detail(gm.page, p1Id)).shelf, {
         timeout: 30_000,
       })
-      .toBeLessThan(raw.shelf * 0.5);
-    const blurred = await detail(gm.page, p1Id);
+      .toBeLessThan(raw.shelf * BLURRED_AT_MOST);
+    const blurred = await settledDetail(gm.page, p1Id);
+    expect(blurred.shelf).toBeLessThan(raw.shelf * BLURRED_AT_MOST);
     test.info().annotations.push({
       type: "detail",
       description: `shelf ${raw.shelf.toFixed(1)} → ${blurred.shelf.toFixed(1)}, face ${raw.face.toFixed(1)} → ${blurred.face.toFixed(1)}`,
