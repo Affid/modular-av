@@ -19,11 +19,18 @@ import {
   type Shot,
   type ShotOptions,
   shotsOf,
+  type StateName,
 } from "../../tools/themes/options.ts";
+import { harnessUrl } from "../../packages/testing/src/harness/port.ts";
+import {
+  TRIAL_STYLESHEET,
+  trialParam,
+} from "../../packages/testing/src/harness/trial-theme.ts";
+import type {} from "../../packages/testing/src/harness/types.ts";
 import { loadFoundryEnv } from "../foundry/env.ts";
 
-/** As in playwright.config.ts: IPv6 loopback, where an unused port is refused at once. */
-const HARNESS = "http://[::1]:5174";
+/** As in playwright.config.ts: the harness's own port, or the one MAV_HARNESS_PORT names. */
+const HARNESS = harnessUrl(process.env);
 const WIDTH = 1280;
 /** Round the dock, so its edge toward the scene shows. */
 const MARGIN = 40;
@@ -115,27 +122,81 @@ const told = (page: Page): Promise<Told> =>
     };
   });
 
-async function open(
-  page: Page,
-  options: ShotOptions,
-  shot: Shot,
-): Promise<void> {
+/** The trial stylesheets as one: the trial theme's own stylesheet. */
+const trialCss = (options: ShotOptions): string =>
+  options.css.map((file) => readFileSync(resolve(file), "utf8")).join("\n");
+
+/** The harness's page for a picture: who is in it, and under which theme. */
+function address(options: ShotOptions, shot: Shot): string {
   const players = Array.from(
     { length: shot.players },
     (_, i) => `p${String(i + 1)}`,
   );
   const theme = options.theme ? `&theme=${options.theme}` : "";
-  await page.goto(
-    `${HARNESS}/?module=${options.modules}&service=mock&players=${players.join(",")}${theme}`,
+  const trial = options.trial ? `&trial=${trialParam(options.trial)}` : "";
+  return `${HARNESS}/?module=${options.modules}&service=mock&colours=1&players=${players.join(",")}${theme}${trial}`;
+}
+
+/** Makes the players' states happen, through their own commands and the mock service. */
+async function act(
+  page: Page,
+  options: ShotOptions,
+  shot: Shot,
+): Promise<void> {
+  const cast = options.states.map(
+    (states, i) => [`p${String(i + 1)}`, states] as const,
   );
+  await page.evaluate(
+    async (players) => {
+      const { ui } = window.harness ?? {};
+      for (const [id, states] of players) {
+        const commands = ui?.players[id]?.commands;
+        const has = (state: string): boolean => states.includes(state);
+        if (has("muted")) await commands?.setMuted(true);
+        if (has("deafened")) await commands?.setDeafened(true);
+        if (has("camera-off")) await commands?.setVideoEnabled(false);
+        if (has("speaking")) ui?.hub.setSpeaking(id, true);
+        if (has("poor")) ui?.hub.setQuality("gm1", id, "poor");
+      }
+    },
+    cast as readonly (readonly [string, readonly string[]])[],
+  );
+  if (options.viewer === "out")
+    await page.evaluate(() => {
+      const api = window.harness?.client.game.modules.get("modular-av")?.api as
+        { commands: { leave(): Promise<void> } } | undefined;
+      return api?.commands.leave();
+    });
+  const under: StateName = "menu";
+  const hovered = cast.find(([, states]) => states.includes(under));
+  // A dock put away shows no cameras to point at.
+  if (hovered && shot.dock === "open")
+    await page
+      .locator(`.mav-dock-tile[data-participant-id="${hovered[0]}"]`)
+      .hover();
+}
+
+async function open(
+  page: Page,
+  options: ShotOptions,
+  shot: Shot,
+): Promise<void> {
+  if (options.trial)
+    await page.route(`**/${TRIAL_STYLESHEET}*`, (route) =>
+      route.fulfill({ contentType: "text/css", body: trialCss(options) }),
+    );
+  await page.goto(address(options, shot));
   await page
     .locator(".mav-dock-tile[data-connected]")
     .nth(shot.players)
     .waitFor({ timeout: 30_000 });
   const fonts = existsSync(FONTS) ? FONT_CSS : "";
-  await page.addStyleTag({ content: PAGE_CSS + fonts });
-  for (const file of options.css)
-    await page.addStyleTag({ content: readFileSync(resolve(file), "utf8") });
+  const width = `#camera-views { --mav-dock-width: ${String(shot.width)}px }`;
+  await page.addStyleTag({ content: PAGE_CSS + width + fonts });
+  // A trial theme has them as its stylesheet already.
+  if (!options.trial)
+    for (const file of options.css)
+      await page.addStyleTag({ content: readFileSync(resolve(file), "utf8") });
   if (shot.placement !== "left") {
     await page.locator(".mav-dock-placement").click();
     await page
@@ -146,6 +207,9 @@ async function open(
   }
   if (shot.layout === "focus" && shot.placement !== "scattered")
     await page.locator(".mav-dock-layout").click();
+  if (shot.dock === "collapsed")
+    await page.locator(".mav-dock-collapse").click();
+  await act(page, options, shot);
   await page.waitForTimeout(SETTLE_MS);
 }
 

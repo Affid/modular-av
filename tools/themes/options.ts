@@ -1,5 +1,9 @@
 // What `scripts/themes/shots.ts` is asked to shoot: its command line,
 // checked, and the pictures that come of it.
+import {
+  parseTrialTheme,
+  type TrialTheme,
+} from "../../packages/testing/src/harness/trial-theme.ts";
 
 /** The dock's placements a picture can be taken in, by their names in its menu. */
 export const PLACEMENTS = {
@@ -14,6 +18,31 @@ export type PlacementName = keyof typeof PLACEMENTS;
 
 const LAYOUTS = ["grid", "focus"] as const;
 export type LayoutName = (typeof LAYOUTS)[number];
+
+/**
+ * What a player in a picture can be doing: the states a theme has to
+ * show. `menu` puts the pointer over their camera, for its menu button.
+ */
+const STATES = [
+  "speaking",
+  "muted",
+  "deafened",
+  "poor",
+  "camera-off",
+  "menu",
+] as const;
+export type StateName = (typeof STATES)[number];
+
+const VIEWERS = ["in", "out"] as const;
+/** Whether the viewer is in the call; out of it, their own camera stays. */
+export type ViewerState = (typeof VIEWERS)[number];
+
+const DOCKS = ["open", "collapsed"] as const;
+export type DockState = (typeof DOCKS)[number];
+
+/** The docked dock's own width, and the narrowest one worth a picture. */
+const DOCK_WIDTH = 300;
+const NARROWEST = 200;
 
 /** A window lower than this shows no dock worth a picture. */
 const LOWEST = 300;
@@ -36,6 +65,15 @@ export interface ShotOptions {
   readonly layouts: readonly LayoutName[];
   /** Pixels of picture per CSS pixel. */
   readonly scale: number;
+  /** What each player after the viewer is doing, in their order; none for the rest. */
+  readonly states: readonly (readonly StateName[])[];
+  readonly viewer: ViewerState;
+  /** The dock open, put away, or a picture of each. */
+  readonly docks: readonly DockState[];
+  /** The docked dock's widths, in CSS pixels. */
+  readonly widths: readonly number[];
+  /** A theme registered for the pictures alone, with `css` as its stylesheet. */
+  readonly trial: TrialTheme | null;
 }
 
 export const USAGE = `Usage: node scripts/themes/shots.ts <folder for the pictures>
@@ -43,7 +81,12 @@ export const USAGE = `Usage: node scripts/themes/shots.ts <folder for the pictur
   [--css trial.css,more.css] [--art folder]
   [--players 2,8] [--heights 900,1080]
   [--placements ${Object.keys(PLACEMENTS).join(",")}] [--layouts grid,focus]
-  [--scale 2]`;
+  [--scale 2]
+  [--states ${STATES.slice(0, 3).join("+")},speaking,-,camera-off+menu]
+      what each player is doing, in their order: ${STATES.join(", ")}; - for nothing
+  [--viewer ${VIEWERS.join("|")}] [--docks ${DOCKS.join(",")}] [--widths 300,480]
+  [--trial id:top,right,bottom,left]
+      a theme registered for these pictures, its stylesheet the --css files`;
 
 export class OptionsError extends Error {
   override readonly name = "OptionsError";
@@ -95,7 +138,32 @@ const DEFAULTS: Omit<ShotOptions, "out"> = {
   placements: ["left"],
   layouts: ["grid"],
   scale: 2,
+  states: [],
+  viewer: "in",
+  docks: ["open"],
+  widths: [DOCK_WIDTH],
+  trial: null,
 };
+
+/** `muted+deafened,speaking,-`: each player's states, `-` for none. */
+function statesOf(option: string, value: string): ShotOptions["states"] {
+  return value.split(",").map((player) => {
+    const named = player.trim();
+    return named === "-" || named === ""
+      ? []
+      : among(option, named.replaceAll("+", ","), STATES);
+  });
+}
+
+function trialOf(value: string): TrialTheme {
+  try {
+    return parseTrialTheme(value);
+  } catch (error: unknown) {
+    throw new OptionsError(
+      `--trial: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+}
 
 /** One `--option value` applied to the options so far. */
 function withOption(
@@ -129,6 +197,16 @@ function withOption(
       return { ...options, layouts: among(option, value, LAYOUTS) };
     case "--scale":
       return { ...options, scale: numbers(option, value, 1)[0] ?? 2 };
+    case "--states":
+      return { ...options, states: statesOf(option, value) };
+    case "--viewer":
+      return { ...options, viewer: among(option, value, VIEWERS)[0] ?? "in" };
+    case "--docks":
+      return { ...options, docks: among(option, value, DOCKS) };
+    case "--widths":
+      return { ...options, widths: numbers(option, value, NARROWEST) };
+    case "--trial":
+      return { ...options, trial: trialOf(value) };
     default:
       throw new OptionsError(`No such option ${option}\n${USAGE}`);
   }
@@ -143,14 +221,20 @@ export function parseShotArgs(argv: readonly string[]): ShotOptions {
     (found, word, i) => (i % 2 === 0 ? [...found, [word, rest[i + 1]]] : found),
     [],
   );
-  return pairs.reduce<ShotOptions>(
-    (options, [option, value]) => {
+  const options = pairs.reduce<ShotOptions>(
+    (soFar, [option, value]) => {
       if (value === undefined || value.startsWith("--"))
         throw new OptionsError(`${option} needs a value\n${USAGE}`);
-      return withOption(options, option, value);
+      return withOption(soFar, option, value);
     },
     { out, ...DEFAULTS },
   );
+  if (!options.trial) return options;
+  if (options.theme && options.theme !== options.trial.id)
+    throw new OptionsError(
+      `--trial ${options.trial.id} is the theme of the pictures: leave out --theme ${options.theme}`,
+    );
+  return { ...options, theme: options.trial.id };
 }
 
 /** One picture to take. */
@@ -161,21 +245,34 @@ export interface Shot {
   readonly height: number;
   readonly placement: PlacementName;
   readonly layout: LayoutName;
+  readonly dock: DockState;
+  /** The docked dock's width, in CSS pixels. */
+  readonly width: number;
 }
+
+/** What a picture's name says beyond the usual: the dock put away, a width of its own. */
+const suffix = (dock: DockState, width: number): string =>
+  `${dock === "open" ? "" : `-${dock}`}${width === DOCK_WIDTH ? "" : `-${String(width)}w`}`;
 
 /** Every combination asked for, placements first: each a picture. */
 export function shotsOf(options: ShotOptions): readonly Shot[] {
   return options.placements.flatMap((placement) =>
     options.layouts.flatMap((layout) =>
       options.players.flatMap((players) =>
-        options.heights.map((height) => ({
-          // The viewer's own camera is always there.
-          name: `${placement}-${layout}-${String(players + 1)}-cameras-${String(height)}`,
-          players,
-          height,
-          placement,
-          layout,
-        })),
+        options.heights.flatMap((height) =>
+          options.docks.flatMap((dock) =>
+            options.widths.map((width) => ({
+              // The viewer's own camera is always there.
+              name: `${placement}-${layout}-${String(players + 1)}-cameras-${String(height)}${suffix(dock, width)}`,
+              players,
+              height,
+              placement,
+              layout,
+              dock,
+              width,
+            })),
+          ),
+        ),
       ),
     ),
   );
