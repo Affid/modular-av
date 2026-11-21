@@ -92,6 +92,7 @@ export const USAGE = `Usage: node scripts/themes/shots.ts <folder for the pictur
   [--scale 2]
   [--states ${STATES.slice(0, 3).join("+")},speaking,-,camera-off+menu]
       what each player is doing, in their order: ${STATES.join(", ")}; - for nothing
+      (a picture with fewer players leaves the rest out)
   [--viewer muted+deafened]
       what the viewer is doing: ${VIEWER_STATES.join(", ")}, or ${IN} for nothing
   [--docks ${DOCKS.join(",")}] [--widths 300,480]
@@ -250,20 +251,55 @@ export function parseShotArgs(argv: readonly string[]): ShotOptions {
     },
     { out, ...DEFAULTS },
   );
-  if (!options.trial) return options;
+  if (!options.trial) return withPlayersForStates(options);
   if (options.theme && options.theme !== options.trial.id)
     throw new OptionsError(
       `--trial ${options.trial.id} is the theme of the pictures: leave out --theme ${options.theme}`,
     );
-  return { ...options, theme: options.trial.id };
+  return withPlayersForStates({ ...options, theme: options.trial.id });
 }
 
 /**
- * Whether the pictures need the harness's sample module: for its badge.
- * It also adds a button and rows of its own, so only then.
+ * The options, once some picture has every player `--states` gives
+ * something to do. Players at the end who do nothing need not be there.
  */
-export const wantsSample = (options: ShotOptions): boolean =>
-  options.states.some((states) => states.includes("badge"));
+function withPlayersForStates(options: ShotOptions): ShotOptions {
+  const named = options.states.reduce(
+    (last, states, i) => (states.length > 0 ? i + 1 : last),
+    0,
+  );
+  const most = Math.max(...options.players);
+  if (named > most)
+    throw new OptionsError(
+      `--states names ${String(named)} players, and --players ${options.players.join(",")} puts ${String(most)} at most in a picture: add a count, e.g. --players ${String(named)}`,
+    );
+  return options;
+}
+
+/** A player of a picture and what they are doing in it. */
+export type Acting = readonly [id: string, states: readonly StateName[]];
+
+/**
+ * Who does something in a picture with `players` others in the call, by
+ * the harness's ids (p1, p2, ...), in their order. `--states` may name
+ * more players than a smaller picture has: those are left out of it.
+ */
+export const castOf = (
+  options: ShotOptions,
+  players: number,
+): readonly Acting[] =>
+  options.states
+    .slice(0, players)
+    .map((states, i): Acting => [`p${String(i + 1)}`, states])
+    .filter(([, states]) => states.length > 0);
+
+/**
+ * Whether a picture with `players` others needs the harness's sample
+ * module: for its badge. It also adds a button and rows of its own, so
+ * only then.
+ */
+export const wantsSample = (options: ShotOptions, players: number): boolean =>
+  castOf(options, players).some(([, states]) => states.includes("badge"));
 
 /** One picture to take. */
 export interface Shot {
