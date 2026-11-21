@@ -29,6 +29,8 @@
     "release:listing": "node tools/release/cli.ts listing",
     "release:dev": "node tools/release/cli.ts dev",
     "art:vines": "node tools/art/vines/cli.ts",
+    "art:scrolls": "node tools/art/scrolls/cli.ts",
+    "art:scrolls:render": "node scripts/art/scrolls-render.ts",
     "theme:shots": "node scripts/themes/shots.ts",
     "theme:sheet": "node scripts/themes/sheet.ts",
     "theme:foundry": "node scripts/themes/foundry-check.ts",

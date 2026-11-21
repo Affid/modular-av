@@ -11,3 +11,7 @@ playwright-report/
 .env
 .env.*
 !.env.example
+
+# Python bytecode (the art scenes, run by Blender)
+__pycache__/
+*.pyc

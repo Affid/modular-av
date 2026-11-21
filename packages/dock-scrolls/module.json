@@ -1,0 +1,28 @@
+{
+  "id": "modular-av-dock-scrolls",
+  "title": "Modular A/V: Scrolls theme",
+  "description": "A wizard's desk for the Modular A/V dock. Each camera is a picture in a scroll of worn vellum, held open by four cut stones in its player's colour. The stones glow while their player speaks, go dull while they're muted and crack when they leave the call, and a row of pen-drawn signs under the name lights with the voice. The header and the voice panel are papers, and the buttons are cut stones.",
+  "authors": [{ "name": "Andrei Fedorov", "url": "https://github.com/Affid" }],
+  "url": "https://github.com/Affid/modular-av",
+  "bugs": "https://github.com/Affid/modular-av/issues",
+  "license": "LICENSE",
+  "compatibility": { "minimum": "14", "verified": "14.369" },
+  "esmodules": ["modular-av-dock-scrolls.js"],
+  "languages": [{ "lang": "en", "name": "English", "path": "lang/en.json" }],
+  "relationships": {
+    "requires": [{ "id": "modular-av-dock", "type": "module" }]
+  },
+  "flags": {
+    "modular-av": {
+      "kind": "theme",
+      "icon": "fa-solid fa-scroll",
+      "facts": [
+        { "label": "Needs", "value": "The Dock" },
+        {
+          "label": "Who picks it",
+          "value": "The GM, as the table's look, or each player"
+        }
+      ]
+    }
+  }
+}

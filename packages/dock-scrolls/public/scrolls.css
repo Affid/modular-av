@@ -1,0 +1,506 @@
+/*
+ * Modular A/V: Scrolls theme. Loaded by modular-av-dock only while the theme
+ * is chosen; every rule starts with the class it puts on <html>.
+ * The pictures in art/ are rendered with Blender (pnpm art:scrolls:render)
+ * or drawn by a script (pnpm art:scrolls): tools/art/scrolls.
+ */
+
+/* ---- Indigo, gold and cream: the palette (text and icons meet WCAG AA on it) ---- */
+
+:root.mav-theme-scrolls {
+  --mav-text: #efe6cf;
+  --mav-text-muted: #c9bea2;
+  --mav-surface: #262347;
+  --mav-surface-raised: #37336a;
+  --mav-surface-sunken: #171530;
+  --mav-border: #a88a44;
+  --mav-speaking: #9db8ff;
+  --mav-focus: #f3d36b;
+  --mav-accent: #1c8455;
+  --mav-on-accent: #ffffff;
+  --mav-meter: #8fb0ff;
+  --mav-dock-tile-bg: #17110b;
+  --mav-dock-radius: 7px;
+}
+
+/* ---- Every tile: one of two scrolls, written in one of four hands ---- */
+
+.mav-theme-scrolls .mav-dock-tile {
+  --scrolls-scroll: url("art/scroll-1.webp");
+  --scrolls-stones: url("art/stones-1.webp");
+  --scrolls-spark: url("art/spark-1.webp");
+  --scrolls-shadow: url("art/shadow-1.webp");
+  --scrolls-glow: url("art/glow-1.webp");
+  --scrolls-cracks: url("art/cracks-1.svg");
+  --scrolls-ink: url("art/ink-1.svg");
+  --scrolls-signs: url("art/signs-1.svg");
+  --scrolls-halo: url("art/halo-1.svg");
+  /* The stones take their player's colour. */
+  --scrolls-gem: var(--mav-dock-tile-color, #b3262e);
+  /* A voice is one blue for everyone. */
+  --scrolls-voice: #2f6dff;
+  --scrolls-voice-glow: #9cc8ff;
+}
+
+.mav-theme-scrolls .mav-dock-tile:nth-child(even) {
+  --scrolls-scroll: url("art/scroll-2.webp");
+  --scrolls-stones: url("art/stones-2.webp");
+  --scrolls-spark: url("art/spark-2.webp");
+  --scrolls-shadow: url("art/shadow-2.webp");
+  --scrolls-glow: url("art/glow-2.webp");
+  --scrolls-cracks: url("art/cracks-2.svg");
+}
+
+.mav-theme-scrolls .mav-dock-tile:nth-child(4n + 2) {
+  --scrolls-ink: url("art/ink-2.svg");
+  --scrolls-signs: url("art/signs-2.svg");
+  --scrolls-halo: url("art/halo-2.svg");
+}
+
+.mav-theme-scrolls .mav-dock-tile:nth-child(4n + 3) {
+  --scrolls-ink: url("art/ink-3.svg");
+  --scrolls-signs: url("art/signs-3.svg");
+  --scrolls-halo: url("art/halo-3.svg");
+}
+
+.mav-theme-scrolls .mav-dock-tile:nth-child(4n) {
+  --scrolls-ink: url("art/ink-4.svg");
+  --scrolls-signs: url("art/signs-4.svg");
+  --scrolls-halo: url("art/halo-4.svg");
+}
+
+/* The tile itself shows nothing: the scroll is its edge, and the stones
+   and the signs are the speaking cue. The dock's ring stays, clear:
+   forced colours draw it, where a glow is lost. */
+.mav-theme-scrolls .mav-dock .mav-dock-tile {
+  border-color: transparent;
+  border-radius: 0;
+  outline-color: transparent;
+  background: none;
+  box-shadow: none;
+}
+
+/* With no camera the picture is dark, not a hole in the sheet. */
+.mav-theme-scrolls .mav-dock-tile-media {
+  border-radius: 0;
+  background: var(--mav-dock-tile-bg);
+}
+
+/* ---- The scroll: the frame layer ---- */
+
+/* The picture is in the paper: the sheet's own edge fades over it, under
+   ruled ink lines and a line of gold leaf. The stones' shadow lies on the
+   sheet, under the ink. */
+.mav-theme-scrolls .mav-dock-tile-frame {
+  background:
+    var(--scrolls-ink) 0 0 / 100% 100% no-repeat,
+    var(--scrolls-shadow) 0 0 / 100% 100% no-repeat,
+    var(--scrolls-scroll) 0 0 / 100% 100% no-repeat;
+}
+
+/* The signs under the name show a voice: lit while their player speaks,
+   with a glow round them. Each is laid where its picture was drawn: the
+   row of signs, and the row with room for the glow. */
+.mav-theme-scrolls .mav-dock-tile-frame::before,
+.mav-theme-scrolls .mav-dock-tile-frame::after {
+  content: "";
+  position: absolute;
+  opacity: 0;
+  transition: opacity 0.25s ease-out;
+}
+
+.mav-theme-scrolls .mav-dock-tile-frame::before {
+  top: 80.58%;
+  left: 10.35%;
+  width: 79.3%;
+  height: 17.12%;
+  background: var(--scrolls-voice-glow);
+  mask: var(--scrolls-halo) 0 0 / 100% 100% no-repeat;
+}
+
+.mav-theme-scrolls .mav-dock-tile-frame::after {
+  top: 85.18%;
+  left: 13.48%;
+  width: 73.04%;
+  height: 7.92%;
+  background: var(--scrolls-voice);
+  mask: var(--scrolls-signs) 0 0 / 100% 100% no-repeat;
+}
+
+.mav-theme-scrolls .mav-dock-tile[data-speaking] .mav-dock-tile-frame::before {
+  opacity: 0.75;
+}
+
+/* On the player's own scroll the signs light from the left as far as
+   their level (the meter, below): not all at once. */
+.mav-theme-scrolls
+  .mav-dock-tile[data-speaking]:not(:has(> .mav-meter))
+  .mav-dock-tile-frame::after {
+  opacity: 1;
+}
+
+/* ---- The stones: who the player is, and how they stand ---- */
+
+/* Four stones on the picture's corners, as large as the frame layer:
+   rendered without colour and tinted here, their flashes left white. In
+   their shadow, the same colour: the light that has passed through them. */
+.mav-theme-scrolls .mav-dock .mav-dock-tile::before,
+.mav-theme-scrolls .mav-dock .mav-dock-tile::after {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  inset: calc(var(--mav-dock-frame-top, 0) * -177.78%)
+    calc(var(--mav-dock-frame-right, 0) * -100%)
+    calc(var(--mav-dock-frame-bottom, 0) * -177.78%)
+    calc(var(--mav-dock-frame-left, 0) * -100%);
+  pointer-events: none;
+}
+
+.mav-theme-scrolls .mav-dock .mav-dock-tile::before {
+  background: var(--scrolls-gem);
+  mask: var(--scrolls-shadow) 0 0 / 100% 100% no-repeat;
+  opacity: 0.6;
+  transition: opacity 0.25s ease-out;
+}
+
+.mav-theme-scrolls .mav-dock .mav-dock-tile::after {
+  background:
+    var(--scrolls-spark) 0 0 / 100% 100% no-repeat,
+    var(--scrolls-stones) 0 0 / 100% 100% no-repeat,
+    var(--scrolls-gem);
+  background-blend-mode: normal, multiply, normal;
+  mask: var(--scrolls-stones) 0 0 / 100% 100% no-repeat;
+}
+
+/* Speaking: the stones brighten, and glow in their colour. */
+.mav-theme-scrolls .mav-dock .mav-dock-tile[data-speaking]::before {
+  background: color-mix(in oklab, var(--scrolls-gem) 60%, white);
+  mask-image: var(--scrolls-glow);
+  opacity: 1;
+}
+
+.mav-theme-scrolls .mav-dock .mav-dock-tile[data-speaking]::after {
+  filter: brightness(1.14) saturate(1.2);
+}
+
+/* Muted: the stones go dull. */
+.mav-theme-scrolls
+  .mav-dock
+  .mav-dock-tile[data-muted][data-connected]:not([data-speaking])::before {
+  opacity: 0.25;
+}
+
+.mav-theme-scrolls
+  .mav-dock
+  .mav-dock-tile[data-muted][data-connected]:not([data-speaking])::after {
+  filter: saturate(0.28) brightness(0.82);
+}
+
+/* Out of the call: the stones crack and lose their colour, and the
+   picture dims. The tile stays whole: a see-through sheet is no sheet. */
+.mav-theme-scrolls .mav-dock .mav-dock-tile:not([data-connected]) {
+  opacity: 1;
+}
+
+.mav-theme-scrolls .mav-dock .mav-dock-tile:not([data-connected])::before {
+  opacity: 0;
+}
+
+.mav-theme-scrolls .mav-dock .mav-dock-tile:not([data-connected])::after {
+  background:
+    var(--scrolls-cracks) 0 0 / 100% 100% no-repeat,
+    var(--scrolls-stones) 0 0 / 100% 100% no-repeat,
+    #8d8d90;
+}
+
+.mav-theme-scrolls .mav-dock-tile:not([data-connected]) .mav-dock-tile-media {
+  filter: brightness(0.42) saturate(0.4);
+}
+
+/* ---- The name: cut into a plate of old bone, laid on the scroll ---- */
+
+/* Over the picture's lower edge, in the middle: it holds the sheet and
+   marks it. */
+.mav-theme-scrolls .mav-dock .mav-dock-tile-bar {
+  inset: 90% 0 auto;
+  justify-content: center;
+  gap: 0;
+  max-width: none;
+  z-index: 2;
+  container-type: inline-size;
+}
+
+/* The plate's ends keep their shape; its middle stretches with the name.
+   The name grows with its tile, as the sheet's room for it does. Under
+   the picture of bone, bone's own colour: what contrast is read from. */
+.mav-theme-scrolls .mav-dock-tile-name {
+  min-width: 3.2em;
+  max-width: 72cqw;
+  padding: 0;
+  border: solid transparent;
+  border-width: 0 0.86em;
+  border-image: url("art/plate.webp") 0 140 fill / 0 0.95em / 0.2em 0.27em 0.5em
+    stretch;
+  border-radius: 0;
+  background: #c8bfae content-box;
+  box-shadow: none;
+  color: #2c1d12;
+  font:
+    700 clamp(11px, 7.4cqw, 19px) / 1.15 "Modesto Condensed",
+    "Palatino Linotype",
+    serif;
+  letter-spacing: 0.04em;
+  text-align: center;
+  text-shadow: none;
+}
+
+.mav-theme-scrolls .mav-dock-tile:not([data-connected]) .mav-dock-tile-name {
+  color: #4f4034;
+}
+
+/* What stands beside the name is taken out of its row, so the plate
+   stays in the middle, and off the picture: states hang on the scroll's
+   left rod like tags, under its stone, and other modules' badges on the
+   right one. The bar is 90% of the tile's height down, 50.63% of its
+   width: they are placed from the tile's top. */
+.mav-theme-scrolls
+  .mav-dock
+  .mav-dock-tile-bar
+  > :is(.mav-dock-tile-indicators, .mav-dock-tile-badges) {
+  position: absolute;
+  top: calc(10cqw - 50.63cqw);
+  left: calc(var(--mav-dock-frame-left, 0) * -100cqw);
+  flex-direction: column;
+}
+
+.mav-theme-scrolls .mav-dock .mav-dock-tile-bar > .mav-dock-tile-badges {
+  right: calc(var(--mav-dock-frame-right, 0) * -100cqw);
+  left: auto;
+}
+
+/* States and the tile's buttons: chips of dark indigo, over the stones. */
+.mav-theme-scrolls
+  .mav-dock-tile
+  :is(
+    .mav-indicator,
+    .mav-dock-tile-menu,
+    .mav-dock-tile-move,
+    .mav-dock-tile-resize
+  ) {
+  z-index: 2;
+  border-radius: 3px;
+  background-color: rgb(30 26 60 / 90%);
+}
+
+/* The player's own level: the row of signs, lit from the left as far as
+   their voice reaches; paler while it isn't sent (too quiet, or out of
+   the call). */
+.mav-theme-scrolls .mav-dock-tile .mav-meter {
+  inset: 109.6% 8% auto;
+  z-index: 1;
+  height: 11.02%;
+  border-radius: 0;
+  background: none;
+  mask: var(--scrolls-signs) 0 0 / 100% 100% no-repeat;
+}
+
+.mav-theme-scrolls .mav-dock-tile .mav-meter .mav-meter-fill {
+  background: #7c8fc4;
+}
+
+.mav-theme-scrolls
+  .mav-dock-tile[data-connected]
+  .mav-meter[data-open]
+  .mav-meter-fill {
+  background: var(--scrolls-voice);
+}
+
+/* ---- Buttons: cut stones ---- */
+
+/* Facets of light and shade over the button's own colour: sapphire at
+   rest, emerald for a camera that is on, ruby for muted and for leaving.
+   The sign on each is cut in and filled with gold, small enough to stay
+   on the stone's flat top. */
+.mav-theme-scrolls .mav-dock :is(.mav-dock-tools, .mav-dock-buttons) {
+  --mav-surface-raised: #2c3a94;
+
+  .mav-dock-button {
+    border: 1px solid #0f0b1c;
+    background-image: url("art/button.svg");
+    background-size: 100% 100%;
+    box-shadow: 0 2px 3px rgb(0 0 0 / 55%);
+    color: #f3d588;
+  }
+
+  .mav-dock-button:hover:not(:disabled) {
+    border-color: #f3d588;
+  }
+
+  .mav-dock-button i {
+    font-size: 12px;
+    text-shadow:
+      0 -1px 0 rgb(0 0 20 / 85%),
+      0 1px 0 rgb(255 255 255 / 30%);
+  }
+
+  /* A button and the arrow beside it are one stone, cut down the line
+     between them; the arrow's part takes its button's colour. */
+  .mav-dock-button:has(+ .mav-dock-menu-arrow) {
+    border-inline-end-width: 0;
+    background-image: url("art/button-left.svg");
+  }
+
+  .mav-dock-menu-arrow {
+    margin-inline-start: calc(-1 * var(--mav-dock-button-gap, 2px));
+    padding-inline-end: 2px;
+    border-inline-start-width: 0;
+    background-image: url("art/button-right.svg");
+  }
+
+  .mav-dock-menu-arrow i {
+    font-size: 8px;
+  }
+
+  .mav-dock-button[aria-pressed="true"]:is(.mav-dock-mute, .mav-dock-deafen)
+    + .mav-dock-menu-arrow {
+    background-color: #a12828;
+  }
+
+  .mav-dock-button[aria-pressed="true"].mav-dock-video + .mav-dock-menu-arrow {
+    background-color: var(--mav-accent);
+  }
+}
+
+/* ---- The desk: the dock, wherever it is one box ---- */
+
+.mav-theme-scrolls .mav-dock:not([data-placement="scattered"]) {
+  isolation: isolate;
+  gap: 6px;
+  padding: 4px;
+  /* One repeat of the wood each way: it runs on under a dock of any size. */
+  background: #2d0d02 url("art/desk.webp") 0 0 / 600px 600px;
+
+  /* Scrolls laid down by hand: each a little askew and a little off its
+     place, no two neighbours alike, with a little desk between them (one
+     gap both ways: the dock fits its grid with one). The whole tile
+     turns, the camera's picture with it. */
+  .mav-dock-tiles {
+    gap: 4px;
+    margin: 0;
+    padding: 6px 2px;
+    /* 1 from this much spare height under the cameras, else 0. */
+    --scrolls-things: clamp(0, var(--mav-dock-spare, 0) - 125, 1);
+    --scrolls-wand: clamp(0, var(--mav-dock-spare, 0) - 255, 1);
+    /* What lies on the desk where the cameras leave room: glass, stone
+       and metal, and with a lot of room a wand above them. */
+    background:
+      url("art/wand.webp") 50% calc(100% - 128px) /
+        calc(280px * var(--scrolls-wand)) 110px no-repeat,
+      url("art/things.webp") 50% calc(100% - 4px) /
+        calc(240px * var(--scrolls-things)) 120px no-repeat;
+  }
+
+  .mav-dock-tile {
+    rotate: var(--scrolls-lie, 0deg);
+    translate: var(--scrolls-shift, 0 0);
+  }
+
+  .mav-dock-tile:nth-child(5n + 1) {
+    --scrolls-lie: -0.9deg;
+    --scrolls-shift: -2px 1px;
+  }
+
+  .mav-dock-tile:nth-child(5n + 2) {
+    --scrolls-lie: 0.7deg;
+    --scrolls-shift: 2px -1px;
+  }
+
+  .mav-dock-tile:nth-child(5n + 3) {
+    --scrolls-lie: -0.4deg;
+    --scrolls-shift: 1px 2px;
+  }
+
+  .mav-dock-tile:nth-child(5n + 4) {
+    --scrolls-lie: 1.1deg;
+    --scrolls-shift: -1px 0;
+  }
+
+  .mav-dock-tile:nth-child(5n) {
+    --scrolls-lie: 0.35deg;
+    --scrolls-shift: 2px 1px;
+  }
+}
+
+/* Upright, a scroll turned or laid a little aside may pass the list's
+   edge: the list scrolls down only. */
+.mav-theme-scrolls
+  .mav-dock:not(
+    [data-placement="scattered"],
+    [data-placement="top"],
+    [data-placement="bottom"]
+  )
+  .mav-dock-tiles {
+  overflow-x: hidden;
+}
+
+/* ---- The header and the voice panel: papers written in ink ---- */
+
+/* A worn sheet of the same vellum, cut in nine: its corners keep their
+   shape. Under the picture, the vellum's own colour: what contrast is
+   read from. On paper, ink: dark text, and states dark enough to read. */
+.mav-theme-scrolls .mav-dock :is(.mav-dock-header, .mav-dock-panel) {
+  --mav-text: #241a3a;
+  --mav-text-muted: #43372a;
+  --mav-speaking: #3d4fd0;
+  --mav-warning: #7a4300;
+  --mav-muted: #a3161a;
+  --mav-blocked: #a3161a;
+  --mav-focus: #1b2a8a;
+  --mav-border: #6b5328;
+  position: relative;
+  padding: 6px 7px 8px;
+  border: 2px solid transparent;
+  border-image: url("art/paper.webp") 96 fill / 24px / 5px stretch;
+  border-radius: 0;
+  background: #bfa87e content-box;
+  box-shadow: none;
+  color: var(--mav-text);
+}
+
+.mav-theme-scrolls .mav-dock .mav-dock-header {
+  padding-top: 7px;
+}
+
+/* Scattered, the header lies on the panel's paper: it is no sheet of
+   its own. */
+.mav-theme-scrolls .mav-dock .mav-dock-panel .mav-dock-header {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+/* Collapsed at a side, the menu arrows are put away: each button is a
+   whole stone again. */
+.mav-theme-scrolls
+  .mav-dock:is(
+    [data-placement="left"],
+    [data-placement="right"]
+  )[data-collapsed]
+  .mav-dock-button:has(+ .mav-dock-menu-arrow) {
+  border-inline-end-width: 1px;
+  border-radius: var(--mav-dock-radius);
+  background-image: url("art/button.svg");
+}
+
+.mav-theme-scrolls .mav-popover {
+  border: 1px solid var(--mav-border);
+}
+
+/* As specific as the rules above that set a transition, and after them. */
+@media (prefers-reduced-motion: reduce) {
+  .mav-theme-scrolls .mav-dock .mav-dock-tile::before,
+  .mav-theme-scrolls .mav-dock-tile .mav-dock-tile-frame::before,
+  .mav-theme-scrolls .mav-dock-tile .mav-dock-tile-frame::after {
+    transition: none;
+  }
+}
