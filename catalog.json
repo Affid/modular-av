@@ -240,6 +240,31 @@
       "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-dock-hides/module.json"
     },
     {
+      "id": "modular-av-dock-plates",
+      "title": "Modular A/V: Plates theme",
+      "description": "A fighter's harness for the Modular A/V dock. Each camera sits in a plate of dark, worn steel, laced round with a cord in its player's colour, on mail over blue cloth. A voice polishes the plate, a muted plate goes dull, and one out of the call rusts and loses its cord. The blade of a knife under your own name shines as far as your voice goes. The header and the voice panel are larger plates, the buttons small hammered ones, and a mace, gauntlets or a buckler hang where there is room.",
+      "kind": "theme",
+      "requires": [
+        {
+          "id": "modular-av-dock",
+          "minimum": "0.16.0"
+        }
+      ],
+      "facts": [
+        {
+          "label": "Needs",
+          "value": "The Dock"
+        },
+        {
+          "label": "Who picks it",
+          "value": "The GM, as the table's look, or each player"
+        }
+      ],
+      "icon": "fa-solid fa-shield-halved",
+      "version": "0.16.0",
+      "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-dock-plates/module.json"
+    },
+    {
       "id": "modular-av-dock-scrolls",
       "title": "Modular A/V: Scrolls theme",
       "description": "A wizard's desk for the Modular A/V dock. Each camera is a picture in a scroll of worn vellum, held open by four cut stones in its player's colour. The stones glow while their player speaks, go dull while they're muted and crack when they leave the call, and a row of pen-drawn signs under the name lights with the voice. The header and the voice panel are papers, and the buttons are cut stones.",
