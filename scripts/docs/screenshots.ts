@@ -208,6 +208,27 @@ async function shootDock(viewer: Player): Promise<void> {
   }, null);
   await page.waitForTimeout(3_000);
   await shot(page, "dock-scattered-vines");
+  await shootScrolls(viewer);
+}
+
+/** The scrolls theme: scattered over the map, then docked, where the dock is the desk. */
+async function shootScrolls(viewer: Player): Promise<void> {
+  const page = viewer.page;
+  await viewer.run(async (_api, game) => {
+    await game.settings.set("modular-av-dock", "theme", "scrolls");
+  }, null);
+  await page.waitForTimeout(3_000);
+  await shot(page, "dock-scattered-scrolls");
+  await page.locator(".mav-dock-placement").first().click();
+  await page
+    .getByRole("menuitemradio", { name: /^Docked on the left/ })
+    .click();
+  // Every camera the same size: an earlier picture may have left one large.
+  const large = page.locator('.mav-dock-tiles[data-tile-layout="focus"]');
+  if ((await large.count()) > 0)
+    await page.locator("#camera-views .mav-dock-layout").click();
+  await page.waitForTimeout(3_000);
+  await shot(page, "dock-scrolls");
 }
 
 /** Each voice effect's own settings, open in the mixer, for its listing. */
@@ -487,7 +508,7 @@ async function main(): Promise<void> {
     }
     await p1.page.waitForTimeout(SETTLE_MS);
 
-    // The dock last: it leaves the viewer's layout scattered.
+    // The dock last: it moves the viewer's dock about and changes its theme.
     await shootSettingsAndMixer(p1);
     await shootGm(gm, p1Id);
     await shootModules(gm);
