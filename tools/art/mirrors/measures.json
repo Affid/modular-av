@@ -1,0 +1,77 @@
+{
+  "tile": {
+    "width": 1000,
+    "height": 562.5
+  },
+  "reach": {
+    "top": 0.07,
+    "right": 0.07,
+    "bottom": 0.12,
+    "left": 0.07
+  },
+  "unitsPerMetre": 100,
+  "frameDensity": 0.75,
+  "lightDensity": 0.4,
+  "paneDensity": 0.5,
+  "name": {
+    "y": 632.8125
+  },
+  "hands": {
+    "seed": 7,
+    "poses": {
+      "1": {
+        "left": { "hold": "grip", "y": 170 },
+        "right": { "hold": "claw", "y": 385 }
+      },
+      "2": {
+        "left": { "hold": "claw", "y": 370 },
+        "right": { "hold": "grip", "y": 180 }
+      }
+    }
+  },
+  "level": {
+    "left": 210,
+    "top": -54,
+    "right": 790,
+    "bottom": 8,
+    "marks": 9
+  },
+  "crack": {
+    "blow": { "x": 1030, "y": 30 },
+    "top": -12,
+    "bottom": 590,
+    "right": 1066
+  },
+  "fill": {
+    "contractFrom": 90,
+    "quillFrom": 240,
+    "wholeFrom": 260,
+    "sink": 0.75,
+    "deepest": 127.5
+  },
+  "pictures": {
+    "glass": { "width": 300, "height": 300, "density": 2 },
+    "dockframe": { "width": 96, "height": 96, "density": 5, "edge": 8 },
+    "transom-h": { "width": 480, "height": 8, "density": 5 },
+    "transom-v": { "width": 8, "height": 480, "density": 5 },
+    "btn": { "width": 32, "height": 32, "density": 2 },
+    "btn-l": { "width": 32, "height": 32, "density": 2 },
+    "btn-r": { "width": 20, "height": 32, "density": 2 },
+    "chip": {
+      "width": 24,
+      "height": 24,
+      "density": 2,
+      "slice": 9,
+      "edge": 2.5
+    },
+    "gem-stone": { "width": 16, "height": 16, "density": 3 },
+    "gem-spark": { "width": 16, "height": 16, "density": 3 },
+    "gem-collet": { "width": 16, "height": 16, "density": 3 },
+    "offpane": { "width": 240, "height": 135, "density": 2 },
+    "sigil-cut": { "width": 520, "height": 55, "density": 2 },
+    "sigil-mask": { "width": 520, "height": 55, "density": 2 },
+    "sigil-shade": { "width": 520, "height": 55, "density": 2 },
+    "contract": { "width": 300, "height": 260, "density": 2 },
+    "quill": { "width": 300, "height": 260, "density": 2 }
+  }
+}

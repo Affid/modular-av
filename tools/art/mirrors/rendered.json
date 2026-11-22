@@ -1,0 +1,158 @@
+{
+  "btn-l.webp": {
+    "width": 64,
+    "height": 64,
+    "bytes": 1574,
+    "sha256": "84331c1d27eb6358dcfa01625818aae8aa01190b8e76df834ef094fa146c452c"
+  },
+  "btn-r.webp": {
+    "width": 40,
+    "height": 64,
+    "bytes": 1242,
+    "sha256": "5b86df2a987f46006b35fd2683e2b22c9d0853664669ea7e4acea3b2622cd273"
+  },
+  "btn.webp": {
+    "width": 64,
+    "height": 64,
+    "bytes": 1466,
+    "sha256": "d6c4fe1098fe43b53b4d9b14401aa499ec57de82cc25e58741ef444638c0c650"
+  },
+  "chip.webp": {
+    "width": 48,
+    "height": 48,
+    "bytes": 1208,
+    "sha256": "a571aa628b2431fb8b8a34eda64e1923ad6c05b41ed120823c79923b6fff0e2d"
+  },
+  "contract.webp": {
+    "width": 600,
+    "height": 520,
+    "bytes": 13102,
+    "sha256": "4ed50cfb011629015d003404ec351583a302fcce0a5168981b263cfca44cb7c7"
+  },
+  "crack.webp": {
+    "width": 855,
+    "height": 564,
+    "bytes": 10236,
+    "sha256": "474ead9b1b9ddd2bfe4f229a7b5b4b5dff3c9a8256cf4e0239ec39519375b27b"
+  },
+  "dockframe.webp": {
+    "width": 480,
+    "height": 480,
+    "bytes": 8512,
+    "sha256": "383518bfca90d43b07db8766fdab97ea9c33d644cc2716a857d782feede52911"
+  },
+  "fog.webp": {
+    "width": 855,
+    "height": 564,
+    "bytes": 46668,
+    "sha256": "537c72b982fab9d94c1ebbfc2dfbfd002ac4f3bcbb6fedadcbbdee61194b7a03"
+  },
+  "gem-collet.webp": {
+    "width": 48,
+    "height": 48,
+    "bytes": 1928,
+    "sha256": "4be572f84fc6db2ab4882009a3baf2999406fc0bebc4bbef309b2082b1a0d632"
+  },
+  "gem-spark.webp": {
+    "width": 48,
+    "height": 48,
+    "bytes": 678,
+    "sha256": "8208d4cae106907905eb390679d995b234e0a5740ef96d4cc552eb5353c69272"
+  },
+  "gem-stone.webp": {
+    "width": 48,
+    "height": 48,
+    "bytes": 1534,
+    "sha256": "8f18550e66b5bd729e391f999ea23c8cde4f7c6bed7d30d540e81e5399194581"
+  },
+  "glass.webp": {
+    "width": 600,
+    "height": 600,
+    "bytes": 3538,
+    "sha256": "4c82a4d6fa1dde44955bf923af5d03cf4caab87a2451712c41655d11e806d396"
+  },
+  "hands-1.webp": {
+    "width": 855,
+    "height": 564,
+    "bytes": 15350,
+    "sha256": "620066e343b05a954ba829a57f0e0308d54894aaa878277ba5abe9723fa5aed0"
+  },
+  "hands-2.webp": {
+    "width": 855,
+    "height": 564,
+    "bytes": 13980,
+    "sha256": "7a663ea249386a70795266c0d471d4e286f922227ae8789a52a75e8b5f406b03"
+  },
+  "light-rest-1.webp": {
+    "width": 456,
+    "height": 301,
+    "bytes": 7314,
+    "sha256": "ecb491493ddc5f7a3beeb8994ee74bb9c74180dd5cb9bbf80316bf2319bb18fe"
+  },
+  "light-rest-2.webp": {
+    "width": 456,
+    "height": 301,
+    "bytes": 6988,
+    "sha256": "ff2265e190b42e50bec6ea901f7dd7bdb05a2396bab7ff9d9b79b6fcb142029a"
+  },
+  "light-speak-1.webp": {
+    "width": 456,
+    "height": 301,
+    "bytes": 9668,
+    "sha256": "9f1284d2398e50b0460b5f1cfce067c66a395982e4c131de40e8937e30200918"
+  },
+  "light-speak-2.webp": {
+    "width": 456,
+    "height": 301,
+    "bytes": 8958,
+    "sha256": "73e066eaf64a544ce8e6e47fd5a9bd728a2bbb136635840a9c79b52bcb1eee51"
+  },
+  "offpane.webp": {
+    "width": 480,
+    "height": 270,
+    "bytes": 1696,
+    "sha256": "c8f61f829cc547b54484d4a2017d525a3d1c41122b4bf5b31d5b62d8ba877a16"
+  },
+  "pane.webp": {
+    "width": 570,
+    "height": 376,
+    "bytes": 5074,
+    "sha256": "ad653988434a64d2c0c9363c9975ff4d68a56af1e8ec1dab4ffc61075575a0ea"
+  },
+  "quill.webp": {
+    "width": 600,
+    "height": 520,
+    "bytes": 10432,
+    "sha256": "338ce477f46f2123c1701cce4a48bb146a6091c265037f9bbd98f0fa8ec78cf0"
+  },
+  "sigil-cut.webp": {
+    "width": 1040,
+    "height": 110,
+    "bytes": 6426,
+    "sha256": "22fbf6706b680041b2bd119d7e111b022aa048c35c6a90e9a32d9e64196fb429"
+  },
+  "sigil-mask.webp": {
+    "width": 1040,
+    "height": 110,
+    "bytes": 21220,
+    "sha256": "42a31c57720317cc4b59baadecec4f9f4ee34619581fabb90e34e2d7ed4539cc"
+  },
+  "sigil-shade.webp": {
+    "width": 1040,
+    "height": 110,
+    "bytes": 8070,
+    "sha256": "734b17c4df01babaceafa655c86d1ffc9700123f9cac2a53b523d5b80eefbce9"
+  },
+  "transom-h.webp": {
+    "width": 2400,
+    "height": 40,
+    "bytes": 7638,
+    "sha256": "1a2575897a0652bf3e5585eeb3cc07a458004701e264f460a3c94b55eb396a53"
+  },
+  "transom-v.webp": {
+    "width": 40,
+    "height": 2400,
+    "bytes": 8436,
+    "sha256": "9fa65d33698ccbeef04667f3981a9a87a58b5412ce372777d764abecd40449aa"
+  }
+}
