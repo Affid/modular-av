@@ -234,6 +234,10 @@
           "title": "Plates theme",
           "what": "Each camera in a plate of a fighter's harness, on mail, polished while someone speaks."
         },
+        "modular-av-dock-mirrors": {
+          "title": "Mirrors theme",
+          "what": "The dock as a warlock's black mirror, spirit hands out of the glass holding each camera."
+        },
         "modular-av-livekit-krisp": {
           "title": "Krisp noise filter, for LiveKit Cloud"
         },

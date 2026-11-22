@@ -39,7 +39,7 @@ voice and video settings window and badges in the player list. Requires
   says so and opens the list, where you allow or refuse each one.
 - **Themes**: other modules add them (`modular-av-dock-vines`,
   `modular-av-dock-scrolls`, `modular-av-dock-hides`,
-  `modular-av-dock-plates`);
+  `modular-av-dock-plates`, `modular-av-dock-mirrors`);
   choose one in Voice & Video Settings, Appearance, or follow the world's.
   Making one: [docs/dock-theming.md](../../docs/dock-theming.md).
 - Keyboard and screen reader friendly.

@@ -84,7 +84,11 @@ together must have shown:
   collapsed at a side; one camera large; and a dock wider than 300
   pixels, where anything that repeats shows its seam.
 - **The dock's own parts:** the header, the voice panel, a button with
-  its menu arrow, and a pressed button.
+  its menu arrow, and a pressed button. Measure the menu arrow's chevron
+  on the pixels at 8x, at rest, under the pointer and pressed, in the
+  panel and collapsed: its ink sits in the middle of the arrow's glass
+  with about 3 pixels clear of the frame or bezel on each side. Three
+  themes in a row first drew it over the right edge.
 - **The name's contrast, measured** on the pixels in every state, where
   the name lies on a picture: a state that brightens its ground can
   break it.
