@@ -318,6 +318,15 @@ tiles and no further". Everything drawn has `pointer-events: none`.
   part (paper), set the ones used there again: text, the focus ring, and
   the colours of states (`--mav-warning`, `--mav-muted`, `--mav-blocked`,
   `--mav-speaking`), dark enough for 3 to 1.
+- **The menu arrow's chevron.** The arrow beside the microphone and the
+  camera is half a button wide, and a frame or bezel drawn round it
+  leaves little glass: the dock's own chevron then sits over its right
+  edge (it did in three themes). Measure its ink on the pixels at 8x, at
+  rest, under the pointer and pressed, in the panel and collapsed, and
+  keep about 3 pixels clear on each side; a browser test of the theme
+  holds the icon inside the part with room on both sides. The plates
+  theme draws it smaller; the mirrors theme also widens the part, with a
+  bezel rendered to that width.
 - **A dock put away.** Collapsed at a side, the dock hides the menu
   arrows: a rule for a button "with an arrow beside it" still matches.
   At the top or bottom the list scrolls sideways: hide overflow across
