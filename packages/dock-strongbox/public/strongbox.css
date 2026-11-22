@@ -1,0 +1,631 @@
+/* Strongbox: a rogue's locked box. The dock is the front of a box of dark oiled boards in an iron band, a padlock
+   at its top; each camera a window bound in a forged iron strap with a lock over its top edge. Every picture is
+   rendered (tools/art/strongbox), its numbers in measures.json; a test holds this file to them. */
+:root.mav-theme-strongbox {
+  --mav-text: #efe6d6;
+  --mav-text-muted: #cbbfae;
+  --mav-surface: #17110d;
+  --mav-surface-raised: #211913;
+  --mav-surface-sunken: #0b0806;
+  --mav-border: #8c8174;
+  --mav-speaking: #ffb35a;
+  --mav-focus: #ffd98a;
+  --mav-accent: #7a4d1e;
+  --mav-on-accent: #fff;
+  --mav-meter: #ffb35a;
+  --mav-dock-tile-bg: #0c0a09;
+  --sb-ground: url("art/ground.webp") 0 0 / 600px 600px;
+  --sb-wood: #19140f;
+  --sb-strap: url("art/strap.webp") 16 / 8px round;
+  --sb-plate: url("art/button.webp") 16 fill;
+  --sb-iron: linear-gradient(#292929, #292929) center / calc(100% - 4px)
+    calc(100% - 4px) no-repeat border-box;
+  --sb-lining: url("art/lining.webp") 50% 50% / cover no-repeat;
+}
+
+/* ---- The tile cleared for the window ---- */
+
+.mav-theme-strongbox .mav-dock .mav-dock-tile {
+  border-color: transparent;
+  border-radius: 0;
+  outline-color: transparent;
+  background: none;
+  box-shadow: none;
+}
+
+.mav-theme-strongbox .mav-dock-tile-media {
+  border-radius: 0;
+  background: var(--mav-dock-tile-bg);
+}
+
+.mav-theme-strongbox .mav-dock .mav-dock-tiles {
+  position: relative;
+  gap: 4px;
+  margin: 0;
+}
+
+.mav-theme-strongbox
+  .mav-dock:not(
+    [data-placement="scattered"],
+    [data-placement="top"],
+    [data-placement="bottom"]
+  )
+  .mav-dock-tiles {
+  overflow-x: hidden;
+}
+
+/* ---- The box's front: boards in an iron band ---- */
+
+/* The dock keeps its own positioning: fixed when floating or in a window of its own. */
+.mav-theme-strongbox .mav-dock:not([data-placement="scattered"]) {
+  isolation: isolate;
+  border: 8px solid transparent;
+  border-image: var(--sb-strap);
+  padding: 2px;
+  background: var(--sb-ground), var(--sb-wood);
+}
+
+/* ---- Each window: one picture per lock and state. Three locks take turns so that neighbours never match, one,
+   two or four to a row; with one camera large, the turns skip it, and it takes the lock the row under it lacks. ---- */
+
+.mav-theme-strongbox .mav-dock-tile {
+  --sb-rest: url("art/frame-shield-rest.webp");
+  --sb-speak: url("art/frame-shield-speak.webp");
+  --sb-muted: url("art/frame-shield-muted.webp");
+  --sb-deaf: url("art/frame-shield-deaf.webp");
+  --sb-out: url("art/frame-shield-out.webp");
+  --sb-now: var(--sb-rest);
+  --sb-level: none;
+}
+
+.mav-theme-strongbox
+  :not([data-tile-layout="focus"])
+  > .mav-dock-tile:nth-child(3n + 2),
+.mav-theme-strongbox
+  [data-tile-layout="focus"]
+  > .mav-dock-tile:nth-child(3n + 2 of :not([data-focused])) {
+  --sb-rest: url("art/frame-round-rest.webp");
+  --sb-speak: url("art/frame-round-speak.webp");
+  --sb-muted: url("art/frame-round-muted.webp");
+  --sb-deaf: url("art/frame-round-deaf.webp");
+  --sb-out: url("art/frame-round-out.webp");
+}
+
+.mav-theme-strongbox
+  :not([data-tile-layout="focus"])
+  > .mav-dock-tile:nth-child(3n),
+.mav-theme-strongbox
+  [data-tile-layout="focus"]
+  > .mav-dock-tile:nth-child(3n of :not([data-focused])),
+.mav-theme-strongbox [data-tile-layout="focus"] > .mav-dock-tile[data-focused] {
+  --sb-rest: url("art/frame-slide-rest.webp");
+  --sb-speak: url("art/frame-slide-speak.webp");
+  --sb-muted: url("art/frame-slide-muted.webp");
+  --sb-deaf: url("art/frame-slide-deaf.webp");
+  --sb-out: url("art/frame-slide-out.webp");
+}
+
+/* Three to a row, each row starts one lock further on, so the window above is never the same. */
+@container style(--mav-dock-columns: 3) {
+  .mav-theme-strongbox
+    :not([data-tile-layout="focus"])
+    > .mav-dock-tile:is(
+      :nth-child(9n + 1),
+      :nth-child(9n + 6),
+      :nth-child(9n + 8)
+    ) {
+    --sb-rest: url("art/frame-shield-rest.webp");
+    --sb-speak: url("art/frame-shield-speak.webp");
+    --sb-muted: url("art/frame-shield-muted.webp");
+    --sb-deaf: url("art/frame-shield-deaf.webp");
+    --sb-out: url("art/frame-shield-out.webp");
+  }
+
+  .mav-theme-strongbox
+    :not([data-tile-layout="focus"])
+    > .mav-dock-tile:is(
+      :nth-child(9n + 2),
+      :nth-child(9n + 4),
+      :nth-child(9n)
+    ) {
+    --sb-rest: url("art/frame-round-rest.webp");
+    --sb-speak: url("art/frame-round-speak.webp");
+    --sb-muted: url("art/frame-round-muted.webp");
+    --sb-deaf: url("art/frame-round-deaf.webp");
+    --sb-out: url("art/frame-round-out.webp");
+  }
+
+  .mav-theme-strongbox
+    :not([data-tile-layout="focus"])
+    > .mav-dock-tile:is(
+      :nth-child(9n + 3),
+      :nth-child(9n + 5),
+      :nth-child(9n + 7)
+    ) {
+    --sb-rest: url("art/frame-slide-rest.webp");
+    --sb-speak: url("art/frame-slide-speak.webp");
+    --sb-muted: url("art/frame-slide-muted.webp");
+    --sb-deaf: url("art/frame-slide-deaf.webp");
+    --sb-out: url("art/frame-slide-out.webp");
+  }
+}
+
+.mav-theme-strongbox .mav-dock-tile[data-speaking][data-connected] {
+  --sb-now: var(--sb-speak);
+}
+
+.mav-theme-strongbox
+  .mav-dock-tile[data-deafened][data-connected]:not(
+    [data-muted],
+    [data-speaking]
+  ) {
+  --sb-now: var(--sb-deaf);
+}
+
+.mav-theme-strongbox .mav-dock .mav-dock-tile[data-muted] {
+  --sb-now: var(--sb-muted);
+}
+
+.mav-theme-strongbox .mav-dock-tile:has(> .mav-meter) {
+  --sb-level: url("art/level.webp");
+}
+
+.mav-theme-strongbox .mav-dock-tile-frame {
+  background:
+    var(--sb-level) 0 0 / 100% 100% no-repeat,
+    var(--sb-now) 0 0 / 100% 100% no-repeat;
+}
+
+/* On a poor link the lamp gutters: the window at rest, the lit picture over it coming and going unevenly (still,
+   and dimmer, under reduced motion). */
+.mav-theme-strongbox
+  .mav-dock-tile[data-quality="poor"][data-speaking][data-connected]:not(
+    [data-muted]
+  ) {
+  --sb-now: var(--sb-rest);
+}
+
+.mav-theme-strongbox
+  .mav-dock-tile[data-quality="poor"][data-speaking][data-connected]:not(
+    [data-muted]
+  )
+  .mav-dock-tile-frame::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--sb-speak) 0 0 / 100% 100% no-repeat;
+  opacity: 0.45;
+}
+
+@keyframes sb-gutter {
+  0%,
+  31%,
+  58% {
+    opacity: 0.75;
+  }
+  12%,
+  47% {
+    opacity: 0.25;
+  }
+  19%,
+  70% {
+    opacity: 0.5;
+  }
+  84% {
+    opacity: 0.15;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .mav-theme-strongbox
+    .mav-dock-tile[data-quality="poor"]
+    .mav-dock-tile-frame::before {
+    animation: sb-gutter 2.3s steps(1) infinite;
+  }
+}
+
+/* ---- Out of the call: the lock forced, the window dark, the lining only just seen. Camera off: the box's
+   padded lining, lit by its lamp from below. ---- */
+
+.mav-theme-strongbox .mav-dock .mav-dock-tile:not([data-connected]) {
+  --sb-now: var(--sb-out);
+  --sb-level: none;
+  opacity: 1;
+}
+
+.mav-theme-strongbox .mav-dock-tile:not([data-connected]) .mav-dock-tile-media {
+  background:
+    linear-gradient(rgb(4 3 2 / 78%), rgb(4 3 2 / 78%)), var(--sb-lining),
+    var(--mav-dock-tile-bg);
+}
+
+.mav-theme-strongbox .mav-dock-tile:not([data-connected]) .mav-dock-tile-video {
+  filter: brightness(0.45) saturate(0.6);
+}
+
+.mav-theme-strongbox
+  .mav-dock-tile:not([data-connected])
+  .mav-dock-tile-avatar {
+  color: #9a8f80;
+}
+
+.mav-theme-strongbox .mav-dock-tile:not([data-connected]) .mav-dock-tile-name {
+  color: #c2b6a2;
+}
+
+.mav-theme-strongbox
+  .mav-dock-tile[data-video="off"][data-connected]
+  .mav-dock-tile-media {
+  background: var(--sb-lining), var(--mav-dock-tile-bg);
+}
+
+.mav-theme-strongbox
+  .mav-dock-tile[data-video="off"][data-connected]
+  .mav-dock-tile-avatar {
+  color: #e2d6c2;
+  text-shadow: 0 1px 3px rgb(0 0 0 / 80%);
+}
+
+/* ---- The level: the lamp through the slot in the bottom strap, as far as the voice goes; the lit slot shown
+   through a mask made from the same box, dimmed while the voice isn't sent ---- */
+
+.mav-theme-strongbox .mav-dock-tile .mav-meter {
+  inset: 97.96% 31.2% auto;
+  z-index: 1;
+  height: 7.82%;
+  border-radius: 0;
+  background: none;
+  mask: url("art/level-mask.webp") 0 0 / 100% 100% no-repeat;
+}
+
+.mav-theme-strongbox .mav-dock-tile .mav-meter .mav-meter-fill {
+  background: url("art/level-fill.webp") 0 0 / 100% 100% no-repeat;
+  filter: brightness(0.32) saturate(0.8);
+}
+
+.mav-theme-strongbox
+  .mav-dock-tile[data-connected]
+  .mav-meter[data-open]
+  .mav-meter-fill {
+  filter: none;
+}
+
+/* ---- The name: stencilled in pale paint on the boards under the window, worn along the grain ---- */
+
+.mav-theme-strongbox .mav-dock .mav-dock-tile-bar {
+  inset: 116.62% 0 auto;
+  translate: 0 -50%;
+  justify-content: center;
+  gap: 0;
+  max-width: none;
+  z-index: 2;
+  container-type: inline-size;
+}
+
+.mav-theme-strongbox .mav-dock-tile-name {
+  max-width: 90cqw;
+  padding: 0 0.2em;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  text-align: center;
+  color: #ebe1ce;
+  font:
+    700 clamp(11px, 8cqw, 17px) / 1.1 "Modesto Condensed",
+    "Palatino Linotype",
+    serif;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  text-shadow:
+    0 0 0.6px rgb(235 225 206 / 70%),
+    0 0 2px rgb(0 0 0 / 95%),
+    0 0 5px rgb(0 0 0 / 85%),
+    0 1px 1px #000e;
+  mask: url("art/wear.webp") 0 0 / 160px 40px repeat;
+}
+
+/* ---- States on the picture's upper left, another module's badges on its upper right, each on an iron plate ---- */
+
+.mav-theme-strongbox
+  .mav-dock
+  .mav-dock-tile-bar
+  > :is(.mav-dock-tile-indicators, .mav-dock-tile-badges) {
+  position: absolute;
+  top: calc(50% - 65.6cqw + 5cqw);
+  left: 5cqw;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mav-theme-strongbox .mav-dock .mav-dock-tile-bar > .mav-dock-tile-badges {
+  right: 5cqw;
+  left: auto;
+}
+
+.mav-theme-strongbox .mav-dock .mav-dock-tile-bar .mav-indicator {
+  min-width: clamp(15px, 12.5cqw, 20px);
+  height: clamp(15px, 12.5cqw, 20px);
+  padding: 0;
+  font-size: clamp(8px, 7cqw, 11px);
+}
+
+.mav-theme-strongbox .mav-dock-tile :is(.mav-indicator, .mav-dock-tile-menu),
+.mav-theme-strongbox
+  .mav-dock
+  :is(.mav-dock-panel, .mav-dock-header)
+  .mav-indicator {
+  z-index: 2;
+  border: 4px solid transparent;
+  border-image: var(--sb-plate) / 4px stretch;
+  border-radius: 0;
+  background: var(--sb-iron);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 70%);
+}
+
+.mav-theme-strongbox
+  .mav-dock
+  :is(.mav-dock-panel, .mav-dock-header)
+  .mav-indicator {
+  min-width: 26px;
+  height: 26px;
+}
+
+/* The menu button shares the badges' corner; while it shows, the badges step down under it. */
+.mav-theme-strongbox .mav-dock .mav-dock-tile-menu {
+  top: 8.89%;
+  right: 5%;
+}
+
+.mav-theme-strongbox
+  .mav-dock
+  .mav-dock-tile:is(
+    :hover,
+    :has(
+      .mav-dock-tile-menu:focus-visible,
+      .mav-dock-tile-menu[aria-expanded="true"]
+    )
+  )
+  .mav-dock-tile-badges {
+  translate: 0 32px;
+}
+
+/* ---- The header and the panel: the box's boards, darker, each in its own strap ---- */
+
+.mav-theme-strongbox .mav-dock :is(.mav-dock-header, .mav-dock-panel) {
+  position: relative;
+  border: 8px solid transparent;
+  border-image: var(--sb-strap);
+  border-radius: 0;
+  box-shadow: none;
+  background:
+    linear-gradient(rgb(8 5 3 / 52%), rgb(8 5 3 / 52%)) padding-box,
+    var(--sb-ground) padding-box,
+    var(--sb-wood);
+}
+
+.mav-theme-strongbox .mav-dock .mav-dock-panel .mav-dock-header {
+  border: 0;
+  border-image: none;
+  background: none;
+}
+
+/* ---- Buttons: forged plates; pressed, sunk in their rim with the lamp on the lower lip ---- */
+
+.mav-theme-strongbox
+  .mav-dock
+  :is(.mav-dock-tools, .mav-dock-buttons)
+  .mav-dock-button {
+  border: 1px solid transparent;
+  border-image: var(--sb-plate) / 8px stretch;
+  border-radius: 0;
+  background: var(--sb-iron);
+  box-shadow: none;
+  color: var(--mav-text);
+}
+
+.mav-theme-strongbox
+  .mav-dock
+  :is(.mav-dock-tools, .mav-dock-buttons)
+  .mav-dock-button[aria-pressed="true"],
+.mav-theme-strongbox .mav-dock .mav-dock-buttons .mav-dock-leave {
+  border-image-source: url("art/button-pressed.webp");
+  color: #fff4e2;
+}
+
+/* The menu arrow's chevron a size smaller, so it sits clear of the plate's rim with room on both sides. */
+.mav-theme-strongbox .mav-dock .mav-dock-menu-arrow i {
+  font-size: 8px;
+}
+
+/* ---- The box's corners: folded iron brackets, hung from the header and the panel (18 px: their edge, the
+   dock's padding and its edge), and the padlock on its hasp at the header's right ---- */
+
+.mav-theme-strongbox
+  .mav-dock:not([data-placement="scattered"])
+  > :is(.mav-dock-header, .mav-dock-panel)::before {
+  content: "";
+  position: absolute;
+  z-index: 4;
+  inset: -18px -18px auto;
+  height: 30px;
+  background:
+    url("art/bracket-tl.webp") left top / 30px 30px no-repeat,
+    url("art/bracket-tr.webp") right top / 30px 30px no-repeat;
+  pointer-events: none;
+}
+
+.mav-theme-strongbox
+  .mav-dock:not([data-placement="scattered"])
+  > .mav-dock-panel::before {
+  inset: auto -18px -18px;
+  background:
+    url("art/bracket-bl.webp") left bottom / 30px 30px no-repeat,
+    url("art/bracket-br.webp") right bottom / 30px 30px no-repeat;
+}
+
+.mav-theme-strongbox
+  .mav-dock:not([data-placement="scattered"], [data-collapsed])
+  > .mav-dock-header::after {
+  content: "";
+  position: absolute;
+  z-index: 3;
+  top: -17px;
+  right: 8px;
+  width: 24px;
+  height: 34px;
+  background: url("art/padlock.webp") 0 0 / 100% 100% no-repeat;
+  pointer-events: none;
+}
+
+.mav-theme-strongbox
+  .mav-dock:not([data-placement="scattered"], [data-collapsed])
+  > .mav-dock-header
+  > :first-child {
+  padding-right: 30px;
+}
+
+/* Floating, the resize grip moves along the bottom strap, off the corner's bracket. */
+.mav-theme-strongbox .mav-dock[data-placement="floating"] .mav-dock-resize {
+  right: 22px;
+}
+
+/* ---- At the top or bottom the header and the panel are the box's two ends, full height, each with its two
+   brackets ---- */
+
+.mav-theme-strongbox
+  .mav-dock:is([data-placement="top"], [data-placement="bottom"])
+  > :is(.mav-dock-header, .mav-dock-panel) {
+  align-self: stretch;
+  align-content: center;
+}
+
+.mav-theme-strongbox
+  .mav-dock:is([data-placement="top"], [data-placement="bottom"])
+  > .mav-dock-header::before {
+  inset: -18px auto -18px -18px;
+  width: 30px;
+  height: auto;
+  background:
+    url("art/bracket-tl.webp") left top / 30px 30px no-repeat,
+    url("art/bracket-bl.webp") left bottom / 30px 30px no-repeat;
+}
+
+.mav-theme-strongbox
+  .mav-dock:is([data-placement="top"], [data-placement="bottom"])
+  > .mav-dock-panel::before {
+  inset: -18px -18px -18px auto;
+  width: 30px;
+  height: auto;
+  background:
+    url("art/bracket-tr.webp") right top / 30px 30px no-repeat,
+    url("art/bracket-br.webp") right bottom / 30px 30px no-repeat;
+}
+
+/* The dock lets the panel scroll there, which cut its brackets off; its rows fit the dock's height. */
+.mav-theme-strongbox
+  .mav-dock:is([data-placement="top"], [data-placement="bottom"])
+  > .mav-dock-panel {
+  overflow: visible;
+}
+
+/* ---- Put away at a side: the rail too narrow for three straps across, the header and the panel keep their
+   darker boards in the dock's one strap; smaller brackets on the rail's corners ---- */
+
+.mav-theme-strongbox
+  .mav-dock:is(
+    [data-placement="left"],
+    [data-placement="right"]
+  )[data-collapsed]
+  > :is(.mav-dock-header, .mav-dock-panel) {
+  border-width: 0;
+  border-image: none;
+}
+
+.mav-theme-strongbox
+  .mav-dock:is(
+    [data-placement="left"],
+    [data-placement="right"]
+  )[data-collapsed]
+  > .mav-dock-header {
+  padding-top: 16px;
+}
+
+.mav-theme-strongbox
+  .mav-dock:is(
+    [data-placement="left"],
+    [data-placement="right"]
+  )[data-collapsed]
+  > :is(.mav-dock-header, .mav-dock-panel)::before {
+  inset: -10px -10px auto;
+  height: 24px;
+  background-size: 24px 24px;
+}
+
+.mav-theme-strongbox
+  .mav-dock:is(
+    [data-placement="left"],
+    [data-placement="right"]
+  )[data-collapsed]
+  > .mav-dock-panel::before {
+  inset: auto -10px -10px;
+}
+
+/* ---- Scattered: each window on its own panel of the boards, cut to the frame's reach and bound by the strap,
+   so the name is never painted on the map ---- */
+
+.mav-theme-strongbox .mav-dock[data-placement="scattered"] .mav-dock-tile {
+  isolation: isolate;
+}
+
+.mav-theme-strongbox
+  .mav-dock[data-placement="scattered"]
+  .mav-dock-tile::before {
+  content: "";
+  position: absolute;
+  inset: -12.44% -6% -26.67%;
+  z-index: -1;
+  box-sizing: border-box;
+  border: 6px solid transparent;
+  border-image: url("art/strap.webp") 16 / 6px round;
+  background:
+    var(--sb-ground) padding-box,
+    var(--sb-wood);
+  box-shadow: 0 3px 10px rgb(0 0 0 / 55%);
+  pointer-events: none;
+}
+
+/* ---- The bare boards under the cameras: the knife stuck in them, then the picks, the keys, the rope and its
+   hook, each whole or not at all, the group lifted off the floor by a share of the room left over. A piece the
+   boards are too narrow for is left out (a layer of no width isn't drawn), and what shows stays on them ---- */
+
+.mav-theme-strongbox .mav-dock .mav-dock-tiles {
+  --sb-1: clamp(0, var(--mav-dock-spare, 0) - 94, 1);
+  --sb-2: clamp(0, var(--mav-dock-spare, 0) - 169, 1);
+  --sb-3: clamp(0, var(--mav-dock-spare, 0) - 249, 1);
+  --sb-4: clamp(0, var(--mav-dock-spare, 0) - 329, 1);
+  --sb-h: calc(
+    117px + 33px * var(--sb-2) + 90px * var(--sb-3) + 40px * var(--sb-4)
+  );
+  --sb-lift: max(0px, (var(--mav-dock-spare, 0) * 1px - var(--sb-h)) * 0.4);
+  background:
+    url("art/grapnel.webp") clamp(0%, 50% - 78px, 100%)
+      calc(100% - var(--sb-lift) - 4px) /
+      min(143px * var(--sb-4), max(0px, (100% - 269px) * 999)) 273px no-repeat,
+    url("art/picks.webp")
+      clamp(0%, 50% - 66px - 14px * var(--sb-3) + 162px * var(--sb-4), 100%)
+      calc(
+        100% - var(--sb-lift) - 8px - 72px * var(--sb-3) - 44px * var(--sb-4)
+      ) /
+      min(84px * var(--sb-2), max(0px, (100% - 239px) * 999)) 141px no-repeat,
+    url("art/keys.webp") clamp(0%, 50% + 70px - 65px * var(--sb-4), 100%)
+      calc(100% - var(--sb-lift) - 80px - 30px * var(--sb-4)) /
+      min(117px * var(--sb-3), max(0px, (100% - 239px) * 999)) 156px no-repeat,
+    url("art/knife.webp")
+      clamp(
+        0%,
+        50% + 46px * var(--sb-2) - 51px * var(--sb-3) + 45px * var(--sb-4),
+        100%
+      )
+      calc(100% - var(--sb-lift)) /
+      min(195px * var(--sb-1), max(0px, (100% - 189px) * 999)) 117px no-repeat;
+}
