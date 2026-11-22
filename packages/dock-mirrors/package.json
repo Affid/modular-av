@@ -1,0 +1,21 @@
+{
+  "name": "@modular-av/dock-mirrors",
+  "version": "0.16.0",
+  "private": true,
+  "description": "Modular A/V theme module: a warlock's black mirror for modular-av-dock, the dock one pane of black glass in old silver, with spirit hands out of the glass holding each camera.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p test/browser"
+  },
+  "devDependencies": {
+    "@modular-av/dock": "workspace:*",
+    "@modular-av/testing": "workspace:*"
+  },
+  "modularAV": {
+    "entryBudgetBytes": 2000,
+    "styleBudgetBytes": 25000
+  }
+}
