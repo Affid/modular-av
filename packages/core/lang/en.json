@@ -238,6 +238,10 @@
           "title": "Mirrors theme",
           "what": "The dock as a warlock's black mirror, spirit hands out of the glass holding each camera."
         },
+        "modular-av-dock-strongbox": {
+          "title": "Strongbox theme",
+          "what": "The dock as a rogue's locked box, each camera a window strapped in iron with a lock, the lamp inside lit by a voice."
+        },
         "modular-av-livekit-krisp": {
           "title": "Krisp noise filter, for LiveKit Cloud"
         },

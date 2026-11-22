@@ -1,0 +1,58 @@
+{
+  "tile": {
+    "width": 1000,
+    "height": 562.5
+  },
+  "reach": {
+    "top": 0.07,
+    "right": 0.06,
+    "bottom": 0.15,
+    "left": 0.06
+  },
+  "unitsPerMetre": 100,
+  "frameDensity": 0.75,
+  "locks": ["shield", "round", "slide"],
+  "states": ["rest", "speak", "muted", "deaf", "out"],
+  "strap": {
+    "out": 36,
+    "in": 18
+  },
+  "keyhole": {
+    "x": 500,
+    "y": -6
+  },
+  "name": {
+    "y": 656
+  },
+  "level": {
+    "plate": { "left": 290, "top": 545, "right": 710, "bottom": 601 },
+    "slot": { "left": 322, "top": 560, "right": 678, "bottom": 586 },
+    "fill": { "left": 312, "top": 551, "right": 688, "bottom": 595 },
+    "maskDensity": 1
+  },
+  "fill": {
+    "knifeFrom": 95,
+    "picksFrom": 170,
+    "keysFrom": 250,
+    "ropeFrom": 330,
+    "lift": 0.4,
+    "across": { "knife": 190, "picks": 240, "keys": 240, "grapnel": 270 }
+  },
+  "pictures": {
+    "ground": { "width": 600, "height": 600, "density": 2 },
+    "strap": { "width": 80, "height": 80, "density": 2, "edge": 8 },
+    "button": { "width": 32, "height": 32, "density": 2, "edge": 8 },
+    "button-pressed": { "width": 32, "height": 32, "density": 2, "edge": 8 },
+    "padlock": { "width": 24, "height": 34, "density": 2 },
+    "bracket-tl": { "width": 30, "height": 30, "density": 2 },
+    "bracket-tr": { "width": 30, "height": 30, "density": 2 },
+    "bracket-bl": { "width": 30, "height": 30, "density": 2 },
+    "bracket-br": { "width": 30, "height": 30, "density": 2 },
+    "wear": { "width": 160, "height": 40, "density": 2 },
+    "lining": { "width": 280, "height": 157.5, "density": 2 },
+    "knife": { "width": 195, "height": 117, "density": 2, "span": 1.5 },
+    "picks": { "width": 84, "height": 141, "density": 2, "span": 0.76 },
+    "keys": { "width": 117, "height": 156, "density": 2, "span": 0.9 },
+    "grapnel": { "width": 143, "height": 273, "density": 2, "span": 1.1 }
+  }
+}

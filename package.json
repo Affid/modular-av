@@ -35,6 +35,7 @@
     "art:hides:render": "node scripts/art/hides-render.ts",
     "art:plates:render": "node scripts/art/plates-render.ts",
     "art:mirrors:render": "node scripts/art/mirrors-render.ts",
+    "art:strongbox:render": "node scripts/art/strongbox-render.ts",
     "theme:shots": "node scripts/themes/shots.ts",
     "theme:sheet": "node scripts/themes/sheet.ts",
     "theme:foundry": "node scripts/themes/foundry-check.ts",
