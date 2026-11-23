@@ -1,0 +1,131 @@
+/* ---- The bare bulkhead under the cameras: what a crew hangs on a hold's wall, more of it the more room there is.
+   Everything hangs from a tool rail, a flat bar a shade darker than the sheet and riveted at both ends, so a peg
+   never sits on a sheet's seam. The pegs are welded to the rail (the tape's core, the wrench's ring and the
+   clipboard's hanging hole rest on them); the extinguisher's bracket sits on its rail by its saddle. Each picture
+   is rendered in the wall's light with its own close shadow. Four arrangements, one at a time by the room under
+   the grid (--mav-dock-spare, CSS px), each from where its lowest picture fits:
+     90+   the tape on the right-hand rail
+     150+  the wrench on a left-hand rail beside it
+     210+  the clipboard on the left; tape and wrench side by side on the right
+     388+  the extinguisher on the left; the clipboard on the right, tape and wrench on a second rail under it
+   Columns follow the wall's sheets (seam at the dock's x 150). In a wider dock the right-hand group moves with the
+   width (42.8% of the extra: in a 480 dock it is centred on the 300 px middle sheet), never left of where it hangs
+   in a 300 dock. The rails sit on a line 22 px under the grid (65 with the extinguisher, whose valve stands above
+   its rail), lowered by half the room left over. One layer per picture; a layer of no width isn't drawn. ---- */
+
+.mav-theme-spaceship .mav-dock .mav-dock-tiles {
+  --ship-s1: clamp(0, var(--mav-dock-spare, 0) - 89, 1);
+  --ship-s2: clamp(0, var(--mav-dock-spare, 0) - 149, 1);
+  --ship-s3: clamp(0, var(--mav-dock-spare, 0) - 209, 1);
+  --ship-s4: clamp(0, var(--mav-dock-spare, 0) - 387, 1);
+  /* One-hot: which arrangement shows. */
+  --ship-a: calc(var(--ship-s1) - var(--ship-s2));
+  --ship-b: calc(var(--ship-s2) - var(--ship-s3));
+  --ship-c: calc(var(--ship-s3) - var(--ship-s4));
+  --ship-d: var(--ship-s4);
+  --ship-need: calc(
+    90 * var(--ship-a) + 150 * var(--ship-b) + 210 * var(--ship-c) + 388 *
+      var(--ship-d)
+  );
+  --ship-line: calc(
+    22px + 43px * var(--ship-d) +
+      max(0px, (var(--mav-dock-spare, 0) - var(--ship-need)) * 0.5px)
+  );
+  /* Peg columns (px from the list's left in a 300 dock), and which of them follow a wider dock. */
+  --ship-tape-x: calc(
+    219px * (var(--ship-a) + var(--ship-b)) + 186px *
+      (var(--ship-c) + var(--ship-d))
+  );
+  --ship-wrench-x: calc(
+    73px * var(--ship-b) + 258px * (var(--ship-c) + var(--ship-d))
+  );
+  --ship-wrench-k: calc(var(--ship-c) + var(--ship-d));
+  --ship-clip-x: calc(73px * var(--ship-c) + 221px * var(--ship-d));
+  --ship-clip-k: var(--ship-d);
+  /* The width the list needs for the right-hand column (a 300 px dock's): in a narrower dock what hangs there
+     is left out rather than cut off at the edge. */
+  --ship-right: 291px;
+}
+
+/* The wall under the cameras is drawn by the list: the bulkhead (the dock's own, 600 px repeat) placed from the
+   list's foot so the top rail's line falls midway between two horizontal seams (150 px from each) and the second
+   rail 50 px from one; across, it lines up with the dock's (the list starts 4 px in). The list is its own stacking
+   context, so the things (its ::before, under the tiles) lie on it. Where the list is upright only: at the top and
+   bottom, and scattered, there is no room under a grid. */
+.mav-theme-spaceship
+  .mav-dock:not(
+    [data-placement="scattered"],
+    [data-placement="top"],
+    [data-placement="bottom"]
+  )
+  .mav-dock-tiles {
+  isolation: isolate;
+  background:
+    var(--ship-wall) -4px
+      calc(100% + 300px - var(--mav-dock-spare, 0) * 1px + var(--ship-line)) /
+      600px 600px,
+    var(--ship-wall-colour);
+}
+
+.mav-theme-spaceship .mav-dock .mav-dock-tiles::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: calc(var(--mav-dock-spare, 0) * 1px);
+  pointer-events: none;
+  background:
+    /* the extinguisher: its body's axis on the left sheet's middle, its saddle on the left rail */
+    url("art/extinguisher.webp") -11.5px calc(var(--ship-line) - 57.9px) /
+      calc(169px * var(--ship-s4)) 313px no-repeat,
+    /* the clipboard, its hanging hole on a peg */ url("art/clipboard.webp")
+      max(
+        calc(var(--ship-clip-x) - 67.7px),
+        calc(
+          42.8% * var(--ship-clip-k) + var(--ship-clip-x) - 67.7px - 0.428 *
+            var(--ship-clip-k) * 140px
+        )
+      )
+      calc(var(--ship-line) - 12.4px) /
+      min(
+        152px * var(--ship-s3),
+        max(0px, (100% - var(--ship-right) * var(--ship-clip-k)) * 999)
+      )
+      209px no-repeat,
+    /* the wrench by its ring */ url("art/wrench.webp")
+      max(
+        calc(var(--ship-wrench-x) - 18px),
+        calc(
+          42.8% * var(--ship-wrench-k) + var(--ship-wrench-x) - 18px - 0.428 *
+            var(--ship-wrench-k) * 239px
+        )
+      )
+      calc(var(--ship-line) + 200px * var(--ship-d) - 13.5px) /
+      min(
+        53px * var(--ship-s2),
+        max(0px, (100% - var(--ship-right) * var(--ship-wrench-k)) * 999)
+      )
+      155px no-repeat,
+    /* the tape on a peg through its core */ url("art/tape.webp")
+      max(
+        calc(var(--ship-tape-x) - 39.3px),
+        calc(42.8% + var(--ship-tape-x) - 39.3px - 0.428 * 193px)
+      )
+      calc(var(--ship-line) + 200px * var(--ship-d) - 34.1px) /
+      min(99px * var(--ship-s1), max(0px, (100% - var(--ship-right)) * 999))
+      101px no-repeat,
+    /* the rails: left (under the wrench, the clipboard or the extinguisher's saddle), right, and a second
+       right-hand one under the clipboard */
+    url("art/rail.webp") 3px calc(var(--ship-line) - 12.5px) /
+      calc(147px * var(--ship-s2)) 32px no-repeat,
+    url("art/rail.webp") max(151px, calc(42.8% + 151px - 0.428 * 145px))
+      calc(var(--ship-line) - 12.5px) /
+      min(147px * var(--ship-s1), max(0px, (100% - var(--ship-right)) * 999))
+      32px no-repeat,
+    url("art/rail.webp") max(151px, calc(42.8% + 151px - 0.428 * 145px))
+      calc(var(--ship-line) + 200px - 12.5px) /
+      min(147px * var(--ship-d), max(0px, (100% - var(--ship-right)) * 999))
+      32px no-repeat;
+}

@@ -50,6 +50,9 @@ const SEGMENT = {
 const WINDOW = { left: 110, top: 614, right: 890, bottom: 702 };
 
 const nameOf = (tile: Locator): Locator => tile.locator(".mav-dock-tile-name");
+
+/** The snow's shortest flicker cycle, in seconds: one flash each, so at most one and a quarter a second. */
+const MIN_SNOW_CYCLE = 0.8;
 const barOf = (tile: Locator): Locator => tile.locator(".mav-dock-tile-bar");
 
 for (const layout of ["in a grid", "scattered"] as const)
@@ -250,6 +253,9 @@ test("on a weak link the tube's margin snows and flickers, holds still under red
   await expect
     .poll(async () => (await snow())["animation-name"])
     .toBe("ship-snow");
+  // One flash a cycle: well under three a second (WCAG 2.3.1), even when every monitor snows at once.
+  const cycle = await style(frameOf(tile), "animation-duration", "::before");
+  expect(Number.parseFloat(cycle)).toBeGreaterThanOrEqual(MIN_SNOW_CYCLE);
 });
 
 test("out of the call the set is off: solid, no scan lines, a dead tube, the name a grey trace", async ({
@@ -267,6 +273,10 @@ test("out of the call the set is off: solid, no scan lines, a dead tube, the nam
     await style(own.locator(".mav-dock-tile-media"), "background-image"),
   ).toContain("radial-gradient");
   await expect(nameOf(own)).toHaveCSS("color", SEGMENT.out);
+  // The never-lit segments behind the glass go dark with the set.
+  expect(
+    await style(own.locator(".mav-dock-tile-bar"), "visibility", "::before"),
+  ).toBe("hidden");
 });
 
 test("a camera that is off shows the tube lit with no picture: a dim raster", async ({

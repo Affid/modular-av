@@ -3,6 +3,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { joinStylesheet, readStylesheets } from "../../assets/stylesheets.ts";
 import { ROOT } from "../../workspace.ts";
 import { heightOf, widthOf } from "../scrolls/geometry.ts";
 import { FILL, METER, PICTURES, READOUT, REACH, STATES } from "./geometry.ts";
@@ -11,7 +12,8 @@ import { renderedNames } from "./rendered.ts";
 const THEME = join(ROOT, "packages", "dock-spaceship");
 const read = (path: string): Promise<string> =>
   readFile(join(THEME, path), "utf8");
-const css = await read("public/spaceship.css");
+/** The stylesheet as the module serves it: its parts joined. */
+const css = joinStylesheet(readStylesheets(THEME).get("spaceship.css") ?? []);
 const entry = await read("src/index.ts");
 const pkg = JSON.parse(await read("package.json")) as {
   modularAV: { downloads: Record<string, { url: string; sha256: string }> };

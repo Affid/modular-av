@@ -4,7 +4,7 @@
 // a scuffed blue painted plate (the cases' scuffs), and the models of the
 // things hung on the wall (render/things.py). Also two DejaVu fonts (the
 // Bitstream Vera licence: free to use; only their letters end up in a
-// picture) for the extinguisher's label. None of it is in the repository:
+// picture) for the extinguisher's label and the clipboard's manifest. None of it is in the repository:
 // each file is pinned by its address and hash and fetched into a cache
 // before rendering, as the scrolls theme's textures are
 // (../scrolls/textures.ts).
@@ -72,7 +72,7 @@ const map = (asset: string, name: string, sha256: string): PolyHavenFile =>
     sha256,
   );
 
-/** The two fonts the label is typed in, out of DejaVu's 2.37 release. */
+/** The two fonts the label and the manifest are typed in, out of DejaVu's 2.37 release. */
 const DEJAVU: TextureSource = {
   url: "https://github.com/dejavu-fonts/dejavu-fonts/releases/download/version_2_37/dejavu-fonts-ttf-2.37.zip",
   sha256: "7576310b219e04159d35ff61dd4a4ec4cdba4f35c00e002a136f00e96a908b0a",

@@ -45,7 +45,7 @@
     "width": 304,
     "height": 418,
     "bytes": 12570,
-    "sha256": "54c59b0f2423b07a8549020ec62afb568578afd6c9fb141bfd89be25746db432"
+    "sha256": "86456d248d94864d64bcf1d4fc50bb83fe52e9b46e6cb96a8ee1b5b731357d3d"
   },
   "colour-tape.webp": {
     "width": 848,
@@ -178,6 +178,12 @@
     "height": 104,
     "bytes": 2544,
     "sha256": "7e14739659f417c8ff8d896ac64333e0feedc53d49ac962327ca8c9317abb5d7"
+  },
+  "lamp-red.webp": {
+    "width": 104,
+    "height": 104,
+    "bytes": 5044,
+    "sha256": "31e6863e10ec551a8a6bc96a329bc782005f85419af85bd5c1df6b1b0dac788c"
   },
   "legend.webp": {
     "width": 304,

@@ -92,6 +92,11 @@
       "height": 26,
       "density": 4
     },
+    "lamp-red": {
+      "width": 26,
+      "height": 26,
+      "density": 4
+    },
     "annunciator-amber": {
       "width": 24,
       "height": 24,

@@ -1,12 +1,12 @@
 """The plates' lights.
 
-  lamp-off, lamp-green, lamp-amber   the call's status lamp on the header plate: a pilot lamp with a blackened,
-          knurled steel bezel (worn to bare steel on the ridges a thumb turns) round a dome of tinted glass; one lamp
-          with a lens lit in two colours, so one lamp shows both states. Green in the call (as the TX lamp and the
-          readouts), amber while joining or reconnecting, dark when idle or ended (red is kept for muted and
-          leave). Lit, a bulb deep in the glass makes a hot core and the dome glows its colour, a little of the
-          light spilling on the plate round it; dark, it is tinted glass that shows the room's glint. 26 by 26 CSS
-          px: the lamp 14 across, the rest room for its shadow and its spill.
+  lamp-off, lamp-green, lamp-amber, lamp-red   the call's status lamp on the header plate: a pilot lamp with a
+          blackened, knurled steel bezel (worn to bare steel on the ridges a thumb turns) round a dome of tinted
+          glass; one lamp with a lens lit in three colours, so one lamp shows every state. Green in the call (as the
+          TX lamp and the readouts), amber while joining or reconnecting, red when the call has ended (as the dock's
+          own look marks it), dark when idle. Lit, a bulb deep in the glass makes a hot core and the dome glows its
+          colour, a little of the light spilling on the plate round it; dark, it is tinted glass that shows the
+          room's glint. 26 by 26 CSS px: the lamp 14 across, the rest room for its shadow and its spill.
   annunciator-amber, annunciator-red   the voice panel's warning as an annunciator: a blackened steel bezel round
           a lens lit from behind, amber for a warning and red for a fault (the dock's own split of its colours).
           The lens is a low dome of moulded glass with a faint grid of fresnel cells: bright in the middle, falling
@@ -34,8 +34,9 @@ from stage import out, render  # noqa: E402
 # ---- the status lamp ----
 
 LAMP = 26.0
-LENS = {"green": (0.01, 0.4, 0.035), "amber": (0.9, 0.3, 0.01), "off": (0.010, 0.022, 0.014)}
-CORE = {"green": ((0.55, 1.0, 0.4), 1.3), "amber": ((1.0, 0.65, 0.25), 1.3)}
+LENS = {"green": (0.01, 0.4, 0.035), "amber": (0.9, 0.3, 0.01), "red": (0.75, 0.02, 0.012),
+        "off": (0.010, 0.022, 0.014)}
+CORE = {"green": ((0.55, 1.0, 0.4), 1.3), "amber": ((1.0, 0.65, 0.25), 1.3), "red": ((1.0, 0.4, 0.28), 1.3)}
 
 
 def bezel():
@@ -189,7 +190,8 @@ def lens_light(px, colour_name):
 
 
 MAKERS = {"lamp-off": lambda: lamp("off"), "lamp-green": lambda: lamp("green"), "lamp-amber": lambda: lamp("amber"),
-          "annunciator-amber": lambda: annunciator("amber"), "annunciator-red": lambda: annunciator("red")}
+          "lamp-red": lambda: lamp("red"), "annunciator-amber": lambda: annunciator("amber"),
+          "annunciator-red": lambda: annunciator("red")}
 
 for picture_name in wanted(list(MAKERS)):
     MAKERS[picture_name]()

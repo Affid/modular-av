@@ -14,6 +14,7 @@ import {
   scatter,
   spareOf,
   style,
+  styleOf,
   tileOf,
 } from "./page.ts";
 
@@ -59,7 +60,7 @@ for (const placement of [
     }
   });
 
-test("floating and put away, the dock is as tall as its two plates", async ({
+test("floating and put away, the bulkhead is drawn only as tall as its two plates, the dock's own box kept, so a move saves the opened height", async ({
   page,
 }) => {
   await open(page, 2);
@@ -74,9 +75,37 @@ test("floating and put away, the dock is as tall as its two plates", async ({
     await boxOf(page.locator(".mav-dock > .mav-dock-header")),
     await boxOf(page.locator(".mav-dock-panel")),
   ];
-  expect(shut.height).toBeLessThan(before.height);
-  expect(shut.y + shut.height - (panel.y + panel.height)).toBeLessThan(12);
+  // The dock keeps the height it was given: that is what a move saves.
+  expect(shut.height).toBe(before.height);
+  // The bulkhead, its angle steel and its shadow are a layer from the header's top to the panel's foot.
+  expect(await style(dock(page), "background-image")).toBe("none");
+  expect(await style(dock(page), "border-image-source")).toBe("none");
+  const wall = await styleOf(
+    dock(page),
+    ["background-image", "border-image-source", "height"],
+    "::before",
+  );
+  expect(wall["background-image"]).toContain("art/bulkhead.webp");
+  expect(wall["border-image-source"]).toContain("art/trim.webp");
+  const drawn = Number.parseFloat(wall.height ?? "");
   expect(header.y - shut.y).toBeLessThan(12);
+  expect(Math.abs(shut.y + drawn - (panel.y + panel.height) - 4)).toBeLessThan(
+    1,
+  );
+  // Under the plates the map takes the pointer, as if the dock ended there.
+  const under = await page.evaluate(
+    ([x, y]) => document.elementFromPoint(x, y)?.closest(".mav-dock") !== null,
+    [shut.middle, shut.y + drawn + 20] as const,
+  );
+  expect(under).toBe(false);
+
+  // Moved while put away, then placed again from what was saved (the window resized), it opens at its height.
+  await page.locator(".mav-dock-move").focus();
+  await page.keyboard.press("ArrowDown");
+  await page.setViewportSize({ width: 1270, height: 900 });
+  await page.locator(".mav-dock-collapse").click();
+  await expect(dock(page)).not.toHaveAttribute("data-collapsed");
+  expect((await boxOf(dock(page))).height).toBe(before.height);
 });
 
 test("floating, the dock's resize grip is a small rubber key in the plate's corner", async ({
@@ -131,21 +160,29 @@ test("scattered there is no bulkhead round the dock: the panel alone is a small 
   );
 });
 
-test("the call's status is a pilot lamp: dark, green in the call, amber while joining", async ({
+test("the call's status is a pilot lamp: green in the call, red once the call has ended, dark before any", async ({
   page,
 }) => {
   await open(page, 1);
   const status = page.locator(".mav-dock > .mav-dock-header .mav-dock-status");
+  const lamp = (): Promise<string> =>
+    style(status, "background-image", "::before");
 
   await expect(status).toHaveAttribute("data-status", "connected");
-  expect(await style(status, "background-image", "::before")).toContain(
-    "art/lamp-green.webp",
-  );
+  expect(await lamp()).toContain("art/lamp-green.webp");
+  // Ended (left, put out, the room closed): the dock's own look marks it in a colour of its own.
   await leave(page);
-  await expect(status).not.toHaveAttribute("data-status", "connected");
-  expect(await style(status, "background-image", "::before")).toMatch(
-    /art\/lamp-(off|amber)\.webp/,
-  );
+  await expect(status).toHaveAttribute("data-status", "ended");
+  expect(await lamp()).toContain("art/lamp-red.webp");
+  // Idle and joining keep the lamp dark and amber.
+  await status.evaluate((el) => {
+    el.dataset.status = "idle";
+  });
+  expect(await lamp()).toContain("art/lamp-off.webp");
+  await status.evaluate((el) => {
+    el.dataset.status = "connecting";
+  });
+  expect(await lamp()).toContain("art/lamp-amber.webp");
 });
 
 test("the buttons are rubber keys; the ones that latch carry an LED that lights with the key down in its hole", async ({

@@ -1,0 +1,87 @@
+/* ---- Docked at the top or bottom: the plates are the dock's two side columns, as tall as what they hold; the
+   bulkhead shows under them. ---- */
+
+.mav-theme-spaceship
+  .mav-dock:is([data-placement="top"], [data-placement="bottom"])
+  > :is(.mav-dock-header, .mav-dock-panel) {
+  align-self: flex-start;
+  margin: 0;
+}
+
+.mav-theme-spaceship
+  .mav-dock[data-placement="bottom"]
+  > :is(.mav-dock-header, .mav-dock-panel) {
+  align-self: flex-end;
+}
+
+.mav-theme-spaceship
+  .mav-dock:is([data-placement="top"], [data-placement="bottom"])
+  > .mav-dock-panel {
+  overflow: visible;
+  align-content: start;
+}
+
+/* ---- Put away at a side: a narrow rail, the plates as wide as a key and their edges, no rivets between the
+   corners (a 60 px slice would squash there). At the top or bottom: one bar. ---- */
+
+.mav-theme-spaceship
+  .mav-dock:is(
+    [data-placement="left"],
+    [data-placement="right"]
+  )[data-collapsed]
+  > :is(.mav-dock-header, .mav-dock-panel) {
+  align-self: stretch;
+  align-items: center;
+  margin: 1px 1px 0;
+  padding: 4px 0;
+  border-image: var(--ship-rim-plain);
+}
+
+.mav-theme-spaceship
+  .mav-dock:is(
+    [data-placement="left"],
+    [data-placement="right"]
+  )[data-collapsed]
+  > .mav-dock-panel {
+  margin-bottom: 1px;
+}
+
+.mav-theme-spaceship
+  .mav-dock:is(
+    [data-placement="left"],
+    [data-placement="right"]
+  )[data-collapsed]
+  .mav-dock-status {
+  padding: 0;
+  margin: 0;
+}
+
+.mav-theme-spaceship
+  .mav-dock:is(
+    [data-placement="left"],
+    [data-placement="right"]
+  )[data-collapsed]
+  .mav-dock-status::before {
+  margin: -4px -6px 0;
+}
+
+.mav-theme-spaceship
+  .mav-dock:is(
+    [data-placement="top"],
+    [data-placement="bottom"]
+  )[data-collapsed]
+  > :is(.mav-dock-header, .mav-dock-panel) {
+  align-self: center;
+  margin: 1px;
+}
+
+/* ---- Scattered: the panel alone is a small box of the plate framed in the angle steel. ---- */
+
+.mav-theme-spaceship .mav-dock[data-placement="scattered"] .mav-dock-panel {
+  margin: 0;
+  border: 6px solid transparent;
+  border-image: url("art/trim.webp") 27 / 9px / 0 round;
+  border-radius: 0;
+  padding: 6px;
+  box-shadow: 0 6px 16px rgb(0 0 0 / 55%);
+}

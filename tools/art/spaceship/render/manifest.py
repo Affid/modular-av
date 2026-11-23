@@ -1,15 +1,15 @@
 """The cargo manifest under the clipboard's clip: three sheets, the top one handled for weeks in a hold. Invented
-codes and marks only (no names of anyone or anything real), typed in DejaVu Sans Mono (one of Blender's own font
-files, free licence), ruled, ticked in pencil, signed with a scribble and stamped in blue. At true size only CARGO
-MANIFEST reads; the rest is the texture of a filled-in form.
+codes and marks only (no names of anyone or anything real), typed in DejaVu Sans Mono (the pinned 2.37 file the
+extinguisher's label is set in, fetched: ../textures.ts), ruled, ticked in pencil, signed with a scribble and
+stamped in blue. At true size only CARGO MANIFEST reads; the rest is the texture of a filled-in form.
 """
 import math
-import os
 import random
 
 import bpy
 
 from kit import box, link, rod
+from measures import texture
 from paint import _math, _mix, _range, material
 from things_paint import ink, times
 
@@ -127,13 +127,9 @@ def paper_worn(box_m, colour=(0.215, 0.203, 0.163)):
 
 
 def _font():
-    """DejaVu Sans Mono from Blender's own data files; Blender's built-in font if this build reads no woff2."""
-    path = os.path.join(bpy.utils.system_resource("DATAFILES", path="fonts"), "DejaVuSansMono.woff2")
-    try:
-        return bpy.data.fonts.load(path, check_existing=True)
-    except (RuntimeError, OSError) as error:
-        print("font fallback:", error)
-        return None
+    """DejaVu Sans Mono, the pinned file (not Blender's own copy, which changes with its build). Missing, the load
+    fails the render: no picture made in another font."""
+    return bpy.data.fonts.load(texture("DejaVuSansMono.ttf"), check_existing=True)
 
 
 def text(body, x, y, z, size, mat, font, align="LEFT", bold=0.0, rot=0.0):

@@ -42,7 +42,8 @@ theme, so it doesn't have to be everyone's.
   plate; the ones that latch carry an LED in their top edge, lit when the
   key is down: green for the camera, red for muted and deafened, amber
   for sharing the screen. The call's status is a pilot lamp in the
-  header. The states' icons and other modules' badges are rubber keys
+  header: green in the call, amber while joining, red once the call has
+  ended, dark before one. The states' icons and other modules' badges are rubber keys
   too, at the picture's upper corners.
 - **Where the cameras leave room**, the crew's things hang on tool rails
   on the bare bulkhead, more of them the more room there is: a roll of
@@ -87,11 +88,12 @@ For someone reading the code. How the modules fit together is in
 
 - **What it adds**: one theme, registered with the dock's
   `themes.register` (`src/index.ts`).
-- **Code**: that file and a stylesheet (`public/spaceship.css`). No logic
+- **Code**: that file and a stylesheet (`spaceship.css`, kept in
+  parts in `styles/` and joined when the module is built). No logic
   of its own: what follows the room under the cameras does so in the
   stylesheet, from a number the dock sets. The entry file is held under
-  2 KB and the stylesheet under 36 KB.
-- **Pictures**: 56 WebP files in `public/art`, about 1.25 MB together (the ten monitors, under dusty glass that covers the whole tube, are 860 KB of it).
+  2 KB and the stylesheet under 38 KB.
+- **Pictures**: 57 WebP files in `public/art`, about 1.25 MB together (the ten monitors, under dusty glass that covers the whole tube, are 860 KB of it).
   All of them are rendered or computed: the bulkhead; each monitor,
   yours and the others', at rest, speaking, muted, deafened and both;
   the readout's window; the tape of your colour; the tube's scan lines,

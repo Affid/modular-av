@@ -16,7 +16,19 @@
   },
   "modularAV": {
     "entryBudgetBytes": 2000,
-    "styleBudgetBytes": 36000,
+    "styleBudgetBytes": 38000,
+    "stylesheets": {
+      "spaceship.css": [
+        "styles/base.css",
+        "styles/monitor.css",
+        "styles/readout.css",
+        "styles/icons.css",
+        "styles/plates.css",
+        "styles/keys.css",
+        "styles/layouts.css",
+        "styles/things.css"
+      ]
+    },
     "downloads": {
       "fonts/DSEG14Classic-Regular.woff2": {
         "url": "https://registry.npmjs.org/dseg/-/dseg-0.46.0.tgz",

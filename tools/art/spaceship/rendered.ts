@@ -84,6 +84,7 @@ export const SCENES: readonly Scene[] = [
       "lamp-off",
       "lamp-green",
       "lamp-amber",
+      "lamp-red",
       "annunciator-amber",
       "annunciator-red",
     ],

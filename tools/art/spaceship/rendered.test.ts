@@ -35,9 +35,10 @@ describe("the spaceship theme's rendered pictures", () => {
         "key-down-amber-hover.webp",
         "arrow-down-hover.webp",
         "extinguisher.webp",
+        "lamp-red.webp",
       ]),
     );
-    expect(names).toHaveLength(56);
+    expect(names).toHaveLength(57);
     expect(new Set(names).size).toBe(names.length);
   });
 

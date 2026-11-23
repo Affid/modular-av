@@ -38,11 +38,12 @@ of tape and the tool rails are built by the scenes):
 - `clipboard`: <https://polyhaven.com/a/clipboard>
 - `combination_wrench`: <https://polyhaven.com/a/combination_wrench>
 
-The letters on the extinguisher's label are set in two DejaVu fonts
+The letters on the extinguisher's label and the clipboard's cargo
+manifest are set in two DejaVu fonts
 (DejaVu Sans Condensed Bold and DejaVu Sans Mono, release 2.37,
 <https://dejavu-fonts.github.io>), under the Bitstream Vera and Arev
 fonts' licence, which lets the fonts be used for anything; only their
-letters, rendered into the picture, are in this module, not the fonts.
+letters, rendered into the pictures, are in this module, not the fonts.
 
 None of these files is part of this module or of its repository: the
 render script downloads them, pinned by their hashes. The cargo manifest
