@@ -1,0 +1,45 @@
+{
+  "name": "@modular-av/dock-spaceship",
+  "version": "0.16.0",
+  "private": true,
+  "description": "Modular A/V theme module: a cargo hauler's hold for modular-av-dock, the dock a riveted bulkhead of grey-green painted steel, each camera in a small CRT monitor in a chipped yellow case with its player's name on a green segment readout.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p test/browser"
+  },
+  "devDependencies": {
+    "@modular-av/dock": "workspace:*",
+    "@modular-av/testing": "workspace:*"
+  },
+  "modularAV": {
+    "entryBudgetBytes": 2000,
+    "styleBudgetBytes": 38000,
+    "stylesheets": {
+      "spaceship.css": [
+        "styles/base.css",
+        "styles/monitor.css",
+        "styles/readout.css",
+        "styles/icons.css",
+        "styles/plates.css",
+        "styles/keys.css",
+        "styles/layouts.css",
+        "styles/things.css"
+      ]
+    },
+    "downloads": {
+      "fonts/DSEG14Classic-Regular.woff2": {
+        "url": "https://registry.npmjs.org/dseg/-/dseg-0.46.0.tgz",
+        "sha256": "5a7d1b17c0f4d6debf2d592dd4c4122ad477601fe6342ffe8eb97f0a20e0b2f4",
+        "extract": "package/fonts/DSEG14-Classic/DSEG14Classic-Regular.woff2"
+      },
+      "fonts/DSEG-LICENSE.txt": {
+        "url": "https://registry.npmjs.org/dseg/-/dseg-0.46.0.tgz",
+        "sha256": "5a7d1b17c0f4d6debf2d592dd4c4122ad477601fe6342ffe8eb97f0a20e0b2f4",
+        "extract": "package/DSEG-LICENSE.txt"
+      }
+    }
+  }
+}

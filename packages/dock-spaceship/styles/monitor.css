@@ -1,0 +1,127 @@
+/* ---- Each monitor: one rendered picture per state over the frame layer. The viewer's own monitor has the
+   level's window in its right side. ---- */
+
+.mav-theme-spaceship .mav-dock-tile {
+  --ship-rest: url("art/monitor-rest.webp");
+  --ship-speak: url("art/monitor-speak.webp");
+  --ship-muted: url("art/monitor-muted.webp");
+  --ship-deaf: url("art/monitor-deaf.webp");
+  --ship-mdeaf: url("art/monitor-mdeaf.webp");
+  --ship-now: var(--ship-rest);
+}
+
+.mav-theme-spaceship .mav-dock-tile:has(> .mav-meter) {
+  --ship-rest: url("art/own-rest.webp");
+  --ship-speak: url("art/own-speak.webp");
+  --ship-muted: url("art/own-muted.webp");
+  --ship-deaf: url("art/own-deaf.webp");
+  --ship-mdeaf: url("art/own-mdeaf.webp");
+}
+
+/* Speaking: the TX lamp lit green, its light on the paint round it. A muted microphone sends no voice: no lamp. */
+.mav-theme-spaceship .mav-dock-tile[data-speaking][data-connected] {
+  --ship-now: var(--ship-speak);
+}
+
+/* Muted: two crossed strips of gaffer tape over the grille. */
+.mav-theme-spaceship .mav-dock .mav-dock-tile[data-muted] {
+  --ship-now: var(--ship-muted);
+}
+
+/* Deafened: the headset taken off and hung by its band on a bracket screwed to the case's right side. */
+.mav-theme-spaceship .mav-dock .mav-dock-tile[data-deafened] {
+  --ship-now: var(--ship-deaf);
+  --ship-scan-mask: url("art/scan-deaf.webp");
+  --ship-snow-mask: url("art/snow-deaf.webp") 0 0 / 100% 100% no-repeat;
+}
+
+.mav-theme-spaceship .mav-dock .mav-dock-tile:has(> .mav-meter)[data-deafened] {
+  --ship-scan-mask: url("art/scan-deaf-own.webp");
+  --ship-snow-mask: url("art/snow-deaf-own.webp") 0 0 / 100% 100% no-repeat;
+}
+
+.mav-theme-spaceship .mav-dock .mav-dock-tile[data-muted][data-deafened] {
+  --ship-now: var(--ship-mdeaf);
+}
+
+.mav-theme-spaceship .mav-dock-tile-frame {
+  background: var(--ship-now) 0 0 / 100% 100% no-repeat;
+}
+
+/* The tube's scan lines in its margin (the middle stays clear): CSS lines a fixed number of pixels apart, through
+   a rendered mask of the tube's border; what hangs in front of the glass is cut out of it. */
+.mav-theme-spaceship .mav-dock-tile-frame::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    rgb(0 0 0 / 0%) 0 1px,
+    rgb(0 0 0 / 34%) 1px 2px
+  );
+  mask: var(--ship-scan-mask) 0 0 / 100% 100% no-repeat;
+}
+
+/* The player's colour: a strip of vinyl tape over the case's top left corner, rendered white and tinted by the
+   colour through its own shading. */
+.mav-theme-spaceship .mav-dock-tile-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    url("art/colour-tape.webp") 0 0 / 100% 100% no-repeat,
+    var(--mav-dock-tile-color, #8a8a8a);
+  background-blend-mode: multiply;
+  mask: url("art/colour-tape.webp") 0 0 / 100% 100% no-repeat;
+}
+
+/* A weak link: snow in the tube's margin, a tear where the lines lose their hold; it flickers (not under reduced
+   motion), once every 0.8 s: well under three flashes a second (WCAG 2.3.1), since a viewer's own weak link snows
+   every monitor at once, in step. The snow is thinned under a hung headset's shadow, so the shadow stays on the
+   tube. */
+.mav-theme-spaceship
+  .mav-dock-tile:is([data-quality="poor"], [data-quality="lost"])
+  .mav-dock-tile-frame::before {
+  background: url("art/snow.webp") 0 0 / 100% 100% no-repeat;
+  mask: var(--ship-snow-mask, none);
+  animation: ship-snow 0.8s steps(2, jump-none) infinite;
+}
+
+@keyframes ship-snow {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0.6;
+  }
+}
+
+/* Out of the call: the set is off. Solid (the dock fades such a tile to 60%: the bulkhead showed through), no scan
+   lines, a dead grey-green tube round the avatar, any picture dimmed as a dying tube's, the readout unlit but for a
+   grey trace of the name. */
+.mav-theme-spaceship .mav-dock .mav-dock-tile:not([data-connected]) {
+  opacity: 1;
+}
+
+.mav-theme-spaceship
+  .mav-dock-tile:not([data-connected])
+  .mav-dock-tile-frame::before {
+  display: none;
+}
+
+.mav-theme-spaceship .mav-dock-tile:not([data-connected]) .mav-dock-tile-media {
+  background: radial-gradient(ellipse at 50% 45%, #26302a, #141a16 70%);
+}
+
+.mav-theme-spaceship .mav-dock-tile:not([data-connected]) .mav-dock-tile-video {
+  filter: brightness(0.4) saturate(0.4);
+}
+
+/* Camera off: the tube lit with no picture, a dim raster of lines. */
+.mav-theme-spaceship
+  .mav-dock-tile[data-video="off"][data-connected]
+  .mav-dock-tile-media {
+  background:
+    repeating-linear-gradient(rgb(0 0 0 / 0%) 0 1px, rgb(0 0 0 / 38%) 1px 2px),
+    radial-gradient(ellipse at 50% 45%, #2c4038, #17221d 75%);
+}

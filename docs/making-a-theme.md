@@ -279,6 +279,12 @@ tiles and no further". Everything drawn has `pointer-events: none`.
 - **Budgets.** `pnpm size:check` holds the stylesheet's and the entry's
   size; the art's total has a test. Run it early: it is the last step of
   `pnpm verify`.
+- **A long stylesheet in parts.** Past about 800 lines, keep it as
+  parts in `styles/`, one per section, listed in order under
+  `modularAV.stylesheets` in the package.json (the spaceship theme's is
+  the model). The build and the harness join them into the one file the
+  theme registers, so Foundry still loads one file and the budget holds
+  the whole of it; `url()`s are read from that file's folder.
 - **One port, one Foundry.** The harness listens on one port and there
   is one local Foundry. A second checkout (a worktree, another session)
   runs its harness beside the first with `MAV_HARNESS_PORT=5175` before

@@ -102,6 +102,43 @@ describe("fetchTextures", () => {
     expect(fetcher).toHaveBeenCalledTimes(2);
   });
 
+  it("places a file in a subfolder of the cache, where a model names its textures", async () => {
+    const dir = await scratch();
+    const nested: readonly TextureSource[] = [
+      {
+        url: "https://textures.example/wood_diff_2k.jpg",
+        sha256: sha(WOOD),
+        file: "crate/textures/crate_diff_2k.jpg",
+      },
+    ];
+
+    await fetchTextures(dir, { sources: nested, fetcher: serving() });
+
+    expect(
+      await readFile(
+        join(dir, "crate", "textures", "crate_diff_2k.jpg"),
+        "utf8",
+      ),
+    ).toBe(WOOD);
+  });
+
+  it("refuses a name that would leave the cache, and fetches nothing for it", async () => {
+    const dir = await scratch();
+    const fetcher = serving();
+    const outside: readonly TextureSource[] = [
+      {
+        url: "https://textures.example/wood_diff_2k.jpg",
+        sha256: sha(WOOD),
+        file: "../outside/wood.jpg",
+      },
+    ];
+
+    await expect(
+      fetchTextures(dir, { sources: outside, fetcher }),
+    ).rejects.toThrow(/not a path inside the cache/);
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
   it("downloads nothing that is already there and whole", async () => {
     const dir = await scratch();
     await fetchTextures(dir, { sources: SOURCES, fetcher: serving() });

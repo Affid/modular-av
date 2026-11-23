@@ -1,0 +1,124 @@
+/* ---- The name: lit in the readout set into the monitor's chin. The bar leaves the flow of absolute boxes and
+   sits, in flow, exactly on the readout's window (measures.json readout.window, in tile units; the tile is the
+   container, so 1cqw is 10 units). Being static it clips its own text without clipping the state icons, which are
+   placed against the tile. A long name slides back and forth inside the window; under reduced motion it stops and
+   is cut with an ellipsis. ---- */
+
+.mav-theme-spaceship .mav-dock .mav-dock-tile {
+  --ship-window: 75cqw;
+  container-type: inline-size;
+  min-height: 0;
+}
+
+.mav-theme-spaceship .mav-dock .mav-dock-tile-bar {
+  position: static;
+  display: block;
+  inset: auto;
+  translate: none;
+  max-width: none;
+  height: 8.8cqw;
+  margin: 61.4cqw 11cqw 0;
+  padding: 0 1.5cqw;
+  overflow: hidden;
+  border-radius: 0.4cqw;
+  background: url("art/readout-rest.webp") 0 0 / 100% 100% no-repeat;
+  background-color: var(--ship-readout-colour);
+  white-space: nowrap;
+  line-height: 8.8cqw;
+}
+
+/* While the voice goes out, the readout's glass carries the TX lamp's green gleam at its right end. */
+.mav-theme-spaceship
+  .mav-dock
+  .mav-dock-tile[data-speaking][data-connected]:not([data-muted])
+  .mav-dock-tile-bar {
+  background-image: url("art/readout-speak.webp");
+}
+
+/* The segments that are never lit, faint behind the glass: a row of all-segments-on cells, fixed to the window. */
+.mav-theme-spaceship .mav-dock .mav-dock-tile-bar::before {
+  content: "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
+  position: absolute;
+  top: 61.4cqw;
+  left: 12.5cqw;
+  width: 75cqw;
+  height: 8.8cqw;
+  overflow: hidden;
+  color: var(--ship-segment-off);
+  font: var(--ship-readout-font);
+  line-height: 8.8cqw;
+  letter-spacing: var(--ship-readout-spacing);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* At rest the segments are lit low, a display dimmed so it doesn't draw the eye; while the voice goes out they are
+   driven full, and bloom. */
+.mav-theme-spaceship .mav-dock-tile-name {
+  position: relative;
+  z-index: 1;
+  display: inline-block;
+  max-width: none;
+  overflow: visible;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--ship-segment-rest);
+  font: var(--ship-readout-font);
+  line-height: 8.8cqw;
+  letter-spacing: var(--ship-readout-spacing);
+  word-spacing: var(--ship-readout-word);
+  text-transform: uppercase;
+  text-shadow: none;
+  animation: ship-slide 10s ease-in-out infinite alternate;
+}
+
+.mav-theme-spaceship
+  .mav-dock-tile[data-speaking][data-connected]:not([data-muted])
+  .mav-dock-tile-name {
+  color: var(--ship-segment);
+  text-shadow:
+    0 0 0.25em rgb(120 255 160 / 85%),
+    0 0 0.7em rgb(90 255 130 / 45%);
+}
+
+.mav-theme-spaceship .mav-dock-tile:not([data-connected]) .mav-dock-tile-name {
+  color: var(--ship-segment-out);
+}
+
+/* Out of the call the set is off: the never-lit segments behind the glass go dark with it. */
+.mav-theme-spaceship
+  .mav-dock
+  .mav-dock-tile:not([data-connected])
+  .mav-dock-tile-bar::before {
+  visibility: hidden;
+}
+
+@keyframes ship-slide {
+  0%,
+  20% {
+    translate: 0;
+  }
+
+  80%,
+  100% {
+    translate: min(0px, calc(var(--ship-window) - 100%));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mav-theme-spaceship .mav-dock-tile-name {
+    max-width: var(--ship-window);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    animation: none;
+  }
+
+  .mav-theme-spaceship
+    .mav-dock-tile:is([data-quality="poor"], [data-quality="lost"])
+    .mav-dock-tile-frame::before {
+    animation: none;
+  }
+}

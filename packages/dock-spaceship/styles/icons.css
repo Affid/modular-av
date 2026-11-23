@@ -1,0 +1,140 @@
+/* ---- The states' icons and other modules' badges: on the picture's upper corners, inside the tube's border,
+   placed against the tile on whole pixels, the keys an even size, so each key's middle is a whole pixel. ---- */
+
+.mav-theme-spaceship
+  .mav-dock
+  .mav-dock-tile-bar
+  > :is(.mav-dock-tile-indicators, .mav-dock-tile-badges) {
+  position: absolute;
+  top: round(4.5cqw, 1px);
+  left: round(4.5cqw, 1px);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: normal;
+}
+
+.mav-theme-spaceship .mav-dock .mav-dock-tile-bar > .mav-dock-tile-badges {
+  right: round(4.5cqw, 1px);
+  left: auto;
+}
+
+.mav-theme-spaceship .mav-dock .mav-dock-tile-bar .mav-indicator {
+  --ship-key: round(clamp(15px, 12.5cqw, 20px), 2px);
+  min-width: var(--ship-key);
+  height: var(--ship-key);
+  padding: 0;
+  font-size: round(clamp(8px, 7cqw, 11px), 1px);
+}
+
+/* The glyphs land 1 px high in these boxes (measured on the star, the ear and the bars at 258 and 127 px). */
+.mav-theme-spaceship .mav-dock .mav-dock-tile-bar .mav-indicator > i {
+  translate: 0 1px;
+}
+
+/* The tile's own keys (menu, move, resize) and other modules' badges: the panel's rubber key in its worn hole,
+   the icon in cream paint; under the pointer the key lights as the panel's do. A badge's icon is 45% of its key,
+   inside the key's face with room all round. */
+.mav-theme-spaceship
+  .mav-dock-tile
+  :is(.mav-dock-tile-menu, .mav-dock-tile-move, .mav-dock-tile-resize),
+.mav-theme-spaceship
+  .mav-dock
+  .mav-dock-tile-bar
+  .mav-dock-tile-badges
+  .mav-indicator {
+  z-index: 2;
+  border: 0;
+  border-image: url("art/key-rest.webp") 39 fill / 10px / 1px stretch;
+  border-radius: 0;
+  background: none;
+  color: var(--ship-paint);
+  text-shadow: 0 1px 1px rgb(0 0 0 / 85%);
+}
+
+.mav-theme-spaceship
+  .mav-dock
+  .mav-dock-tile-bar
+  .mav-dock-tile-badges
+  .mav-indicator {
+  font-size: round(calc(var(--ship-key) * 0.45), 1px);
+}
+
+.mav-theme-spaceship
+  .mav-dock-tile
+  :is(.mav-dock-tile-menu, .mav-dock-tile-move, .mav-dock-tile-resize):is(
+    :hover,
+    :focus-visible,
+    [aria-expanded="true"]
+  ) {
+  border-image-source: url("art/key-rest-hover.webp");
+}
+
+/* The menu's dots read high over the key's dish, which darkens toward its foot: set down half a pixel. */
+.mav-theme-spaceship
+  .mav-dock-tile
+  :is(.mav-dock-tile-menu, .mav-dock-tile-move, .mav-dock-tile-resize)
+  > i {
+  translate: 0 0.5px;
+}
+
+/* Nothing of the tile's own covers a state or a badge. Scattered, the states' column starts under the move key's
+   place (always: a column that jumped on hover would be worse); badges move left of the menu key while it shows. */
+.mav-theme-spaceship
+  .mav-dock[data-placement="scattered"]
+  .mav-dock-tile-bar
+  > .mav-dock-tile-indicators {
+  top: calc(round(4.5cqw, 1px) + 30px);
+}
+
+.mav-theme-spaceship
+  .mav-dock
+  .mav-dock-tile:is(
+    :hover,
+    :focus-within,
+    :has(.mav-dock-tile-menu[aria-expanded="true"])
+  )
+  .mav-dock-tile-bar
+  > .mav-dock-tile-badges {
+  right: calc(round(4.5cqw, 1px) + 30px);
+}
+
+/* Scattered, the resize key sits up the right edge, above a hung headset's band (at the corner it covered half of
+   it); it stays on the right edge because it drags that edge. */
+.mav-theme-spaceship
+  .mav-dock[data-placement="scattered"]
+  .mav-dock-tile-resize {
+  top: calc(56.25cqw * 0.6 - 30px);
+  bottom: auto;
+}
+
+/* ---- Your own level: a column of 12 green segments in the window in your monitor's right side, filling upward,
+   the unlit ones faint. The meter is laid out across and turned a quarter, so the dock's fill (scaleX from its
+   left) rises from the bottom. ---- */
+
+.mav-theme-spaceship .mav-dock-tile .mav-meter {
+  --ship-meter-length: 47.4cqw;
+  --ship-meter-across: 1.8cqw;
+  inset: auto;
+  top: calc(28.1cqw - var(--ship-meter-across) / 2);
+  left: calc(102.6cqw - var(--ship-meter-length) / 2);
+  z-index: 2;
+  width: var(--ship-meter-length);
+  height: var(--ship-meter-across);
+  rotate: -90deg;
+  border-radius: 0;
+  background: var(--ship-segment-off);
+  mask: repeating-linear-gradient(
+    90deg,
+    #000 0 3.35cqw,
+    transparent 3.35cqw 3.95cqw
+  );
+}
+
+.mav-theme-spaceship .mav-dock-tile .mav-meter .mav-meter-fill {
+  background: var(--ship-segment-dim);
+}
+
+.mav-theme-spaceship .mav-dock-tile .mav-meter[data-open] .mav-meter-fill {
+  background: var(--ship-segment);
+}

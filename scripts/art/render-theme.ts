@@ -37,6 +37,8 @@ export interface RenderedTheme {
   fetchTextures(): Promise<string>;
   /** Puts what the scenes need beside their pictures before they run, e.g. a drawn mask as pixels. */
   prepare?(out: string): Promise<void>;
+  /** The encoder's quality for a picture whose fine grain the usual one smears, by its file name. */
+  quality?(name: string): number | undefined;
 }
 
 const WINDOWS_BLENDER =
@@ -116,7 +118,11 @@ function renderScene(
 }
 
 /** A PNG as WebP, by the browser's own encoder: nothing else here writes WebP. */
-async function toWebp(page: Page, png: string): Promise<Uint8Array> {
+async function toWebp(
+  page: Page,
+  png: string,
+  quality: number,
+): Promise<Uint8Array> {
   const encoded = await page.evaluate(
     async ([data, quality]) => {
       const image = new Image();
@@ -128,7 +134,7 @@ async function toWebp(page: Page, png: string): Promise<Uint8Array> {
       canvas.getContext("2d")?.drawImage(image, 0, 0);
       return canvas.toDataURL("image/webp", quality).split(",")[1] ?? "";
     },
-    [readFileSync(png).toString("base64"), QUALITY] as const,
+    [readFileSync(png).toString("base64"), quality] as const,
   );
   return Buffer.from(encoded, "base64");
 }
@@ -144,7 +150,11 @@ async function convert(
     const page = await browser.newPage();
     const entries: [string, Manifest[string]][] = [];
     for (const name of scenes.flatMap((scene) => scene.pictures)) {
-      const bytes = await toWebp(page, join(out, `${name}.png`));
+      const bytes = await toWebp(
+        page,
+        join(out, `${name}.png`),
+        theme.quality?.(`${name}.webp`) ?? QUALITY,
+      );
       const picture = describePicture(bytes);
       const expected = theme.expectedSize(`${name}.webp`);
       if (

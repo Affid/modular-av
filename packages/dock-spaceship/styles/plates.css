@@ -1,0 +1,131 @@
+/* ---- The header and the voice panel: gunmetal plates riveted to the bulkhead, cut from different parts of the
+   sheet (their scratches don't line up), dirt settled along their foot. ---- */
+
+.mav-theme-spaceship .mav-dock :is(.mav-dock-header, .mav-dock-panel) {
+  position: relative;
+  margin: 0;
+  border: 3px solid transparent;
+  border-image: var(--ship-rim);
+  border-radius: 3px;
+  box-shadow: none;
+  background:
+    var(--ship-falloff),
+    var(--ship-grime) left 0 bottom -3px / 600px 16px repeat-x,
+    var(--ship-plate) 0 0 / 600px 600px,
+    var(--ship-plate-colour);
+  color: var(--ship-paint);
+}
+
+.mav-theme-spaceship .mav-dock .mav-dock-panel {
+  background-position:
+    0 0,
+    left 0 bottom -3px,
+    -230px -310px,
+    0 0;
+}
+
+/* Room round what the plates hold for the rivets 6 px in from their edges. */
+.mav-theme-spaceship .mav-dock .mav-dock-header {
+  padding: 3px 6px 4px 12px;
+}
+
+.mav-theme-spaceship .mav-dock .mav-dock-panel {
+  padding: 3px 3px 6px;
+}
+
+.mav-theme-spaceship .mav-dock .mav-dock-panel .mav-dock-header {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-image: none;
+  background: none;
+}
+
+/* The writing on the plates: in cream paint, its edges a little soft. */
+.mav-theme-spaceship
+  .mav-dock
+  :is(.mav-dock-status, .mav-dock-count, .mav-dock-connection-status) {
+  color: var(--ship-paint);
+  text-shadow:
+    0 0 0.5px rgb(235 229 214 / 55%),
+    0 0 2px rgb(0 0 0 / 55%);
+}
+
+.mav-theme-spaceship .mav-dock .mav-dock-status {
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mav-theme-spaceship
+  .mav-dock
+  :is(.mav-dock-count, .mav-dock-connection-where) {
+  color: #d9d3c4;
+  letter-spacing: 0.03em;
+}
+
+/* The stencilled marking "COMMS-2": on the count's line, right of the count, where the line has room; with no room
+   it wraps onto a line of its own that the count's one-line height hides. */
+.mav-theme-spaceship .mav-dock > .mav-dock-header .mav-dock-count {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  height: 18px;
+  overflow: hidden;
+}
+
+.mav-theme-spaceship .mav-dock > .mav-dock-header .mav-dock-count::after {
+  content: "";
+  flex: none;
+  width: 76px;
+  height: 16px;
+  margin-inline: auto 0;
+  background: url("art/legend.webp") 0 0 / 100% 100% no-repeat;
+}
+
+/* ---- The call's status: a pilot lamp, blackened knurled bezel, tinted glass: dark before a call, green in the
+   call, amber while joining, red once it has ended (left, put out, the room closed), as the dock's own look marks
+   an ended call in a colour of its own. The status line clips what overflows it: room in its padding (given back by its margins) for the
+   lamp's light on the plate round it. ---- */
+
+.mav-theme-spaceship .mav-dock .mav-dock-status {
+  flex-basis: calc(100% + 7px);
+  padding: 5px 0;
+  margin: -5px 0 -5px -7px;
+}
+
+.mav-theme-spaceship
+  .mav-dock:is([data-placement="top"], [data-placement="bottom"]):not(
+    [data-collapsed]
+  )
+  .mav-dock-status {
+  margin-block: -1px;
+}
+
+.mav-theme-spaceship .mav-dock .mav-dock-status::before {
+  width: 26px;
+  height: 26px;
+  margin: -8px 1px -8px 0;
+  border-radius: 0;
+  background: url("art/lamp-off.webp") 0 0 / 100% 100% no-repeat;
+}
+
+.mav-theme-spaceship
+  .mav-dock
+  .mav-dock-status[data-status="connected"]::before {
+  background-image: url("art/lamp-green.webp");
+}
+
+.mav-theme-spaceship
+  .mav-dock
+  .mav-dock-status:is(
+    [data-status="connecting"],
+    [data-status="waiting"],
+    [data-status="reconnecting"]
+  )::before {
+  background-image: url("art/lamp-amber.webp");
+}
+
+.mav-theme-spaceship .mav-dock .mav-dock-status[data-status="ended"]::before {
+  background-image: url("art/lamp-red.webp");
+}

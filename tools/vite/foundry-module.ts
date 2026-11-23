@@ -3,6 +3,7 @@ import { join } from "node:path";
 import type { Plugin, UserConfig } from "vite";
 import { readAssets } from "../assets/assets.ts";
 import { fetchDownloads } from "../assets/downloads.ts";
+import { joinStylesheet, readStylesheets } from "../assets/stylesheets.ts";
 import { readWorkers } from "../assets/workers.ts";
 import {
   disallowed,
@@ -84,7 +85,8 @@ function foundryFiles(
 
 /**
  * Copies the files listed in `modularAV.assets` from their packages, and
- * those in `modularAV.downloads` from the download cache (fetched first).
+ * those in `modularAV.downloads` from the download cache (fetched first);
+ * joins the stylesheets kept in parts (`modularAV.stylesheets`).
  */
 function packageAssets(packageDir: string): Plugin {
   let downloads: ReadonlyMap<string, string> = new Map();
@@ -96,6 +98,15 @@ function packageAssets(packageDir: string): Plugin {
     generateBundle() {
       for (const [fileName, file] of [...readAssets(packageDir), ...downloads])
         this.emitFile({ type: "asset", fileName, source: readFileSync(file) });
+      for (const [fileName, parts] of readStylesheets(packageDir)) {
+        // `vite build --watch` builds again when a part changes.
+        for (const part of parts) this.addWatchFile(part);
+        this.emitFile({
+          type: "asset",
+          fileName,
+          source: joinStylesheet(parts),
+        });
+      }
     },
   };
 }

@@ -1,0 +1,196 @@
+/* ---- Keys: rubber keys poking up through holes in the plate, the paint worn round each hole. The keys that latch
+   carry an LED in the glass of its colour on their top edge; latched, the key is down in its hole and its LED lit:
+   green for the camera on, red for muted and deafened, amber for sharing the screen. The hang-up key is red rubber.
+   Under the pointer the key itself lights up, the plate round it unchanged. ---- */
+
+.mav-theme-spaceship
+  .mav-dock
+  :is(.mav-dock-tools, .mav-dock-buttons)
+  .mav-dock-button {
+  --ship-key-now: url("art/key-rest.webp");
+  --ship-key-hover: url("art/key-rest-hover.webp");
+  border: 0;
+  border-image: var(--ship-key-now) 39 fill / 13px / 2px stretch;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--ship-paint);
+}
+
+/* Lit under the pointer, and under keyboard focus. */
+.mav-theme-spaceship
+  .mav-dock
+  :is(.mav-dock-tools, .mav-dock-buttons)
+  .mav-dock-button:is(:hover, :focus-visible):not(:disabled) {
+  border-image-source: var(--ship-key-hover);
+}
+
+/* The icon a little below the middle: the LED on the key's top edge keeps 2 px clear of it. */
+.mav-theme-spaceship
+  .mav-dock
+  :is(.mav-dock-tools, .mav-dock-buttons)
+  .mav-dock-button
+  i {
+  translate: 0 1.5px;
+  text-shadow: 0 1px 1px rgb(0 0 0 / 85%);
+}
+
+/* A key that is down: its face is farther off, its icon a little smaller with it. */
+.mav-theme-spaceship
+  .mav-dock
+  .mav-dock-buttons
+  .mav-dock-button[aria-pressed="true"]
+  i {
+  scale: 0.88;
+  translate: 0 2px;
+}
+
+.mav-theme-spaceship
+  .mav-dock
+  .mav-dock-buttons
+  :is(.mav-dock-mute, .mav-dock-deafen) {
+  --ship-key-now: url("art/key-led-red.webp");
+  --ship-key-hover: url("art/key-led-red-hover.webp");
+}
+
+.mav-theme-spaceship
+  .mav-dock
+  .mav-dock-buttons
+  :is(.mav-dock-mute, .mav-dock-deafen)[aria-pressed="true"] {
+  --ship-key-now: url("art/key-down-red.webp");
+  --ship-key-hover: url("art/key-down-red-hover.webp");
+}
+
+.mav-theme-spaceship .mav-dock .mav-dock-buttons .mav-dock-video {
+  --ship-key-now: url("art/key-led-green.webp");
+  --ship-key-hover: url("art/key-led-green-hover.webp");
+}
+
+.mav-theme-spaceship
+  .mav-dock
+  .mav-dock-buttons
+  .mav-dock-video[aria-pressed="true"] {
+  --ship-key-now: url("art/key-down-green.webp");
+  --ship-key-hover: url("art/key-down-green-hover.webp");
+}
+
+.mav-theme-spaceship .mav-dock .mav-dock-buttons .mav-dock-screen {
+  --ship-key-now: url("art/key-led-amber.webp");
+  --ship-key-hover: url("art/key-led-amber-hover.webp");
+}
+
+.mav-theme-spaceship
+  .mav-dock
+  .mav-dock-buttons
+  .mav-dock-screen[aria-pressed="true"] {
+  --ship-key-now: url("art/key-down-amber.webp");
+  --ship-key-hover: url("art/key-down-amber-hover.webp");
+}
+
+.mav-theme-spaceship .mav-dock .mav-dock-buttons .mav-dock-leave {
+  --ship-key-now: url("art/key-leave.webp");
+  --ship-key-hover: url("art/key-leave-hover.webp");
+  color: #fff4ee;
+}
+
+/* The menu arrow: a narrow key of the same rubber, 20 px (4 px over the dock's half button), its picture 1 px
+   outside its box, its box 1 px from its neighbour's as the dock's half button is: the row of seven keys and two
+   arrows is 278 px in the panel's 280. Its chevron is drawn small, in the middle of the key's face, at least 3.5
+   px clear of the hole's walls at rest, lit, held and open. Lit and held, the key's face highlight is held under
+   the chevron's, so the chevron reads first. */
+.mav-theme-spaceship .mav-dock .mav-dock-buttons .mav-dock-menu-arrow {
+  --ship-key-now: url("art/arrow.webp");
+  --ship-key-hover: url("art/arrow-hover.webp");
+  width: var(--ship-arrow-width);
+  border-image-slice: 33 fill;
+  border-image-width: 11px;
+  border-image-outset: 1px;
+}
+
+/* Held down, and while its menu is open, the arrow's key is down too, its chevron smaller as a pressed key's icon
+   is. */
+.mav-theme-spaceship
+  .mav-dock
+  .mav-dock-buttons
+  .mav-dock-menu-arrow:is(:active, [aria-expanded="true"]) {
+  --ship-key-now: url("art/arrow-down.webp");
+  --ship-key-hover: url("art/arrow-down-hover.webp");
+  background: none;
+}
+
+.mav-theme-spaceship .mav-dock .mav-dock-buttons .mav-dock-menu-arrow i {
+  font-size: 7.5px;
+  translate: 0 0.5px;
+  text-shadow: none;
+}
+
+.mav-theme-spaceship
+  .mav-dock
+  .mav-dock-buttons
+  .mav-dock-menu-arrow:is(:active, [aria-expanded="true"])
+  i {
+  scale: 0.82;
+}
+
+/* Floating, the dock's resize grip is a small rubber key in the plate's corner. */
+.mav-theme-spaceship .mav-dock[data-placement="floating"] .mav-dock-resize {
+  right: 3px;
+  bottom: 3px;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-image: url("art/key-rest.webp") 39 fill / 8px / 0 stretch;
+  border-radius: 0;
+  background: none;
+  color: var(--ship-paint);
+  text-shadow: 0 1px 1px rgb(0 0 0 / 85%);
+}
+
+.mav-theme-spaceship
+  .mav-dock[data-placement="floating"]
+  .mav-dock-resize:is(:hover, :focus-visible) {
+  border-image-source: url("art/key-rest-hover.webp");
+}
+
+/* ---- The panel's warnings: annunciator windows lit amber, or red for a fault, the icon in dark ink on the lens.
+   The connection line and the warnings keep 3 px more clear of the plate's corner rivets. ---- */
+
+.mav-theme-spaceship .mav-dock > .mav-dock-panel > .mav-dock-connection-status {
+  margin-inline-start: 3px;
+}
+
+.mav-theme-spaceship .mav-dock > .mav-dock-panel > .mav-dock-warnings {
+  margin-inline-end: 3px;
+}
+
+.mav-theme-spaceship
+  .mav-dock
+  .mav-dock-panel
+  .mav-dock-warnings
+  .mav-indicator {
+  min-width: 20px;
+  height: 20px;
+  border: 0;
+  border-image: url("art/annunciator-amber.webp") 32 fill / 8px / 2px stretch;
+  border-radius: 0;
+  background: none;
+  color: #2b1600;
+  text-shadow: 0 0 1px rgb(255 214 140 / 60%);
+}
+
+.mav-theme-spaceship
+  .mav-dock
+  .mav-dock-panel
+  .mav-dock-warnings
+  .mav-indicator:is(
+    [data-indicator="muted"],
+    [data-indicator="deafened"],
+    [data-indicator="blocked-audio"],
+    [data-indicator="blocked-video"],
+    [data-indicator="microphone-error"],
+    [data-indicator="camera-error"],
+    [data-indicator="effect-failed"]
+  ) {
+  border-image-source: url("art/annunciator-red.webp");
+  color: #2a0503;
+}

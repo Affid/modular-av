@@ -118,7 +118,10 @@ unless that change is part of the plan.
    mock's stylesheets, never ship them. As soon as it loads, run the
    theme contract in each layout (`themeContract`): it finds in a minute
    what otherwise comes out late (a grid that flips between two sizes,
-   something faint over a face, an icon under the frame).
+   something faint over a face, an icon under the frame). A border on a
+   tile shrinks its picture inside the frame layer (the dock gives a
+   blocked camera a dashed one): clear it when the frame's inner edge
+   lies near the middle box.
 4. Browser tests of the theme's own, reading computed styles: every
    placement and state. A test's name is a claim: check that it would
    fail if the claim were false.
@@ -139,10 +142,13 @@ unless that change is part of the plan.
 4. `pnpm verify`, and read its exit code in a step of its own. It takes
    about ten minutes: start the reviewers of step 6 while it runs, they
    only read.
-5. `pnpm theme:foundry <out> <id> [camera files] [map image]` with
-   Foundry running (`pnpm foundry:start`, `pnpm foundry:setup`,
-   `pnpm build`, `pnpm foundry:link`): every placement, then the states,
-   the menus and the settings window. Look at the pictures; stop the
+5. `pnpm theme:foundry <out> <id> [folder of camera files] [map image]`
+   with Foundry running (`pnpm build`, `pnpm foundry:link`, then
+   `pnpm foundry:start`, which keeps running, and `pnpm foundry:setup`):
+   every placement, then the states, the menus and the settings window.
+   A new module linked while the server runs stays unknown to it until
+   it is restarted, and the pictures then show the dock's own look:
+   check that the cameras' sizes changed. Look at the pictures; stop the
    server after.
    Menus and the settings window are judged here, never in the harness,
    which has none of Foundry's styles for form fields. Show the user

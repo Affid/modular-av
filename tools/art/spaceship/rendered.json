@@ -1,0 +1,344 @@
+{
+  "annunciator-amber.webp": {
+    "width": 96,
+    "height": 96,
+    "bytes": 2538,
+    "sha256": "77cb70684b162bc07753b44619f810df5ac6b62d8d2d49aeed2f1cc86e0ccd1d"
+  },
+  "annunciator-red.webp": {
+    "width": 96,
+    "height": 96,
+    "bytes": 2434,
+    "sha256": "7b9fdea0bbdb88c68c0828c512860df1dfa2cac4cfe6e40c9e17a9ae780133f5"
+  },
+  "arrow-down-hover.webp": {
+    "width": 66,
+    "height": 102,
+    "bytes": 2492,
+    "sha256": "9ba3d053c28f606fae8a010093bbd25865b65e37c988de6aca32b0880e3e028b"
+  },
+  "arrow-down.webp": {
+    "width": 66,
+    "height": 102,
+    "bytes": 2448,
+    "sha256": "476ce6e5433435ef525cd507c88ae32a0d29d2e381298f6134a8196cf35d413b"
+  },
+  "arrow-hover.webp": {
+    "width": 66,
+    "height": 102,
+    "bytes": 2416,
+    "sha256": "711c1e06cc195ac31d4cb3ccdea3794854e55d15d8f23ef250d7cef9631484ed"
+  },
+  "arrow.webp": {
+    "width": 66,
+    "height": 102,
+    "bytes": 2464,
+    "sha256": "306f579a1c2ab4e65baf410123b450e25824865956448dae4f7aea27624bebfe"
+  },
+  "bulkhead.webp": {
+    "width": 1200,
+    "height": 1200,
+    "bytes": 39598,
+    "sha256": "f9d3e7c2ab59d19032d870102a20d7f0fc244c91b39f9fb25177b8f6e1f73248"
+  },
+  "clipboard.webp": {
+    "width": 304,
+    "height": 418,
+    "bytes": 12570,
+    "sha256": "86456d248d94864d64bcf1d4fc50bb83fe52e9b46e6cb96a8ee1b5b731357d3d"
+  },
+  "colour-tape.webp": {
+    "width": 848,
+    "height": 594,
+    "bytes": 3040,
+    "sha256": "4cd37ba66b7561c8cfe5f50cce9248f7ae1bf7c6bd479087b38af6228ac729d3"
+  },
+  "extinguisher.webp": {
+    "width": 338,
+    "height": 626,
+    "bytes": 29842,
+    "sha256": "4270229ab3ce8ea8a74e42ecd6d06a59e1088fe5901bd32d7b51aaccd0c8d983"
+  },
+  "grime.webp": {
+    "width": 1200,
+    "height": 32,
+    "bytes": 14414,
+    "sha256": "9e5720db2c6c802639c20fa234052407c6248d2662fae7b112fddc5c57375a40"
+  },
+  "key-down-amber-hover.webp": {
+    "width": 108,
+    "height": 108,
+    "bytes": 4304,
+    "sha256": "fb416c16ed5d7a976e91e8b4a95ec5bef5ab7a13db7cd2e4003a68180c15c0ce"
+  },
+  "key-down-amber.webp": {
+    "width": 108,
+    "height": 108,
+    "bytes": 4224,
+    "sha256": "90b62c17d4f7d05a0290b6944f8ba4ef33e66ed32f3ae6f3a9be892a6df53f19"
+  },
+  "key-down-green-hover.webp": {
+    "width": 108,
+    "height": 108,
+    "bytes": 4342,
+    "sha256": "0f8b736ca0b7e537622fe065afce0bb1a2db1e71877ed6a6d495558b1692ec78"
+  },
+  "key-down-green.webp": {
+    "width": 108,
+    "height": 108,
+    "bytes": 4208,
+    "sha256": "48627d933e8e1d1a0961ab91a1c038b395d283555e35a72d9635fba7a6252fa3"
+  },
+  "key-down-red-hover.webp": {
+    "width": 108,
+    "height": 108,
+    "bytes": 4298,
+    "sha256": "35089fa992566afba9d22e3e2a3f30a89888c64b57591548e3ebcbc85562461a"
+  },
+  "key-down-red.webp": {
+    "width": 108,
+    "height": 108,
+    "bytes": 4142,
+    "sha256": "9e327f1daf600983a8880914512b3805e51c6a5e0244d02d5764c23988f3520c"
+  },
+  "key-leave-hover.webp": {
+    "width": 108,
+    "height": 108,
+    "bytes": 4326,
+    "sha256": "188cf32e94815e6c5b78acfb84252dea17adf47e475d0e6cf2a75c2b74821bfe"
+  },
+  "key-leave.webp": {
+    "width": 108,
+    "height": 108,
+    "bytes": 4166,
+    "sha256": "fdbade01cc8747e9e2cd8d3bc9eabb7914dfd7af1e9443f22a8ddc28fb596753"
+  },
+  "key-led-amber-hover.webp": {
+    "width": 108,
+    "height": 108,
+    "bytes": 4280,
+    "sha256": "d44518c030c361b1fb2ba69a42693ad0e233c6e90b156744f0f0e0c7dfa3c028"
+  },
+  "key-led-amber.webp": {
+    "width": 108,
+    "height": 108,
+    "bytes": 4144,
+    "sha256": "b93a5de8e317cc7e833c475084bdb1e22914345a3df65956e4e5a82f691c52de"
+  },
+  "key-led-green-hover.webp": {
+    "width": 108,
+    "height": 108,
+    "bytes": 4252,
+    "sha256": "d80f913fe20ef9eca3fd6957810bb31174df9965c55d4e8019c711d311d0ac2f"
+  },
+  "key-led-green.webp": {
+    "width": 108,
+    "height": 108,
+    "bytes": 4148,
+    "sha256": "6ec7708c0c48463c178e7230a854e1ed4031d37607d7c7b28314358b4711f7db"
+  },
+  "key-led-red-hover.webp": {
+    "width": 108,
+    "height": 108,
+    "bytes": 4280,
+    "sha256": "cd001b7eeddef286d574c1948a3a698f94c0e1a07e194b0f725d49dde8424995"
+  },
+  "key-led-red.webp": {
+    "width": 108,
+    "height": 108,
+    "bytes": 4112,
+    "sha256": "97f82ce59b2d10c42c6bf6752532b2478d2c28580c0083bdfbe511cd5d136608"
+  },
+  "key-rest-hover.webp": {
+    "width": 108,
+    "height": 108,
+    "bytes": 4136,
+    "sha256": "47edd28319fc1e1b3ae09a504496b8e5821cfecbdc0998e95bf2b8f20c46f47c"
+  },
+  "key-rest.webp": {
+    "width": 108,
+    "height": 108,
+    "bytes": 4002,
+    "sha256": "f25b7e9f225d10f5bdcb5920e2d1d052dfe2fdaa358a42b5576993c3a0ea6b20"
+  },
+  "lamp-amber.webp": {
+    "width": 104,
+    "height": 104,
+    "bytes": 5372,
+    "sha256": "1367ee434ad8c00e9abac8d14d90fc67c2ebb1c5587411f70a7a9d6aebd5cca8"
+  },
+  "lamp-green.webp": {
+    "width": 104,
+    "height": 104,
+    "bytes": 4990,
+    "sha256": "b39afebf951d93af5ec29fc8e562105f1acb753688341b2b9c6324af024e4cb7"
+  },
+  "lamp-off.webp": {
+    "width": 104,
+    "height": 104,
+    "bytes": 2544,
+    "sha256": "7e14739659f417c8ff8d896ac64333e0feedc53d49ac962327ca8c9317abb5d7"
+  },
+  "lamp-red.webp": {
+    "width": 104,
+    "height": 104,
+    "bytes": 5044,
+    "sha256": "31e6863e10ec551a8a6bc96a329bc782005f85419af85bd5c1df6b1b0dac788c"
+  },
+  "legend.webp": {
+    "width": 304,
+    "height": 64,
+    "bytes": 13468,
+    "sha256": "0df5e336f1adc39019d99de29a7179c7576b923f97049324a5137b827391e4ee"
+  },
+  "monitor-deaf.webp": {
+    "width": 848,
+    "height": 594,
+    "bytes": 88298,
+    "sha256": "bb4ad60b3b20780ec6b1475a7ebd19ff631aec4fdd27609a1b61fd89f4a476ca"
+  },
+  "monitor-mdeaf.webp": {
+    "width": 848,
+    "height": 594,
+    "bytes": 87950,
+    "sha256": "264f67f96fecd85e67e631136de1149ed024d1d929b502735592f93be0825cd6"
+  },
+  "monitor-muted.webp": {
+    "width": 848,
+    "height": 594,
+    "bytes": 83678,
+    "sha256": "b468cd27f1c9aa0f8bd257f4da7cdbd45bb04b50a31eb393cdea1cfc52a69921"
+  },
+  "monitor-rest.webp": {
+    "width": 848,
+    "height": 594,
+    "bytes": 83730,
+    "sha256": "b7471c653ad46e4d1a5eb664812645dffb46ebb4929a9bed255f903aa25b55b2"
+  },
+  "monitor-speak.webp": {
+    "width": 848,
+    "height": 594,
+    "bytes": 84212,
+    "sha256": "4fe29a85c08513ce09ec96b23a751a9e0c2cd2194112ec6af7e95efd7b28c5c7"
+  },
+  "own-deaf.webp": {
+    "width": 848,
+    "height": 594,
+    "bytes": 87816,
+    "sha256": "fcc7933769ef4f1b8cb538a426e4496a3d25df9c412c6af6be9b7ede733e486f"
+  },
+  "own-mdeaf.webp": {
+    "width": 848,
+    "height": 594,
+    "bytes": 88062,
+    "sha256": "7780319730e975f529fb428f90d31b0d1c7d5d480cd8e0148b9c77501c20220f"
+  },
+  "own-muted.webp": {
+    "width": 848,
+    "height": 594,
+    "bytes": 84056,
+    "sha256": "6b14368b55f71d7c93953d6c47f56d21e2a614cc2f04e41d8f502e16208069bf"
+  },
+  "own-rest.webp": {
+    "width": 848,
+    "height": 594,
+    "bytes": 84276,
+    "sha256": "ee5c54847adbd9a5d6657806bed68a88594250fc1c8266df357a8ea8d7d18934"
+  },
+  "own-speak.webp": {
+    "width": 848,
+    "height": 594,
+    "bytes": 84630,
+    "sha256": "64f796c81fdf83a4b5d18024368cd911cd529d6817137733f28a57a64f675c02"
+  },
+  "plate-rim-plain.webp": {
+    "width": 276,
+    "height": 168,
+    "bytes": 9564,
+    "sha256": "f463e21ffed36e9abb18a22863d1d6e1dfc1b44743ddf2d1703ac48c76e1aec9"
+  },
+  "plate-rim.webp": {
+    "width": 276,
+    "height": 168,
+    "bytes": 10354,
+    "sha256": "bffe1832e37ce87209710e569222fefe7818f34240764535d58ca2c03060edf4"
+  },
+  "plate.webp": {
+    "width": 600,
+    "height": 600,
+    "bytes": 27726,
+    "sha256": "f588b991ec7683ca746c48ba79564320e91b5feee5edffb3fa574cc7fc98ee33"
+  },
+  "rail.webp": {
+    "width": 294,
+    "height": 64,
+    "bytes": 3622,
+    "sha256": "a0c626edb7e56e97dca668b46661fc66924a77e08c5b96f6ac4e41d6ef029fa8"
+  },
+  "readout-rest.webp": {
+    "width": 585,
+    "height": 66,
+    "bytes": 792,
+    "sha256": "1395721f02beae03fe508ae9e48bdf27c4405c5ddf210e46f4290b2d6bf7cf8f"
+  },
+  "readout-speak.webp": {
+    "width": 585,
+    "height": 66,
+    "bytes": 840,
+    "sha256": "1203f3edc3b598657be3aecec57b5d0874608e4418010937be3d77566e1bfb8c"
+  },
+  "scan-deaf-own.webp": {
+    "width": 848,
+    "height": 594,
+    "bytes": 6560,
+    "sha256": "f94be450a50b4e4b0701ad85d447cfbdbc59ce8debdc0205980573b5d5f83a61"
+  },
+  "scan-deaf.webp": {
+    "width": 848,
+    "height": 594,
+    "bytes": 6560,
+    "sha256": "f94be450a50b4e4b0701ad85d447cfbdbc59ce8debdc0205980573b5d5f83a61"
+  },
+  "scan.webp": {
+    "width": 848,
+    "height": 594,
+    "bytes": 4912,
+    "sha256": "675acc6bbf78744fe7354a91ec3bf55057832fadf7b6cfda9392c36b566db805"
+  },
+  "snow-deaf-own.webp": {
+    "width": 848,
+    "height": 594,
+    "bytes": 7838,
+    "sha256": "9870b3500fd31bc2a740f2385856f7112b0d01fe391dce5391469312a7dfcf20"
+  },
+  "snow-deaf.webp": {
+    "width": 848,
+    "height": 594,
+    "bytes": 7830,
+    "sha256": "c8c3f342cc76a41288caf527a978a42bee4f93bded3a749f84f8d6c3496817ad"
+  },
+  "snow.webp": {
+    "width": 848,
+    "height": 594,
+    "bytes": 77548,
+    "sha256": "b14aaae7422d31e80e8467ed1d2c4db27aebcd778a704713fa66c07382b5be72"
+  },
+  "tape.webp": {
+    "width": 198,
+    "height": 202,
+    "bytes": 7594,
+    "sha256": "271206b1cdc2759cf3f29d5957d97d33b901a49b634f2ac9079b8278097711d8"
+  },
+  "trim.webp": {
+    "width": 198,
+    "height": 198,
+    "bytes": 6540,
+    "sha256": "465650e516bc35e5a91dd61e4ffadff280f5f88c06193901ed5c4157d55036cc"
+  },
+  "wrench.webp": {
+    "width": 106,
+    "height": 310,
+    "bytes": 5992,
+    "sha256": "24a325726961f714cb3fe488c69a11afd2aa6f58e3647db6bec74c71f7a283df"
+  }
+}

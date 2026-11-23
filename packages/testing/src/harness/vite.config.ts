@@ -3,6 +3,11 @@ import { join, normalize, sep } from "node:path";
 import { defineConfig, type Plugin } from "vite";
 import { readAssets } from "../../../../tools/assets/assets.ts";
 import { fetchDownloads } from "../../../../tools/assets/downloads.ts";
+import {
+  joinStylesheet,
+  readStylesheets,
+  type StylesheetMap,
+} from "../../../../tools/assets/stylesheets.ts";
 import { readWorkers } from "../../../../tools/assets/workers.ts";
 import { harnessPort } from "./port.ts";
 import { signalRelay } from "./signal-relay.ts";
@@ -26,6 +31,8 @@ interface ModuleFiles {
   readonly assets: ReadonlyMap<string, string>;
   /** Worker scripts (`modularAV.workers`): published path → source. */
   readonly workers: ReadonlyMap<string, string>;
+  /** Stylesheets kept in parts (`modularAV.stylesheets`), joined when asked for. */
+  readonly stylesheets: StylesheetMap;
 }
 
 /** Module id → what Foundry would serve from its directory. */
@@ -47,6 +54,7 @@ async function moduleDirs(): Promise<ReadonlyMap<string, ModuleFiles>> {
         workers: new Map(
           readWorkers(join(PACKAGES, dir)).map((w) => [w.path, w.source]),
         ),
+        stylesheets: readStylesheets(join(PACKAGES, dir)),
       };
       return [id, files] as const;
     }),
@@ -102,7 +110,7 @@ function isBroken(
 
 /**
  * Serves `/modules/<id>/<path>` as Foundry would from the built module: the
- * package's copied assets and its `public/`.
+ * package's copied assets, its joined stylesheets and its `public/`.
  */
 function moduleFiles(dirs: ReadonlyMap<string, ModuleFiles>): Plugin {
   return {
@@ -129,6 +137,13 @@ function moduleFiles(dirs: ReadonlyMap<string, ModuleFiles>): Plugin {
         if (worker) {
           res.setHeader("Content-Type", "text/javascript");
           res.end(`import ${JSON.stringify(`/@fs${worker}`)};\n`);
+          return;
+        }
+        // Joined afresh each time: an edit to a part shows on the next load.
+        const parts = match?.[2] ? files?.stylesheets.get(match[2]) : undefined;
+        if (parts) {
+          res.setHeader("Content-Type", "text/css");
+          res.end(joinStylesheet(parts));
           return;
         }
         const file = match?.[2] ? fileOf(files, match[2]) : null;
