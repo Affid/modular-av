@@ -2,30 +2,30 @@
 <title>Modular A/V downloads</title>
 <rect x="0.5" y="0.5" width="799" height="177" rx="6" fill="#0d1117" stroke="#3d444d"/>
 <text x="24" y="34" font-size="14" fill="#f0f6fc" font-weight="600">Modular A/V downloads</text>
-<text x="776" y="34" font-size="12" fill="#9198a1" text-anchor="end">Updated Nov 22, 2026</text>
+<text x="776" y="34" font-size="12" fill="#9198a1" text-anchor="end">Updated Nov 23, 2026</text>
 <line x1="24" x2="38" y1="64" y2="64" stroke="#3987e5" stroke-width="2" stroke-linecap="round"/>
 <text x="44" y="68" font-size="12" fill="#9198a1">Core</text>
-<text x="24" y="106" font-size="30" fill="#f0f6fc" font-weight="600">195</text>
-<text x="24" y="128" font-size="12" fill="#3fb950">+61 since Nov 16</text>
-<path d="M92 108 L108.7 106.3 L125.3 100.3 L142 96.9 L158.7 90.1 L175.3 84.6 L192 82" fill="none" stroke="#656c76" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="24" y="106" font-size="30" fill="#f0f6fc" font-weight="600">203</text>
+<text x="24" y="128" font-size="12" fill="#3fb950">+69 in 7 days</text>
+<path d="M92 108 L106.3 106.5 L120.6 101.2 L134.9 98.2 L149.1 92.2 L163.4 87.3 L177.7 85 L192 82" fill="none" stroke="#656c76" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
 <circle cx="192" cy="82" r="4" fill="#3987e5" stroke="#0d1117" stroke-width="2"/>
 <line x1="216" x2="230" y1="64" y2="64" stroke="#d95926" stroke-width="2" stroke-linecap="round"/>
 <text x="236" y="68" font-size="12" fill="#9198a1">Services</text>
-<text x="216" y="106" font-size="30" fill="#f0f6fc" font-weight="600">338</text>
-<text x="216" y="128" font-size="12" fill="#3fb950">+115 since Nov 16</text>
-<path d="M284 108 L300.7 106 L317.3 99.9 L334 97.4 L350.7 90.1 L367.3 83.6 L384 82" fill="none" stroke="#656c76" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="216" y="106" font-size="30" fill="#f0f6fc" font-weight="600">352</text>
+<text x="216" y="128" font-size="12" fill="#3fb950">+129 in 7 days</text>
+<path d="M284 108 L298.3 106.2 L312.6 100.7 L326.9 98.5 L341.1 92.1 L355.4 86.2 L369.7 84.8 L384 82" fill="none" stroke="#656c76" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
 <circle cx="384" cy="82" r="4" fill="#d95926" stroke="#0d1117" stroke-width="2"/>
 <line x1="408" x2="422" y1="64" y2="64" stroke="#199e70" stroke-width="2" stroke-linecap="round"/>
 <text x="428" y="68" font-size="12" fill="#9198a1">Dock</text>
-<text x="408" y="106" font-size="30" fill="#f0f6fc" font-weight="600">252</text>
-<text x="408" y="128" font-size="12" fill="#3fb950">+83 since Nov 16</text>
-<path d="M476 108 L492.7 106.1 L509.3 99.9 L526 97.3 L542.7 91.4 L559.3 85.4 L576 82" fill="none" stroke="#656c76" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="408" y="106" font-size="30" fill="#f0f6fc" font-weight="600">270</text>
+<text x="408" y="128" font-size="12" fill="#3fb950">+101 in 7 days</text>
+<path d="M476 108 L490.3 106.5 L504.6 101.3 L518.9 99.2 L533.1 94.4 L547.4 89.5 L561.7 86.6 L576 82" fill="none" stroke="#656c76" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
 <circle cx="576" cy="82" r="4" fill="#199e70" stroke="#0d1117" stroke-width="2"/>
 <line x1="600" x2="614" y1="64" y2="64" stroke="#c98500" stroke-width="2" stroke-linecap="round"/>
 <text x="620" y="68" font-size="12" fill="#9198a1">Sound &amp; camera</text>
-<text x="600" y="106" font-size="30" fill="#f0f6fc" font-weight="600">405</text>
-<text x="600" y="128" font-size="12" fill="#3fb950">+164 since Nov 16</text>
-<path d="M668 108 L684.7 107.5 L701.3 102.5 L718 100.2 L734.7 93.4 L751.3 83.4 L768 82" fill="none" stroke="#656c76" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="600" y="106" font-size="30" fill="#f0f6fc" font-weight="600">434</text>
+<text x="600" y="128" font-size="12" fill="#3fb950">+193 in 7 days</text>
+<path d="M668 108 L682.3 107.6 L696.6 103.3 L710.9 101.4 L725.1 95.6 L739.4 87.1 L753.7 85.9 L768 82" fill="none" stroke="#656c76" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
 <circle cx="768" cy="82" r="4" fill="#c98500" stroke="#0d1117" stroke-width="2"/>
 <text x="24" y="162" font-size="11" fill="#9198a1">Zip downloads from GitHub releases: installs and updates. The starter set and manifest lookups are left out.</text>
 </svg>

@@ -16,13 +16,13 @@
 <line x1="51.8" x2="768" y1="104" y2="104" stroke="#eaeef2" stroke-width="1"/>
 <text x="43.8" y="108" font-size="11" fill="#6e7781" text-anchor="end">150</text>
 <text x="51.8" y="286" font-size="11" fill="#6e7781">Nov 1, 2026</text>
-<text x="195" y="286" font-size="11" fill="#6e7781" text-anchor="middle">Nov 5</text>
-<text x="338.3" y="286" font-size="11" fill="#6e7781" text-anchor="middle">Nov 9</text>
-<text x="481.5" y="286" font-size="11" fill="#6e7781" text-anchor="middle">Nov 13</text>
-<text x="624.8" y="286" font-size="11" fill="#6e7781" text-anchor="middle">Nov 17</text>
-<text x="768" y="286" font-size="11" fill="#6e7781" text-anchor="end">Nov 21</text>
-<path d="M51.8 261.9 L87.6 262.9 L123.4 261.9 L159.2 262.9 L195 261.9 L230.9 262.9 L266.7 262.9 L302.5 259.7 L338.3 254.4 L374.1 248 L409.9 252.3 L445.7 257.6 L481.5 255.5 L517.3 259.7 L553.1 259.7 L589 257.6 L624.8 251.2 L660.6 248 L696.4 254.4 L732.2 254.4 L768 257.6" fill="none" stroke="#2a78d6" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-<circle cx="768" cy="257.6" r="4" fill="#2a78d6" stroke="#ffffff" stroke-width="2"/>
-<path d="M51.8 259.7 L87.6 252.3 L123.4 249.1 L159.2 243.7 L195 239.5 L230.9 254.4 L266.7 261.9 L302.5 258.7 L338.3 251.2 L374.1 232 L409.9 219.2 L445.7 228.8 L481.5 237.3 L517.3 226.7 L553.1 251.2 L589 217.1 L624.8 212.8 L660.6 156.3 L696.4 182.9 L732.2 218.1 L768 178.7" fill="none" stroke="#eb6834" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-<circle cx="768" cy="178.7" r="4" fill="#eb6834" stroke="#ffffff" stroke-width="2"/>
+<text x="188.2" y="286" font-size="11" fill="#6e7781" text-anchor="middle">Nov 5</text>
+<text x="324.6" y="286" font-size="11" fill="#6e7781" text-anchor="middle">Nov 9</text>
+<text x="495.2" y="286" font-size="11" fill="#6e7781" text-anchor="middle">Nov 14</text>
+<text x="631.6" y="286" font-size="11" fill="#6e7781" text-anchor="middle">Nov 18</text>
+<text x="768" y="286" font-size="11" fill="#6e7781" text-anchor="end">Nov 22</text>
+<path d="M51.8 261.9 L85.9 262.9 L120 261.9 L154.1 262.9 L188.2 261.9 L222.3 262.9 L256.4 262.9 L290.5 259.7 L324.6 254.4 L358.7 248 L392.8 252.3 L427 257.6 L461.1 255.5 L495.2 259.7 L529.3 259.7 L563.4 257.6 L597.5 251.2 L631.6 248 L665.7 254.4 L699.8 254.4 L733.9 257.6 L768 258.7" fill="none" stroke="#2a78d6" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="768" cy="258.7" r="4" fill="#2a78d6" stroke="#ffffff" stroke-width="2"/>
+<path d="M51.8 259.7 L85.9 252.3 L120 249.1 L154.1 243.7 L188.2 239.5 L222.3 254.4 L256.4 261.9 L290.5 258.7 L324.6 251.2 L358.7 232 L392.8 219.2 L427 228.8 L461.1 237.3 L495.2 226.7 L529.3 251.2 L563.4 217.1 L597.5 212.8 L631.6 156.3 L665.7 182.9 L699.8 218.1 L733.9 178.7 L768 193.6" fill="none" stroke="#eb6834" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="768" cy="193.6" r="4" fill="#eb6834" stroke="#ffffff" stroke-width="2"/>
 </svg>
