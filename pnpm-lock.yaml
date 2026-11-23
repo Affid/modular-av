@@ -373,6 +373,15 @@ importers:
         specifier: workspace:*
         version: link:../testing
 
+  packages/dock-spaceship:
+    devDependencies:
+      '@modular-av/dock':
+        specifier: workspace:*
+        version: link:../dock
+      '@modular-av/testing':
+        specifier: workspace:*
+        version: link:../testing
+
   packages/dock-strongbox:
     devDependencies:
       '@modular-av/dock':

@@ -242,6 +242,10 @@
           "title": "Strongbox theme",
           "what": "The dock as a rogue's locked box, each camera a window strapped in iron with a lock, the lamp inside lit by a voice."
         },
+        "modular-av-dock-spaceship": {
+          "title": "Spaceship theme",
+          "what": "The dock as a cargo hauler's hold, each camera in a small CRT monitor on a riveted bulkhead, its name on a green segment readout."
+        },
         "modular-av-livekit-krisp": {
           "title": "Krisp noise filter, for LiveKit Cloud"
         },

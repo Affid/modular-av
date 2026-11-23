@@ -40,7 +40,7 @@ voice and video settings window and badges in the player list. Requires
 - **Themes**: other modules add them (`modular-av-dock-vines`,
   `modular-av-dock-scrolls`, `modular-av-dock-hides`,
   `modular-av-dock-plates`, `modular-av-dock-mirrors`,
-  `modular-av-dock-strongbox`);
+  `modular-av-dock-strongbox`, `modular-av-dock-spaceship`);
   choose one in Voice & Video Settings, Appearance, or follow the world's.
   Making one: [docs/dock-theming.md](../../docs/dock-theming.md).
 - Keyboard and screen reader friendly.

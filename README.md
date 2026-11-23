@@ -91,6 +91,7 @@ https://raw.githubusercontent.com/Affid/modular-av/manifests/<id>/module.json
 | Theme   | [`modular-av-dock-plates`](packages/dock-plates/README.md)       | A fighter's harness: each camera in a plate of dark steel, on mail        |
 | Theme   | [`modular-av-dock-mirrors`](packages/dock-mirrors/README.md)     | A warlock's black mirror: spirit hands out of the glass hold each camera  |
 | Theme   | [`modular-av-dock-strongbox`](packages/dock-strongbox/README.md) | A rogue's locked box: each camera a window strapped in iron, with a lock  |
+| Theme   | [`modular-av-dock-spaceship`](packages/dock-spaceship/README.md) | A cargo hauler's hold: each camera in a small CRT monitor on a bulkhead   |
 | Effect  | [`modular-av-mic-denoise`](packages/mic-denoise/README.md)       | Noise cancellation in your browser: RNNoise, Speex or GTCRN               |
 | Effect  | [`modular-av-livekit-krisp`](packages/livekit-krisp/README.md)   | Adds LiveKit's Krisp to noise cancellation, on LiveKit Cloud              |
 | Effect  | [`modular-av-cam-background`](packages/cam-background/README.md) | Blurs or replaces your camera's background, in your browser               |
