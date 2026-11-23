@@ -5,8 +5,9 @@
 // fetched into a cache before rendering.
 import { createHash } from "node:crypto";
 import { mkdir, readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { unzipSync } from "fflate";
+import { isSafePath } from "../../assets/assets.ts";
 import { fetchChecked, writeWhole } from "../../assets/downloads.ts";
 import { ROOT } from "../../workspace.ts";
 
@@ -120,6 +121,13 @@ const filesOf = (
       )
     : [[source.file, source.sha256]];
 
+/** A file's name, checked to stay inside the cache (it may name a subfolder, never `..`). */
+function inCache(name: string): string {
+  if (!isSafePath(name))
+    throw new Error(`${name} is not a path inside the cache`);
+  return name;
+}
+
 async function isWhole(file: string, hash: string): Promise<boolean> {
   try {
     return sha256(await readFile(file)) === hash;
@@ -154,7 +162,9 @@ async function fetchSource(
   source: TextureSource,
   fetcher: typeof fetch,
 ): Promise<void> {
-  const files = filesOf(source);
+  const files = filesOf(source).map(
+    ([name, hash]) => [inCache(name), hash] as const,
+  );
   const whole = await Promise.all(
     files.map(([name, hash]) => isWhole(join(dir, name), hash)),
   );
@@ -162,7 +172,11 @@ async function fetchSource(
   const label = files.map(([name]) => name).join(", ");
   const unpacked = unpack(source, await fetchChecked(label, source, fetcher));
   await Promise.all(
-    unpacked.map(([name, data]) => writeWhole(join(dir, name), data)),
+    unpacked.map(async ([name, data]) => {
+      // A model names its textures in a folder beside it (textures/<file>).
+      await mkdir(dirname(join(dir, name)), { recursive: true });
+      await writeWhole(join(dir, name), data);
+    }),
   );
 }
 

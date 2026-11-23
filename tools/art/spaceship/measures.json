@@ -1,0 +1,145 @@
+{
+  "tile": {
+    "width": 1000,
+    "height": 562.5
+  },
+  "reach": {
+    "top": 0.06,
+    "right": 0.065,
+    "bottom": 0.17,
+    "left": 0.065
+  },
+  "unitsPerMetre": 100,
+  "frameDensity": 0.75,
+  "states": ["rest", "speak", "muted", "deaf", "mdeaf"],
+  "readout": {
+    "outer": {
+      "left": 100,
+      "top": 604,
+      "right": 900,
+      "bottom": 712
+    },
+    "window": {
+      "left": 110,
+      "top": 614,
+      "right": 890,
+      "bottom": 702
+    }
+  },
+  "meter": {
+    "x": 1026,
+    "top": 40,
+    "bottom": 522,
+    "across": 18
+  },
+  "fill": {
+    "tapeFrom": 90,
+    "wrenchFrom": 150,
+    "clipboardFrom": 210,
+    "extinguisherFrom": 388
+  },
+  "pictures": {
+    "bulkhead": {
+      "width": 600,
+      "height": 600,
+      "density": 2
+    },
+    "plate": {
+      "width": 600,
+      "height": 600,
+      "density": 1
+    },
+    "plate-rim": {
+      "width": 92,
+      "height": 56,
+      "density": 3,
+      "edge": 16
+    },
+    "plate-rim-plain": {
+      "width": 92,
+      "height": 56,
+      "density": 3,
+      "edge": 16
+    },
+    "grime": {
+      "width": 600,
+      "height": 16,
+      "density": 2
+    },
+    "trim": {
+      "width": 66,
+      "height": 66,
+      "density": 3,
+      "edge": 9
+    },
+    "legend": {
+      "width": 76,
+      "height": 16,
+      "density": 4
+    },
+    "lamp-off": {
+      "width": 26,
+      "height": 26,
+      "density": 4
+    },
+    "lamp-green": {
+      "width": 26,
+      "height": 26,
+      "density": 4
+    },
+    "lamp-amber": {
+      "width": 26,
+      "height": 26,
+      "density": 4
+    },
+    "annunciator-amber": {
+      "width": 24,
+      "height": 24,
+      "density": 4,
+      "edge": 8
+    },
+    "annunciator-red": {
+      "width": 24,
+      "height": 24,
+      "density": 4,
+      "edge": 8
+    },
+    "key": {
+      "width": 36,
+      "height": 36,
+      "density": 3,
+      "edge": 13
+    },
+    "arrow": {
+      "width": 22,
+      "height": 34,
+      "density": 3,
+      "edge": 11
+    },
+    "extinguisher": {
+      "width": 169,
+      "height": 313,
+      "density": 2
+    },
+    "clipboard": {
+      "width": 152,
+      "height": 209,
+      "density": 2
+    },
+    "wrench": {
+      "width": 53,
+      "height": 155,
+      "density": 2
+    },
+    "tape": {
+      "width": 99,
+      "height": 101,
+      "density": 2
+    },
+    "rail": {
+      "width": 147,
+      "height": 32,
+      "density": 2
+    }
+  }
+}
