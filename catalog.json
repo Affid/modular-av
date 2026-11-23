@@ -315,6 +315,31 @@
       "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-dock-scrolls/module.json"
     },
     {
+      "id": "modular-av-dock-spaceship",
+      "title": "Modular A/V: Spaceship theme",
+      "description": "A cargo hauler's hold for the Modular A/V dock. The dock is a riveted bulkhead of grey-green painted steel; each camera sits in a small CRT monitor in a chipped yellow case, behind curved dusty glass, its player's name on a green segment readout. A voice lights the readout and the TX lamp; muted, gaffer tape crosses the grille; deafened, the headset hangs on the case; a weak link snows. Tools hang on rails where there is room.",
+      "kind": "theme",
+      "requires": [
+        {
+          "id": "modular-av-dock",
+          "minimum": "0.16.0"
+        }
+      ],
+      "facts": [
+        {
+          "label": "Needs",
+          "value": "The Dock"
+        },
+        {
+          "label": "Who picks it",
+          "value": "The GM, as the table's look, or each player"
+        }
+      ],
+      "icon": "fa-solid fa-rocket",
+      "version": "0.16.0",
+      "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-dock-spaceship/module.json"
+    },
+    {
       "id": "modular-av-dock-strongbox",
       "title": "Modular A/V: Strongbox theme",
       "description": "A rogue's locked box for the Modular A/V dock. The dock is the front of a strongbox of dark oiled boards in an iron band, a padlock at its top. Each camera is a window strapped in iron with a lock over it, three kinds in turn. A voice lights the lamp inside, amber through the keyhole; muted, an iron shutter slides down and a padlock hangs on the hasp; deafened, a rag fills the keyhole; out of the call, the lock is forced. Picks, keys and rope hang where there is room.",
