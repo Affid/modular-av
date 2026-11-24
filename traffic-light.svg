@@ -16,13 +16,13 @@
 <line x1="51.8" x2="768" y1="104" y2="104" stroke="#eaeef2" stroke-width="1"/>
 <text x="43.8" y="108" font-size="11" fill="#6e7781" text-anchor="end">150</text>
 <text x="51.8" y="286" font-size="11" fill="#6e7781">Nov 1, 2026</text>
-<text x="188.2" y="286" font-size="11" fill="#6e7781" text-anchor="middle">Nov 5</text>
-<text x="324.6" y="286" font-size="11" fill="#6e7781" text-anchor="middle">Nov 9</text>
-<text x="495.2" y="286" font-size="11" fill="#6e7781" text-anchor="middle">Nov 14</text>
-<text x="631.6" y="286" font-size="11" fill="#6e7781" text-anchor="middle">Nov 18</text>
-<text x="768" y="286" font-size="11" fill="#6e7781" text-anchor="end">Nov 22</text>
-<path d="M51.8 261.9 L85.9 262.9 L120 261.9 L154.1 262.9 L188.2 261.9 L222.3 262.9 L256.4 262.9 L290.5 259.7 L324.6 254.4 L358.7 248 L392.8 252.3 L427 257.6 L461.1 255.5 L495.2 259.7 L529.3 259.7 L563.4 257.6 L597.5 251.2 L631.6 248 L665.7 254.4 L699.8 254.4 L733.9 257.6 L768 258.7" fill="none" stroke="#2a78d6" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-<circle cx="768" cy="258.7" r="4" fill="#2a78d6" stroke="#ffffff" stroke-width="2"/>
-<path d="M51.8 259.7 L85.9 252.3 L120 249.1 L154.1 243.7 L188.2 239.5 L222.3 254.4 L256.4 261.9 L290.5 258.7 L324.6 251.2 L358.7 232 L392.8 219.2 L427 228.8 L461.1 237.3 L495.2 226.7 L529.3 251.2 L563.4 217.1 L597.5 212.8 L631.6 156.3 L665.7 182.9 L699.8 218.1 L733.9 178.7 L768 193.6" fill="none" stroke="#eb6834" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-<circle cx="768" cy="193.6" r="4" fill="#eb6834" stroke="#ffffff" stroke-width="2"/>
+<text x="182" y="286" font-size="11" fill="#6e7781" text-anchor="middle">Nov 5</text>
+<text x="344.8" y="286" font-size="11" fill="#6e7781" text-anchor="middle">Nov 10</text>
+<text x="475" y="286" font-size="11" fill="#6e7781" text-anchor="middle">Nov 14</text>
+<text x="637.8" y="286" font-size="11" fill="#6e7781" text-anchor="middle">Nov 19</text>
+<text x="768" y="286" font-size="11" fill="#6e7781" text-anchor="end">Nov 23</text>
+<path d="M51.8 261.9 L84.4 262.9 L116.9 261.9 L149.5 262.9 L182 261.9 L214.6 262.9 L247.1 262.9 L279.7 259.7 L312.2 254.4 L344.8 248 L377.3 252.3 L409.9 257.6 L442.5 255.5 L475 259.7 L507.6 259.7 L540.1 257.6 L572.7 251.2 L605.2 248 L637.8 254.4 L670.3 254.4 L702.9 257.6 L735.4 258.7 L768 261.9" fill="none" stroke="#2a78d6" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="768" cy="261.9" r="4" fill="#2a78d6" stroke="#ffffff" stroke-width="2"/>
+<path d="M51.8 259.7 L84.4 252.3 L116.9 249.1 L149.5 243.7 L182 239.5 L214.6 254.4 L247.1 261.9 L279.7 258.7 L312.2 251.2 L344.8 232 L377.3 219.2 L409.9 228.8 L442.5 237.3 L475 226.7 L507.6 251.2 L540.1 217.1 L572.7 212.8 L605.2 156.3 L637.8 182.9 L670.3 218.1 L702.9 178.7 L735.4 193.6 L768 218.1" fill="none" stroke="#eb6834" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="768" cy="218.1" r="4" fill="#eb6834" stroke="#ffffff" stroke-width="2"/>
 </svg>

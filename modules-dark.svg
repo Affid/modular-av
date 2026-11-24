@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="800" height="707" viewBox="0 0 800 707" role="img" aria-label="Downloads by module. Zip downloads so far over all releases, with the change over the last 7 days" font-family='system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif'>
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="733" viewBox="0 0 800 733" role="img" aria-label="Downloads by module. Zip downloads so far over all releases, with the change over the last 7 days" font-family='system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif'>
 <title>Downloads by module. Zip downloads so far over all releases, with the change over the last 7 days</title>
-<rect x="0.5" y="0.5" width="799" height="706" rx="6" fill="#0d1117" stroke="#3d444d"/>
+<rect x="0.5" y="0.5" width="799" height="732" rx="6" fill="#0d1117" stroke="#3d444d"/>
 <text x="24" y="38" font-size="16" fill="#f0f6fc" font-weight="600">Downloads by module</text>
 <text x="24" y="58" font-size="12" fill="#9198a1">Zip downloads so far over all releases, with the change over the last 7 days</text>
 <line x1="24" x2="38" y1="78" y2="78" stroke="#3987e5" stroke-width="2" stroke-linecap="round"/>
@@ -15,65 +15,68 @@
 <text x="436" y="82" font-size="12" fill="#9198a1">Starter set</text>
 <text x="194" y="120" font-size="12" fill="#9198a1" text-anchor="end">Core</text>
 <rect x="204" y="110" width="412" height="12" rx="2" fill="#3987e5"/>
-<text x="624" y="120" font-size="12" font-weight="600" fill="#f0f6fc">203<tspan dx="8" font-weight="400" fill="#3fb950">+69 in 7 days</tspan></text>
+<text x="624" y="120" font-size="12" font-weight="600" fill="#f0f6fc">206<tspan dx="8" font-weight="400" fill="#3fb950">+68 in 7 days</tspan></text>
 <text x="194" y="156" font-size="12" fill="#9198a1" text-anchor="end">LiveKit</text>
-<rect x="204" y="146" width="292.3" height="12" rx="2" fill="#d95926"/>
-<text x="504.3" y="156" font-size="12" font-weight="600" fill="#f0f6fc">144<tspan dx="8" font-weight="400" fill="#3fb950">+50 in 7 days</tspan></text>
+<rect x="204" y="146" width="292" height="12" rx="2" fill="#d95926"/>
+<text x="504" y="156" font-size="12" font-weight="600" fill="#f0f6fc">146<tspan dx="8" font-weight="400" fill="#3fb950">+48 in 7 days</tspan></text>
 <text x="194" y="182" font-size="12" fill="#9198a1" text-anchor="end">P2P</text>
-<rect x="204" y="172" width="198.9" height="12" rx="2" fill="#d95926"/>
-<text x="410.9" y="182" font-size="12" font-weight="600" fill="#f0f6fc">98<tspan dx="8" font-weight="400" fill="#3fb950">+31 in 7 days</tspan></text>
+<rect x="204" y="172" width="204" height="12" rx="2" fill="#d95926"/>
+<text x="416" y="182" font-size="12" font-weight="600" fill="#f0f6fc">102<tspan dx="8" font-weight="400" fill="#3fb950">+35 in 7 days</tspan></text>
 <text x="194" y="208" font-size="12" fill="#9198a1" text-anchor="end">Jitsi</text>
 <rect x="204" y="198" width="140" height="12" rx="2" fill="#d95926"/>
-<text x="352" y="208" font-size="12" font-weight="600" fill="#f0f6fc">69<tspan dx="8" font-weight="400" fill="#3fb950">+16 in 7 days</tspan></text>
+<text x="352" y="208" font-size="12" font-weight="600" fill="#f0f6fc">70<tspan dx="8" font-weight="400" fill="#3fb950">+16 in 7 days</tspan></text>
 <text x="194" y="234" font-size="12" fill="#9198a1" text-anchor="end">Krisp for LiveKit Cloud</text>
-<rect x="204" y="224" width="83.2" height="12" rx="2" fill="#d95926"/>
-<text x="295.2" y="234" font-size="12" font-weight="600" fill="#f0f6fc">41<tspan dx="8" font-weight="400" fill="#3fb950">+32 in 7 days</tspan></text>
+<rect x="204" y="224" width="84" height="12" rx="2" fill="#d95926"/>
+<text x="296" y="234" font-size="12" font-weight="600" fill="#f0f6fc">42<tspan dx="8" font-weight="400" fill="#3fb950">+29 in 7 days</tspan></text>
 <text x="194" y="270" font-size="12" fill="#9198a1" text-anchor="end">Dock</text>
-<rect x="204" y="260" width="363.3" height="12" rx="2" fill="#199e70"/>
-<text x="575.3" y="270" font-size="12" font-weight="600" fill="#f0f6fc">179<tspan dx="8" font-weight="400" fill="#3fb950">+72 in 7 days</tspan></text>
+<rect x="204" y="260" width="366" height="12" rx="2" fill="#199e70"/>
+<text x="578" y="270" font-size="12" font-weight="600" fill="#f0f6fc">183<tspan dx="8" font-weight="400" fill="#3fb950">+70 in 7 days</tspan></text>
 <text x="194" y="296" font-size="12" fill="#9198a1" text-anchor="end">Vines theme</text>
-<rect x="204" y="286" width="152.2" height="12" rx="2" fill="#199e70"/>
-<text x="364.2" y="296" font-size="12" font-weight="600" fill="#f0f6fc">75<tspan dx="8" font-weight="400" fill="#3fb950">+13 in 7 days</tspan></text>
+<rect x="204" y="286" width="150" height="12" rx="2" fill="#199e70"/>
+<text x="362" y="296" font-size="12" font-weight="600" fill="#f0f6fc">75<tspan dx="8" font-weight="400" fill="#3fb950">+13 in 7 days</tspan></text>
 <text x="194" y="322" font-size="12" fill="#9198a1" text-anchor="end">Plates theme</text>
-<rect x="204" y="312" width="8.1" height="12" rx="2" fill="#199e70"/>
-<text x="220.1" y="322" font-size="12" font-weight="600" fill="#f0f6fc">4<tspan dx="8" font-weight="400" fill="#3fb950">+4 in 7 days</tspan></text>
+<rect x="204" y="312" width="8" height="12" rx="2" fill="#199e70"/>
+<text x="220" y="322" font-size="12" font-weight="600" fill="#f0f6fc">4<tspan dx="8" font-weight="400" fill="#3fb950">+4 in 7 days</tspan></text>
 <text x="194" y="348" font-size="12" fill="#9198a1" text-anchor="end">Scrolls theme</text>
-<rect x="204" y="338" width="6.1" height="12" rx="2" fill="#199e70"/>
-<text x="218.1" y="348" font-size="12" font-weight="600" fill="#f0f6fc">3<tspan dx="8" font-weight="400" fill="#3fb950">+3 in 7 days</tspan></text>
+<rect x="204" y="338" width="6" height="12" rx="2" fill="#199e70"/>
+<text x="218" y="348" font-size="12" font-weight="600" fill="#f0f6fc">3<tspan dx="8" font-weight="400" fill="#3fb950">+3 in 7 days</tspan></text>
 <text x="194" y="374" font-size="12" fill="#9198a1" text-anchor="end">Hides theme</text>
-<rect x="204" y="364" width="6.1" height="12" rx="2" fill="#199e70"/>
-<text x="218.1" y="374" font-size="12" font-weight="600" fill="#f0f6fc">3<tspan dx="8" font-weight="400" fill="#3fb950">+3 in 7 days</tspan></text>
+<rect x="204" y="364" width="6" height="12" rx="2" fill="#199e70"/>
+<text x="218" y="374" font-size="12" font-weight="600" fill="#f0f6fc">3<tspan dx="8" font-weight="400" fill="#3fb950">+3 in 7 days</tspan></text>
 <text x="194" y="400" font-size="12" fill="#9198a1" text-anchor="end">Mirrors theme</text>
-<rect x="204" y="390" width="6.1" height="12" rx="2" fill="#199e70"/>
-<text x="218.1" y="400" font-size="12" font-weight="600" fill="#f0f6fc">3<tspan dx="8" font-weight="400" fill="#3fb950">+3 in 7 days</tspan></text>
+<rect x="204" y="390" width="6" height="12" rx="2" fill="#199e70"/>
+<text x="218" y="400" font-size="12" font-weight="600" fill="#f0f6fc">3<tspan dx="8" font-weight="400" fill="#3fb950">+3 in 7 days</tspan></text>
 <text x="194" y="426" font-size="12" fill="#9198a1" text-anchor="end">Strongbox theme</text>
-<rect x="204" y="416" width="6.1" height="12" rx="2" fill="#199e70"/>
-<text x="218.1" y="426" font-size="12" font-weight="600" fill="#f0f6fc">3<tspan dx="8" font-weight="400" fill="#3fb950">+3 in 7 days</tspan></text>
-<text x="194" y="462" font-size="12" fill="#9198a1" text-anchor="end">Noise cancellation</text>
-<rect x="204" y="452" width="247.6" height="12" rx="2" fill="#c98500"/>
-<text x="459.6" y="462" font-size="12" font-weight="600" fill="#f0f6fc">122<tspan dx="8" font-weight="400" fill="#3fb950">+38 in 7 days</tspan></text>
-<text x="194" y="488" font-size="12" fill="#9198a1" text-anchor="end">Camera background</text>
-<rect x="204" y="478" width="233.4" height="12" rx="2" fill="#c98500"/>
-<text x="445.4" y="488" font-size="12" font-weight="600" fill="#f0f6fc">115<tspan dx="8" font-weight="400" fill="#3fb950">+43 in 7 days</tspan></text>
-<text x="194" y="514" font-size="12" fill="#9198a1" text-anchor="end">Audio mixer</text>
-<rect x="204" y="504" width="93.4" height="12" rx="2" fill="#c98500"/>
-<text x="305.4" y="514" font-size="12" font-weight="600" fill="#f0f6fc">46<tspan dx="8" font-weight="400" fill="#3fb950">+26 in 7 days</tspan></text>
-<text x="194" y="540" font-size="12" fill="#9198a1" text-anchor="end">Reverb</text>
-<rect x="204" y="530" width="75.1" height="12" rx="2" fill="#c98500"/>
-<text x="287.1" y="540" font-size="12" font-weight="600" fill="#f0f6fc">37<tspan dx="8" font-weight="400" fill="#3fb950">+20 in 7 days</tspan></text>
-<text x="194" y="566" font-size="12" fill="#9198a1" text-anchor="end">Echo</text>
-<rect x="204" y="556" width="67" height="12" rx="2" fill="#c98500"/>
-<text x="279" y="566" font-size="12" font-weight="600" fill="#f0f6fc">33<tspan dx="8" font-weight="400" fill="#3fb950">+18 in 7 days</tspan></text>
-<text x="194" y="592" font-size="12" fill="#9198a1" text-anchor="end">Radio</text>
-<rect x="204" y="582" width="58.9" height="12" rx="2" fill="#c98500"/>
-<text x="270.9" y="592" font-size="12" font-weight="600" fill="#f0f6fc">29<tspan dx="8" font-weight="400" fill="#3fb950">+18 in 7 days</tspan></text>
-<text x="194" y="618" font-size="12" fill="#9198a1" text-anchor="end">Mic boost</text>
-<rect x="204" y="608" width="56.8" height="12" rx="2" fill="#c98500"/>
-<text x="268.8" y="618" font-size="12" font-weight="600" fill="#f0f6fc">28<tspan dx="8" font-weight="400" fill="#3fb950">+17 in 7 days</tspan></text>
-<text x="194" y="644" font-size="12" fill="#9198a1" text-anchor="end">EQ</text>
-<rect x="204" y="634" width="48.7" height="12" rx="2" fill="#c98500"/>
-<text x="260.7" y="644" font-size="12" font-weight="600" fill="#f0f6fc">24<tspan dx="8" font-weight="400" fill="#3fb950">+13 in 7 days</tspan></text>
-<text x="194" y="680" font-size="12" fill="#9198a1" text-anchor="end">Starter set</text>
-<rect x="204" y="670" width="117.7" height="12" rx="2" fill="#7d8590"/>
-<text x="329.7" y="680" font-size="12" font-weight="600" fill="#f0f6fc">58<tspan dx="8" font-weight="400" fill="#3fb950">+18 in 7 days</tspan></text>
+<rect x="204" y="416" width="6" height="12" rx="2" fill="#199e70"/>
+<text x="218" y="426" font-size="12" font-weight="600" fill="#f0f6fc">3<tspan dx="8" font-weight="400" fill="#3fb950">+3 in 7 days</tspan></text>
+<text x="194" y="452" font-size="12" fill="#9198a1" text-anchor="end">Spaceship theme</text>
+<rect x="204" y="442" width="4" height="12" rx="2" fill="#199e70"/>
+<text x="216" y="452" font-size="12" font-weight="600" fill="#f0f6fc">2<tspan dx="8" font-weight="400" fill="#3fb950">+2 in 7 days</tspan></text>
+<text x="194" y="488" font-size="12" fill="#9198a1" text-anchor="end">Noise cancellation</text>
+<rect x="204" y="478" width="246" height="12" rx="2" fill="#c98500"/>
+<text x="458" y="488" font-size="12" font-weight="600" fill="#f0f6fc">123<tspan dx="8" font-weight="400" fill="#3fb950">+38 in 7 days</tspan></text>
+<text x="194" y="514" font-size="12" fill="#9198a1" text-anchor="end">Camera background</text>
+<rect x="204" y="504" width="230" height="12" rx="2" fill="#c98500"/>
+<text x="442" y="514" font-size="12" font-weight="600" fill="#f0f6fc">115<tspan dx="8" font-weight="400" fill="#3fb950">+42 in 7 days</tspan></text>
+<text x="194" y="540" font-size="12" fill="#9198a1" text-anchor="end">Audio mixer</text>
+<rect x="204" y="530" width="92" height="12" rx="2" fill="#c98500"/>
+<text x="304" y="540" font-size="12" font-weight="600" fill="#f0f6fc">46<tspan dx="8" font-weight="400" fill="#3fb950">+26 in 7 days</tspan></text>
+<text x="194" y="566" font-size="12" fill="#9198a1" text-anchor="end">Reverb</text>
+<rect x="204" y="556" width="76" height="12" rx="2" fill="#c98500"/>
+<text x="288" y="566" font-size="12" font-weight="600" fill="#f0f6fc">38<tspan dx="8" font-weight="400" fill="#3fb950">+21 in 7 days</tspan></text>
+<text x="194" y="592" font-size="12" fill="#9198a1" text-anchor="end">Echo</text>
+<rect x="204" y="582" width="68" height="12" rx="2" fill="#c98500"/>
+<text x="280" y="592" font-size="12" font-weight="600" fill="#f0f6fc">34<tspan dx="8" font-weight="400" fill="#3fb950">+19 in 7 days</tspan></text>
+<text x="194" y="618" font-size="12" fill="#9198a1" text-anchor="end">Radio</text>
+<rect x="204" y="608" width="60" height="12" rx="2" fill="#c98500"/>
+<text x="272" y="618" font-size="12" font-weight="600" fill="#f0f6fc">30<tspan dx="8" font-weight="400" fill="#3fb950">+19 in 7 days</tspan></text>
+<text x="194" y="644" font-size="12" fill="#9198a1" text-anchor="end">Mic boost</text>
+<rect x="204" y="634" width="58" height="12" rx="2" fill="#c98500"/>
+<text x="270" y="644" font-size="12" font-weight="600" fill="#f0f6fc">29<tspan dx="8" font-weight="400" fill="#3fb950">+17 in 7 days</tspan></text>
+<text x="194" y="670" font-size="12" fill="#9198a1" text-anchor="end">EQ</text>
+<rect x="204" y="660" width="50" height="12" rx="2" fill="#c98500"/>
+<text x="262" y="670" font-size="12" font-weight="600" fill="#f0f6fc">25<tspan dx="8" font-weight="400" fill="#3fb950">+14 in 7 days</tspan></text>
+<text x="194" y="706" font-size="12" fill="#9198a1" text-anchor="end">Starter set</text>
+<rect x="204" y="696" width="116" height="12" rx="2" fill="#7d8590"/>
+<text x="328" y="706" font-size="12" font-weight="600" fill="#f0f6fc">58<tspan dx="8" font-weight="400" fill="#3fb950">+17 in 7 days</tspan></text>
 </svg>
