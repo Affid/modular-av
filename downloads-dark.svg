@@ -4,15 +4,15 @@
 <text x="24" y="38" font-size="16" fill="#f0f6fc" font-weight="600">Downloads so far</text>
 <text x="24" y="58" font-size="12" fill="#9198a1">Zip downloads of each group's modules, day by day</text>
 <line x1="24" x2="38" y1="78" y2="78" stroke="#3987e5" stroke-width="2" stroke-linecap="round"/>
-<text x="44" y="82" font-size="12" fill="#9198a1">Core<tspan dx="6" font-weight="600" fill="#f0f6fc">206</tspan></text>
+<text x="44" y="82" font-size="12" fill="#9198a1">Core<tspan dx="6" font-weight="600" fill="#f0f6fc">214</tspan></text>
 <line x1="124.4" x2="138.4" y1="78" y2="78" stroke="#d95926" stroke-width="2" stroke-linecap="round"/>
-<text x="144.4" y="82" font-size="12" fill="#9198a1">Services<tspan dx="6" font-weight="600" fill="#f0f6fc">360</tspan></text>
+<text x="144.4" y="82" font-size="12" fill="#9198a1">Services<tspan dx="6" font-weight="600" fill="#f0f6fc">375</tspan></text>
 <line x1="253.6" x2="267.6" y1="78" y2="78" stroke="#199e70" stroke-width="2" stroke-linecap="round"/>
-<text x="273.6" y="82" font-size="12" fill="#9198a1">Dock<tspan dx="6" font-weight="600" fill="#f0f6fc">276</tspan></text>
+<text x="273.6" y="82" font-size="12" fill="#9198a1">Dock<tspan dx="6" font-weight="600" fill="#f0f6fc">285</tspan></text>
 <line x1="354" x2="368" y1="78" y2="78" stroke="#c98500" stroke-width="2" stroke-linecap="round"/>
-<text x="374" y="82" font-size="12" fill="#9198a1">Sound &amp; camera<tspan dx="6" font-weight="600" fill="#f0f6fc">440</tspan></text>
+<text x="374" y="82" font-size="12" fill="#9198a1">Sound &amp; camera<tspan dx="6" font-weight="600" fill="#f0f6fc">484</tspan></text>
 <line x1="526.4" x2="540.4" y1="78" y2="78" stroke="#7d8590" stroke-width="2" stroke-linecap="round"/>
-<text x="546.4" y="82" font-size="12" fill="#9198a1">Starter set<tspan dx="6" font-weight="600" fill="#f0f6fc">58</tspan></text>
+<text x="546.4" y="82" font-size="12" fill="#9198a1">Starter set<tspan dx="6" font-weight="600" fill="#f0f6fc">60</tspan></text>
 <line x1="51.8" x2="768" y1="264" y2="264" stroke="#3d444d" stroke-width="1"/>
 <text x="43.8" y="268" font-size="11" fill="#9198a1" text-anchor="end">0</text>
 <line x1="51.8" x2="768" y1="210.66666666666669" y2="210.66666666666669" stroke="#21262d" stroke-width="1"/>
@@ -22,19 +22,19 @@
 <line x1="51.8" x2="768" y1="104" y2="104" stroke="#21262d" stroke-width="1"/>
 <text x="43.8" y="108" font-size="11" fill="#9198a1" text-anchor="end">600</text>
 <text x="51.8" y="286" font-size="11" fill="#9198a1">Nov 16, 2026</text>
-<text x="230.9" y="286" font-size="11" fill="#9198a1" text-anchor="middle">Nov 18</text>
-<text x="320.4" y="286" font-size="11" fill="#9198a1" text-anchor="middle">Nov 19</text>
-<text x="499.4" y="286" font-size="11" fill="#9198a1" text-anchor="middle">Nov 21</text>
-<text x="589" y="286" font-size="11" fill="#9198a1" text-anchor="middle">Nov 22</text>
-<text x="768" y="286" font-size="11" fill="#9198a1" text-anchor="end">Nov 24</text>
-<path d="M51.8 228.3 L141.3 227.2 L230.9 223.5 L320.4 221.3 L409.9 217.1 L499.4 213.6 L589 212 L678.5 209.9 L768 209.1" fill="none" stroke="#3987e5" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-<circle cx="768" cy="209.1" r="4" fill="#3987e5" stroke="#0d1117" stroke-width="2"/>
-<path d="M51.8 204.5 L141.3 202.1 L230.9 194.9 L320.4 192 L409.9 183.5 L499.4 175.7 L589 173.9 L678.5 170.1 L768 168" fill="none" stroke="#d95926" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-<circle cx="768" cy="168" r="4" fill="#d95926" stroke="#0d1117" stroke-width="2"/>
-<path d="M51.8 218.9 L141.3 217.3 L230.9 212 L320.4 209.9 L409.9 204.8 L499.4 199.7 L589 196.8 L678.5 192 L768 190.4" fill="none" stroke="#199e70" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-<circle cx="768" cy="190.4" r="4" fill="#199e70" stroke="#0d1117" stroke-width="2"/>
-<path d="M51.8 199.7 L141.3 198.9 L230.9 190.4 L320.4 186.7 L409.9 175.2 L499.4 158.4 L589 156 L678.5 148.3 L768 146.7" fill="none" stroke="#c98500" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-<circle cx="768" cy="146.7" r="4" fill="#c98500" stroke="#0d1117" stroke-width="2"/>
-<path d="M51.8 253.3 L141.3 253.1 L230.9 251.7 L320.4 251.5 L409.9 250.7 L499.4 249.3 L589 249.1 L678.5 248.5 L768 248.5" fill="none" stroke="#7d8590" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-<circle cx="768" cy="248.5" r="4" fill="#7d8590" stroke="#0d1117" stroke-width="2"/>
+<text x="211" y="286" font-size="11" fill="#9198a1" text-anchor="middle">Nov 18</text>
+<text x="370.1" y="286" font-size="11" fill="#9198a1" text-anchor="middle">Nov 20</text>
+<text x="449.7" y="286" font-size="11" fill="#9198a1" text-anchor="middle">Nov 21</text>
+<text x="608.8" y="286" font-size="11" fill="#9198a1" text-anchor="middle">Nov 23</text>
+<text x="768" y="286" font-size="11" fill="#9198a1" text-anchor="end">Nov 25</text>
+<path d="M51.8 228.3 L131.4 227.2 L211 223.5 L290.5 221.3 L370.1 217.1 L449.7 213.6 L529.3 212 L608.8 209.9 L688.4 209.1 L768 206.9" fill="none" stroke="#3987e5" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="768" cy="206.9" r="4" fill="#3987e5" stroke="#0d1117" stroke-width="2"/>
+<path d="M51.8 204.5 L131.4 202.1 L211 194.9 L290.5 192 L370.1 183.5 L449.7 175.7 L529.3 173.9 L608.8 170.1 L688.4 168 L768 164" fill="none" stroke="#d95926" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="768" cy="164" r="4" fill="#d95926" stroke="#0d1117" stroke-width="2"/>
+<path d="M51.8 218.9 L131.4 217.3 L211 212 L290.5 209.9 L370.1 204.8 L449.7 199.7 L529.3 196.8 L608.8 192 L688.4 190.4 L768 188" fill="none" stroke="#199e70" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="768" cy="188" r="4" fill="#199e70" stroke="#0d1117" stroke-width="2"/>
+<path d="M51.8 199.7 L131.4 198.9 L211 190.4 L290.5 186.7 L370.1 175.2 L449.7 158.4 L529.3 156 L608.8 148.3 L688.4 146.7 L768 134.9" fill="none" stroke="#c98500" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="768" cy="134.9" r="4" fill="#c98500" stroke="#0d1117" stroke-width="2"/>
+<path d="M51.8 253.3 L131.4 253.1 L211 251.7 L290.5 251.5 L370.1 250.7 L449.7 249.3 L529.3 249.1 L608.8 248.5 L688.4 248.5 L768 248" fill="none" stroke="#7d8590" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="768" cy="248" r="4" fill="#7d8590" stroke="#0d1117" stroke-width="2"/>
 </svg>
