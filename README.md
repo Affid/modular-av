@@ -1,6 +1,6 @@
 # Modular A/V download counts
 
-Written once a day by the Download counts workflow (`.github/workflows/stats.yml` on `main`). Last snapshot: Nov 25, 2026. Do not edit by hand: the next run replaces this file, the charts and the badges.
+Written once a day by the Download counts workflow (`.github/workflows/stats.yml` on `main`). Last snapshot: Nov 26, 2026. Do not edit by hand: the next run replaces this file, the charts and the badges.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Affid/modular-av/stats/card-dark.svg">
@@ -26,12 +26,12 @@ Written once a day by the Download counts workflow (`.github/workflows/stats.yml
 
 | Module | Group | Downloads so far | Change | Latest release |
 | --- | --- | ---: | --- | --- |
-| Core | Core | 214 | +62 in 7 days | 0.16.0: 34 |
-| LiveKit | Services | 151 | +41 in 7 days | 0.16.0: 23 |
-| P2P | Services | 106 | +33 in 7 days | 0.16.0: 19 |
-| Jitsi | Services | 73 | +17 in 7 days | 0.16.0: 10 |
-| Krisp for LiveKit Cloud | Services | 45 | +25 in 7 days | 0.16.0: 13 |
-| Dock | Dock | 190 | +61 in 7 days | 0.16.0: 34 |
+| Core | Core | 216 | +56 in 7 days | 0.16.0: 36 |
+| LiveKit | Services | 153 | +39 in 7 days | 0.16.0: 25 |
+| P2P | Services | 107 | +31 in 7 days | 0.16.0: 20 |
+| Jitsi | Services | 74 | +17 in 7 days | 0.16.0: 11 |
+| Krisp for LiveKit Cloud | Services | 45 | +22 in 7 days | 0.16.0: 13 |
+| Dock | Dock | 192 | +55 in 7 days | 0.16.0: 36 |
 | Vines theme | Dock | 77 | +11 in 7 days | 0.16.0: 6 |
 | Plates theme | Dock | 4 | +4 in 7 days | 0.16.0: 4 |
 | Scrolls theme | Dock | 3 | +3 in 7 days | 0.16.0: 3 |
@@ -39,15 +39,15 @@ Written once a day by the Download counts workflow (`.github/workflows/stats.yml
 | Mirrors theme | Dock | 3 | +3 in 7 days | 0.16.0: 3 |
 | Strongbox theme | Dock | 3 | +3 in 7 days | 0.16.0: 3 |
 | Spaceship theme | Dock | 2 | +2 in 7 days | 0.16.0: 2 |
-| Noise cancellation | Sound & camera | 130 | +35 in 7 days | 0.16.0: 20 |
-| Camera background | Sound & camera | 120 | +37 in 7 days | 0.16.0: 19 |
-| Audio mixer | Sound & camera | 53 | +31 in 7 days | 0.16.0: 19 |
-| Reverb | Sound & camera | 43 | +24 in 7 days | 0.16.0: 16 |
-| Echo | Sound & camera | 39 | +22 in 7 days | 0.16.0: 15 |
+| Noise cancellation | Sound & camera | 132 | +33 in 7 days | 0.16.0: 22 |
+| Camera background | Sound & camera | 122 | +35 in 7 days | 0.16.0: 21 |
+| Audio mixer | Sound & camera | 55 | +30 in 7 days | 0.16.0: 21 |
+| Reverb | Sound & camera | 44 | +24 in 7 days | 0.16.0: 17 |
+| Echo | Sound & camera | 40 | +22 in 7 days | 0.16.0: 16 |
+| Mic boost | Sound & camera | 36 | +21 in 7 days | 0.16.0: 16 |
 | Radio | Sound & camera | 35 | +22 in 7 days | 0.16.0: 16 |
-| Mic boost | Sound & camera | 34 | +20 in 7 days | 0.16.0: 14 |
-| EQ | Sound & camera | 30 | +17 in 7 days | 0.16.0: 14 |
-| Starter set | Starter set | 60 | +14 in 7 days | 0.16.0: 8 |
+| EQ | Sound & camera | 31 | +18 in 7 days | 0.16.0: 15 |
+| Starter set | Starter set | 60 | +13 in 7 days | 0.16.0: 8 |
 
 ## What is counted
 
@@ -88,8 +88,8 @@ Each module's count is the downloads of its zip over all its releases: Foundry i
 | modular-av-audio-boost-v0.14.1 | module.json | 3 |
 | modular-av-audio-boost-v0.15.0 | modular-av-audio-boost.zip | 4 |
 | modular-av-audio-boost-v0.15.0 | module.json | 20 |
-| modular-av-audio-boost-v0.16.0 | modular-av-audio-boost.zip | 14 |
-| modular-av-audio-boost-v0.16.0 | module.json | 140 |
+| modular-av-audio-boost-v0.16.0 | modular-av-audio-boost.zip | 16 |
+| modular-av-audio-boost-v0.16.0 | module.json | 171 |
 | modular-av-audio-echo-v0.10.0 | modular-av-audio-echo.zip | 2 |
 | modular-av-audio-echo-v0.10.0 | module.json | 1 |
 | modular-av-audio-echo-v0.10.1 | modular-av-audio-echo.zip | 2 |
@@ -110,8 +110,8 @@ Each module's count is the downloads of its zip over all its releases: Foundry i
 | modular-av-audio-echo-v0.14.1 | module.json | 4 |
 | modular-av-audio-echo-v0.15.0 | modular-av-audio-echo.zip | 5 |
 | modular-av-audio-echo-v0.15.0 | module.json | 24 |
-| modular-av-audio-echo-v0.16.0 | modular-av-audio-echo.zip | 15 |
-| modular-av-audio-echo-v0.16.0 | module.json | 141 |
+| modular-av-audio-echo-v0.16.0 | modular-av-audio-echo.zip | 16 |
+| modular-av-audio-echo-v0.16.0 | module.json | 171 |
 | modular-av-audio-eq-v0.10.0 | modular-av-audio-eq.zip | 1 |
 | modular-av-audio-eq-v0.10.0 | module.json | 1 |
 | modular-av-audio-eq-v0.10.1 | modular-av-audio-eq.zip | 2 |
@@ -132,8 +132,8 @@ Each module's count is the downloads of its zip over all its releases: Foundry i
 | modular-av-audio-eq-v0.14.1 | module.json | 3 |
 | modular-av-audio-eq-v0.15.0 | modular-av-audio-eq.zip | 3 |
 | modular-av-audio-eq-v0.15.0 | module.json | 20 |
-| modular-av-audio-eq-v0.16.0 | modular-av-audio-eq.zip | 14 |
-| modular-av-audio-eq-v0.16.0 | module.json | 142 |
+| modular-av-audio-eq-v0.16.0 | modular-av-audio-eq.zip | 15 |
+| modular-av-audio-eq-v0.16.0 | module.json | 173 |
 | modular-av-audio-mixer-v0.10.0 | modular-av-audio-mixer.zip | 2 |
 | modular-av-audio-mixer-v0.10.0 | module.json | 1 |
 | modular-av-audio-mixer-v0.10.1 | modular-av-audio-mixer.zip | 3 |
@@ -154,8 +154,8 @@ Each module's count is the downloads of its zip over all its releases: Foundry i
 | modular-av-audio-mixer-v0.14.1 | module.json | 25 |
 | modular-av-audio-mixer-v0.15.0 | modular-av-audio-mixer.zip | 7 |
 | modular-av-audio-mixer-v0.15.0 | module.json | 38 |
-| modular-av-audio-mixer-v0.16.0 | modular-av-audio-mixer.zip | 19 |
-| modular-av-audio-mixer-v0.16.0 | module.json | 139 |
+| modular-av-audio-mixer-v0.16.0 | modular-av-audio-mixer.zip | 21 |
+| modular-av-audio-mixer-v0.16.0 | module.json | 169 |
 | modular-av-audio-radio-v0.11.0 | modular-av-audio-radio.zip | 3 |
 | modular-av-audio-radio-v0.11.0 | module.json | 1 |
 | modular-av-audio-radio-v0.12.0 | modular-av-audio-radio.zip | 3 |
@@ -173,7 +173,7 @@ Each module's count is the downloads of its zip over all its releases: Foundry i
 | modular-av-audio-radio-v0.15.0 | modular-av-audio-radio.zip | 4 |
 | modular-av-audio-radio-v0.15.0 | module.json | 24 |
 | modular-av-audio-radio-v0.16.0 | modular-av-audio-radio.zip | 16 |
-| modular-av-audio-radio-v0.16.0 | module.json | 142 |
+| modular-av-audio-radio-v0.16.0 | module.json | 173 |
 | modular-av-audio-reverb-v0.10.0 | modular-av-audio-reverb.zip | 2 |
 | modular-av-audio-reverb-v0.10.0 | module.json | 1 |
 | modular-av-audio-reverb-v0.10.1 | modular-av-audio-reverb.zip | 3 |
@@ -194,8 +194,8 @@ Each module's count is the downloads of its zip over all its releases: Foundry i
 | modular-av-audio-reverb-v0.14.1 | module.json | 5 |
 | modular-av-audio-reverb-v0.15.0 | modular-av-audio-reverb.zip | 5 |
 | modular-av-audio-reverb-v0.15.0 | module.json | 24 |
-| modular-av-audio-reverb-v0.16.0 | modular-av-audio-reverb.zip | 16 |
-| modular-av-audio-reverb-v0.16.0 | module.json | 143 |
+| modular-av-audio-reverb-v0.16.0 | modular-av-audio-reverb.zip | 17 |
+| modular-av-audio-reverb-v0.16.0 | module.json | 173 |
 | modular-av-cam-background-v0.1.0 | modular-av-cam-background.zip | 2 |
 | modular-av-cam-background-v0.1.0 | module.json | 1 |
 | modular-av-cam-background-v0.10.0 | modular-av-cam-background.zip | 3 |
@@ -218,8 +218,8 @@ Each module's count is the downloads of its zip over all its releases: Foundry i
 | modular-av-cam-background-v0.14.1 | module.json | 50 |
 | modular-av-cam-background-v0.15.0 | modular-av-cam-background.zip | 12 |
 | modular-av-cam-background-v0.15.0 | module.json | 39 |
-| modular-av-cam-background-v0.16.0 | modular-av-cam-background.zip | 19 |
-| modular-av-cam-background-v0.16.0 | module.json | 139 |
+| modular-av-cam-background-v0.16.0 | modular-av-cam-background.zip | 21 |
+| modular-av-cam-background-v0.16.0 | module.json | 170 |
 | modular-av-cam-background-v0.2.0 | modular-av-cam-background.zip | 2 |
 | modular-av-cam-background-v0.2.0 | module.json | 1 |
 | modular-av-cam-background-v0.3.0 | modular-av-cam-background.zip | 3 |
@@ -278,8 +278,8 @@ Each module's count is the downloads of its zip over all its releases: Foundry i
 | modular-av-dock-v0.14.1 | module.json | 60 |
 | modular-av-dock-v0.15.0 | modular-av-dock.zip | 15 |
 | modular-av-dock-v0.15.0 | module.json | 39 |
-| modular-av-dock-v0.16.0 | modular-av-dock.zip | 34 |
-| modular-av-dock-v0.16.0 | module.json | 140 |
+| modular-av-dock-v0.16.0 | modular-av-dock.zip | 36 |
+| modular-av-dock-v0.16.0 | module.json | 170 |
 | modular-av-dock-v0.2.0 | modular-av-dock.zip | 2 |
 | modular-av-dock-v0.2.0 | module.json | 1 |
 | modular-av-dock-v0.3.0 | modular-av-dock.zip | 3 |
@@ -368,8 +368,8 @@ Each module's count is the downloads of its zip over all its releases: Foundry i
 | modular-av-jitsi-v0.14.1 | module.json | 6 |
 | modular-av-jitsi-v0.15.0 | modular-av-jitsi.zip | 5 |
 | modular-av-jitsi-v0.15.0 | module.json | 38 |
-| modular-av-jitsi-v0.16.0 | modular-av-jitsi.zip | 10 |
-| modular-av-jitsi-v0.16.0 | module.json | 137 |
+| modular-av-jitsi-v0.16.0 | modular-av-jitsi.zip | 11 |
+| modular-av-jitsi-v0.16.0 | module.json | 167 |
 | modular-av-jitsi-v0.2.0 | modular-av-jitsi.zip | 3 |
 | modular-av-jitsi-v0.2.0 | module.json | 2 |
 | modular-av-jitsi-v0.3.0 | modular-av-jitsi.zip | 3 |
@@ -405,7 +405,7 @@ Each module's count is the downloads of its zip over all its releases: Foundry i
 | modular-av-livekit-krisp-v0.15.0 | modular-av-livekit-krisp.zip | 7 |
 | modular-av-livekit-krisp-v0.15.0 | module.json | 38 |
 | modular-av-livekit-krisp-v0.16.0 | modular-av-livekit-krisp.zip | 13 |
-| modular-av-livekit-krisp-v0.16.0 | module.json | 139 |
+| modular-av-livekit-krisp-v0.16.0 | module.json | 169 |
 | modular-av-livekit-v0.1.0 | modular-av-livekit.zip | 2 |
 | modular-av-livekit-v0.1.0 | module.json | 1 |
 | modular-av-livekit-v0.10.0 | modular-av-livekit.zip | 3 |
@@ -428,8 +428,8 @@ Each module's count is the downloads of its zip over all its releases: Foundry i
 | modular-av-livekit-v0.14.1 | module.json | 63 |
 | modular-av-livekit-v0.15.0 | modular-av-livekit.zip | 10 |
 | modular-av-livekit-v0.15.0 | module.json | 38 |
-| modular-av-livekit-v0.16.0 | modular-av-livekit.zip | 23 |
-| modular-av-livekit-v0.16.0 | module.json | 139 |
+| modular-av-livekit-v0.16.0 | modular-av-livekit.zip | 25 |
+| modular-av-livekit-v0.16.0 | module.json | 170 |
 | modular-av-livekit-v0.2.0 | modular-av-livekit.zip | 3 |
 | modular-av-livekit-v0.2.0 | module.json | 2 |
 | modular-av-livekit-v0.3.0 | modular-av-livekit.zip | 4 |
@@ -476,8 +476,8 @@ Each module's count is the downloads of its zip over all its releases: Foundry i
 | modular-av-mic-denoise-v0.14.1 | module.json | 49 |
 | modular-av-mic-denoise-v0.15.0 | modular-av-mic-denoise.zip | 9 |
 | modular-av-mic-denoise-v0.15.0 | module.json | 38 |
-| modular-av-mic-denoise-v0.16.0 | modular-av-mic-denoise.zip | 20 |
-| modular-av-mic-denoise-v0.16.0 | module.json | 139 |
+| modular-av-mic-denoise-v0.16.0 | modular-av-mic-denoise.zip | 22 |
+| modular-av-mic-denoise-v0.16.0 | module.json | 170 |
 | modular-av-mic-denoise-v0.2.0 | modular-av-mic-denoise.zip | 3 |
 | modular-av-mic-denoise-v0.2.0 | module.json | 2 |
 | modular-av-mic-denoise-v0.3.0 | modular-av-mic-denoise.zip | 4 |
@@ -524,8 +524,8 @@ Each module's count is the downloads of its zip over all its releases: Foundry i
 | modular-av-p2p-v0.14.1 | module.json | 25 |
 | modular-av-p2p-v0.15.0 | modular-av-p2p.zip | 9 |
 | modular-av-p2p-v0.15.0 | module.json | 40 |
-| modular-av-p2p-v0.16.0 | modular-av-p2p.zip | 19 |
-| modular-av-p2p-v0.16.0 | module.json | 139 |
+| modular-av-p2p-v0.16.0 | modular-av-p2p.zip | 20 |
+| modular-av-p2p-v0.16.0 | module.json | 169 |
 | modular-av-p2p-v0.2.0 | modular-av-p2p.zip | 4 |
 | modular-av-p2p-v0.2.0 | module.json | 3 |
 | modular-av-p2p-v0.3.0 | modular-av-p2p.zip | 3 |
@@ -598,8 +598,8 @@ Each module's count is the downloads of its zip over all its releases: Foundry i
 | modular-av-v0.14.1 | module.json | 60 |
 | modular-av-v0.15.0 | modular-av.zip | 15 |
 | modular-av-v0.15.0 | module.json | 38 |
-| modular-av-v0.16.0 | modular-av.zip | 34 |
-| modular-av-v0.16.0 | module.json | 142 |
+| modular-av-v0.16.0 | modular-av.zip | 36 |
+| modular-av-v0.16.0 | module.json | 173 |
 | modular-av-v0.2.0 | modular-av.zip | 3 |
 | modular-av-v0.2.0 | module.json | 2 |
 | modular-av-v0.3.0 | modular-av.zip | 4 |

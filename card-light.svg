@@ -2,30 +2,30 @@
 <title>Modular A/V downloads</title>
 <rect x="0.5" y="0.5" width="799" height="177" rx="6" fill="#ffffff" stroke="#d1d9e0"/>
 <text x="24" y="34" font-size="14" fill="#1f2328" font-weight="600">Modular A/V downloads</text>
-<text x="776" y="34" font-size="12" fill="#6e7781" text-anchor="end">Updated Nov 25, 2026</text>
+<text x="776" y="34" font-size="12" fill="#6e7781" text-anchor="end">Updated Nov 26, 2026</text>
 <line x1="24" x2="38" y1="64" y2="64" stroke="#2a78d6" stroke-width="2" stroke-linecap="round"/>
 <text x="44" y="68" font-size="12" fill="#59636e">Core</text>
-<text x="24" y="106" font-size="30" fill="#1f2328" font-weight="600">214</text>
-<text x="24" y="128" font-size="12" fill="#1a7f37">+62 in 7 days</text>
-<path d="M92 108 L103.1 106.7 L114.2 102.2 L125.3 99.6 L136.4 94.4 L147.6 90.1 L158.7 88.2 L169.8 85.6 L180.9 84.6 L192 82" fill="none" stroke="#8c959f" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="24" y="106" font-size="30" fill="#1f2328" font-weight="600">216</text>
+<text x="24" y="128" font-size="12" fill="#1a7f37">+56 in 7 days</text>
+<path d="M92 108 L102 106.7 L112 102.3 L122 99.8 L132 94.7 L142 90.6 L152 88.7 L162 86.1 L172 85.2 L182 82.6 L192 82" fill="none" stroke="#8c959f" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
 <circle cx="192" cy="82" r="4" fill="#2a78d6" stroke="#ffffff" stroke-width="2"/>
 <line x1="216" x2="230" y1="64" y2="64" stroke="#eb6834" stroke-width="2" stroke-linecap="round"/>
 <text x="236" y="68" font-size="12" fill="#59636e">Services</text>
-<text x="216" y="106" font-size="30" fill="#1f2328" font-weight="600">375</text>
-<text x="216" y="128" font-size="12" fill="#1a7f37">+116 in 7 days</text>
-<path d="M284 108 L295.1 106.5 L306.2 101.8 L317.3 100 L328.4 94.5 L339.6 89.5 L350.7 88.3 L361.8 85.9 L372.9 84.6 L384 82" fill="none" stroke="#8c959f" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="216" y="106" font-size="30" fill="#1f2328" font-weight="600">379</text>
+<text x="216" y="128" font-size="12" fill="#1a7f37">+109 in 7 days</text>
+<path d="M284 108 L294 106.5 L304 102 L314 100.2 L324 94.8 L334 90 L344 88.8 L354 86.5 L364 85.2 L374 82.7 L384 82" fill="none" stroke="#8c959f" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
 <circle cx="384" cy="82" r="4" fill="#eb6834" stroke="#ffffff" stroke-width="2"/>
 <line x1="408" x2="422" y1="64" y2="64" stroke="#1baf7a" stroke-width="2" stroke-linecap="round"/>
 <text x="428" y="68" font-size="12" fill="#59636e">Dock</text>
-<text x="408" y="106" font-size="30" fill="#1f2328" font-weight="600">285</text>
-<text x="408" y="128" font-size="12" fill="#1a7f37">+90 in 7 days</text>
-<path d="M476 108 L487.1 106.7 L498.2 102.2 L509.3 100.4 L520.4 96.1 L531.6 91.9 L542.7 89.4 L553.8 85.4 L564.9 84 L576 82" fill="none" stroke="#8c959f" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="408" y="106" font-size="30" fill="#1f2328" font-weight="600">287</text>
+<text x="408" y="128" font-size="12" fill="#1a7f37">+84 in 7 days</text>
+<path d="M476 108 L486 106.7 L496 102.3 L506 100.5 L516 96.3 L526 92.1 L536 89.7 L546 85.7 L556 84.4 L566 82.4 L576 82" fill="none" stroke="#8c959f" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
 <circle cx="576" cy="82" r="4" fill="#1baf7a" stroke="#ffffff" stroke-width="2"/>
 <line x1="600" x2="614" y1="64" y2="64" stroke="#eda100" stroke-width="2" stroke-linecap="round"/>
 <text x="620" y="68" font-size="12" fill="#59636e">Sound &amp; camera</text>
-<text x="600" y="106" font-size="30" fill="#1f2328" font-weight="600">484</text>
-<text x="600" y="128" font-size="12" fill="#1a7f37">+208 in 7 days</text>
-<path d="M668 108 L679.1 107.7 L690.2 104.3 L701.3 102.8 L712.4 98.2 L723.6 91.4 L734.7 90.5 L745.8 87.3 L756.9 86.7 L768 82" fill="none" stroke="#8c959f" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="600" y="106" font-size="30" fill="#1f2328" font-weight="600">495</text>
+<text x="600" y="128" font-size="12" fill="#1a7f37">+205 in 7 days</text>
+<path d="M668 108 L678 107.7 L688 104.4 L698 103 L708 98.6 L718 92.1 L728 91.2 L738 88.2 L748 87.6 L758 83.1 L768 82" fill="none" stroke="#8c959f" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
 <circle cx="768" cy="82" r="4" fill="#eda100" stroke="#ffffff" stroke-width="2"/>
 <text x="24" y="162" font-size="11" fill="#6e7781">Zip downloads from GitHub releases: installs and updates. The starter set and manifest lookups are left out.</text>
 </svg>
