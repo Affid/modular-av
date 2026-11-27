@@ -4,15 +4,15 @@
 <text x="24" y="38" font-size="16" fill="#f0f6fc" font-weight="600">Downloads so far</text>
 <text x="24" y="58" font-size="12" fill="#9198a1">Zip downloads of each group's modules, day by day</text>
 <line x1="24" x2="38" y1="78" y2="78" stroke="#3987e5" stroke-width="2" stroke-linecap="round"/>
-<text x="44" y="82" font-size="12" fill="#9198a1">Core<tspan dx="6" font-weight="600" fill="#f0f6fc">216</tspan></text>
+<text x="44" y="82" font-size="12" fill="#9198a1">Core<tspan dx="6" font-weight="600" fill="#f0f6fc">219</tspan></text>
 <line x1="124.4" x2="138.4" y1="78" y2="78" stroke="#d95926" stroke-width="2" stroke-linecap="round"/>
-<text x="144.4" y="82" font-size="12" fill="#9198a1">Services<tspan dx="6" font-weight="600" fill="#f0f6fc">379</tspan></text>
+<text x="144.4" y="82" font-size="12" fill="#9198a1">Services<tspan dx="6" font-weight="600" fill="#f0f6fc">385</tspan></text>
 <line x1="253.6" x2="267.6" y1="78" y2="78" stroke="#199e70" stroke-width="2" stroke-linecap="round"/>
-<text x="273.6" y="82" font-size="12" fill="#9198a1">Dock<tspan dx="6" font-weight="600" fill="#f0f6fc">287</tspan></text>
+<text x="273.6" y="82" font-size="12" fill="#9198a1">Dock<tspan dx="6" font-weight="600" fill="#f0f6fc">291</tspan></text>
 <line x1="354" x2="368" y1="78" y2="78" stroke="#c98500" stroke-width="2" stroke-linecap="round"/>
-<text x="374" y="82" font-size="12" fill="#9198a1">Sound &amp; camera<tspan dx="6" font-weight="600" fill="#f0f6fc">495</tspan></text>
+<text x="374" y="82" font-size="12" fill="#9198a1">Sound &amp; camera<tspan dx="6" font-weight="600" fill="#f0f6fc">507</tspan></text>
 <line x1="526.4" x2="540.4" y1="78" y2="78" stroke="#7d8590" stroke-width="2" stroke-linecap="round"/>
-<text x="546.4" y="82" font-size="12" fill="#9198a1">Starter set<tspan dx="6" font-weight="600" fill="#f0f6fc">60</tspan></text>
+<text x="546.4" y="82" font-size="12" fill="#9198a1">Starter set<tspan dx="6" font-weight="600" fill="#f0f6fc">61</tspan></text>
 <line x1="51.8" x2="768" y1="264" y2="264" stroke="#3d444d" stroke-width="1"/>
 <text x="43.8" y="268" font-size="11" fill="#9198a1" text-anchor="end">0</text>
 <line x1="51.8" x2="768" y1="210.66666666666669" y2="210.66666666666669" stroke="#21262d" stroke-width="1"/>
@@ -22,19 +22,19 @@
 <line x1="51.8" x2="768" y1="104" y2="104" stroke="#21262d" stroke-width="1"/>
 <text x="43.8" y="108" font-size="11" fill="#9198a1" text-anchor="end">600</text>
 <text x="51.8" y="286" font-size="11" fill="#9198a1">Nov 16, 2026</text>
-<text x="195" y="286" font-size="11" fill="#9198a1" text-anchor="middle">Nov 18</text>
-<text x="338.3" y="286" font-size="11" fill="#9198a1" text-anchor="middle">Nov 20</text>
-<text x="481.5" y="286" font-size="11" fill="#9198a1" text-anchor="middle">Nov 22</text>
-<text x="624.8" y="286" font-size="11" fill="#9198a1" text-anchor="middle">Nov 24</text>
-<text x="768" y="286" font-size="11" fill="#9198a1" text-anchor="end">Nov 26</text>
-<path d="M51.8 228.3 L123.4 227.2 L195 223.5 L266.7 221.3 L338.3 217.1 L409.9 213.6 L481.5 212 L553.1 209.9 L624.8 209.1 L696.4 206.9 L768 206.4" fill="none" stroke="#3987e5" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-<circle cx="768" cy="206.4" r="4" fill="#3987e5" stroke="#0d1117" stroke-width="2"/>
-<path d="M51.8 204.5 L123.4 202.1 L195 194.9 L266.7 192 L338.3 183.5 L409.9 175.7 L481.5 173.9 L553.1 170.1 L624.8 168 L696.4 164 L768 162.9" fill="none" stroke="#d95926" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-<circle cx="768" cy="162.9" r="4" fill="#d95926" stroke="#0d1117" stroke-width="2"/>
-<path d="M51.8 218.9 L123.4 217.3 L195 212 L266.7 209.9 L338.3 204.8 L409.9 199.7 L481.5 196.8 L553.1 192 L624.8 190.4 L696.4 188 L768 187.5" fill="none" stroke="#199e70" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-<circle cx="768" cy="187.5" r="4" fill="#199e70" stroke="#0d1117" stroke-width="2"/>
-<path d="M51.8 199.7 L123.4 198.9 L195 190.4 L266.7 186.7 L338.3 175.2 L409.9 158.4 L481.5 156 L553.1 148.3 L624.8 146.7 L696.4 134.9 L768 132" fill="none" stroke="#c98500" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-<circle cx="768" cy="132" r="4" fill="#c98500" stroke="#0d1117" stroke-width="2"/>
-<path d="M51.8 253.3 L123.4 253.1 L195 251.7 L266.7 251.5 L338.3 250.7 L409.9 249.3 L481.5 249.1 L553.1 248.5 L624.8 248.5 L696.4 248 L768 248" fill="none" stroke="#7d8590" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-<circle cx="768" cy="248" r="4" fill="#7d8590" stroke="#0d1117" stroke-width="2"/>
+<text x="182" y="286" font-size="11" fill="#9198a1" text-anchor="middle">Nov 18</text>
+<text x="312.2" y="286" font-size="11" fill="#9198a1" text-anchor="middle">Nov 20</text>
+<text x="507.6" y="286" font-size="11" fill="#9198a1" text-anchor="middle">Nov 23</text>
+<text x="637.8" y="286" font-size="11" fill="#9198a1" text-anchor="middle">Nov 25</text>
+<text x="768" y="286" font-size="11" fill="#9198a1" text-anchor="end">Nov 27</text>
+<path d="M51.8 228.3 L116.9 227.2 L182 223.5 L247.1 221.3 L312.2 217.1 L377.3 213.6 L442.5 212 L507.6 209.9 L572.7 209.1 L637.8 206.9 L702.9 206.4 L768 205.6" fill="none" stroke="#3987e5" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="768" cy="205.6" r="4" fill="#3987e5" stroke="#0d1117" stroke-width="2"/>
+<path d="M51.8 204.5 L116.9 202.1 L182 194.9 L247.1 192 L312.2 183.5 L377.3 175.7 L442.5 173.9 L507.6 170.1 L572.7 168 L637.8 164 L702.9 162.9 L768 161.3" fill="none" stroke="#d95926" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="768" cy="161.3" r="4" fill="#d95926" stroke="#0d1117" stroke-width="2"/>
+<path d="M51.8 218.9 L116.9 217.3 L182 212 L247.1 209.9 L312.2 204.8 L377.3 199.7 L442.5 196.8 L507.6 192 L572.7 190.4 L637.8 188 L702.9 187.5 L768 186.4" fill="none" stroke="#199e70" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="768" cy="186.4" r="4" fill="#199e70" stroke="#0d1117" stroke-width="2"/>
+<path d="M51.8 199.7 L116.9 198.9 L182 190.4 L247.1 186.7 L312.2 175.2 L377.3 158.4 L442.5 156 L507.6 148.3 L572.7 146.7 L637.8 134.9 L702.9 132 L768 128.8" fill="none" stroke="#c98500" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="768" cy="128.8" r="4" fill="#c98500" stroke="#0d1117" stroke-width="2"/>
+<path d="M51.8 253.3 L116.9 253.1 L182 251.7 L247.1 251.5 L312.2 250.7 L377.3 249.3 L442.5 249.1 L507.6 248.5 L572.7 248.5 L637.8 248 L702.9 248 L768 247.7" fill="none" stroke="#7d8590" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="768" cy="247.7" r="4" fill="#7d8590" stroke="#0d1117" stroke-width="2"/>
 </svg>
