@@ -53,7 +53,12 @@ export interface FoundrySettingConfig {
   readonly type?: unknown;
   readonly choices?: Readonly<Record<string, string>>;
   readonly requiresReload?: boolean;
-  readonly onChange?: (value: unknown) => void;
+  /** Foundry passes the user who changed it for player and world settings. */
+  readonly onChange?: (
+    value: unknown,
+    options?: object,
+    userId?: string,
+  ) => void;
 }
 
 /** A `game.settings.registerMenu` entry: Foundry opens `new type()`. */

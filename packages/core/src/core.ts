@@ -40,6 +40,8 @@ import {
   createModuleSettings,
   type CoreModuleSettings,
 } from "./settings/module-settings.ts";
+import { withCachedSettings } from "./settings/setting-cache.ts";
+import { affectsCore } from "./foundry/user-changes.ts";
 import { createMeters } from "./media/meters.ts";
 import { callSources, createAudioCopies } from "./media/audio-copies.ts";
 import { announceVoiceCopies } from "./voices/announce.ts";
@@ -155,7 +157,12 @@ function followPlayer(
 }
 
 /** Called in `init`: puts the client class, the dock host and the API in place. */
-export function installCore(deps: CoreDeps): InstalledCore {
+export function installCore(foundryDeps: CoreDeps): InstalledCore {
+  // First, so a setting's change is forgotten before any other hook runs.
+  const deps: CoreDeps = {
+    ...foundryDeps,
+    game: withCachedSettings(foundryDeps.game, foundryDeps.hooks),
+  };
   const { game, hooks } = deps;
   const mod = game.modules.get(MODULE_ID);
   if (!mod) throw new Error(`Module "${MODULE_ID}" is not installed`);
@@ -463,10 +470,11 @@ function watchFoundry(
   surfaces: readonly SurfaceDefinition[],
 ): void {
   const { game, hooks } = deps;
-  // Rights, names, flags or presence changed: the controller works out
-  // what follows (refusing media, rejoining with new rights).
-  hooks.on("updateUser", () => {
-    controller().apply();
+  // Rights, names, the core's flags or presence changed: the controller
+  // works out what follows (refusing media, rejoining with new rights).
+  // Other modules' flags change nothing here, however often they're written.
+  hooks.on("updateUser", (_user: unknown, changes: unknown) => {
+    if (affectsCore(changes)) controller().apply();
   });
   hooks.on("userConnected", () => {
     controller().apply();

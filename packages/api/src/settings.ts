@@ -47,6 +47,11 @@ export interface ModuleSettings {
    * nobody loses their setup when a module changes how a setting is kept.
    */
   register(module: string, key: string, setting: ModuleSetting): void;
+  /**
+   * The current value, read from Foundry once until it changes (in
+   * `onChange` it is already the new one). An object or array is shared
+   * by every reader: copy it before changing anything in it.
+   */
   get(module: string, key: string): unknown;
   /**
    * Saves a value. A `"player"` setting goes to the server, so it saves
