@@ -32,7 +32,7 @@
         "type": "module",
         "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av/module.json",
         "compatibility": {
-          "minimum": "0.16.0"
+          "minimum": "0.16.1"
         }
       }
     ],
@@ -61,7 +61,7 @@
       ]
     }
   },
-  "version": "0.16.0",
+  "version": "0.16.1",
   "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-audio-boost/module.json",
-  "download": "https://github.com/Affid/modular-av/releases/download/modular-av-audio-boost-v0.16.0/modular-av-audio-boost.zip"
+  "download": "https://github.com/Affid/modular-av/releases/download/modular-av-audio-boost-v0.16.1/modular-av-audio-boost.zip"
 }
