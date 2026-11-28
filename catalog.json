@@ -347,7 +347,7 @@
       "requires": [
         {
           "id": "modular-av-dock",
-          "minimum": "0.16.0"
+          "minimum": "0.16.1"
         }
       ],
       "facts": [
@@ -361,7 +361,7 @@
         }
       ],
       "icon": "fa-solid fa-lock",
-      "version": "0.16.0",
+      "version": "0.16.1",
       "manifest": "https://raw.githubusercontent.com/Affid/modular-av/manifests/modular-av-dock-strongbox/module.json"
     },
     {
