@@ -1,5 +1,36 @@
 # @modular-av/core
 
+## 0.16.1
+
+### Patch Changes
+
+- ea42937: The module planner describes the Hides theme (`modular-av-dock-hides`) in
+  its own short words. Until this version it shows the module's own, longer
+  description.
+- 02d0aaf: The module planner describes the Mirrors theme (`modular-av-dock-mirrors`)
+  in its own short words. Until this version it shows the module's own,
+  longer description.
+- c5c46ef: The module planner describes the Plates theme (`modular-av-dock-plates`)
+  in its own short words. Until this version it shows the module's own,
+  longer description.
+- e15ef1c: The module planner describes the Scrolls theme (`modular-av-dock-scrolls`,
+  released with 0.16.0) in its own short words. Until this version it shows
+  the module's own, longer description.
+- 90801e8: Less work on every player's browser during a game. The core reads each
+  of its settings from Foundry once until it changes, instead of dozens of
+  times on each update: in Foundry 14 every such read builds a whole
+  Setting document or searches all of them. And when another module writes
+  its own flags on a user, which some do every few seconds for every
+  player, the core no longer works out the call again.
+- f05f625: The module planner describes the Spaceship theme
+  (`modular-av-dock-spaceship`) in its own short words. Until this version
+  it shows the module's own, longer description.
+- fb6cd0e: The module planner describes the Strongbox theme
+  (`modular-av-dock-strongbox`) in its own short words. Until this version
+  it shows the module's own, longer description.
+- @modular-av/api@0.16.1
+  - @modular-av/kit@0.16.1
+
 ## 0.16.0
 
 ### Patch Changes

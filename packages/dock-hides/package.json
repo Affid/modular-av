@@ -1,6 +1,6 @@
 {
   "name": "@modular-av/dock-hides",
-  "version": "0.16.0",
+  "version": "0.16.1",
   "private": true,
   "description": "Modular A/V theme module: a barbarian's hall for modular-av-dock, each camera on a hide laced into a frame of poles on a timber wall.",
   "license": "MIT",

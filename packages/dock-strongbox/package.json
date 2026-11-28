@@ -1,6 +1,6 @@
 {
   "name": "@modular-av/dock-strongbox",
-  "version": "0.16.0",
+  "version": "0.16.1",
   "private": true,
   "description": "Modular A/V theme module: a rogue's locked box for modular-av-dock, the dock the front of a strongbox of dark oiled boards bound in iron, each camera a window strapped in iron with a lock over it.",
   "license": "MIT",

@@ -1,6 +1,6 @@
 {
   "name": "@modular-av/dock-spaceship",
-  "version": "0.16.0",
+  "version": "0.16.1",
   "private": true,
   "description": "Modular A/V theme module: a cargo hauler's hold for modular-av-dock, the dock a riveted bulkhead of grey-green painted steel, each camera in a small CRT monitor in a chipped yellow case with its player's name on a green segment readout.",
   "license": "MIT",

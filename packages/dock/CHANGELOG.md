@@ -1,5 +1,11 @@
 # @modular-av/dock
 
+## 0.16.1
+
+### Patch Changes
+
+- @modular-av/kit@0.16.1
+
 ## 0.16.0
 
 ### Minor Changes

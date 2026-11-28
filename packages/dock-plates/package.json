@@ -1,6 +1,6 @@
 {
   "name": "@modular-av/dock-plates",
-  "version": "0.16.0",
+  "version": "0.16.1",
   "private": true,
   "description": "Modular A/V theme module: a fighter's harness for modular-av-dock, each camera in a plate of dark steel laced with a cord, on mail over blue cloth.",
   "license": "MIT",
