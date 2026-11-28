@@ -30,12 +30,19 @@ import {
 
 test.describe.configure({ mode: "serial" });
 
-/** Firefox's own fake devices (a tone and a moving picture), no prompts. */
+/**
+ * Firefox's own fake devices (a tone and a moving picture), no prompts,
+ * and WebGL in software. Foundry's join page needs WebGL before it shows
+ * the login form, and since 2026-11-28 this Firefox finds no GL driver it
+ * trusts in WSL ("Exhausted GL driver options"): without the last pref the
+ * page throws on `getExtension` and the player never logs in.
+ */
 const FIREFOX_PREFS = {
   "media.navigator.streams.fake": true,
   "media.navigator.permission.disabled": true,
   "media.autoplay.default": 0,
   "media.autoplay.blocking_policy": 0,
+  "webgl.force-enabled": true,
 };
 
 let fx: Browser | null = null;
